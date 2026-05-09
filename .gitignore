@@ -42,3 +42,11 @@ Thumbs.db
 .nx/workspace-data
 .claude/worktrees
 .claude/settings.local.json
+
+.angular
+
+__screenshots__/
+
+prisma/__generated__/
+
+.env
