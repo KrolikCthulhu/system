@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
     provider = "prisma-client-js"
     output   = "./__generated__"
@@ -18,16 +13,55 @@ enum UserRole {
 }
 
 model User {
-    id           String   @id @default(uuid()) @db.Uuid
-    email        String   @unique
-    passwordHash String
-    displayName  String?
-    role         UserRole @default(USER)
-
-    isActive Boolean @default(true)
-
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+    id                      String                   @id @default(uuid()) @db.Uuid
+    email                   String                   @unique
+    username                String                   @unique
+    passwordHash            String
+    role                    UserRole                 @default(USER)
+    isActive                Boolean                  @default(true)
+    isEmailVerified         Boolean                  @default(false)
+    authSessions            AuthSession[]
+    emailVerificationTokens EmailVerificationToken[]
+    createdAt               DateTime                 @default(now())
+    updatedAt               DateTime                 @updatedAt
 
     @@map("users")
+}
+
+model AuthSession {
+    id           String        @id @default(uuid()) @db.Uuid
+    userId       String        @db.Uuid
+    user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+    tokenHash    String
+    familyId     String        @db.Uuid
+    parentId     String?       @db.Uuid
+    parent       AuthSession?  @relation("AuthSessionRotation", fields: [parentId], references: [id], onDelete: SetNull)
+    children     AuthSession[] @relation("AuthSessionRotation")
+    expiresAt    DateTime
+    revokedAt    DateTime?
+    replacedById String?       @db.Uuid
+    ipAddress    String?
+    userAgent    String?
+    createdAt    DateTime      @default(now())
+    updatedAt    DateTime      @updatedAt
+
+    @@index([userId])
+    @@index([familyId])
+    @@index([expiresAt])
+    @@index([parentId])
+    @@map("auth_sessions")
+}
+
+model EmailVerificationToken {
+    id        String    @id @default(uuid()) @db.Uuid
+    userId    String    @db.Uuid
+    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+    tokenHash String
+    expiresAt DateTime
+    usedAt    DateTime?
+    createdAt DateTime  @default(now())
+
+    @@index([userId])
+    @@index([expiresAt])
+    @@map("email_verification_tokens")
 }
