@@ -1,0 +1,10 @@
+.role-home {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.role-home__copy {
+	margin: 0;
+	color: var(--p-text-muted-color);
+}

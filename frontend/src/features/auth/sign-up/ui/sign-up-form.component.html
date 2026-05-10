@@ -1,0 +1,71 @@
+<form [formGroup]="form" class="auth-form" (ngSubmit)="submit()">
+	<div class="auth-form__fields">
+		<div class="auth-form__field">
+			<p-floatlabel variant="in">
+				<input
+					pInputText
+					fluid
+					id="register-email"
+					type="email"
+					formControlName="email"
+					[invalid]="hasError('email')"
+				/>
+				<label for="register-email">Email</label>
+			</p-floatlabel>
+
+			@if (hasError('email')) {
+				<p-message severity="error" size="small" variant="simple">
+					Please enter a valid email.
+				</p-message>
+			}
+		</div>
+
+		<div class="auth-form__field">
+			<p-floatlabel variant="in">
+				<input
+					pInputText
+					fluid
+					id="register-username"
+					type="text"
+					formControlName="username"
+					[invalid]="hasError('username')"
+				/>
+				<label for="register-username">Username</label>
+			</p-floatlabel>
+
+			@if (hasError('username')) {
+				<p-message severity="error" size="small" variant="simple">
+					Use 3 to 32 letters, digits, or underscores.
+				</p-message>
+			}
+		</div>
+
+		<div class="auth-form__field">
+			<p-floatlabel variant="in">
+				<p-password
+					fluid
+					inputId="register-password"
+					formControlName="password"
+					[invalid]="hasError('password')"
+					[feedback]="true"
+					[toggleMask]="true"
+				></p-password>
+				<label for="register-password">Password</label>
+			</p-floatlabel>
+
+			@if (hasError('password')) {
+				<p-message severity="error" size="small" variant="simple">
+					Minimum 8 characters.
+				</p-message>
+			}
+		</div>
+	</div>
+
+	<p-button
+		type="submit"
+		label="Create account"
+		icon="pi pi-user-plus"
+		[loading]="pending()"
+		[disabled]="pending()"
+	></p-button>
+</form>

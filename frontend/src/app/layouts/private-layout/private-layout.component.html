@@ -1,0 +1,35 @@
+<div class="private-layout">
+	<p-toolbar>
+		<ng-template #start>
+			<div class="private-layout__identity">
+				@if (user(); as currentUser) {
+					<div class="private-layout__username">
+						{{ currentUser.displayUsername || currentUser.username }}
+					</div>
+					<div class="private-layout__role">
+						{{ getRoleLabel(currentUser.role) }}
+					</div>
+				}
+			</div>
+		</ng-template>
+		<ng-template #end>
+			<p-button
+				severity="secondary"
+				icon="pi pi-sign-out"
+				label="Logout"
+				[disabled]="pending()"
+				(click)="logout()"
+			></p-button>
+		</ng-template>
+	</p-toolbar>
+
+	@if (errorMessage()) {
+		<div class="private-layout__error">
+			{{ errorMessage() }}
+		</div>
+	}
+
+	<div class="private-layout__content">
+		<router-outlet></router-outlet>
+	</div>
+</div>

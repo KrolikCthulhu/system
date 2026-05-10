@@ -1,0 +1,51 @@
+<form [formGroup]="form" class="auth-form" (ngSubmit)="submit()">
+	<div class="auth-form__fields">
+		<div class="auth-form__field">
+			<p-floatlabel variant="in">
+				<input
+					pInputText
+					fluid
+					id="login-email"
+					type="email"
+					formControlName="email"
+					[invalid]="hasError('email')"
+				/>
+				<label for="login-email">Email</label>
+			</p-floatlabel>
+
+			@if (hasError('email')) {
+				<p-message severity="error" size="small" variant="simple">
+					Please enter a valid email.
+				</p-message>
+			}
+		</div>
+
+		<div class="auth-form__field">
+			<p-floatlabel variant="in">
+				<p-password
+					fluid
+					inputId="login-password"
+					formControlName="password"
+					[invalid]="hasError('password')"
+					[feedback]="false"
+					[toggleMask]="true"
+				></p-password>
+				<label for="login-password">Password</label>
+			</p-floatlabel>
+
+			@if (hasError('password')) {
+				<p-message severity="error" size="small" variant="simple">
+					Password is required.
+				</p-message>
+			}
+		</div>
+	</div>
+
+	<p-button
+		type="submit"
+		label="Sign in"
+		icon="pi pi-sign-in"
+		[loading]="pending()"
+		[disabled]="pending()"
+	></p-button>
+</form>

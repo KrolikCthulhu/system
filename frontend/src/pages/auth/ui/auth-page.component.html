@@ -1,0 +1,51 @@
+<main class="auth-page">
+	<p-card class="auth-block" [style]="cardStyle">
+		<div class="auth-switch">
+			<p-button
+				label="Sign in"
+				[disabled]="pending()"
+				[variant]="mode() === 'sign-in' ? undefined : 'outlined'"
+				[severity]="mode() === 'sign-in' ? undefined : 'secondary'"
+				(onClick)="setMode('sign-in')"
+			></p-button>
+			<p-button
+				label="Register"
+				[disabled]="pending()"
+				[variant]="mode() === 'register' ? undefined : 'outlined'"
+				[severity]="mode() === 'register' ? undefined : 'secondary'"
+				(onClick)="setMode('register')"
+			></p-button>
+		</div>
+
+		<div class="auth-content" [style.minHeight]="contentMinHeight()">
+			@if (mode() === 'sign-in') {
+				<app-sign-in-form
+					[pending]="pending()"
+					(submitted)="handleSignIn($event)"
+				></app-sign-in-form>
+			} @else {
+				<app-sign-up-form
+					[pending]="pending()"
+					(submitted)="handleSignUp($event)"
+				></app-sign-up-form>
+			}
+		</div>
+
+		<div class="auth-feedback">
+			@if (errorMessage()) {
+				<p-message severity="error" styleClass="auth-page__message">
+					{{ errorMessage() }}
+				</p-message>
+			}
+		</div>
+	</p-card>
+
+	<div class="auth-measure">
+		<div #signInMeasure class="auth-measure__content">
+			<app-sign-in-form [pending]="false"></app-sign-in-form>
+		</div>
+		<div #signUpMeasure class="auth-measure__content">
+			<app-sign-up-form [pending]="false"></app-sign-up-form>
+		</div>
+	</div>
+</main>

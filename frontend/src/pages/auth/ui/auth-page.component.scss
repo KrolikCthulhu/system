@@ -1,0 +1,43 @@
+:host {
+	display: block;
+	min-height: 100vh;
+}
+
+.auth-page {
+	min-height: 100vh;
+	display: grid;
+	place-items: center;
+	padding: 1rem;
+	background: #fff;
+}
+
+.auth-switch {
+	display: flex;
+	gap: 0.75rem;
+	margin-bottom: 1rem;
+}
+
+.auth-content {
+	width: 100%;
+}
+
+.auth-feedback {
+	margin-top: 1rem;
+}
+
+.auth-page__message {
+	display: block;
+}
+
+.auth-measure {
+	position: fixed;
+	left: -99999px;
+	top: 0;
+	width: min(37.5rem, 92vw);
+	pointer-events: none;
+	opacity: 0;
+}
+
+.auth-measure__content {
+	width: 100%;
+}
