@@ -66,3 +66,58 @@ model EmailVerificationToken {
     @@index([expiresAt])
     @@map("email_verification_tokens")
 }
+
+model SkillCategory {
+    id          String   @id @default(uuid()) @db.Uuid
+    code        String   @unique
+    name        String
+    description String?
+    isActive    Boolean  @default(true) @map("is_active")
+    sortOrder   Int      @default(0) @map("sort_order")
+    createdAt   DateTime @default(now()) @map("created_at")
+    updatedAt   DateTime @updatedAt @map("updated_at")
+    skills      Skill[]
+
+    @@index([isActive, sortOrder])
+    @@map("skill_categories")
+}
+
+model SkillLevel {
+    id                    String   @id @default(uuid()) @db.Uuid
+    level                 Int      @unique
+    name                  String
+    canRoll               Boolean  @default(true) @map("can_roll")
+    successMin            Int?     @map("success_min")
+    doubleSuccessMin      Int?     @map("double_success_min")
+    ignoreOnesCount       Int      @default(0) @map("ignore_ones_count")
+    expectedSuccessPerDie Decimal  @default(0) @map("expected_success_per_die") @db.Decimal(8, 4)
+    ruleText              String   @map("rule_text")
+    isActive              Boolean  @default(true) @map("is_active")
+    sortOrder             Int      @default(0) @map("sort_order")
+    createdAt             DateTime @default(now()) @map("created_at")
+    updatedAt             DateTime @updatedAt @map("updated_at")
+
+    @@index([isActive, sortOrder])
+    @@map("skill_levels")
+}
+
+model Skill {
+    id                    String        @id @default(uuid()) @db.Uuid
+    code                  String        @unique
+    name                  String
+    shortName             String?       @map("short_name")
+    categoryId            String        @map("category_id") @db.Uuid
+    category              SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+    description           String?
+    maxLevel              Int           @default(6) @map("max_level")
+    defaultLevel          Int           @default(0) @map("default_level")
+    usesDefaultLevelRules Boolean       @default(true) @map("uses_default_level_rules")
+    isActive              Boolean       @default(true) @map("is_active")
+    sortOrder             Int           @default(0) @map("sort_order")
+    createdAt             DateTime      @default(now()) @map("created_at")
+    updatedAt             DateTime      @updatedAt @map("updated_at")
+
+    @@index([categoryId])
+    @@index([categoryId, isActive, sortOrder])
+    @@map("skills")
+}

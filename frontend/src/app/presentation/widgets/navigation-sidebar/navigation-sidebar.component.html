@@ -1,0 +1,41 @@
+<div class="navigation-sidebar">
+	@if (eyebrow()) {
+		<div class="text-overline">{{ eyebrow() }}</div>
+	}
+
+	<h2 class="navigation-sidebar__title">{{ title() }}</h2>
+
+	<nav class="navigation-sidebar__nav" aria-label="Sidebar navigation">
+		@for (item of navigationItems(); track item.label; let index = $index) {
+			<div class="navigation-sidebar__section">
+				<button
+					type="button"
+					class="navigation-sidebar__section-toggle"
+					[class.navigation-sidebar__section-toggle--expanded]="isExpanded(index)"
+					(click)="toggleSection(index)"
+				>
+					<span class="navigation-sidebar__section-label">{{ item.label }}</span>
+					<span
+						class="navigation-sidebar__section-chevron pi pi-angle-down"
+						aria-hidden="true"
+					></span>
+				</button>
+
+				@if (item.items?.length && isExpanded(index)) {
+					<div class="navigation-sidebar__links">
+						@for (child of item.items; track child.label) {
+							<a
+								class="navigation-sidebar__link"
+								[routerLink]="child.routerLink"
+								routerLinkActive="navigation-sidebar__link--active"
+								[routerLinkActiveOptions]="{ exact: true }"
+							>
+								{{ child.label }}
+							</a>
+						}
+					</div>
+				}
+			</div>
+		}
+	</nav>
+</div>

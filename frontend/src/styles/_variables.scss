@@ -1,3 +1,11 @@
 :root {
 	--bg-color: white;
+	--font-family-base:
+		'Inter', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+	--text-eyebrow-font-size: clamp(0.6875rem, 0.675rem + 0.06vw, 0.75rem);
+	--text-eyebrow-letter-spacing: 0.12em;
+	--text-heading-1-size: clamp(1.125rem, 1.05rem + 0.35vw, 1.375rem);
+	--text-heading-2-size: clamp(1rem, 0.96rem + 0.2vw, 1.125rem);
+	--text-heading-3-size: clamp(0.9375rem, 0.91rem + 0.14vw, 1rem);
+	--text-heading-4-size: clamp(0.875rem, 0.86rem + 0.08vw, 0.9375rem);
 }

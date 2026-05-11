@@ -13,6 +13,7 @@ import { InitializeSessionUseCase } from './use-cases/auth/use-cases/initialize-
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './infrastructure/auth/auth.interceptor';
 import { provideAuthInfrastructure } from './infrastructure/auth/provide-auth-infrastructure';
+import { provideSkillsInfrastructure } from './infrastructure/skills/provide-skills-infrastructure';
 
 const appThemePreset = definePreset(Aura, {
 	semantic: {
@@ -36,6 +37,7 @@ export const appConfig: ApplicationConfig = {
 	providers: [
 		provideBrowserGlobalErrorListeners(),
 		...provideAuthInfrastructure(),
+		...provideSkillsInfrastructure(),
 		provideAppInitializer(() => inject(InitializeSessionUseCase).execute()),
 		provideHttpClient(withInterceptors([authInterceptor])),
 		provideRouter(appRoutes),
