@@ -1,0 +1,17 @@
+<section class="admin-layout">
+	<aside class="admin-layout__sidebar">
+		<div class="admin-layout__sidebar-header">
+			<div class="admin-layout__eyebrow">Админ-панель</div>
+			<h2 class="admin-layout__title">Управление системой</h2>
+		</div>
+
+		<p-panelmenu
+			class="admin-layout__menu"
+			[model]="navigationItems"
+		></p-panelmenu>
+	</aside>
+
+	<div class="admin-layout__content">
+		<router-outlet></router-outlet>
+	</div>
+</section>

@@ -1,7 +1,7 @@
 import { Route } from '@angular/router';
-import { authChildGuard, authGuard } from '@app/providers/auth/auth.guard';
-import { authRoutes } from '@app/routing/auth.routes';
-import { privateRoutes } from '@app/routing/private.routes';
+import { authChildGuard, authGuard } from './app/guards/auth.guard';
+import { authRoutes } from './app/routing/auth.routes';
+import { privateRoutes } from './app/routing/private.routes';
 
 export const appRoutes: Route[] = [
 	...authRoutes,
@@ -10,7 +10,7 @@ export const appRoutes: Route[] = [
 		canActivate: [authGuard],
 		canActivateChild: [authChildGuard],
 		loadComponent: () =>
-			import('@app/layouts/private-layout/private-layout.component').then(
+			import('./app/layouts/private-layout/private-layout.component').then(
 				m => m.PrivateLayoutComponent
 			),
 		children: privateRoutes

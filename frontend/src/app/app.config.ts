@@ -9,9 +9,10 @@ import { provideRouter } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
 import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
-import { AuthSessionService } from '@entities/session/model/auth-session.service';
-import { authInterceptor } from '@app/providers/auth/auth.interceptor';
-import { appRoutes } from '@app/app.routes';
+import { InitializeSessionUseCase } from './use-cases/auth/use-cases/initialize-session.use-case';
+import { appRoutes } from './app.routes';
+import { authInterceptor } from './infrastructure/auth/auth.interceptor';
+import { provideAuthInfrastructure } from './infrastructure/auth/provide-auth-infrastructure';
 
 const appThemePreset = definePreset(Aura, {
 	semantic: {
@@ -34,7 +35,8 @@ const appThemePreset = definePreset(Aura, {
 export const appConfig: ApplicationConfig = {
 	providers: [
 		provideBrowserGlobalErrorListeners(),
-		provideAppInitializer(() => inject(AuthSessionService).initializeSession()),
+		...provideAuthInfrastructure(),
+		provideAppInitializer(() => inject(InitializeSessionUseCase).execute()),
 		provideHttpClient(withInterceptors([authInterceptor])),
 		provideRouter(appRoutes),
 		providePrimeNG({

@@ -15,10 +15,6 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "paths": {
-      "@app/*": ["frontend/src/app/*"],
-      "@entities/*": ["frontend/src/entities/*"],
-      "@features/*": ["frontend/src/features/*"],
-      "@pages/*": ["frontend/src/pages/*"],
       "@prisma/generated": ["prisma/__generated__"]
     }
   },

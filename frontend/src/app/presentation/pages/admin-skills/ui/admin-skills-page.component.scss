@@ -1,0 +1,24 @@
+.admin-skills-page {
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-skills-page__header {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.admin-skills-page__eyebrow {
+	font-size: 0.8rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--p-primary-color);
+}
+
+.admin-skills-page__title {
+	margin: 0;
+	font-size: clamp(2rem, 1.5rem + 1.6vw, 3.5rem);
+	line-height: 1;
+}

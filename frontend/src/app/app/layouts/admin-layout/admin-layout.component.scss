@@ -1,0 +1,114 @@
+.admin-layout {
+	height: 100%;
+	min-height: 0;
+	display: grid;
+	grid-template-columns: 20rem minmax(0, 1fr);
+	gap: 1.5rem;
+}
+
+.admin-layout__sidebar,
+.admin-layout__content {
+	min-height: 0;
+}
+
+.admin-layout__sidebar {
+	padding: 1.5rem;
+	border: 1px solid color-mix(in srgb, var(--p-surface-400) 20%, transparent);
+	border-radius: 1.75rem;
+	background:
+		linear-gradient(
+			180deg,
+			color-mix(in srgb, var(--p-primary-100) 45%, white) 0%,
+			color-mix(in srgb, var(--p-surface-0) 92%, var(--p-primary-50)) 100%
+		);
+	box-shadow:
+		0 1.5rem 3rem -2.25rem rgba(15, 23, 42, 0.45),
+		inset 0 1px 0 rgba(255, 255, 255, 0.8);
+	overflow: auto;
+}
+
+.admin-layout__sidebar-header {
+	margin-bottom: 1.5rem;
+}
+
+.admin-layout__eyebrow {
+	margin-bottom: 0.5rem;
+	font-size: 0.75rem;
+	font-weight: 700;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--p-primary-color);
+}
+
+.admin-layout__title {
+	margin: 0;
+	font-size: clamp(1.375rem, 1.2rem + 0.9vw, 2rem);
+	line-height: 1.1;
+}
+
+.admin-layout__menu {
+	display: block;
+}
+
+.admin-layout__content {
+	padding: 1.75rem;
+	border-radius: 1.75rem;
+	background:
+		radial-gradient(
+			circle at top right,
+			color-mix(in srgb, var(--p-primary-100) 55%, transparent) 0,
+			transparent 35%
+		),
+		color-mix(in srgb, var(--p-surface-0) 92%, white);
+	border: 1px solid color-mix(in srgb, var(--p-surface-300) 45%, transparent);
+	box-shadow: 0 1.5rem 3rem -2.5rem rgba(15, 23, 42, 0.2);
+	overflow: auto;
+}
+
+:host ::ng-deep {
+	.p-panelmenu {
+		background: transparent;
+	}
+
+	.p-panelmenu-panel {
+		border: 0;
+		background: transparent;
+	}
+
+	.p-panelmenu-header-link,
+	.p-panelmenu-item-link {
+		border-radius: 1rem;
+	}
+
+	.p-panelmenu-header-link {
+		padding-inline: 1rem;
+		padding-block: 0.9rem;
+		font-weight: 600;
+		background: rgba(255, 255, 255, 0.55);
+		backdrop-filter: blur(10px);
+	}
+
+	.p-panelmenu-content {
+		padding-top: 0.5rem;
+		border: 0;
+		background: transparent;
+	}
+
+	.p-panelmenu-item-link {
+		margin-left: 0.25rem;
+		padding-inline: 1rem;
+		padding-block: 0.8rem;
+		color: var(--p-text-color);
+	}
+
+	.p-panelmenu-item-link-active {
+		background: color-mix(in srgb, var(--p-primary-color) 12%, white);
+		color: var(--p-primary-color);
+	}
+}
+
+@media (max-width: 1024px) {
+	.admin-layout {
+		grid-template-columns: 1fr;
+	}
+}

@@ -1,0 +1,41 @@
+.private-layout {
+	height: 100vh;
+	padding: 1.5rem;
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	background:
+		radial-gradient(
+			circle at top left,
+			color-mix(in srgb, var(--p-primary-100) 70%, white) 0,
+			transparent 30%
+		),
+		linear-gradient(180deg, #fcfcfd 0%, #f4f6fb 100%);
+	overflow: hidden;
+}
+
+.private-layout__identity {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+}
+
+.private-layout__username {
+	font-size: 1.125rem;
+	font-weight: 600;
+}
+
+.private-layout__role {
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.private-layout__error {
+	color: var(--p-red-500);
+	font-size: 0.875rem;
+}
+
+.private-layout__content {
+	flex: 1;
+	min-height: 0;
+}
