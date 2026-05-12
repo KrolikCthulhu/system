@@ -2,7 +2,13 @@
 	"name": "@system/source",
 	"version": "0.0.0",
 	"license": "MIT",
-	"scripts": {},
+	"scripts": {
+		"seed:db": "prisma db seed",
+		"dev": "nx run-many --target=serve --projects=frontend,backend"
+	},
+	"prisma": {
+		"seed": "ts-node prisma/seed.ts"
+	},
 	"private": true,
 	"devDependencies": {
 		"@angular-devkit/core": "~21.2.0",
