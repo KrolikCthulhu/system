@@ -4,15 +4,15 @@ import { FormChangeTracker } from '../../../shared/forms/form-change-tracker';
 import { UnsavedChangesGuard } from '../../../shared/forms/unsaved-changes.guard';
 import { SKILLS_REPOSITORY } from '../data/skills-repository.port';
 import { SkillCategory } from '../domain/skills.models';
-import { SkillsCatalogFacade } from './skills-catalog.facade';
-import { CategoryEditorStore } from './category-editor.store';
 import {
 	CategoryFormValue,
 	createCategoryForm,
 	getCategoryFormValue,
 	patchCategoryForm,
 	resetCategoryForm
-} from './forms/category-editor.form';
+} from '../ui/forms/category-editor.form';
+import { SkillsCatalogFacade } from './skills-catalog.facade';
+import { CategoryEditorStore } from './category-editor.store';
 
 @Injectable()
 export class CategoryEditorFacade {
@@ -101,6 +101,47 @@ export class CategoryEditorFacade {
 			},
 			error: () => this.store.setSaving(false)
 		});
+	}
+
+	deleteCategory(categoryId?: string) {
+		const targetCategoryId = categoryId ?? this.catalogFacade.selectedCategoryId();
+
+		if (!targetCategoryId) {
+			return;
+		}
+
+		if (this.store.draftCategoryIds().includes(targetCategoryId)) {
+			this.catalogFacade.removeCategory(targetCategoryId);
+			this.store.removeDraftCategoryId(targetCategoryId);
+			if (this.catalogFacade.selectedCategoryId() === targetCategoryId) {
+				this.catalogFacade.setSelectedCategoryId(null);
+			}
+			return;
+		}
+
+		this.store.setSaving(true);
+
+		this.catalogFacade
+			.deleteCategory(targetCategoryId)
+			.pipe(takeUntilDestroyed(this.destroyRef))
+			.subscribe({
+				next: () => {
+					this.catalogFacade.removeSkillsByCategory(targetCategoryId);
+					this.catalogFacade.removeCategory(targetCategoryId);
+
+					if (
+						this.catalogFacade.selectedSkillFilterCategoryId() === targetCategoryId
+					) {
+						this.catalogFacade.setSelectedSkillFilterCategoryId('all');
+					}
+
+					if (this.catalogFacade.selectedCategoryId() === targetCategoryId) {
+						this.catalogFacade.setSelectedCategoryId(null);
+					}
+					this.store.setSaving(false);
+				},
+				error: () => this.store.setSaving(false)
+			});
 	}
 
 	cancelCategory() {

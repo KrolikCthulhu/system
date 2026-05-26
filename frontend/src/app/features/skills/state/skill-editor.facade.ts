@@ -4,15 +4,15 @@ import { FormChangeTracker } from '../../../shared/forms/form-change-tracker';
 import { UnsavedChangesGuard } from '../../../shared/forms/unsaved-changes.guard';
 import { SKILLS_REPOSITORY } from '../data/skills-repository.port';
 import { Skill } from '../domain/skills.models';
-import { SkillsCatalogFacade } from './skills-catalog.facade';
-import { SkillEditorStore } from './skill-editor.store';
 import {
 	createSkillForm,
 	getSkillFormValue,
 	patchSkillForm,
 	resetSkillForm,
 	SkillFormValue
-} from './forms/skill-editor.form';
+} from '../ui/forms/skill-editor.form';
+import { SkillsCatalogFacade } from './skills-catalog.facade';
+import { SkillEditorStore } from './skill-editor.store';
 
 @Injectable()
 export class SkillEditorFacade {
@@ -115,6 +115,39 @@ export class SkillEditorFacade {
 			},
 			error: () => this.store.setSaving(false)
 		});
+	}
+
+	deleteSkill(skillId?: string) {
+		const targetSkillId = skillId ?? this.catalogFacade.selectedSkillId();
+
+		if (!targetSkillId) {
+			return;
+		}
+
+		if (this.store.draftSkillIds().includes(targetSkillId)) {
+			this.catalogFacade.removeSkill(targetSkillId);
+			this.store.removeDraftSkillId(targetSkillId);
+			if (this.catalogFacade.selectedSkillId() === targetSkillId) {
+				this.catalogFacade.setSelectedSkillId(null);
+			}
+			return;
+		}
+
+		this.store.setSaving(true);
+
+		this.catalogFacade
+			.deleteSkill(targetSkillId)
+			.pipe(takeUntilDestroyed(this.destroyRef))
+			.subscribe({
+				next: () => {
+					this.catalogFacade.removeSkill(targetSkillId);
+					if (this.catalogFacade.selectedSkillId() === targetSkillId) {
+						this.catalogFacade.setSelectedSkillId(null);
+					}
+					this.store.setSaving(false);
+				},
+				error: () => this.store.setSaving(false)
+			});
 	}
 
 	cancelSkill() {

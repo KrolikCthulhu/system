@@ -139,6 +139,11 @@ export class SkillsService {
 		return this.mapSkill(skill);
 	}
 
+	async deleteSkill(id: string) {
+		await this.ensureSkillExists(id);
+		await this.prisma.skill.delete({ where: { id } });
+	}
+
 	async createCategory(dto: CreateSkillCategoryDto) {
 		try {
 			const category = await this.prisma.skillCategory.create({
@@ -185,6 +190,19 @@ export class SkillsService {
 		return this.mapCategory(category);
 	}
 
+	async deleteCategory(id: string) {
+		await this.ensureCategoryExists(id);
+
+		await this.prisma.$transaction([
+			this.prisma.skill.deleteMany({
+				where: { categoryId: id }
+			}),
+			this.prisma.skillCategory.delete({
+				where: { id }
+			})
+		]);
+	}
+
 	async updateLevel(id: string, dto: UpdateSkillLevelDto) {
 		await this.ensureLevelExists(id);
 		const currentLevel = await this.prisma.skillLevel.findUniqueOrThrow({
@@ -229,6 +247,11 @@ export class SkillsService {
 		});
 
 		return this.mapLevel(level);
+	}
+
+	async deleteLevel(id: string) {
+		await this.ensureLevelExists(id);
+		await this.prisma.skillLevel.delete({ where: { id } });
 	}
 
 	private async ensureCategoryExists(id: string) {

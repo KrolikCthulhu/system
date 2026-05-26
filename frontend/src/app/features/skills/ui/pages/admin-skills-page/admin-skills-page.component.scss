@@ -26,11 +26,17 @@
 }
 
 .admin-skills-page__skills-workspace {
-	grid-template-columns: 15rem minmax(0, 1.15fr) minmax(20rem, 0.95fr);
+	grid-template-columns: 15rem minmax(0, 1fr);
 }
 
 .admin-skills-page__entity-workspace {
-	grid-template-columns: minmax(0, 1.2fr) minmax(22rem, 0.8fr);
+	grid-template-columns: minmax(0, 1fr);
+}
+
+.admin-skills-page__splitter {
+	min-width: 0;
+	min-height: 0;
+	height: 100%;
 }
 
 .admin-skills-page__panel {
@@ -44,8 +50,8 @@
 }
 
 .admin-skills-page__filter-panel,
-.admin-skills-page__editor-panel,
-.admin-skills-page__table-panel {
+.admin-skills-page__table-panel,
+.admin-skills-page__editor-panel {
 	gap: 0.625rem;
 }
 
@@ -135,12 +141,29 @@
 	min-height: 0;
 }
 
-.admin-skills-page__table-row {
-	cursor: pointer;
-}
-
 .admin-skills-page__table-row--selected td {
 	background: var(--p-surface-100);
+}
+
+.admin-skills-page__actions-column,
+.admin-skills-page__actions-cell {
+	width: 8rem;
+	min-width: 8rem;
+	text-align: right;
+}
+
+.admin-skills-page__row-actions {
+	display: flex;
+	justify-content: flex-end;
+	align-items: center;
+	gap: 0.125rem;
+}
+
+.admin-skills-page__editor-content {
+	display: flex;
+	flex: 1;
+	flex-direction: column;
+	min-height: 0;
 }
 
 .admin-skills-page__form {
@@ -192,16 +215,7 @@
 	min-height: 2rem;
 }
 
-.admin-skills-page__editor-content {
-	display: flex;
-	flex: 1;
-	flex-direction: column;
-	min-height: 0;
-}
-
 .admin-skills-page__editor-actions {
-	position: sticky;
-	bottom: 0;
 	display: flex;
 	justify-content: flex-end;
 	gap: 0.5rem;
@@ -258,49 +272,81 @@
 		padding: 0;
 	}
 
-	.admin-skills-page__table .p-datatable-table-container {
-		overflow-y: auto;
+	.admin-skills-page__splitter.p-splitter {
+		height: 100%;
+		border: 0;
+		background: transparent;
 	}
 
-	.admin-skills-page__form .p-inputtext,
-	.admin-skills-page__form .p-inputnumber,
-	.admin-skills-page__form .p-select,
-	.admin-skills-page__form .p-textarea {
+	.admin-skills-page__splitter .p-splitterpanel {
+		display: flex;
+		min-width: 0;
+		min-height: 0;
+	}
+
+	.admin-skills-page__splitter .p-splitterpanel > .admin-skills-page__panel {
+		flex: 1;
+		min-width: 0;
 		width: 100%;
 	}
 
-	.admin-skills-page__form .p-inputtext,
-	.admin-skills-page__form .p-select-label,
-	.admin-skills-page__form .p-inputnumber-input,
-	.admin-skills-page__form .p-textarea {
+	.admin-skills-page__splitter
+		.p-splitterpanel:first-child
+		> .admin-skills-page__panel {
+		border-top-right-radius: 0;
+		border-bottom-right-radius: 0;
+	}
+
+	.admin-skills-page__splitter
+		.p-splitterpanel:last-child
+		> .admin-skills-page__panel {
+		border-top-left-radius: 0;
+		border-bottom-left-radius: 0;
+	}
+
+	.admin-skills-page__splitter .p-splitter-gutter {
+		background: var(--p-content-border-color);
+	}
+
+	.admin-skills-page__splitter .p-splitter-gutter-handle {
+		background: var(--p-content-border-color);
+	}
+
+	.admin-skills-page__table .p-datatable-table-container {
+		height: 100%;
+		overflow-x: auto;
+		overflow-y: auto;
+	}
+
+	.admin-skills-page__editor-content .p-inputtext,
+	.admin-skills-page__editor-content .p-inputnumber,
+	.admin-skills-page__editor-content .p-select,
+	.admin-skills-page__editor-content .p-textarea {
+		width: 100%;
+	}
+
+	.admin-skills-page__editor-content .p-inputtext,
+	.admin-skills-page__editor-content .p-select-label,
+	.admin-skills-page__editor-content .p-inputnumber-input,
+	.admin-skills-page__editor-content .p-textarea {
 		padding-block: 0.5rem;
 	}
 
-	.admin-skills-page__form .p-select,
-	.admin-skills-page__form .p-inputnumber,
-	.admin-skills-page__form .p-inputnumber-input {
+	.admin-skills-page__editor-content .p-select,
+	.admin-skills-page__editor-content .p-inputnumber,
+	.admin-skills-page__editor-content .p-inputnumber-input {
 		font-size: 0.9375rem;
 	}
 
-	.admin-skills-page__form .p-textarea {
+	.admin-skills-page__editor-content .p-textarea {
 		resize: none;
 		overflow: auto;
 	}
 }
 
-@media (max-width: 1400px) {
-	.admin-skills-page__skills-workspace {
-		grid-template-columns: 14rem minmax(0, 1fr);
-	}
-
-	.admin-skills-page__skills-workspace .admin-skills-page__editor-panel {
-		grid-column: 1 / -1;
-	}
-}
-
 @media (max-width: 1180px) {
-	.admin-skills-page__entity-workspace,
 	.admin-skills-page__skills-workspace,
+	.admin-skills-page__entity-workspace,
 	.admin-skills-page__form-grid,
 	.admin-skills-page__form-grid--wide-first {
 		grid-template-columns: 1fr;
@@ -310,5 +356,9 @@
 	.admin-skills-page__switch-row {
 		flex-direction: column;
 		align-items: stretch;
+	}
+
+	:host ::ng-deep .admin-skills-page__splitter.p-splitter {
+		flex-direction: column;
 	}
 }

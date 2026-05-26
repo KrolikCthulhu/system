@@ -5,15 +5,15 @@ import { UnsavedChangesGuard } from '../../../shared/forms/unsaved-changes.guard
 import { SKILLS_REPOSITORY } from '../data/skills-repository.port';
 import { SkillLevel } from '../domain/skills.models';
 import { calculateExpectedSuccessPerDie } from '../domain/skill-level.rules';
-import { SkillsCatalogFacade } from './skills-catalog.facade';
-import { LevelEditorStore } from './level-editor.store';
 import {
 	createLevelForm,
 	getLevelFormValue,
 	LevelFormValue,
 	patchLevelForm,
 	resetLevelForm
-} from './forms/skill-level-editor.form';
+} from '../ui/forms/skill-level-editor.form';
+import { SkillsCatalogFacade } from './skills-catalog.facade';
+import { LevelEditorStore } from './level-editor.store';
 
 @Injectable()
 export class SkillLevelEditorFacade {
@@ -69,6 +69,30 @@ export class SkillLevelEditorFacade {
 				next: level => {
 					this.catalogFacade.upsertLevel(level);
 					this.patchForm(level);
+					this.store.setSaving(false);
+				},
+				error: () => this.store.setSaving(false)
+			});
+	}
+
+	deleteLevel(levelId?: string) {
+		const targetLevelId = levelId ?? this.catalogFacade.selectedLevelId();
+
+		if (!targetLevelId) {
+			return;
+		}
+
+		this.store.setSaving(true);
+
+		this.catalogFacade
+			.deleteLevel(targetLevelId)
+			.pipe(takeUntilDestroyed(this.destroyRef))
+			.subscribe({
+				next: () => {
+					this.catalogFacade.removeLevel(targetLevelId);
+					if (this.catalogFacade.selectedLevelId() === targetLevelId) {
+						this.catalogFacade.setSelectedLevelId(null);
+					}
 					this.store.setSaving(false);
 				},
 				error: () => this.store.setSaving(false)

@@ -1,6 +1,7 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	ForbiddenException,
 	Param,
 	Patch,
@@ -55,6 +56,15 @@ export class SkillsController {
 		return this.skillsService.updateSkillActive(id, dto);
 	}
 
+	@Delete(':id')
+	async deleteSkill(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string
+	) {
+		this.assertAdmin(user);
+		await this.skillsService.deleteSkill(id);
+	}
+
 	@Post('categories')
 	async createCategory(
 		@CurrentUser() user: AuthenticatedUser,
@@ -84,6 +94,15 @@ export class SkillsController {
 		return this.skillsService.updateCategoryActive(id, dto);
 	}
 
+	@Delete('categories/:id')
+	async deleteCategory(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string
+	) {
+		this.assertAdmin(user);
+		await this.skillsService.deleteCategory(id);
+	}
+
 	@Patch('levels/:id')
 	async updateLevel(
 		@CurrentUser() user: AuthenticatedUser,
@@ -102,6 +121,15 @@ export class SkillsController {
 	) {
 		this.assertAdmin(user);
 		return this.skillsService.updateLevelActive(id, dto);
+	}
+
+	@Delete('levels/:id')
+	async deleteLevel(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string
+	) {
+		this.assertAdmin(user);
+		await this.skillsService.deleteLevel(id);
 	}
 
 	private assertAdmin(user: AuthenticatedUser) {

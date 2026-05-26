@@ -9,11 +9,17 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { Splitter } from 'primeng/splitter';
 import { TableModule } from 'primeng/table';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
+import {
+	Skill,
+	SkillCategory,
+	SkillLevel
+} from '../../../domain/skills.models';
 import { AdminSkillsCatalogStore } from '../../../state/admin-skills-catalog.store';
 import { CategoryEditorFacade } from '../../../state/category-editor.facade';
 import { CategoryEditorStore } from '../../../state/category-editor.store';
@@ -36,6 +42,7 @@ import { SkillsCatalogFacade } from '../../../state/skills-catalog.facade';
 		InputText,
 		ReactiveFormsModule,
 		Select,
+		Splitter,
 		Tab,
 		TableModule,
 		TabList,
@@ -62,11 +69,16 @@ import { SkillsCatalogFacade } from '../../../state/skills-catalog.facade';
 })
 export class AdminSkillsPageComponent {
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
+	private readonly confirmationService = inject(ConfirmationService);
 	private readonly catalogFacade = inject(SkillsCatalogFacade);
 	private readonly skillEditorFacade = inject(SkillEditorFacade);
 	private readonly categoryEditorFacade = inject(CategoryEditorFacade);
 	private readonly levelEditorFacade = inject(SkillLevelEditorFacade);
+
 	protected readonly tabValue = signal<string | number | undefined>(undefined);
+	protected readonly skillEditorOpen = signal(false);
+	protected readonly categoryEditorOpen = signal(false);
+	protected readonly levelEditorOpen = signal(false);
 
 	protected readonly breadcrumbs = this.catalogFacade.breadcrumbs;
 	protected readonly activeTab = this.catalogFacade.activeTab;
@@ -95,6 +107,24 @@ export class AdminSkillsPageComponent {
 		effect(() => {
 			this.tabValue.set(this.activeTab());
 		});
+
+		effect(() => {
+			if (this.skillEditorOpen() && !this.selectedSkill()) {
+				this.skillEditorOpen.set(false);
+			}
+		});
+
+		effect(() => {
+			if (this.categoryEditorOpen() && !this.selectedCategory()) {
+				this.categoryEditorOpen.set(false);
+			}
+		});
+
+		effect(() => {
+			if (this.levelEditorOpen() && !this.selectedLevel()) {
+				this.levelEditorOpen.set(false);
+			}
+		});
 	}
 
 	protected setCategorySearch(query: string) {
@@ -103,18 +133,6 @@ export class AdminSkillsPageComponent {
 
 	protected selectSkillFilterCategory(categoryId: string) {
 		this.skillEditorFacade.selectSkillFilterCategory(categoryId);
-	}
-
-	protected selectSkill(skillId: string) {
-		this.skillEditorFacade.selectSkill(skillId);
-	}
-
-	protected selectCategory(categoryId: string) {
-		this.categoryEditorFacade.selectCategory(categoryId);
-	}
-
-	protected selectLevel(levelId: string) {
-		this.levelEditorFacade.selectLevel(levelId);
 	}
 
 	protected toggleSkillActive(skillId: string, isActive: boolean) {
@@ -129,12 +147,53 @@ export class AdminSkillsPageComponent {
 		this.catalogFacade.toggleLevelActive(levelId, isActive);
 	}
 
+	protected openSkillEditor(skillId: string) {
+		this.skillEditorFacade.selectSkill(skillId);
+		this.skillEditorOpen.set(true);
+	}
+
+	protected openCategoryEditor(categoryId: string) {
+		this.categoryEditorFacade.selectCategory(categoryId);
+		this.categoryEditorOpen.set(true);
+	}
+
+	protected openLevelEditor(levelId: string) {
+		this.levelEditorFacade.selectLevel(levelId);
+		this.levelEditorOpen.set(true);
+	}
+
+	protected closeSkillEditor() {
+		this.unsavedChangesGuard.confirmDiscard({
+			hasChanges: this.skillEditorFacade.hasUnsavedChanges(),
+			discard: () => this.skillEditorFacade.cancelSkill(),
+			proceed: () => this.skillEditorOpen.set(false)
+		});
+	}
+
+	protected closeCategoryEditor() {
+		this.unsavedChangesGuard.confirmDiscard({
+			hasChanges: this.categoryEditorFacade.hasUnsavedChanges(),
+			discard: () => this.categoryEditorFacade.cancelCategory(),
+			proceed: () => this.categoryEditorOpen.set(false)
+		});
+	}
+
+	protected closeLevelEditor() {
+		this.unsavedChangesGuard.confirmDiscard({
+			hasChanges: this.levelEditorFacade.hasUnsavedChanges(),
+			discard: () => this.levelEditorFacade.cancelLevel(),
+			proceed: () => this.levelEditorOpen.set(false)
+		});
+	}
+
 	protected addSkill() {
 		this.skillEditorFacade.addSkill();
+		this.skillEditorOpen.set(true);
 	}
 
 	protected addCategory() {
 		this.categoryEditorFacade.addCategory();
+		this.categoryEditorOpen.set(true);
 	}
 
 	protected saveSkill() {
@@ -159,6 +218,48 @@ export class AdminSkillsPageComponent {
 
 	protected cancelLevel() {
 		this.levelEditorFacade.cancelLevel();
+	}
+
+	protected confirmDeleteSkill(skill: Skill) {
+		this.confirmationService.confirm({
+			header: 'Удалить навык?',
+			message: `Навык "${skill.name}" будет удалён без возможности восстановления.`,
+			icon: 'pi pi-trash',
+			acceptLabel: 'Удалить',
+			rejectLabel: 'Отмена',
+			acceptButtonStyleClass: 'p-button-danger',
+			accept: () => this.skillEditorFacade.deleteSkill(skill.id)
+		});
+	}
+
+	protected confirmDeleteCategory(category: SkillCategory) {
+		const relatedSkillsCount = this.countCategorySkills(category.id);
+		const message =
+			relatedSkillsCount > 0
+				? `Категория "${category.name}" будет удалена вместе со связанными навыками (${relatedSkillsCount}). Это действие нельзя отменить.`
+				: `Категория "${category.name}" будет удалена без возможности восстановления.`;
+
+		this.confirmationService.confirm({
+			header: 'Удалить категорию?',
+			message,
+			icon: 'pi pi-trash',
+			acceptLabel: 'Удалить',
+			rejectLabel: 'Отмена',
+			acceptButtonStyleClass: 'p-button-danger',
+			accept: () => this.categoryEditorFacade.deleteCategory(category.id)
+		});
+	}
+
+	protected confirmDeleteLevel(level: SkillLevel) {
+		this.confirmationService.confirm({
+			header: 'Удалить уровень?',
+			message: `Уровень "${level.name}" будет удалён без возможности восстановления.`,
+			icon: 'pi pi-trash',
+			acceptLabel: 'Удалить',
+			rejectLabel: 'Отмена',
+			acceptButtonStyleClass: 'p-button-danger',
+			accept: () => this.levelEditorFacade.deleteLevel(level.id)
+		});
 	}
 
 	protected setActiveTab(value: string | number | undefined) {
@@ -237,5 +338,11 @@ export class AdminSkillsPageComponent {
 				this.levelEditorFacade.cancelLevel();
 				return;
 		}
+	}
+
+	private countCategorySkills(categoryId: string) {
+		return this.catalogFacade
+			.skills()
+			.filter(skill => skill.categoryId === categoryId).length;
 	}
 }

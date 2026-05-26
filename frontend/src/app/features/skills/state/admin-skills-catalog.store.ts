@@ -202,9 +202,19 @@ export const AdminSkillsCatalogStore = signalStore(
 				categories: state.categories.filter(category => category.id !== categoryId)
 			}));
 		},
+		removeSkillsByCategory(categoryId: string) {
+			patchState(store, state => ({
+				skills: state.skills.filter(skill => skill.categoryId !== categoryId)
+			}));
+		},
 		upsertLevel(level: SkillLevel) {
 			patchState(store, state => ({
 				levels: state.levels.map(item => (item.id === level.id ? level : item))
+			}));
+		},
+		removeLevel(levelId: string) {
+			patchState(store, state => ({
+				levels: state.levels.filter(level => level.id !== levelId)
 			}));
 		}
 	}))

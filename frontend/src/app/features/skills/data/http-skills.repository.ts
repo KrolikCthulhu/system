@@ -76,6 +76,14 @@ export class HttpSkillsRepository implements SkillsRepository {
 			.pipe(map(mapSkillDto), catchError(error => this.handleHttpError(error)));
 	}
 
+	deleteSkill(id: string): Observable<void> {
+		return this.http
+			.delete<void>(`${this.baseUrl}/admin/skills/${id}`, {
+				withCredentials: true
+			})
+			.pipe(catchError(error => this.handleHttpError(error)));
+	}
+
 	createCategory(command: CreateSkillCategoryCommand): Observable<SkillCategory> {
 		return this.http
 			.post<SkillCategoryDto>(
@@ -119,6 +127,14 @@ export class HttpSkillsRepository implements SkillsRepository {
 			);
 	}
 
+	deleteCategory(id: string): Observable<void> {
+		return this.http
+			.delete<void>(`${this.baseUrl}/admin/skills/categories/${id}`, {
+				withCredentials: true
+			})
+			.pipe(catchError(error => this.handleHttpError(error)));
+	}
+
 	updateLevel(command: UpdateSkillLevelCommand): Observable<SkillLevel> {
 		const { id, ...payload } = command;
 
@@ -147,6 +163,14 @@ export class HttpSkillsRepository implements SkillsRepository {
 				map(mapSkillLevelDto),
 				catchError(error => this.handleHttpError(error))
 			);
+	}
+
+	deleteLevel(id: string): Observable<void> {
+		return this.http
+			.delete<void>(`${this.baseUrl}/admin/skills/levels/${id}`, {
+				withCredentials: true
+			})
+			.pipe(catchError(error => this.handleHttpError(error)));
 	}
 
 	private handleHttpError(error: unknown) {

@@ -71,7 +71,11 @@ export class SkillsCatalogFacade {
 		this.store.upsertCategory(category);
 	removeCategory: typeof this.store.removeCategory = categoryId =>
 		this.store.removeCategory(categoryId);
+	removeSkillsByCategory: typeof this.store.removeSkillsByCategory = categoryId =>
+		this.store.removeSkillsByCategory(categoryId);
 	upsertLevel: typeof this.store.upsertLevel = level => this.store.upsertLevel(level);
+	removeLevel: typeof this.store.removeLevel = levelId =>
+		this.store.removeLevel(levelId);
 
 	toggleSkillActive(skillId: string, isActive: boolean) {
 		const previous = this.store.skills();
@@ -121,6 +125,18 @@ export class SkillsCatalogFacade {
 				next: level => this.store.upsertLevel(level),
 				error: () => this.store.setLevels(previous)
 			});
+	}
+
+	deleteSkill(skillId: string) {
+		return this.repository.deleteSkill(skillId);
+	}
+
+	deleteCategory(categoryId: string) {
+		return this.repository.deleteCategory(categoryId);
+	}
+
+	deleteLevel(levelId: string) {
+		return this.repository.deleteLevel(levelId);
 	}
 
 	private loadCatalog() {

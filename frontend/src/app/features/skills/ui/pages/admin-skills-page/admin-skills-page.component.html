@@ -90,567 +90,990 @@
 						</div>
 					</aside>
 
-					<section
-						class="admin-skills-page__panel admin-skills-page__table-panel"
-					>
-						<div
-							class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
+					@if (skillEditorOpen() && selectedSkill()) {
+						<p-splitter
+							class="admin-skills-page__splitter"
+							[panelSizes]="[70, 30]"
+							[minSizes]="[40, 25]"
+							[gutterSize]="1"
 						>
-							<div>
-								<div class="text-overline">Фильтр</div>
-								<h2 class="admin-skills-page__panel-title">
-									{{ selectedSkillFilterCategory().name }}
-								</h2>
-							</div>
-
-							<p-button
-								label="Новый навык"
-								icon="pi pi-plus"
-								(onClick)="addSkill()"
-							></p-button>
-						</div>
-
-						<p-table
-							class="admin-skills-page__table"
-							[value]="visibleSkills()"
-							[tableStyle]="{ 'min-width': '100%' }"
-						>
-							<ng-template #header>
-								<tr>
-									<th>Навык</th>
-									<th>Код</th>
-									<th>Начальный уровень</th>
-									<th>Максимум</th>
-									<th>Активность</th>
-								</tr>
-							</ng-template>
-
-							<ng-template #body let-skill>
-								<tr
-									class="admin-skills-page__table-row"
-									[class.admin-skills-page__table-row--selected]="
-										skill.id === selectedSkillId()
-									"
-									(click)="selectSkill(skill.id)"
+							<ng-template #panel>
+								<section
+									class="admin-skills-page__panel admin-skills-page__table-panel"
 								>
-									<td>{{ skill.name }}</td>
-									<td>{{ skill.code }}</td>
-									<td>{{ skill.defaultLevel }}</td>
-									<td>{{ skill.maxLevel }}</td>
-									<td>
-										<p-toggleswitch
-											[ngModel]="skill.isActive"
-											(ngModelChange)="toggleSkillActive(skill.id, $event)"
-											(click)="$event.stopPropagation()"
-										/>
-									</td>
-								</tr>
-							</ng-template>
-						</p-table>
-					</section>
-
-					<aside
-						class="admin-skills-page__panel admin-skills-page__editor-panel"
-					>
-						<div class="admin-skills-page__panel-heading">
-							<div class="text-overline">Редактор навыка</div>
-							<h2 class="admin-skills-page__panel-title">
-								{{ selectedSkill()?.name || 'Навык не выбран' }}
-							</h2>
-						</div>
-
-						@if (selectedSkill()) {
-							<div class="admin-skills-page__editor-content">
-								<form class="admin-skills-page__form" [formGroup]="skillForm">
 									<div
-										class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
+										class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 									>
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="skill-name"
-											>
-												Название
-											</label>
-											<input
-												id="skill-name"
-												pInputText
-												formControlName="name"
-											/>
+										<div>
+											<div class="text-overline">Фильтр</div>
+											<h2 class="admin-skills-page__panel-title">
+												{{ selectedSkillFilterCategory().name }}
+											</h2>
 										</div>
 
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="skill-code"
-											>
-												Код
-											</label>
-											<input
-												id="skill-code"
-												pInputText
-												formControlName="code"
-											/>
-										</div>
+										<p-button
+											label="Новый навык"
+											icon="pi pi-plus"
+											(onClick)="addSkill()"
+										></p-button>
 									</div>
 
-									<div class="admin-skills-page__form-field">
-										<label
-											class="admin-skills-page__field-label"
-											for="skill-category"
+									<p-table
+										class="admin-skills-page__table"
+										[value]="visibleSkills()"
+										[scrollable]="true"
+										scrollHeight="flex"
+										[tableStyle]="{ 'min-width': '58rem' }"
+									>
+										<ng-template #header>
+											<tr>
+												<th>Навык</th>
+												<th>Код</th>
+												<th>Начальный уровень</th>
+												<th>Максимум</th>
+												<th>Активность</th>
+												<th
+													pFrozenColumn
+													alignFrozen="right"
+													class="admin-skills-page__actions-column"
+												>
+													Действия
+												</th>
+											</tr>
+										</ng-template>
+
+										<ng-template #body let-skill>
+											<tr
+												class="admin-skills-page__table-row"
+												[class.admin-skills-page__table-row--selected]="
+													skill.id === selectedSkillId()
+												"
+											>
+												<td>{{ skill.name }}</td>
+												<td>{{ skill.code }}</td>
+												<td>{{ skill.defaultLevel }}</td>
+												<td>{{ skill.maxLevel }}</td>
+												<td>
+													<p-toggleswitch
+														[ngModel]="skill.isActive"
+														(ngModelChange)="
+															toggleSkillActive(skill.id, $event)
+														"
+													/>
+												</td>
+												<td
+													pFrozenColumn
+													alignFrozen="right"
+													class="admin-skills-page__actions-cell"
+												>
+													<div class="admin-skills-page__row-actions">
+														<p-button
+															icon="pi pi-pencil"
+															severity="secondary"
+															[text]="true"
+															[rounded]="true"
+															ariaLabel="Редактировать навык"
+															(onClick)="openSkillEditor(skill.id)"
+														></p-button>
+														<p-button
+															icon="pi pi-trash"
+															severity="danger"
+															[text]="true"
+															[rounded]="true"
+															ariaLabel="Удалить навык"
+															(onClick)="confirmDeleteSkill(skill)"
+														></p-button>
+													</div>
+												</td>
+											</tr>
+										</ng-template>
+									</p-table>
+								</section>
+							</ng-template>
+
+							<ng-template #panel>
+								<aside
+									class="admin-skills-page__panel admin-skills-page__editor-panel"
+								>
+									<div
+										class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
+									>
+										<div>
+											<div class="text-overline">Редактор навыка</div>
+											<h2 class="admin-skills-page__panel-title">
+												{{ selectedSkill()?.name }}
+											</h2>
+										</div>
+										<p-button
+											icon="pi pi-times"
+											severity="secondary"
+											[text]="true"
+											[rounded]="true"
+											ariaLabel="Закрыть редактор навыка"
+											(onClick)="closeSkillEditor()"
+										></p-button>
+									</div>
+
+									<div class="admin-skills-page__editor-content">
+										<form
+											class="admin-skills-page__form"
+											[formGroup]="skillForm"
 										>
-											Категория
-										</label>
-										<p-select
-											inputId="skill-category"
-											formControlName="categoryId"
-											optionLabel="label"
-											optionValue="value"
-											[options]="categoryOptions()"
-											appendTo="body"
-										></p-select>
-									</div>
-
-									<div class="admin-skills-page__form-grid">
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="skill-default-level"
+											<div
+												class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
 											>
-												Начальный уровень
-											</label>
-											<p-inputnumber
-												formControlName="defaultLevel"
-												inputId="skill-default-level"
-												[min]="0"
-												[max]="6"
-												[showButtons]="false"
-											></p-inputnumber>
-										</div>
+												<div class="admin-skills-page__form-field">
+													<label
+														class="admin-skills-page__field-label"
+														for="skill-name"
+													>
+														Название
+													</label>
+													<input
+														id="skill-name"
+														pInputText
+														formControlName="name"
+													/>
+												</div>
 
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="skill-max-level"
-											>
-												Максимальный уровень
-											</label>
-											<p-inputnumber
-												formControlName="maxLevel"
-												inputId="skill-max-level"
-												[min]="0"
-												[max]="12"
-												[showButtons]="false"
-											></p-inputnumber>
+												<div class="admin-skills-page__form-field">
+													<label
+														class="admin-skills-page__field-label"
+														for="skill-code"
+													>
+														Код
+													</label>
+													<input
+														id="skill-code"
+														pInputText
+														formControlName="code"
+													/>
+												</div>
+											</div>
+
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="skill-category"
+												>
+													Категория
+												</label>
+												<p-select
+													inputId="skill-category"
+													formControlName="categoryId"
+													optionLabel="label"
+													optionValue="value"
+													[options]="categoryOptions()"
+													appendTo="body"
+												></p-select>
+											</div>
+
+											<div class="admin-skills-page__form-grid">
+												<div class="admin-skills-page__form-field">
+													<label
+														class="admin-skills-page__field-label"
+														for="skill-default-level"
+													>
+														Начальный уровень
+													</label>
+													<p-inputnumber
+														formControlName="defaultLevel"
+														inputId="skill-default-level"
+														[min]="0"
+														[max]="6"
+														[showButtons]="false"
+													></p-inputnumber>
+												</div>
+
+												<div class="admin-skills-page__form-field">
+													<label
+														class="admin-skills-page__field-label"
+														for="skill-max-level"
+													>
+														Максимальный уровень
+													</label>
+													<p-inputnumber
+														formControlName="maxLevel"
+														inputId="skill-max-level"
+														[min]="0"
+														[max]="12"
+														[showButtons]="false"
+													></p-inputnumber>
+												</div>
+											</div>
+
+											<div class="admin-skills-page__switch-list">
+												<div class="admin-skills-page__switch-row">
+													<label
+														class="admin-skills-page__field-label"
+														for="skill-uses-default-level-rules"
+													>
+														Общие правила уровней
+													</label>
+													<p-toggleswitch
+														inputId="skill-uses-default-level-rules"
+														formControlName="usesDefaultLevelRules"
+													/>
+												</div>
+											</div>
+
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="skill-description"
+												>
+													Описание
+												</label>
+												<textarea
+													id="skill-description"
+													pTextarea
+													formControlName="description"
+													rows="4"
+												></textarea>
+											</div>
+										</form>
+
+										<div class="admin-skills-page__editor-actions">
+											<p-button
+												label="Отмена"
+												severity="secondary"
+												variant="outlined"
+												(onClick)="cancelSkill()"
+											></p-button>
+											<p-button
+												[label]="
+													isDraftSkillSelected()
+														? 'Создать'
+														: 'Сохранить изменения'
+												"
+												[disabled]="isSkillSaveDisabled()"
+												(onClick)="saveSkill()"
+											></p-button>
 										</div>
 									</div>
-
-									<div class="admin-skills-page__switch-list">
-										<div class="admin-skills-page__switch-row">
-											<label
-												class="admin-skills-page__field-label"
-												for="skill-uses-default-level-rules"
-											>
-												Общие правила уровней
-											</label>
-											<p-toggleswitch
-												inputId="skill-uses-default-level-rules"
-												formControlName="usesDefaultLevelRules"
-											/>
-										</div>
-									</div>
-
-									<div class="admin-skills-page__form-field">
-										<label
-											class="admin-skills-page__field-label"
-											for="skill-description"
-										>
-											Описание
-										</label>
-										<textarea
-											id="skill-description"
-											pTextarea
-											formControlName="description"
-											rows="4"
-										></textarea>
-									</div>
-								</form>
-
-								<div class="admin-skills-page__editor-actions">
-									<p-button
-										label="Отмена"
-										severity="secondary"
-										variant="outlined"
-										(onClick)="cancelSkill()"
-									></p-button>
-									<p-button
-										[label]="
-											isDraftSkillSelected() ? 'Создать' : 'Сохранить изменения'
-										"
-										[disabled]="isSkillSaveDisabled()"
-										(onClick)="saveSkill()"
-									></p-button>
+								</aside>
+							</ng-template>
+						</p-splitter>
+					} @else {
+						<section
+							class="admin-skills-page__panel admin-skills-page__table-panel"
+						>
+							<div
+								class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
+							>
+								<div>
+									<div class="text-overline">Фильтр</div>
+									<h2 class="admin-skills-page__panel-title">
+										{{ selectedSkillFilterCategory().name }}
+									</h2>
 								</div>
+
+								<p-button
+									label="Новый навык"
+									icon="pi pi-plus"
+									(onClick)="addSkill()"
+								></p-button>
 							</div>
-						}
-					</aside>
+
+							<p-table
+								class="admin-skills-page__table"
+								[value]="visibleSkills()"
+								[scrollable]="true"
+								scrollHeight="flex"
+								[tableStyle]="{ 'min-width': '58rem' }"
+							>
+								<ng-template #header>
+									<tr>
+										<th>Навык</th>
+										<th>Код</th>
+										<th>Начальный уровень</th>
+										<th>Максимум</th>
+										<th>Активность</th>
+										<th
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-skills-page__actions-column"
+										>
+											Действия
+										</th>
+									</tr>
+								</ng-template>
+
+								<ng-template #body let-skill>
+									<tr
+										class="admin-skills-page__table-row"
+										[class.admin-skills-page__table-row--selected]="
+											skill.id === selectedSkillId()
+										"
+									>
+										<td>{{ skill.name }}</td>
+										<td>{{ skill.code }}</td>
+										<td>{{ skill.defaultLevel }}</td>
+										<td>{{ skill.maxLevel }}</td>
+										<td>
+											<p-toggleswitch
+												[ngModel]="skill.isActive"
+												(ngModelChange)="toggleSkillActive(skill.id, $event)"
+											/>
+										</td>
+										<td
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-skills-page__actions-cell"
+										>
+											<div class="admin-skills-page__row-actions">
+												<p-button
+													icon="pi pi-pencil"
+													severity="secondary"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Редактировать навык"
+													(onClick)="openSkillEditor(skill.id)"
+												></p-button>
+												<p-button
+													icon="pi pi-trash"
+													severity="danger"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Удалить навык"
+													(onClick)="confirmDeleteSkill(skill)"
+												></p-button>
+											</div>
+										</td>
+									</tr>
+								</ng-template>
+							</p-table>
+						</section>
+					}
 				</div>
 			</p-tabpanel>
 
 			<p-tabpanel value="categories">
-				<div class="admin-skills-page__entity-workspace">
-					<section
-						class="admin-skills-page__panel admin-skills-page__table-panel"
+				@if (categoryEditorOpen() && selectedCategory()) {
+					<p-splitter
+						class="admin-skills-page__splitter"
+						[panelSizes]="[70, 30]"
+						[minSizes]="[40, 25]"
+						[gutterSize]="1"
 					>
-						<div
-							class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
-						>
-							<div>
-								<div class="text-overline">Справочник</div>
-								<h2 class="admin-skills-page__panel-title">Категории</h2>
-							</div>
-
-							<p-button
-								label="Новая категория"
-								icon="pi pi-plus"
-								(onClick)="addCategory()"
-							></p-button>
-						</div>
-
-						<p-table
-							class="admin-skills-page__table"
-							[value]="categories()"
-							[tableStyle]="{ 'min-width': '100%' }"
-						>
-							<ng-template #header>
-								<tr>
-									<th>Название</th>
-									<th>Код</th>
-									<th>Активность</th>
-								</tr>
-							</ng-template>
-
-							<ng-template #body let-category>
-								<tr
-									class="admin-skills-page__table-row"
-									[class.admin-skills-page__table-row--selected]="
-										category.id === selectedCategoryId()
-									"
-									(click)="selectCategory(category.id)"
+						<ng-template #panel>
+							<section
+								class="admin-skills-page__panel admin-skills-page__table-panel"
+							>
+								<div
+									class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 								>
-									<td>{{ category.name }}</td>
-									<td>{{ category.code }}</td>
-									<td>
-										<p-toggleswitch
-											[ngModel]="category.isActive"
-											(ngModelChange)="
-												toggleCategoryActive(category.id, $event)
-											"
-											(click)="$event.stopPropagation()"
-										/>
-									</td>
-								</tr>
-							</ng-template>
-						</p-table>
-					</section>
-
-					<aside
-						class="admin-skills-page__panel admin-skills-page__editor-panel"
-					>
-						<div class="admin-skills-page__panel-heading">
-							<div class="text-overline">Редактор категории</div>
-							<h2 class="admin-skills-page__panel-title">
-								{{ selectedCategory()?.name || 'Категория не выбрана' }}
-							</h2>
-						</div>
-
-						@if (selectedCategory()) {
-							<div class="admin-skills-page__editor-content">
-								<form
-									class="admin-skills-page__form"
-									[formGroup]="categoryForm"
-								>
-									<div
-										class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
-									>
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="category-name"
-											>
-												Название категории
-											</label>
-											<input
-												id="category-name"
-												pInputText
-												formControlName="name"
-											/>
-										</div>
-
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="category-code"
-											>
-												Код
-											</label>
-											<input
-												id="category-code"
-												pInputText
-												formControlName="code"
-											/>
-										</div>
+									<div>
+										<div class="text-overline">Справочник</div>
+										<h2 class="admin-skills-page__panel-title">Категории</h2>
 									</div>
 
-									<div class="admin-skills-page__form-field">
-										<label
-											class="admin-skills-page__field-label"
-											for="category-description"
-										>
-											Описание
-										</label>
-										<textarea
-											id="category-description"
-											pTextarea
-											formControlName="description"
-											rows="4"
-										></textarea>
-									</div>
-								</form>
-
-								<div class="admin-skills-page__editor-actions">
 									<p-button
-										label="Отмена"
-										severity="secondary"
-										variant="outlined"
-										(onClick)="cancelCategory()"
-									></p-button>
-									<p-button
-										[label]="
-											isDraftCategorySelected()
-												? 'Создать'
-												: 'Сохранить изменения'
-										"
-										[disabled]="isCategorySaveDisabled()"
-										(onClick)="saveCategory()"
+										label="Новая категория"
+										icon="pi pi-plus"
+										(onClick)="addCategory()"
 									></p-button>
 								</div>
+
+								<p-table
+									class="admin-skills-page__table"
+									[value]="categories()"
+									[scrollable]="true"
+									scrollHeight="flex"
+									[tableStyle]="{ 'min-width': '42rem' }"
+								>
+									<ng-template #header>
+										<tr>
+											<th>Название</th>
+											<th>Код</th>
+											<th>Активность</th>
+											<th
+												pFrozenColumn
+												alignFrozen="right"
+												class="admin-skills-page__actions-column"
+											>
+												Действия
+											</th>
+										</tr>
+									</ng-template>
+
+									<ng-template #body let-category>
+										<tr
+											class="admin-skills-page__table-row"
+											[class.admin-skills-page__table-row--selected]="
+												category.id === selectedCategoryId()
+											"
+										>
+											<td>{{ category.name }}</td>
+											<td>{{ category.code }}</td>
+											<td>
+												<p-toggleswitch
+													[ngModel]="category.isActive"
+													(ngModelChange)="
+														toggleCategoryActive(category.id, $event)
+													"
+												/>
+											</td>
+											<td
+												pFrozenColumn
+												alignFrozen="right"
+												class="admin-skills-page__actions-cell"
+											>
+												<div class="admin-skills-page__row-actions">
+													<p-button
+														icon="pi pi-pencil"
+														severity="secondary"
+														[text]="true"
+														[rounded]="true"
+														ariaLabel="Редактировать категорию"
+														(onClick)="openCategoryEditor(category.id)"
+													></p-button>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														[text]="true"
+														[rounded]="true"
+														ariaLabel="Удалить категорию"
+														(onClick)="confirmDeleteCategory(category)"
+													></p-button>
+												</div>
+											</td>
+										</tr>
+									</ng-template>
+								</p-table>
+							</section>
+						</ng-template>
+
+						<ng-template #panel>
+							<aside
+								class="admin-skills-page__panel admin-skills-page__editor-panel"
+							>
+								<div
+									class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
+								>
+									<div>
+										<div class="text-overline">Редактор категории</div>
+										<h2 class="admin-skills-page__panel-title">
+											{{ selectedCategory()?.name }}
+										</h2>
+									</div>
+									<p-button
+										icon="pi pi-times"
+										severity="secondary"
+										[text]="true"
+										[rounded]="true"
+										ariaLabel="Закрыть редактор категории"
+										(onClick)="closeCategoryEditor()"
+									></p-button>
+								</div>
+
+								<div class="admin-skills-page__editor-content">
+									<form
+										class="admin-skills-page__form"
+										[formGroup]="categoryForm"
+									>
+										<div
+											class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
+										>
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="category-name"
+												>
+													Название категории
+												</label>
+												<input
+													id="category-name"
+													pInputText
+													formControlName="name"
+												/>
+											</div>
+
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="category-code"
+												>
+													Код
+												</label>
+												<input
+													id="category-code"
+													pInputText
+													formControlName="code"
+												/>
+											</div>
+										</div>
+
+										<div class="admin-skills-page__form-field">
+											<label
+												class="admin-skills-page__field-label"
+												for="category-description"
+											>
+												Описание
+											</label>
+											<textarea
+												id="category-description"
+												pTextarea
+												formControlName="description"
+												rows="4"
+											></textarea>
+										</div>
+									</form>
+
+									<div class="admin-skills-page__editor-actions">
+										<p-button
+											label="Отмена"
+											severity="secondary"
+											variant="outlined"
+											(onClick)="cancelCategory()"
+										></p-button>
+										<p-button
+											[label]="
+												isDraftCategorySelected()
+													? 'Создать'
+													: 'Сохранить изменения'
+											"
+											[disabled]="isCategorySaveDisabled()"
+											(onClick)="saveCategory()"
+										></p-button>
+									</div>
+								</div>
+							</aside>
+						</ng-template>
+					</p-splitter>
+				} @else {
+					<div class="admin-skills-page__entity-workspace">
+						<section
+							class="admin-skills-page__panel admin-skills-page__table-panel"
+						>
+							<div
+								class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
+							>
+								<div>
+									<div class="text-overline">Справочник</div>
+									<h2 class="admin-skills-page__panel-title">Категории</h2>
+								</div>
+
+								<p-button
+									label="Новая категория"
+									icon="pi pi-plus"
+									(onClick)="addCategory()"
+								></p-button>
 							</div>
-						}
-					</aside>
-				</div>
+
+							<p-table
+								class="admin-skills-page__table"
+								[value]="categories()"
+								[scrollable]="true"
+								scrollHeight="flex"
+								[tableStyle]="{ 'min-width': '42rem' }"
+							>
+								<ng-template #header>
+									<tr>
+										<th>Название</th>
+										<th>Код</th>
+										<th>Активность</th>
+										<th
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-skills-page__actions-column"
+										>
+											Действия
+										</th>
+									</tr>
+								</ng-template>
+
+								<ng-template #body let-category>
+									<tr
+										class="admin-skills-page__table-row"
+										[class.admin-skills-page__table-row--selected]="
+											category.id === selectedCategoryId()
+										"
+									>
+										<td>{{ category.name }}</td>
+										<td>{{ category.code }}</td>
+										<td>
+											<p-toggleswitch
+												[ngModel]="category.isActive"
+												(ngModelChange)="
+													toggleCategoryActive(category.id, $event)
+												"
+											/>
+										</td>
+										<td
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-skills-page__actions-cell"
+										>
+											<div class="admin-skills-page__row-actions">
+												<p-button
+													icon="pi pi-pencil"
+													severity="secondary"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Редактировать категорию"
+													(onClick)="openCategoryEditor(category.id)"
+												></p-button>
+												<p-button
+													icon="pi pi-trash"
+													severity="danger"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Удалить категорию"
+													(onClick)="confirmDeleteCategory(category)"
+												></p-button>
+											</div>
+										</td>
+									</tr>
+								</ng-template>
+							</p-table>
+						</section>
+					</div>
+				}
 			</p-tabpanel>
 
 			<p-tabpanel value="levels">
-				<div class="admin-skills-page__entity-workspace">
-					<section
-						class="admin-skills-page__panel admin-skills-page__table-panel"
+				@if (levelEditorOpen() && selectedLevel(); as level) {
+					<p-splitter
+						class="admin-skills-page__splitter"
+						[panelSizes]="[70, 30]"
+						[minSizes]="[40, 25]"
+						[gutterSize]="1"
 					>
-						<div class="admin-skills-page__panel-heading">
-							<div class="text-overline">Глобальная таблица</div>
-							<h2 class="admin-skills-page__panel-title">Уровни навыков</h2>
-						</div>
+						<ng-template #panel>
+							<section
+								class="admin-skills-page__panel admin-skills-page__table-panel"
+							>
+								<div class="admin-skills-page__panel-heading">
+									<div class="text-overline">Глобальная таблица</div>
+									<h2 class="admin-skills-page__panel-title">Уровни навыков</h2>
+								</div>
 
-						<p-table
-							class="admin-skills-page__table"
-							[value]="levels()"
-							[tableStyle]="{ 'min-width': '100%' }"
-						>
-							<ng-template #header>
-								<tr>
-									<th>Уровень</th>
-									<th>Название</th>
-									<th>Успех от</th>
-									<th>Двойной успех от</th>
-									<th>Активность</th>
-								</tr>
-							</ng-template>
-
-							<ng-template #body let-level>
-								<tr
-									class="admin-skills-page__table-row"
-									[class.admin-skills-page__table-row--selected]="
-										level.id === selectedLevelId()
-									"
-									(click)="selectLevel(level.id)"
+								<p-table
+									class="admin-skills-page__table"
+									[value]="levels()"
+									[scrollable]="true"
+									scrollHeight="flex"
+									[tableStyle]="{ 'min-width': '48rem' }"
 								>
-									<td>{{ level.level }}</td>
-									<td>{{ level.name }}</td>
-									<td>{{ level.successMin ?? '—' }}</td>
-									<td>{{ level.doubleSuccessMin ?? '—' }}</td>
-									<td>
-										<p-toggleswitch
-											[ngModel]="level.isActive"
-											(ngModelChange)="toggleLevelActive(level.id, $event)"
-											(click)="$event.stopPropagation()"
-										/>
-									</td>
-								</tr>
-							</ng-template>
-						</p-table>
-					</section>
-
-					<aside
-						class="admin-skills-page__panel admin-skills-page__editor-panel"
-					>
-						<div class="admin-skills-page__panel-heading">
-							<div class="text-overline">Редактор уровня</div>
-							<h2 class="admin-skills-page__panel-title">
-								{{ selectedLevel()?.name || 'Уровень не выбран' }}
-							</h2>
-						</div>
-
-						@if (selectedLevel(); as level) {
-							<div class="admin-skills-page__editor-content">
-								<form class="admin-skills-page__form" [formGroup]="levelForm">
-									<div
-										class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
-									>
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="level-name"
+									<ng-template #header>
+										<tr>
+											<th>Уровень</th>
+											<th>Название</th>
+											<th>Успех от</th>
+											<th>Двойной успех от</th>
+											<th>Активность</th>
+											<th
+												pFrozenColumn
+												alignFrozen="right"
+												class="admin-skills-page__actions-column"
 											>
-												Название
-											</label>
-											<input
-												id="level-name"
-												pInputText
-												formControlName="name"
-											/>
-										</div>
+												Действия
+											</th>
+										</tr>
+									</ng-template>
 
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="level-value"
-											>
-												Уровень
-											</label>
-											<input
-												id="level-value"
-												pInputText
-												[value]="level.level"
-												readonly
-											/>
-										</div>
-									</div>
-
-									<div class="admin-skills-page__form-grid">
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="level-success-min"
-											>
-												Успех от
-											</label>
-											<p-inputnumber
-												formControlName="successMin"
-												inputId="level-success-min"
-												[min]="1"
-												[max]="6"
-												[showButtons]="false"
-											></p-inputnumber>
-										</div>
-
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="level-double-success-min"
-											>
-												Двойной успех от
-											</label>
-											<p-inputnumber
-												formControlName="doubleSuccessMin"
-												inputId="level-double-success-min"
-												[min]="1"
-												[max]="6"
-												[showButtons]="false"
-											></p-inputnumber>
-										</div>
-									</div>
-
-									<div class="admin-skills-page__form-grid">
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="level-ignore-ones-count"
-											>
-												Игнор единиц
-											</label>
-											<p-inputnumber
-												formControlName="ignoreOnesCount"
-												inputId="level-ignore-ones-count"
-												[min]="0"
-												[max]="6"
-												[showButtons]="false"
-											></p-inputnumber>
-										</div>
-
-										<div class="admin-skills-page__form-field">
-											<label
-												class="admin-skills-page__field-label"
-												for="level-expected-success"
-											>
-												Средний успех
-											</label>
-											<input
-												id="level-expected-success"
-												pInputText
-												[value]="getExpectedSuccessPreview()"
-												readonly
-											/>
-										</div>
-									</div>
-
-									<div class="admin-skills-page__switch-list">
-										<div class="admin-skills-page__switch-row">
-											<label
-												class="admin-skills-page__field-label"
-												for="level-can-roll"
-											>
-												Может бросать
-											</label>
-											<p-toggleswitch
-												inputId="level-can-roll"
-												formControlName="canRoll"
-											/>
-										</div>
-									</div>
-
-									<div class="admin-skills-page__form-field">
-										<label
-											class="admin-skills-page__field-label"
-											for="level-rule-text"
+									<ng-template #body let-level>
+										<tr
+											class="admin-skills-page__table-row"
+											[class.admin-skills-page__table-row--selected]="
+												level.id === selectedLevelId()
+											"
 										>
-											Описание правила
-										</label>
-										<textarea
-											id="level-rule-text"
-											pTextarea
-											formControlName="ruleText"
-											rows="4"
-										></textarea>
-									</div>
-								</form>
+											<td>{{ level.level }}</td>
+											<td>{{ level.name }}</td>
+											<td>{{ level.successMin ?? '—' }}</td>
+											<td>{{ level.doubleSuccessMin ?? '—' }}</td>
+											<td>
+												<p-toggleswitch
+													[ngModel]="level.isActive"
+													(ngModelChange)="toggleLevelActive(level.id, $event)"
+												/>
+											</td>
+											<td
+												pFrozenColumn
+												alignFrozen="right"
+												class="admin-skills-page__actions-cell"
+											>
+												<div class="admin-skills-page__row-actions">
+													<p-button
+														icon="pi pi-pencil"
+														severity="secondary"
+														[text]="true"
+														[rounded]="true"
+														ariaLabel="Редактировать уровень"
+														(onClick)="openLevelEditor(level.id)"
+													></p-button>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														[text]="true"
+														[rounded]="true"
+														ariaLabel="Удалить уровень"
+														(onClick)="confirmDeleteLevel(level)"
+													></p-button>
+												</div>
+											</td>
+										</tr>
+									</ng-template>
+								</p-table>
+							</section>
+						</ng-template>
 
-								<div class="admin-skills-page__editor-actions">
+						<ng-template #panel>
+							<aside
+								class="admin-skills-page__panel admin-skills-page__editor-panel"
+							>
+								<div
+									class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
+								>
+									<div>
+										<div class="text-overline">Редактор уровня</div>
+										<h2 class="admin-skills-page__panel-title">
+											{{ level.name }}
+										</h2>
+									</div>
 									<p-button
-										label="Отмена"
+										icon="pi pi-times"
 										severity="secondary"
-										variant="outlined"
-										(onClick)="cancelLevel()"
-									></p-button>
-									<p-button
-										label="Сохранить изменения"
-										[disabled]="isLevelSaveDisabled()"
-										(onClick)="saveLevel()"
+										[text]="true"
+										[rounded]="true"
+										ariaLabel="Закрыть редактор уровня"
+										(onClick)="closeLevelEditor()"
 									></p-button>
 								</div>
+
+								<div class="admin-skills-page__editor-content">
+									<form class="admin-skills-page__form" [formGroup]="levelForm">
+										<div
+											class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
+										>
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="level-name"
+												>
+													Название
+												</label>
+												<input
+													id="level-name"
+													pInputText
+													formControlName="name"
+												/>
+											</div>
+
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="level-value"
+												>
+													Уровень
+												</label>
+												<input
+													id="level-value"
+													pInputText
+													[value]="level.level"
+													readonly
+												/>
+											</div>
+										</div>
+
+										<div class="admin-skills-page__form-grid">
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="level-success-min"
+												>
+													Успех от
+												</label>
+												<p-inputnumber
+													formControlName="successMin"
+													inputId="level-success-min"
+													[min]="1"
+													[max]="6"
+													[showButtons]="false"
+												></p-inputnumber>
+											</div>
+
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="level-double-success-min"
+												>
+													Двойной успех от
+												</label>
+												<p-inputnumber
+													formControlName="doubleSuccessMin"
+													inputId="level-double-success-min"
+													[min]="1"
+													[max]="6"
+													[showButtons]="false"
+												></p-inputnumber>
+											</div>
+										</div>
+
+										<div class="admin-skills-page__form-grid">
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="level-ignore-ones-count"
+												>
+													Игнор единиц
+												</label>
+												<p-inputnumber
+													formControlName="ignoreOnesCount"
+													inputId="level-ignore-ones-count"
+													[min]="0"
+													[max]="6"
+													[showButtons]="false"
+												></p-inputnumber>
+											</div>
+
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="level-expected-success"
+												>
+													Средний успех
+												</label>
+												<input
+													id="level-expected-success"
+													pInputText
+													[value]="getExpectedSuccessPreview()"
+													readonly
+												/>
+											</div>
+										</div>
+
+										<div class="admin-skills-page__switch-list">
+											<div class="admin-skills-page__switch-row">
+												<label
+													class="admin-skills-page__field-label"
+													for="level-can-roll"
+												>
+													Может бросать
+												</label>
+												<p-toggleswitch
+													inputId="level-can-roll"
+													formControlName="canRoll"
+												/>
+											</div>
+										</div>
+
+										<div class="admin-skills-page__form-field">
+											<label
+												class="admin-skills-page__field-label"
+												for="level-rule-text"
+											>
+												Описание правила
+											</label>
+											<textarea
+												id="level-rule-text"
+												pTextarea
+												formControlName="ruleText"
+												rows="4"
+											></textarea>
+										</div>
+									</form>
+
+									<div class="admin-skills-page__editor-actions">
+										<p-button
+											label="Отмена"
+											severity="secondary"
+											variant="outlined"
+											(onClick)="cancelLevel()"
+										></p-button>
+										<p-button
+											label="Сохранить изменения"
+											[disabled]="isLevelSaveDisabled()"
+											(onClick)="saveLevel()"
+										></p-button>
+									</div>
+								</div>
+							</aside>
+						</ng-template>
+					</p-splitter>
+				} @else {
+					<div class="admin-skills-page__entity-workspace">
+						<section
+							class="admin-skills-page__panel admin-skills-page__table-panel"
+						>
+							<div class="admin-skills-page__panel-heading">
+								<div class="text-overline">Глобальная таблица</div>
+								<h2 class="admin-skills-page__panel-title">Уровни навыков</h2>
 							</div>
-						}
-					</aside>
-				</div>
+
+							<p-table
+								class="admin-skills-page__table"
+								[value]="levels()"
+								[scrollable]="true"
+								scrollHeight="flex"
+								[tableStyle]="{ 'min-width': '48rem' }"
+							>
+								<ng-template #header>
+									<tr>
+										<th>Уровень</th>
+										<th>Название</th>
+										<th>Успех от</th>
+										<th>Двойной успех от</th>
+										<th>Активность</th>
+										<th
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-skills-page__actions-column"
+										>
+											Действия
+										</th>
+									</tr>
+								</ng-template>
+
+								<ng-template #body let-level>
+									<tr
+										class="admin-skills-page__table-row"
+										[class.admin-skills-page__table-row--selected]="
+											level.id === selectedLevelId()
+										"
+									>
+										<td>{{ level.level }}</td>
+										<td>{{ level.name }}</td>
+										<td>{{ level.successMin ?? '—' }}</td>
+										<td>{{ level.doubleSuccessMin ?? '—' }}</td>
+										<td>
+											<p-toggleswitch
+												[ngModel]="level.isActive"
+												(ngModelChange)="toggleLevelActive(level.id, $event)"
+											/>
+										</td>
+										<td
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-skills-page__actions-cell"
+										>
+											<div class="admin-skills-page__row-actions">
+												<p-button
+													icon="pi pi-pencil"
+													severity="secondary"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Редактировать уровень"
+													(onClick)="openLevelEditor(level.id)"
+												></p-button>
+												<p-button
+													icon="pi pi-trash"
+													severity="danger"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Удалить уровень"
+													(onClick)="confirmDeleteLevel(level)"
+												></p-button>
+											</div>
+										</td>
+									</tr>
+								</ng-template>
+							</p-table>
+						</section>
+					</div>
+				}
 			</p-tabpanel>
 		</p-tabpanels>
 	</p-tabs>
