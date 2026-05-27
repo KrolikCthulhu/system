@@ -15,7 +15,6 @@ export function mapSkillCategoryDto(dto: SkillCategoryDto): SkillCategory {
 	return {
 		id: dto.id,
 		name: dto.name,
-		code: dto.code,
 		description: dto.description,
 		isActive: dto.isActive
 	};
@@ -25,7 +24,6 @@ export function mapSkillDto(dto: SkillDto): Skill {
 	return {
 		id: dto.id,
 		name: dto.name,
-		code: dto.code,
 		categoryId: dto.categoryId,
 		description: dto.description,
 		defaultLevel: dto.defaultLevel,
@@ -45,7 +43,7 @@ export function mapSkillLevelDto(dto: SkillLevelDto): SkillLevel {
 		doubleSuccessMin: dto.doubleSuccessMin,
 		ignoreOnesCount: dto.ignoreOnesCount,
 		expectedSuccessPerDie: dto.expectedSuccessPerDie,
-		ruleText: dto.ruleText,
+		ruleText: dto.ruleText ?? '',
 		isActive: dto.isActive
 	};
 }

@@ -123,12 +123,11 @@
 										[value]="visibleSkills()"
 										[scrollable]="true"
 										scrollHeight="flex"
-										[tableStyle]="{ 'min-width': '58rem' }"
+										[tableStyle]="{ 'min-width': '52rem' }"
 									>
 										<ng-template #header>
 											<tr>
 												<th>Навык</th>
-												<th>Код</th>
 												<th>Начальный уровень</th>
 												<th>Максимум</th>
 												<th>Активность</th>
@@ -150,15 +149,12 @@
 												"
 											>
 												<td>{{ skill.name }}</td>
-												<td>{{ skill.code }}</td>
 												<td>{{ skill.defaultLevel }}</td>
 												<td>{{ skill.maxLevel }}</td>
 												<td>
 													<p-toggleswitch
 														[ngModel]="skill.isActive"
-														(ngModelChange)="
-															toggleSkillActive(skill.id, $event)
-														"
+														(ngModelChange)="toggleSkillActive(skill.id, $event)"
 													/>
 												</td>
 												<td
@@ -215,40 +211,19 @@
 									</div>
 
 									<div class="admin-skills-page__editor-content">
-										<form
-											class="admin-skills-page__form"
-											[formGroup]="skillForm"
-										>
-											<div
-												class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
-											>
-												<div class="admin-skills-page__form-field">
-													<label
-														class="admin-skills-page__field-label"
-														for="skill-name"
-													>
-														Название
-													</label>
-													<input
-														id="skill-name"
-														pInputText
-														formControlName="name"
-													/>
-												</div>
-
-												<div class="admin-skills-page__form-field">
-													<label
-														class="admin-skills-page__field-label"
-														for="skill-code"
-													>
-														Код
-													</label>
-													<input
-														id="skill-code"
-														pInputText
-														formControlName="code"
-													/>
-												</div>
+										<form class="admin-skills-page__form" [formGroup]="skillForm">
+											<div class="admin-skills-page__form-field">
+												<label
+													class="admin-skills-page__field-label"
+													for="skill-name"
+												>
+													Название
+												</label>
+												<input
+													id="skill-name"
+													pInputText
+													formControlName="name"
+												/>
 											</div>
 
 											<div class="admin-skills-page__form-field">
@@ -342,9 +317,7 @@
 											></p-button>
 											<p-button
 												[label]="
-													isDraftSkillSelected()
-														? 'Создать'
-														: 'Сохранить изменения'
+													isDraftSkillSelected() ? 'Создать' : 'Сохранить изменения'
 												"
 												[disabled]="isSkillSaveDisabled()"
 												(onClick)="saveSkill()"
@@ -380,12 +353,11 @@
 								[value]="visibleSkills()"
 								[scrollable]="true"
 								scrollHeight="flex"
-								[tableStyle]="{ 'min-width': '58rem' }"
+								[tableStyle]="{ 'min-width': '52rem' }"
 							>
 								<ng-template #header>
 									<tr>
 										<th>Навык</th>
-										<th>Код</th>
 										<th>Начальный уровень</th>
 										<th>Максимум</th>
 										<th>Активность</th>
@@ -407,7 +379,6 @@
 										"
 									>
 										<td>{{ skill.name }}</td>
-										<td>{{ skill.code }}</td>
 										<td>{{ skill.defaultLevel }}</td>
 										<td>{{ skill.maxLevel }}</td>
 										<td>
@@ -480,12 +451,11 @@
 									[value]="categories()"
 									[scrollable]="true"
 									scrollHeight="flex"
-									[tableStyle]="{ 'min-width': '42rem' }"
+									[tableStyle]="{ 'min-width': '32rem' }"
 								>
 									<ng-template #header>
 										<tr>
 											<th>Название</th>
-											<th>Код</th>
 											<th>Активность</th>
 											<th
 												pFrozenColumn
@@ -505,13 +475,10 @@
 											"
 										>
 											<td>{{ category.name }}</td>
-											<td>{{ category.code }}</td>
 											<td>
 												<p-toggleswitch
 													[ngModel]="category.isActive"
-													(ngModelChange)="
-														toggleCategoryActive(category.id, $event)
-													"
+													(ngModelChange)="toggleCategoryActive(category.id, $event)"
 												/>
 											</td>
 											<td
@@ -568,40 +535,19 @@
 								</div>
 
 								<div class="admin-skills-page__editor-content">
-									<form
-										class="admin-skills-page__form"
-										[formGroup]="categoryForm"
-									>
-										<div
-											class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
-										>
-											<div class="admin-skills-page__form-field">
-												<label
-													class="admin-skills-page__field-label"
-													for="category-name"
-												>
-													Название категории
-												</label>
-												<input
-													id="category-name"
-													pInputText
-													formControlName="name"
-												/>
-											</div>
-
-											<div class="admin-skills-page__form-field">
-												<label
-													class="admin-skills-page__field-label"
-													for="category-code"
-												>
-													Код
-												</label>
-												<input
-													id="category-code"
-													pInputText
-													formControlName="code"
-												/>
-											</div>
+									<form class="admin-skills-page__form" [formGroup]="categoryForm">
+										<div class="admin-skills-page__form-field">
+											<label
+												class="admin-skills-page__field-label"
+												for="category-name"
+											>
+												Название категории
+											</label>
+											<input
+												id="category-name"
+												pInputText
+												formControlName="name"
+											/>
 										</div>
 
 										<div class="admin-skills-page__form-field">
@@ -629,9 +575,7 @@
 										></p-button>
 										<p-button
 											[label]="
-												isDraftCategorySelected()
-													? 'Создать'
-													: 'Сохранить изменения'
+												isDraftCategorySelected() ? 'Создать' : 'Сохранить изменения'
 											"
 											[disabled]="isCategorySaveDisabled()"
 											(onClick)="saveCategory()"
@@ -666,12 +610,11 @@
 								[value]="categories()"
 								[scrollable]="true"
 								scrollHeight="flex"
-								[tableStyle]="{ 'min-width': '42rem' }"
+								[tableStyle]="{ 'min-width': '32rem' }"
 							>
 								<ng-template #header>
 									<tr>
 										<th>Название</th>
-										<th>Код</th>
 										<th>Активность</th>
 										<th
 											pFrozenColumn
@@ -691,13 +634,10 @@
 										"
 									>
 										<td>{{ category.name }}</td>
-										<td>{{ category.code }}</td>
 										<td>
 											<p-toggleswitch
 												[ngModel]="category.isActive"
-												(ngModelChange)="
-													toggleCategoryActive(category.id, $event)
-												"
+												(ngModelChange)="toggleCategoryActive(category.id, $event)"
 											/>
 										</td>
 										<td
@@ -845,9 +785,7 @@
 
 								<div class="admin-skills-page__editor-content">
 									<form class="admin-skills-page__form" [formGroup]="levelForm">
-										<div
-											class="admin-skills-page__form-grid admin-skills-page__form-grid--wide-first"
-										>
+										<div class="admin-skills-page__form-grid">
 											<div class="admin-skills-page__form-field">
 												<label
 													class="admin-skills-page__field-label"

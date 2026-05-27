@@ -3,7 +3,6 @@ import { Skill } from '../../domain/skills.models';
 
 export type SkillForm = FormGroup<{
 	name: FormControl<string>;
-	code: FormControl<string>;
 	categoryId: FormControl<string>;
 	defaultLevel: FormControl<number>;
 	maxLevel: FormControl<number>;
@@ -13,7 +12,6 @@ export type SkillForm = FormGroup<{
 
 export interface SkillFormValue {
 	name: string;
-	code: string;
 	categoryId: string;
 	defaultLevel: number;
 	maxLevel: number;
@@ -24,7 +22,6 @@ export interface SkillFormValue {
 export function createSkillForm(): SkillForm {
 	return new FormGroup({
 		name: new FormControl('', { nonNullable: true }),
-		code: new FormControl('', { nonNullable: true }),
 		categoryId: new FormControl('', { nonNullable: true }),
 		defaultLevel: new FormControl(0, { nonNullable: true }),
 		maxLevel: new FormControl(6, { nonNullable: true }),
@@ -38,7 +35,6 @@ export function getSkillFormValue(form: SkillForm): SkillFormValue {
 
 	return {
 		name: raw.name,
-		code: raw.code,
 		categoryId: raw.categoryId,
 		defaultLevel: raw.defaultLevel,
 		maxLevel: raw.maxLevel,
@@ -57,7 +53,6 @@ export function patchSkillForm(form: SkillForm, skill: Skill | null) {
 	form.setValue(
 		{
 			name: skill.name,
-			code: skill.code,
 			categoryId: skill.categoryId,
 			defaultLevel: skill.defaultLevel,
 			maxLevel: skill.maxLevel,
@@ -74,7 +69,6 @@ export function resetSkillForm(form: SkillForm) {
 	form.reset(
 		{
 			name: '',
-			code: '',
 			categoryId: '',
 			defaultLevel: 0,
 			maxLevel: 6,

@@ -6,10 +6,6 @@ export class UpdateSkillDto {
 	name?: string;
 
 	@IsOptional()
-	@IsString()
-	code?: string;
-
-	@IsOptional()
 	@IsUUID()
 	categoryId?: string;
 

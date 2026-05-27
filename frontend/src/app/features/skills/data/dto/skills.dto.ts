@@ -1,7 +1,6 @@
 export interface SkillCategoryDto {
 	id: string;
 	name: string;
-	code: string;
 	description: string;
 	isActive: boolean;
 }
@@ -9,7 +8,6 @@ export interface SkillCategoryDto {
 export interface SkillDto {
 	id: string;
 	name: string;
-	code: string;
 	categoryId: string;
 	description: string;
 	defaultLevel: number;
@@ -27,7 +25,7 @@ export interface SkillLevelDto {
 	doubleSuccessMin: number | null;
 	ignoreOnesCount: number;
 	expectedSuccessPerDie: number;
-	ruleText: string;
+	ruleText: string | null;
 	isActive: boolean;
 }
 

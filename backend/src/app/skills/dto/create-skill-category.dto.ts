@@ -1,12 +1,10 @@
-import { IsString } from 'class-validator';
+import { IsOptional, IsString } from 'class-validator';
 
 export class CreateSkillCategoryDto {
 	@IsString()
 	name!: string;
 
+	@IsOptional()
 	@IsString()
-	code!: string;
-
-	@IsString()
-	description!: string;
+	description?: string;
 }

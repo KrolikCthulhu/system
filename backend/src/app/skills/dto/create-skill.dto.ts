@@ -4,9 +4,6 @@ export class CreateSkillDto {
 	@IsString()
 	name!: string;
 
-	@IsString()
-	code!: string;
-
 	@IsUUID()
 	categoryId!: string;
 

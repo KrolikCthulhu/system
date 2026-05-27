@@ -37,14 +37,12 @@ export class SkillsService {
 			categories: categories.map(category => ({
 				id: category.id,
 				name: category.name,
-				code: category.code,
 				description: category.description ?? '',
 				isActive: category.isActive
 			})),
 			skills: skills.map(skill => ({
 				id: skill.id,
 				name: skill.name,
-				code: skill.code,
 				categoryId: skill.categoryId,
 				description: skill.description ?? '',
 				defaultLevel: skill.defaultLevel,
@@ -61,7 +59,7 @@ export class SkillsService {
 				doubleSuccessMin: level.doubleSuccessMin,
 				ignoreOnesCount: level.ignoreOnesCount,
 				expectedSuccessPerDie: Number(level.expectedSuccessPerDie),
-				ruleText: level.ruleText,
+				ruleText: level.ruleText ?? '',
 				isActive: level.isActive
 			}))
 		};
@@ -75,7 +73,6 @@ export class SkillsService {
 			const skill = await this.prisma.skill.create({
 				data: {
 					name: dto.name,
-					code: dto.code,
 					categoryId: dto.categoryId,
 					description: dto.description || null,
 					defaultLevel: dto.defaultLevel,
@@ -113,7 +110,6 @@ export class SkillsService {
 				where: { id },
 				data: {
 					name: dto.name,
-					code: dto.code,
 					categoryId: dto.categoryId,
 					description: dto.description === undefined ? undefined : dto.description || null,
 					defaultLevel: dto.defaultLevel,
@@ -149,7 +145,6 @@ export class SkillsService {
 			const category = await this.prisma.skillCategory.create({
 				data: {
 					name: dto.name,
-					code: dto.code,
 					description: dto.description || null
 				}
 			});
@@ -168,7 +163,6 @@ export class SkillsService {
 				where: { id },
 				data: {
 					name: dto.name,
-					code: dto.code,
 					description: dto.description === undefined ? undefined : dto.description || null
 				}
 			});
@@ -231,7 +225,7 @@ export class SkillsService {
 						doubleSuccessMin
 					})
 				),
-				ruleText: dto.ruleText
+				ruleText: dto.ruleText === undefined ? undefined : dto.ruleText || null
 			}
 		});
 
@@ -329,7 +323,6 @@ export class SkillsService {
 	private mapSkill(skill: {
 		id: string;
 		name: string;
-		code: string;
 		categoryId: string;
 		description: string | null;
 		defaultLevel: number;
@@ -340,7 +333,6 @@ export class SkillsService {
 		return {
 			id: skill.id,
 			name: skill.name,
-			code: skill.code,
 			categoryId: skill.categoryId,
 			description: skill.description ?? '',
 			defaultLevel: skill.defaultLevel,
@@ -353,14 +345,12 @@ export class SkillsService {
 	private mapCategory(category: {
 		id: string;
 		name: string;
-		code: string;
 		description: string | null;
 		isActive: boolean;
 	}) {
 		return {
 			id: category.id,
 			name: category.name,
-			code: category.code,
 			description: category.description ?? '',
 			isActive: category.isActive
 		};
@@ -375,7 +365,7 @@ export class SkillsService {
 		doubleSuccessMin: number | null;
 		ignoreOnesCount: number;
 		expectedSuccessPerDie: Prisma.Decimal;
-		ruleText: string;
+		ruleText: string | null;
 		isActive: boolean;
 	}) {
 		return {
@@ -387,7 +377,7 @@ export class SkillsService {
 			doubleSuccessMin: level.doubleSuccessMin,
 			ignoreOnesCount: level.ignoreOnesCount,
 			expectedSuccessPerDie: Number(level.expectedSuccessPerDie),
-			ruleText: level.ruleText,
+			ruleText: level.ruleText ?? '',
 			isActive: level.isActive
 		};
 	}

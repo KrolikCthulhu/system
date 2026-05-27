@@ -72,7 +72,6 @@ export class SkillEditorFacade {
 				this.catalogFacade.prependSkill({
 					id,
 					name: 'Новый навык',
-					code: `new_skill_${this.catalogFacade.skills().length + 1}`,
 					categoryId: defaultCategoryId,
 					description: '',
 					defaultLevel: 0,

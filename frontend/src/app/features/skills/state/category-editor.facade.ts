@@ -61,7 +61,6 @@ export class CategoryEditorFacade {
 				this.catalogFacade.prependCategory({
 					id,
 					name: 'Новая категория',
-					code: `new_category_${this.catalogFacade.categories().length + 1}`,
 					description: '',
 					isActive: true
 				});

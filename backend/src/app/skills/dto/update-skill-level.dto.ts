@@ -29,5 +29,5 @@ export class UpdateSkillLevelDto {
 
 	@IsOptional()
 	@IsString()
-	ruleText?: string;
+	ruleText?: string | null;
 }

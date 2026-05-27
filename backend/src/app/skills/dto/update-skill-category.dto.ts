@@ -7,9 +7,5 @@ export class UpdateSkillCategoryDto {
 
 	@IsOptional()
 	@IsString()
-	code?: string;
-
-	@IsOptional()
-	@IsString()
 	description?: string;
 }

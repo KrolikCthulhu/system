@@ -1,7 +1,6 @@
 export interface SkillCategory {
 	id: string;
 	name: string;
-	code: string;
 	description: string;
 	isActive: boolean;
 }
@@ -9,7 +8,6 @@ export interface SkillCategory {
 export interface Skill {
 	id: string;
 	name: string;
-	code: string;
 	categoryId: string;
 	description: string;
 	defaultLevel: number;

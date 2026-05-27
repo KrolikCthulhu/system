@@ -69,7 +69,6 @@ model EmailVerificationToken {
 
 model SkillCategory {
     id          String   @id @default(uuid()) @db.Uuid
-    code        String   @unique
     name        String
     description String?
     isActive    Boolean  @default(true) @map("is_active")
@@ -91,7 +90,7 @@ model SkillLevel {
     doubleSuccessMin      Int?     @map("double_success_min")
     ignoreOnesCount       Int      @default(0) @map("ignore_ones_count")
     expectedSuccessPerDie Decimal  @default(0) @map("expected_success_per_die") @db.Decimal(8, 4)
-    ruleText              String   @map("rule_text")
+    ruleText              String?  @map("rule_text")
     isActive              Boolean  @default(true) @map("is_active")
     sortOrder             Int      @default(0) @map("sort_order")
     createdAt             DateTime @default(now()) @map("created_at")
@@ -103,7 +102,6 @@ model SkillLevel {
 
 model Skill {
     id                    String        @id @default(uuid()) @db.Uuid
-    code                  String        @unique
     name                  String
     shortName             String?       @map("short_name")
     categoryId            String        @map("category_id") @db.Uuid

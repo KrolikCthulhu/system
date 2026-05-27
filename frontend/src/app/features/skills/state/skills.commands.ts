@@ -1,6 +1,5 @@
 export interface CreateSkillCommand {
 	name: string;
-	code: string;
 	categoryId: string;
 	description: string;
 	defaultLevel: number;
@@ -19,7 +18,6 @@ export interface UpdateSkillActiveCommand {
 
 export interface CreateSkillCategoryCommand {
 	name: string;
-	code: string;
 	description: string;
 }
 
