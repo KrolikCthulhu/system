@@ -73,6 +73,58 @@ const SKILL_LEVEL_SEEDS = [
 	}
 ] as const;
 
+const ATTRIBUTE_SEEDS = [
+	{
+		name: 'Тело',
+		description: '',
+		sortOrder: 0
+	},
+	{
+		name: 'Разум',
+		description: '',
+		sortOrder: 1
+	}
+] as const;
+
+const CHARACTERISTIC_SEEDS = [
+	{
+		name: 'Мощь',
+		attributeName: 'Тело',
+		description: '',
+		minValue: 0,
+		maxValue: 10,
+		defaultValue: 0,
+		sortOrder: 0
+	},
+	{
+		name: 'Рефлексы',
+		attributeName: 'Тело',
+		description: '',
+		minValue: 0,
+		maxValue: 10,
+		defaultValue: 0,
+		sortOrder: 1
+	},
+	{
+		name: 'Душа',
+		attributeName: 'Разум',
+		description: '',
+		minValue: 0,
+		maxValue: 10,
+		defaultValue: 0,
+		sortOrder: 0
+	},
+	{
+		name: 'Память',
+		attributeName: 'Разум',
+		description: '',
+		minValue: 0,
+		maxValue: 10,
+		defaultValue: 0,
+		sortOrder: 1
+	}
+] as const;
+
 function calculateExpectedSuccessPerDie(params: {
 	canRoll: boolean;
 	successMin: number | null;
@@ -138,6 +190,73 @@ async function main() {
 					ruleText: seed.ruleText,
 					isActive: true,
 					sortOrder: seed.level
+				}
+			});
+		}
+
+		for (const seed of ATTRIBUTE_SEEDS) {
+			const existing = await prisma.attribute.findFirst({
+				where: { name: seed.name }
+			});
+
+			if (existing) {
+				await prisma.attribute.update({
+					where: { id: existing.id },
+					data: {
+						description: seed.description || null,
+						isActive: true,
+						sortOrder: seed.sortOrder
+					}
+				});
+				continue;
+			}
+
+			await prisma.attribute.create({
+				data: {
+					name: seed.name,
+					description: seed.description || null,
+					isActive: true,
+					sortOrder: seed.sortOrder
+				}
+			});
+		}
+
+		for (const seed of CHARACTERISTIC_SEEDS) {
+			const attribute = await prisma.attribute.findFirstOrThrow({
+				where: { name: seed.attributeName }
+			});
+			const existing = await prisma.characteristic.findFirst({
+				where: {
+					name: seed.name,
+					attributeId: attribute.id
+				}
+			});
+
+			if (existing) {
+				await prisma.characteristic.update({
+					where: { id: existing.id },
+					data: {
+						description: seed.description || null,
+						minValue: seed.minValue,
+						maxValue: seed.maxValue,
+						defaultValue: seed.defaultValue,
+						isActive: true,
+						sortOrder: seed.sortOrder
+					}
+				});
+				continue;
+			}
+
+			await prisma.characteristic.create({
+				data: {
+					name: seed.name,
+					attributeId: attribute.id,
+					description: seed.description || null,
+					minValue: seed.minValue,
+					maxValue: seed.maxValue,
+					defaultValue: seed.defaultValue,
+					isActive: true,
+					sortOrder: seed.sortOrder
 				}
 			});
 		}

@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
 import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
+import { provideAttributesInfrastructure } from './features/attributes/data/provide-attributes-infrastructure';
 import { AuthFacade } from './features/auth/state/auth.facade';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
@@ -37,6 +38,7 @@ export const appConfig: ApplicationConfig = {
 	providers: [
 		provideBrowserGlobalErrorListeners(),
 		...provideAuthInfrastructure(),
+		...provideAttributesInfrastructure(),
 		...provideSkillsInfrastructure(),
 		provideAppInitializer(() => inject(AuthFacade).initializeSession()),
 		provideHttpClient(withInterceptors([authInterceptor])),

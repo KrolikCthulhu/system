@@ -32,6 +32,13 @@ export const adminRoutes: Route[] = [
 							import(
 								'../../features/skills/ui/pages/admin-skills-page/admin-skills-page.component'
 							).then(m => m.AdminSkillsPageComponent)
+					},
+					{
+						path: 'attributes',
+						loadComponent: () =>
+							import(
+								'../../features/attributes/ui/pages/admin-attributes-page/admin-attributes-page.component'
+							).then(m => m.AdminAttributesPageComponent)
 					}
 				]
 			},

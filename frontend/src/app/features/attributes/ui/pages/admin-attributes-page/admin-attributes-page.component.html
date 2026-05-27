@@ -1,0 +1,715 @@
+<section class="admin-attributes-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-attributes-page__header">
+		<p-breadcrumb
+			class="admin-attributes-page__breadcrumbs"
+			[model]="breadcrumbs()"
+		></p-breadcrumb>
+	</header>
+
+	<p-tabs
+		class="admin-attributes-page__tabs"
+		[value]="tabValue()"
+		(valueChange)="setActiveTab($event)"
+	>
+		<p-tablist>
+			<p-tab value="attributes">
+				<button
+					type="button"
+					class="admin-attributes-page__tab-trigger"
+					(click)="requestActiveTabChange($event, 'attributes')"
+				>
+					Атрибуты
+				</button>
+			</p-tab>
+			<p-tab value="characteristics">
+				<button
+					type="button"
+					class="admin-attributes-page__tab-trigger"
+					(click)="requestActiveTabChange($event, 'characteristics')"
+				>
+					Характеристики
+				</button>
+			</p-tab>
+		</p-tablist>
+
+		<p-tabpanels>
+			<p-tabpanel value="attributes">
+				@if (attributeEditorOpen() && selectedAttribute()) {
+					<p-splitter
+						class="admin-attributes-page__splitter"
+						[panelSizes]="[70, 30]"
+						[minSizes]="[40, 25]"
+						[gutterSize]="1"
+					>
+						<ng-template #panel>
+							<section
+								class="admin-attributes-page__panel admin-attributes-page__table-panel"
+							>
+								<div
+									class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
+								>
+									<div>
+										<div class="text-overline">Справочник</div>
+										<h2 class="admin-attributes-page__panel-title">
+											Атрибуты
+										</h2>
+									</div>
+
+									<p-button
+										label="Новый атрибут"
+										icon="pi pi-plus"
+										(onClick)="addAttribute()"
+									></p-button>
+								</div>
+
+								<p-table
+									class="admin-attributes-page__table"
+									[value]="attributes()"
+									[scrollable]="true"
+									scrollHeight="flex"
+									[tableStyle]="{ 'min-width': '40rem' }"
+								>
+									<ng-template #header>
+										<tr>
+											<th>Название</th>
+											<th>Порядок</th>
+											<th>Активность</th>
+											<th
+												pFrozenColumn
+												alignFrozen="right"
+												class="admin-attributes-page__actions-column"
+											>
+												Действия
+											</th>
+										</tr>
+									</ng-template>
+
+									<ng-template #body let-attribute>
+										<tr
+											class="admin-attributes-page__table-row"
+											[class.admin-attributes-page__table-row--selected]="
+												attribute.id === selectedAttributeId()
+											"
+										>
+											<td>{{ attribute.name }}</td>
+											<td>{{ attribute.sortOrder }}</td>
+											<td>
+												<p-toggleswitch
+													[ngModel]="attribute.isActive"
+													(ngModelChange)="toggleAttributeActive(attribute.id, $event)"
+												/>
+											</td>
+											<td
+												pFrozenColumn
+												alignFrozen="right"
+												class="admin-attributes-page__actions-cell"
+											>
+												<div class="admin-attributes-page__row-actions">
+													<p-button
+														icon="pi pi-pencil"
+														severity="secondary"
+														[text]="true"
+														[rounded]="true"
+														ariaLabel="Редактировать атрибут"
+														(onClick)="openAttributeEditor(attribute.id)"
+													></p-button>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														[text]="true"
+														[rounded]="true"
+														ariaLabel="Удалить атрибут"
+														(onClick)="confirmDeleteAttribute(attribute)"
+													></p-button>
+												</div>
+											</td>
+										</tr>
+									</ng-template>
+								</p-table>
+							</section>
+						</ng-template>
+
+						<ng-template #panel>
+							<aside
+								class="admin-attributes-page__panel admin-attributes-page__editor-panel"
+							>
+								<div
+									class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
+								>
+									<div>
+										<div class="text-overline">Редактор атрибута</div>
+										<h2 class="admin-attributes-page__panel-title">
+											{{ selectedAttribute()?.name }}
+										</h2>
+									</div>
+									<p-button
+										icon="pi pi-times"
+										severity="secondary"
+										[text]="true"
+										[rounded]="true"
+										ariaLabel="Закрыть редактор атрибута"
+										(onClick)="closeAttributeEditor()"
+									></p-button>
+								</div>
+
+								<div class="admin-attributes-page__editor-content">
+									<form class="admin-attributes-page__form" [formGroup]="attributeForm">
+										<div class="admin-attributes-page__form-field">
+											<label
+												class="admin-attributes-page__field-label"
+												for="attribute-name"
+											>
+												Название
+											</label>
+											<input
+												id="attribute-name"
+												pInputText
+												formControlName="name"
+											/>
+										</div>
+
+										<div class="admin-attributes-page__form-field">
+											<label
+												class="admin-attributes-page__field-label"
+												for="attribute-sort-order"
+											>
+												Порядок сортировки
+											</label>
+											<p-inputnumber
+												formControlName="sortOrder"
+												inputId="attribute-sort-order"
+												[min]="0"
+												[showButtons]="false"
+											></p-inputnumber>
+										</div>
+
+										<div class="admin-attributes-page__form-field">
+											<label
+												class="admin-attributes-page__field-label"
+												for="attribute-description"
+											>
+												Описание
+											</label>
+											<textarea
+												id="attribute-description"
+												pTextarea
+												formControlName="description"
+												rows="4"
+											></textarea>
+										</div>
+									</form>
+
+									<div class="admin-attributes-page__editor-actions">
+										<p-button
+											label="Отмена"
+											severity="secondary"
+											variant="outlined"
+											(onClick)="cancelAttribute()"
+										></p-button>
+										<p-button
+											[label]="
+												isDraftAttributeSelected() ? 'Создать' : 'Сохранить изменения'
+											"
+											[disabled]="isAttributeSaveDisabled()"
+											(onClick)="saveAttribute()"
+										></p-button>
+									</div>
+								</div>
+							</aside>
+						</ng-template>
+					</p-splitter>
+				} @else {
+					<div class="admin-attributes-page__entity-workspace">
+						<section
+							class="admin-attributes-page__panel admin-attributes-page__table-panel"
+						>
+							<div
+								class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
+							>
+								<div>
+									<div class="text-overline">Справочник</div>
+									<h2 class="admin-attributes-page__panel-title">Атрибуты</h2>
+								</div>
+
+								<p-button
+									label="Новый атрибут"
+									icon="pi pi-plus"
+									(onClick)="addAttribute()"
+								></p-button>
+							</div>
+
+							<p-table
+								class="admin-attributes-page__table"
+								[value]="attributes()"
+								[scrollable]="true"
+								scrollHeight="flex"
+								[tableStyle]="{ 'min-width': '40rem' }"
+							>
+								<ng-template #header>
+									<tr>
+										<th>Название</th>
+										<th>Порядок</th>
+										<th>Активность</th>
+										<th
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-attributes-page__actions-column"
+										>
+											Действия
+										</th>
+									</tr>
+								</ng-template>
+
+								<ng-template #body let-attribute>
+									<tr
+										class="admin-attributes-page__table-row"
+										[class.admin-attributes-page__table-row--selected]="
+											attribute.id === selectedAttributeId()
+										"
+									>
+										<td>{{ attribute.name }}</td>
+										<td>{{ attribute.sortOrder }}</td>
+										<td>
+											<p-toggleswitch
+												[ngModel]="attribute.isActive"
+												(ngModelChange)="toggleAttributeActive(attribute.id, $event)"
+											/>
+										</td>
+										<td
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-attributes-page__actions-cell"
+										>
+											<div class="admin-attributes-page__row-actions">
+												<p-button
+													icon="pi pi-pencil"
+													severity="secondary"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Редактировать атрибут"
+													(onClick)="openAttributeEditor(attribute.id)"
+												></p-button>
+												<p-button
+													icon="pi pi-trash"
+													severity="danger"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Удалить атрибут"
+													(onClick)="confirmDeleteAttribute(attribute)"
+												></p-button>
+											</div>
+										</td>
+									</tr>
+								</ng-template>
+							</p-table>
+						</section>
+					</div>
+				}
+			</p-tabpanel>
+
+			<p-tabpanel value="characteristics">
+				<div class="admin-attributes-page__characteristics-workspace">
+					<aside
+						class="admin-attributes-page__panel admin-attributes-page__filter-panel"
+					>
+						<div class="admin-attributes-page__panel-heading">
+							<h2 class="admin-attributes-page__panel-title">Атрибуты</h2>
+						</div>
+
+						<div class="admin-attributes-page__category-tools">
+							<p-iconfield class="admin-attributes-page__search">
+								<p-inputicon class="pi pi-search" />
+								<input
+									pInputText
+									type="text"
+									placeholder="Поиск атрибута"
+									[value]="attributeSearch()"
+									(input)="setAttributeSearch($any($event.target).value)"
+								/>
+							</p-iconfield>
+						</div>
+
+						<div class="admin-attributes-page__category-list">
+							@for (attribute of filteredAttributes(); track attribute.id) {
+								<button
+									type="button"
+									class="admin-attributes-page__category-item"
+									[class.admin-attributes-page__category-item--active]="
+										attribute.id === selectedCharacteristicFilterAttributeId()
+									"
+									(click)="selectCharacteristicFilterAttribute(attribute.id)"
+								>
+									<span class="admin-attributes-page__category-name">
+										{{ attribute.name }}
+									</span>
+									<span class="admin-attributes-page__category-count">
+										{{ attribute.count }}
+									</span>
+								</button>
+							}
+						</div>
+					</aside>
+
+					@if (characteristicEditorOpen() && selectedCharacteristic()) {
+						<p-splitter
+							class="admin-attributes-page__splitter"
+							[panelSizes]="[70, 30]"
+							[minSizes]="[40, 25]"
+							[gutterSize]="1"
+						>
+							<ng-template #panel>
+								<section
+									class="admin-attributes-page__panel admin-attributes-page__table-panel"
+								>
+									<div
+										class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
+									>
+										<div>
+											<div class="text-overline">Фильтр</div>
+											<h2 class="admin-attributes-page__panel-title">
+												{{ selectedCharacteristicFilterAttribute().name }}
+											</h2>
+										</div>
+
+										<p-button
+											label="Новая характеристика"
+											icon="pi pi-plus"
+											[disabled]="!attributes().length"
+											(onClick)="addCharacteristic()"
+										></p-button>
+									</div>
+
+									<p-table
+										class="admin-attributes-page__table"
+										[value]="visibleCharacteristics()"
+										[scrollable]="true"
+										scrollHeight="flex"
+										[tableStyle]="{ 'min-width': '52rem' }"
+									>
+										<ng-template #header>
+											<tr>
+												<th>Название</th>
+												<th>Мин.</th>
+												<th>Макс.</th>
+												<th>По умолчанию</th>
+												<th>Активность</th>
+												<th
+													pFrozenColumn
+													alignFrozen="right"
+													class="admin-attributes-page__actions-column"
+												>
+													Действия
+												</th>
+											</tr>
+										</ng-template>
+
+										<ng-template #body let-characteristic>
+											<tr
+												class="admin-attributes-page__table-row"
+												[class.admin-attributes-page__table-row--selected]="
+													characteristic.id === selectedCharacteristicId()
+												"
+											>
+												<td>{{ characteristic.name }}</td>
+												<td>{{ characteristic.minValue }}</td>
+												<td>{{ characteristic.maxValue }}</td>
+												<td>{{ characteristic.defaultValue }}</td>
+												<td>
+													<p-toggleswitch
+														[ngModel]="characteristic.isActive"
+														(ngModelChange)="
+															toggleCharacteristicActive(characteristic.id, $event)
+														"
+													/>
+												</td>
+												<td
+													pFrozenColumn
+													alignFrozen="right"
+													class="admin-attributes-page__actions-cell"
+												>
+													<div class="admin-attributes-page__row-actions">
+														<p-button
+															icon="pi pi-pencil"
+															severity="secondary"
+															[text]="true"
+															[rounded]="true"
+															ariaLabel="Редактировать характеристику"
+															(onClick)="openCharacteristicEditor(characteristic.id)"
+														></p-button>
+														<p-button
+															icon="pi pi-trash"
+															severity="danger"
+															[text]="true"
+															[rounded]="true"
+															ariaLabel="Удалить характеристику"
+															(onClick)="confirmDeleteCharacteristic(characteristic)"
+														></p-button>
+													</div>
+												</td>
+											</tr>
+										</ng-template>
+									</p-table>
+								</section>
+							</ng-template>
+
+							<ng-template #panel>
+								<aside
+									class="admin-attributes-page__panel admin-attributes-page__editor-panel"
+								>
+									<div
+										class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
+									>
+										<div>
+											<div class="text-overline">Редактор характеристики</div>
+											<h2 class="admin-attributes-page__panel-title">
+												{{ selectedCharacteristic()?.name }}
+											</h2>
+										</div>
+										<p-button
+											icon="pi pi-times"
+											severity="secondary"
+											[text]="true"
+											[rounded]="true"
+											ariaLabel="Закрыть редактор характеристики"
+											(onClick)="closeCharacteristicEditor()"
+										></p-button>
+									</div>
+
+									<div class="admin-attributes-page__editor-content">
+										<form
+											class="admin-attributes-page__form"
+											[formGroup]="characteristicForm"
+										>
+											<div class="admin-attributes-page__form-field">
+												<label
+													class="admin-attributes-page__field-label"
+													for="characteristic-name"
+												>
+													Название
+												</label>
+												<input
+													id="characteristic-name"
+													pInputText
+													formControlName="name"
+												/>
+											</div>
+
+											<div class="admin-attributes-page__form-field">
+												<label
+													class="admin-attributes-page__field-label"
+													for="characteristic-attribute"
+												>
+													Атрибут
+												</label>
+												<p-select
+													inputId="characteristic-attribute"
+													formControlName="attributeId"
+													optionLabel="label"
+													optionValue="value"
+													[options]="attributeOptions()"
+													appendTo="body"
+												></p-select>
+											</div>
+
+											<div class="admin-attributes-page__form-grid">
+												<div class="admin-attributes-page__form-field">
+													<label
+														class="admin-attributes-page__field-label"
+														for="characteristic-min-value"
+													>
+														Минимум
+													</label>
+													<p-inputnumber
+														formControlName="minValue"
+														inputId="characteristic-min-value"
+														[showButtons]="false"
+													></p-inputnumber>
+												</div>
+
+												<div class="admin-attributes-page__form-field">
+													<label
+														class="admin-attributes-page__field-label"
+														for="characteristic-max-value"
+													>
+														Максимум
+													</label>
+													<p-inputnumber
+														formControlName="maxValue"
+														inputId="characteristic-max-value"
+														[showButtons]="false"
+													></p-inputnumber>
+												</div>
+											</div>
+
+											<div class="admin-attributes-page__form-grid">
+												<div class="admin-attributes-page__form-field">
+													<label
+														class="admin-attributes-page__field-label"
+														for="characteristic-default-value"
+													>
+														По умолчанию
+													</label>
+													<p-inputnumber
+														formControlName="defaultValue"
+														inputId="characteristic-default-value"
+														[showButtons]="false"
+													></p-inputnumber>
+												</div>
+
+												<div class="admin-attributes-page__form-field">
+													<label
+														class="admin-attributes-page__field-label"
+														for="characteristic-sort-order"
+													>
+														Порядок сортировки
+													</label>
+													<p-inputnumber
+														formControlName="sortOrder"
+														inputId="characteristic-sort-order"
+														[min]="0"
+														[showButtons]="false"
+													></p-inputnumber>
+												</div>
+											</div>
+
+											<div class="admin-attributes-page__form-field">
+												<label
+													class="admin-attributes-page__field-label"
+													for="characteristic-description"
+												>
+													Описание
+												</label>
+												<textarea
+													id="characteristic-description"
+													pTextarea
+													formControlName="description"
+													rows="4"
+												></textarea>
+											</div>
+										</form>
+
+										<div class="admin-attributes-page__editor-actions">
+											<p-button
+												label="Отмена"
+												severity="secondary"
+												variant="outlined"
+												(onClick)="cancelCharacteristic()"
+											></p-button>
+											<p-button
+												[label]="
+													isDraftCharacteristicSelected()
+														? 'Создать'
+														: 'Сохранить изменения'
+												"
+												[disabled]="isCharacteristicSaveDisabled()"
+												(onClick)="saveCharacteristic()"
+											></p-button>
+										</div>
+									</div>
+								</aside>
+							</ng-template>
+						</p-splitter>
+					} @else {
+						<section
+							class="admin-attributes-page__panel admin-attributes-page__table-panel"
+						>
+							<div
+								class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
+							>
+								<div>
+									<div class="text-overline">Фильтр</div>
+									<h2 class="admin-attributes-page__panel-title">
+										{{ selectedCharacteristicFilterAttribute().name }}
+									</h2>
+								</div>
+
+								<p-button
+									label="Новая характеристика"
+									icon="pi pi-plus"
+									[disabled]="!attributes().length"
+									(onClick)="addCharacteristic()"
+								></p-button>
+							</div>
+
+							<p-table
+								class="admin-attributes-page__table"
+								[value]="visibleCharacteristics()"
+								[scrollable]="true"
+								scrollHeight="flex"
+								[tableStyle]="{ 'min-width': '52rem' }"
+							>
+								<ng-template #header>
+									<tr>
+										<th>Название</th>
+										<th>Мин.</th>
+										<th>Макс.</th>
+										<th>По умолчанию</th>
+										<th>Активность</th>
+										<th
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-attributes-page__actions-column"
+										>
+											Действия
+										</th>
+									</tr>
+								</ng-template>
+
+								<ng-template #body let-characteristic>
+									<tr
+										class="admin-attributes-page__table-row"
+										[class.admin-attributes-page__table-row--selected]="
+											characteristic.id === selectedCharacteristicId()
+										"
+									>
+										<td>{{ characteristic.name }}</td>
+										<td>{{ characteristic.minValue }}</td>
+										<td>{{ characteristic.maxValue }}</td>
+										<td>{{ characteristic.defaultValue }}</td>
+										<td>
+											<p-toggleswitch
+												[ngModel]="characteristic.isActive"
+												(ngModelChange)="
+													toggleCharacteristicActive(characteristic.id, $event)
+												"
+											/>
+										</td>
+										<td
+											pFrozenColumn
+											alignFrozen="right"
+											class="admin-attributes-page__actions-cell"
+										>
+											<div class="admin-attributes-page__row-actions">
+												<p-button
+													icon="pi pi-pencil"
+													severity="secondary"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Редактировать характеристику"
+													(onClick)="openCharacteristicEditor(characteristic.id)"
+												></p-button>
+												<p-button
+													icon="pi pi-trash"
+													severity="danger"
+													[text]="true"
+													[rounded]="true"
+													ariaLabel="Удалить характеристику"
+													(onClick)="confirmDeleteCharacteristic(characteristic)"
+												></p-button>
+											</div>
+										</td>
+									</tr>
+								</ng-template>
+							</p-table>
+						</section>
+					}
+				</div>
+			</p-tabpanel>
+		</p-tabpanels>
+	</p-tabs>
+</section>

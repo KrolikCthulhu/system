@@ -119,3 +119,36 @@ model Skill {
     @@index([categoryId, isActive, sortOrder])
     @@map("skills")
 }
+
+model Attribute {
+    id              String           @id @default(uuid()) @db.Uuid
+    name            String
+    description     String?
+    isActive        Boolean          @default(true) @map("is_active")
+    sortOrder       Int              @default(0) @map("sort_order")
+    createdAt       DateTime         @default(now()) @map("created_at")
+    updatedAt       DateTime         @updatedAt @map("updated_at")
+    characteristics Characteristic[]
+
+    @@index([isActive, sortOrder])
+    @@map("attributes")
+}
+
+model Characteristic {
+    id           String    @id @default(uuid()) @db.Uuid
+    name         String
+    attributeId  String    @map("attribute_id") @db.Uuid
+    attribute    Attribute @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+    description  String?
+    minValue     Int       @default(0) @map("min_value")
+    maxValue     Int       @default(10) @map("max_value")
+    defaultValue Int       @default(0) @map("default_value")
+    isActive     Boolean   @default(true) @map("is_active")
+    sortOrder    Int       @default(0) @map("sort_order")
+    createdAt    DateTime  @default(now()) @map("created_at")
+    updatedAt    DateTime  @updatedAt @map("updated_at")
+
+    @@index([attributeId])
+    @@index([attributeId, isActive, sortOrder])
+    @@map("characteristics")
+}

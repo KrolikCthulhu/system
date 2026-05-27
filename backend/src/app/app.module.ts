@@ -3,6 +3,7 @@ import { ConfigModule, ConfigType } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { PrismaModule } from './prisma/prisma.module';
@@ -30,6 +31,7 @@ import { SkillsModule } from './skills/skills.module';
 		ScheduleModule.forRoot(),
 		PrismaModule,
 		AuthModule,
+		AttributesModule,
 		SkillsModule
 	],
 	controllers: [],

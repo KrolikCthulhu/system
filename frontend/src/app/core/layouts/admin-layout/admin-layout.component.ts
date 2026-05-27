@@ -18,6 +18,10 @@ export class AdminLayoutComponent {
 				{
 					label: 'Навыки',
 					routerLink: '/admin/rules/skills'
+				},
+				{
+					label: 'Атрибуты и характеристики',
+					routerLink: '/admin/rules/attributes'
 				}
 			]
 		}
