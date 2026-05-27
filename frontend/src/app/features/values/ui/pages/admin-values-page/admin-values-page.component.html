@@ -1,0 +1,357 @@
+<section class="admin-values-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-values-page__header">
+		<div class="admin-values-page__section-pad">
+			<p-breadcrumb
+				class="admin-values-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-values-page__workspace">
+		<aside class="admin-values-page__panel admin-values-page__sidebar">
+			<div class="admin-values-page__panel-heading admin-values-page__section-pad">
+				<h2 class="admin-values-page__panel-title">Значения</h2>
+			</div>
+
+			<div class="admin-values-page__section-pad">
+				<p-iconfield class="admin-values-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск значения"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-values-page__state">Загрузка значений...</div>
+			} @else if (errorMessage()) {
+				<div class="admin-values-page__state admin-values-page__state--error">
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div class="admin-values-page__group-list admin-values-page__section-pad">
+					@for (group of valueGroups(); track group.label) {
+						<div class="admin-values-page__group">
+							<div class="text-overline">{{ group.label }}</div>
+
+							<div class="admin-values-page__value-list">
+								@for (value of group.items; track value.id) {
+									<button
+										type="button"
+										class="admin-values-page__value-item"
+										[class.admin-values-page__value-item--active]="
+											value.id === selectedValueId()
+										"
+										(click)="selectValue(value.id)"
+									>
+										<div class="admin-values-page__value-copy">
+											<strong>{{ value.name }}</strong>
+											<span>
+												{{ value.contextLabel || kindLabel(value.kind) }}
+											</span>
+										</div>
+										<p-tag
+											[value]="modeTagLabel(value)"
+											[severity]="modeTagSeverity(value)"
+										></p-tag>
+									</button>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as value) {
+			<section class="admin-values-page__panel admin-values-page__editor">
+				<div
+					class="admin-values-page__panel-heading admin-values-page__panel-heading--split admin-values-page__section-pad"
+				>
+					<div>
+						<div class="text-overline">Редактор значения</div>
+						<h2 class="admin-values-page__panel-title">{{ value.name }}</h2>
+					</div>
+
+					<div class="admin-values-page__heading-tags">
+						<p-tag [value]="kindLabel(value.kind)" severity="secondary"></p-tag>
+						<p-tag
+							[value]="modeTagLabel(value)"
+							[severity]="modeTagSeverity(value)"
+						></p-tag>
+					</div>
+				</div>
+
+				<p-tabs
+					class="admin-values-page__tabs"
+					[value]="activeTab()"
+					(valueChange)="setActiveTab($event)"
+				>
+					<p-tablist>
+						<p-tab value="calculation">Расчёт</p-tab>
+						<p-tab value="test">Тест</p-tab>
+					</p-tablist>
+
+					<p-tabpanels>
+						<p-tabpanel value="calculation">
+							@if (value.baseSourceType === 'computed') {
+								<div class="admin-values-page__tabpanel-body admin-values-page__tabpanel-body--graph">
+									<div class="admin-values-page__graph-palette">
+										@for (nodeType of graphNodeTypes; track nodeType.kind) {
+											<p-button
+												[label]="nodeType.label"
+												severity="secondary"
+												variant="outlined"
+												[disabled]="
+													nodeType.kind === 'result' && graphHasResultNode()
+												"
+												(onClick)="addGraphNode(nodeType.kind)"
+											></p-button>
+										}
+									</div>
+
+									<div class="admin-values-page__graph-stage">
+										<p-splitter
+											class="admin-values-page__graph-splitter"
+											[panelSizes]="[72, 28]"
+											[minSizes]="[45, 25]"
+											[gutterSize]="1"
+										>
+											<ng-template #panel>
+												<div class="admin-values-page__graph-canvas">
+													<vflow
+														view="auto"
+														[nodes]="graphNodes()"
+														[edges]="graphEdges()"
+														[connection]="graphConnectionSettings"
+														(connect)="onGraphConnect($event)"
+														changesController
+														(nodesChanges.select)="onGraphSelectionChange($event)"
+													></vflow>
+												</div>
+											</ng-template>
+
+											<ng-template #panel>
+												<div class="admin-values-page__graph-inspector">
+													@if (selectedGraphNodeData(); as selectedNode) {
+														<div class="admin-values-page__inspector-header">
+															<div>
+																<div class="text-overline">Узел</div>
+																<strong>
+																	{{ graphNodeTypeLabel(selectedNode.kind) }}
+																</strong>
+															</div>
+
+															<p-button
+																icon="pi pi-trash"
+																severity="danger"
+																[text]="true"
+																[rounded]="true"
+																[disabled]="selectedNode.kind === 'result'"
+																(onClick)="removeSelectedGraphNode()"
+															></p-button>
+														</div>
+
+														@if (selectedNode.kind === 'source') {
+															<div class="admin-values-page__field">
+																<label class="admin-values-page__field-label">
+																	Какое значение брать
+																</label>
+																<p-select
+																	[options]="dependencyGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="label"
+																	optionValue="value"
+																	[filter]="true"
+																	filterBy="label"
+																	[showClear]="true"
+																	[ngModel]="selectedNode.sourceValueId"
+																	(ngModelChange)="updateSelectedSourceValue($event)"
+																></p-select>
+															</div>
+
+															<div class="admin-values-page__note">
+																<div class="text-overline">Сейчас выбрано</div>
+																<p>{{ selectedSourceValueName() }}</p>
+															</div>
+														}
+
+														@if (selectedNode.kind === 'constant') {
+															<div class="admin-values-page__field">
+																<label class="admin-values-page__field-label">
+																	Число
+																</label>
+																<p-inputnumber
+																	[ngModel]="selectedNode.constantValue ?? 0"
+																	(ngModelChange)="updateSelectedConstantValue($event ?? 0)"
+																	[showButtons]="false"
+																></p-inputnumber>
+															</div>
+														}
+
+														@if (selectedNode.kind === 'operation') {
+															<div class="admin-values-page__field">
+																<label class="admin-values-page__field-label">
+																	Операция
+																</label>
+																<p-select
+																	[options]="operationOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="selectedNode.operation"
+																	(ngModelChange)="updateSelectedOperation($event)"
+																></p-select>
+															</div>
+														}
+
+														@if (selectedNode.kind === 'curve') {
+															<div class="admin-values-page__inspector-actions">
+																<p-button
+																	label="Добавить диапазон"
+																	icon="pi pi-plus"
+																	severity="secondary"
+																	variant="outlined"
+																	(onClick)="addSelectedCurveRange()"
+																></p-button>
+															</div>
+
+															<div class="admin-values-page__curve-list">
+																@for (range of selectedNode.curveRanges ?? []; track range.id) {
+																	<div class="admin-values-page__curve-row">
+																		<p-inputnumber
+																			[ngModel]="range.from"
+																			(ngModelChange)="updateSelectedCurveRange(range.id, { from: $event ?? 0 })"
+																			[showButtons]="false"
+																		></p-inputnumber>
+																		<p-inputnumber
+																			[ngModel]="range.to"
+																			(ngModelChange)="updateSelectedCurveRange(range.id, { to: $event ?? 0 })"
+																			[showButtons]="false"
+																		></p-inputnumber>
+																		<p-inputnumber
+																			[ngModel]="range.result"
+																			(ngModelChange)="updateSelectedCurveRange(range.id, { result: $event ?? 0 })"
+																			[showButtons]="false"
+																		></p-inputnumber>
+																		<p-button
+																			icon="pi pi-times"
+																			severity="danger"
+																			[text]="true"
+																			[rounded]="true"
+																			(onClick)="removeSelectedCurveRange(range.id)"
+																		></p-button>
+																	</div>
+																}
+															</div>
+														}
+
+														<div class="admin-values-page__inspector-actions">
+															<p-button
+																label="Очистить входы"
+																severity="secondary"
+																variant="outlined"
+																(onClick)="clearSelectedGraphNodeInputs()"
+															></p-button>
+														</div>
+													} @else {
+														<div class="admin-values-page__state">
+															Выбери узел на canvas, чтобы настроить его свойства.
+														</div>
+													}
+												</div>
+											</ng-template>
+										</p-splitter>
+									</div>
+								</div>
+							} @else {
+								<div class="admin-values-page__state">
+									Это значение задаётся напрямую. Граф расчёта для него не нужен.
+								</div>
+							}
+						</p-tabpanel>
+
+						<p-tabpanel value="test">
+							<div class="admin-values-page__tabpanel-body admin-values-page__tabpanel-body--scroll">
+								<div class="admin-values-page__test-grid">
+									<div class="admin-values-page__preview-card">
+										<div class="text-overline">Входные значения</div>
+										@if (testInputs().length) {
+											<div class="admin-values-page__test-inputs">
+												@for (input of testInputs(); track input.id) {
+													<div class="admin-values-page__field">
+														<label class="admin-values-page__field-label">
+															{{ input.name }}
+														</label>
+														<div class="text-overline">
+															{{ input.groupLabel }}
+														</div>
+														<p-inputnumber
+															[ngModel]="getTestSourceValue(input.id)"
+															(ngModelChange)="setTestSourceValue(input.id, $event)"
+															[showButtons]="false"
+														></p-inputnumber>
+													</div>
+												}
+											</div>
+										} @else {
+											<p>Для теста нет входных source-узлов.</p>
+										}
+									</div>
+
+									<div class="admin-values-page__preview-card">
+										<div class="text-overline">Результат</div>
+										<div class="admin-values-page__test-result">
+											{{ testResult().final }}
+										</div>
+									</div>
+								</div>
+
+								<div class="admin-values-page__preview-card">
+									<div class="text-overline">Разбор</div>
+									<ul class="admin-values-page__bullets">
+										@for (item of testResult().breakdown; track item) {
+											<li>{{ item }}</li>
+										}
+									</ul>
+								</div>
+							</div>
+						</p-tabpanel>
+					</p-tabpanels>
+				</p-tabs>
+
+				<div class="admin-values-page__editor-actions admin-values-page__section-pad">
+					<p-button
+						label="Сбросить"
+						severity="secondary"
+						variant="outlined"
+						[disabled]="!hasChanges()"
+						(onClick)="resetDraft()"
+					></p-button>
+					<p-button
+						label="Сохранить"
+						[disabled]="!hasChanges() || value.baseSourceType !== 'computed'"
+						(onClick)="saveDraft()"
+					></p-button>
+				</div>
+			</section>
+		} @else {
+			<section class="admin-values-page__panel admin-values-page__editor">
+				<div class="admin-values-page__state">
+					Выбери значение слева, чтобы посмотреть его структуру.
+				</div>
+			</section>
+		}
+	</div>
+</section>

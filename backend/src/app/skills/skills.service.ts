@@ -15,6 +15,18 @@ import { UpdateSkillLevelActiveDto } from './dto/update-skill-level-active.dto';
 import { UpdateSkillLevelDto } from './dto/update-skill-level.dto';
 
 const D6_SIDES_COUNT = 6;
+const skillSelect = {
+	id: true,
+	name: true,
+	categoryId: true,
+	description: true,
+	defaultLevel: true,
+	maxLevel: true,
+	usesDefaultLevelRules: true,
+	isSystemValue: true,
+	baseSourceType: true,
+	isActive: true
+} satisfies Prisma.SkillSelect;
 
 @Injectable()
 export class SkillsService {
@@ -26,6 +38,7 @@ export class SkillsService {
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			}),
 			this.prisma.skill.findMany({
+				select: skillSelect,
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			}),
 			this.prisma.skillLevel.findMany({
@@ -48,6 +61,8 @@ export class SkillsService {
 				defaultLevel: skill.defaultLevel,
 				maxLevel: skill.maxLevel,
 				usesDefaultLevelRules: skill.usesDefaultLevelRules,
+				isSystemValue: skill.isSystemValue,
+				baseSourceType: skill.baseSourceType,
 				isActive: skill.isActive
 			})),
 			levels: levels.map(level => ({
@@ -71,6 +86,7 @@ export class SkillsService {
 
 		try {
 			const skill = await this.prisma.skill.create({
+				select: skillSelect,
 				data: {
 					name: dto.name,
 					categoryId: dto.categoryId,
@@ -107,6 +123,7 @@ export class SkillsService {
 
 		try {
 			const skill = await this.prisma.skill.update({
+				select: skillSelect,
 				where: { id },
 				data: {
 					name: dto.name,
@@ -128,6 +145,7 @@ export class SkillsService {
 		await this.ensureSkillExists(id);
 
 		const skill = await this.prisma.skill.update({
+			select: skillSelect,
 			where: { id },
 			data: { isActive: dto.isActive }
 		});
@@ -328,6 +346,8 @@ export class SkillsService {
 		defaultLevel: number;
 		maxLevel: number;
 		usesDefaultLevelRules: boolean;
+		isSystemValue: boolean;
+		baseSourceType: string;
 		isActive: boolean;
 	}) {
 		return {
@@ -338,6 +358,8 @@ export class SkillsService {
 			defaultLevel: skill.defaultLevel,
 			maxLevel: skill.maxLevel,
 			usesDefaultLevelRules: skill.usesDefaultLevelRules,
+			isSystemValue: skill.isSystemValue,
+			baseSourceType: skill.baseSourceType,
 			isActive: skill.isActive
 		};
 	}

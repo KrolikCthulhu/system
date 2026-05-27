@@ -10,6 +10,10 @@ import {
 	SkillLevelDto,
 	SkillsAdminCatalogDto
 } from '../dto/skills.dto';
+import {
+	createSystemValueDefinition,
+	mapSystemValueBaseSourceType
+} from '../../../../shared/types/system-value.models';
 
 export function mapSkillCategoryDto(dto: SkillCategoryDto): SkillCategory {
 	return {
@@ -21,6 +25,12 @@ export function mapSkillCategoryDto(dto: SkillCategoryDto): SkillCategory {
 }
 
 export function mapSkillDto(dto: SkillDto): Skill {
+	const systemValue = createSystemValueDefinition(
+		dto.id,
+		'skill',
+		mapSystemValueBaseSourceType(dto.baseSourceType)
+	);
+
 	return {
 		id: dto.id,
 		name: dto.name,
@@ -29,7 +39,11 @@ export function mapSkillDto(dto: SkillDto): Skill {
 		defaultLevel: dto.defaultLevel,
 		maxLevel: dto.maxLevel,
 		usesDefaultLevelRules: dto.usesDefaultLevelRules,
-		isActive: dto.isActive
+		isActive: dto.isActive,
+		systemValue: {
+			...systemValue,
+			isSystemValue: dto.isSystemValue
+		}
 	};
 }
 

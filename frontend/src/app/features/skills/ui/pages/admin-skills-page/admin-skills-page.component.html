@@ -243,6 +243,32 @@
 												></p-select>
 											</div>
 
+											<div class="admin-skills-page__system-value">
+												<div class="text-overline">Системное значение</div>
+												<div class="admin-skills-page__system-value-grid">
+													<div class="admin-skills-page__form-field">
+														<label class="admin-skills-page__field-label">
+															Статус
+														</label>
+														<input
+															pInputText
+															[value]="selectedSkill()?.systemValue?.isSystemValue ? 'Да' : 'Нет'"
+															readonly
+														/>
+													</div>
+													<div class="admin-skills-page__form-field">
+														<label class="admin-skills-page__field-label">
+															Источник базы
+														</label>
+														<input
+															pInputText
+															[value]="getSystemValueBaseSourceLabel(selectedSkill()!.systemValue.baseSourceType)"
+															readonly
+														/>
+													</div>
+												</div>
+											</div>
+
 											<div class="admin-skills-page__form-grid">
 												<div class="admin-skills-page__form-field">
 													<label

@@ -2,6 +2,7 @@ import { DestroyRef, effect, inject, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormChangeTracker } from '../../../shared/forms/form-change-tracker';
 import { UnsavedChangesGuard } from '../../../shared/forms/unsaved-changes.guard';
+import { createSystemValueDefinition } from '../../../shared/types/system-value.models';
 import { ATTRIBUTES_REPOSITORY } from '../data/attributes-repository.port';
 import { Attribute } from '../domain/attributes.models';
 import {
@@ -69,7 +70,12 @@ export class AttributeEditorFacade {
 					isActive: true,
 					sortOrder: 0,
 					createdAt: new Date().toISOString(),
-					updatedAt: new Date().toISOString()
+					updatedAt: new Date().toISOString(),
+					systemValue: createSystemValueDefinition(
+						id,
+						'attribute',
+						'computed'
+					)
 				});
 				this.store.addDraftAttributeId(id);
 				this.catalogFacade.setActiveTab('attributes');

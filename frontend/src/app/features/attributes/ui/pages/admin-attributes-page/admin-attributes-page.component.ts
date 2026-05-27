@@ -15,6 +15,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
+import { getSystemValueBaseSourceLabel } from '../../../../../shared/types/system-value.models';
 import {
 	Attribute,
 	Characteristic
@@ -265,6 +266,8 @@ export class AdminAttributesPageComponent {
 	protected isDraftCharacteristicSelected() {
 		return this.characteristicEditorFacade.isDraftSelected();
 	}
+
+	protected getSystemValueBaseSourceLabel = getSystemValueBaseSourceLabel;
 
 	private hasCurrentTabUnsavedChanges() {
 		switch (this.activeTab()) {

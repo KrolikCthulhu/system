@@ -12,6 +12,34 @@ import { UpdateAttributeDto } from './dto/update-attribute.dto';
 import { UpdateCharacteristicActiveDto } from './dto/update-characteristic-active.dto';
 import { UpdateCharacteristicDto } from './dto/update-characteristic.dto';
 
+const attributeSelect = {
+	id: true,
+	name: true,
+	description: true,
+	isSystemValue: true,
+	baseSourceType: true,
+	isActive: true,
+	sortOrder: true,
+	createdAt: true,
+	updatedAt: true
+} satisfies Prisma.AttributeSelect;
+
+const characteristicSelect = {
+	id: true,
+	name: true,
+	attributeId: true,
+	description: true,
+	minValue: true,
+	maxValue: true,
+	defaultValue: true,
+	isSystemValue: true,
+	baseSourceType: true,
+	isActive: true,
+	sortOrder: true,
+	createdAt: true,
+	updatedAt: true
+} satisfies Prisma.CharacteristicSelect;
+
 @Injectable()
 export class AttributesService {
 	constructor(private readonly prisma: PrismaService) {}
@@ -19,9 +47,11 @@ export class AttributesService {
 	async getAdminCatalog() {
 		const [attributes, characteristics] = await Promise.all([
 			this.prisma.attribute.findMany({
+				select: attributeSelect,
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			}),
 			this.prisma.characteristic.findMany({
+				select: characteristicSelect,
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			})
 		]);
@@ -37,6 +67,7 @@ export class AttributesService {
 	async createAttribute(dto: CreateAttributeDto) {
 		try {
 			const attribute = await this.prisma.attribute.create({
+				select: attributeSelect,
 				data: {
 					name: dto.name,
 					description: this.toNullableString(dto.description) ?? null,
@@ -55,6 +86,7 @@ export class AttributesService {
 
 		try {
 			const attribute = await this.prisma.attribute.update({
+				select: attributeSelect,
 				where: { id },
 				data: {
 					name: dto.name,
@@ -73,6 +105,7 @@ export class AttributesService {
 		await this.ensureAttributeExists(id);
 
 		const attribute = await this.prisma.attribute.update({
+			select: attributeSelect,
 			where: { id },
 			data: { isActive: dto.isActive }
 		});
@@ -99,6 +132,7 @@ export class AttributesService {
 
 		try {
 			const characteristic = await this.prisma.characteristic.create({
+				select: characteristicSelect,
 				data: {
 					name: dto.name,
 					attributeId: dto.attributeId,
@@ -134,6 +168,7 @@ export class AttributesService {
 
 		try {
 			const characteristic = await this.prisma.characteristic.update({
+				select: characteristicSelect,
 				where: { id },
 				data: {
 					name: dto.name,
@@ -159,6 +194,7 @@ export class AttributesService {
 		await this.ensureCharacteristicExists(id);
 
 		const characteristic = await this.prisma.characteristic.update({
+			select: characteristicSelect,
 			where: { id },
 			data: { isActive: dto.isActive }
 		});
@@ -241,6 +277,8 @@ export class AttributesService {
 		id: string;
 		name: string;
 		description: string | null;
+		isSystemValue: boolean;
+		baseSourceType: string;
 		isActive: boolean;
 		sortOrder: number;
 		createdAt: Date;
@@ -250,6 +288,8 @@ export class AttributesService {
 			id: attribute.id,
 			name: attribute.name,
 			description: attribute.description ?? '',
+			isSystemValue: attribute.isSystemValue,
+			baseSourceType: attribute.baseSourceType,
 			isActive: attribute.isActive,
 			sortOrder: attribute.sortOrder,
 			createdAt: attribute.createdAt.toISOString(),
@@ -265,6 +305,8 @@ export class AttributesService {
 		minValue: number;
 		maxValue: number;
 		defaultValue: number;
+		isSystemValue: boolean;
+		baseSourceType: string;
 		isActive: boolean;
 		sortOrder: number;
 		createdAt: Date;
@@ -278,6 +320,8 @@ export class AttributesService {
 			minValue: characteristic.minValue,
 			maxValue: characteristic.maxValue,
 			defaultValue: characteristic.defaultValue,
+			isSystemValue: characteristic.isSystemValue,
+			baseSourceType: characteristic.baseSourceType,
 			isActive: characteristic.isActive,
 			sortOrder: characteristic.sortOrder,
 			createdAt: characteristic.createdAt.toISOString(),

@@ -8,8 +8,18 @@ import {
 	AttributesAdminCatalogDto,
 	CharacteristicDto
 } from '../dto/attributes.dto';
+import {
+	createSystemValueDefinition,
+	mapSystemValueBaseSourceType
+} from '../../../../shared/types/system-value.models';
 
 export function mapAttributeDto(dto: AttributeDto): Attribute {
+	const systemValue = createSystemValueDefinition(
+		dto.id,
+		'attribute',
+		mapSystemValueBaseSourceType(dto.baseSourceType)
+	);
+
 	return {
 		id: dto.id,
 		name: dto.name,
@@ -17,11 +27,21 @@ export function mapAttributeDto(dto: AttributeDto): Attribute {
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
 		createdAt: dto.createdAt,
-		updatedAt: dto.updatedAt
+		updatedAt: dto.updatedAt,
+		systemValue: {
+			...systemValue,
+			isSystemValue: dto.isSystemValue
+		}
 	};
 }
 
 export function mapCharacteristicDto(dto: CharacteristicDto): Characteristic {
+	const systemValue = createSystemValueDefinition(
+		dto.id,
+		'characteristic',
+		mapSystemValueBaseSourceType(dto.baseSourceType)
+	);
+
 	return {
 		id: dto.id,
 		name: dto.name,
@@ -33,7 +53,11 @@ export function mapCharacteristicDto(dto: CharacteristicDto): Characteristic {
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
 		createdAt: dto.createdAt,
-		updatedAt: dto.updatedAt
+		updatedAt: dto.updatedAt,
+		systemValue: {
+			...systemValue,
+			isSystemValue: dto.isSystemValue
+		}
 	};
 }
 

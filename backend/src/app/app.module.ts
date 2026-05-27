@@ -8,6 +8,7 @@ import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { PrismaModule } from './prisma/prisma.module';
 import { SkillsModule } from './skills/skills.module';
+import { ValuesModule } from './values/values.module';
 
 @Module({
 	imports: [
@@ -32,7 +33,8 @@ import { SkillsModule } from './skills/skills.module';
 		PrismaModule,
 		AuthModule,
 		AttributesModule,
-		SkillsModule
+		SkillsModule,
+		ValuesModule
 	],
 	controllers: [],
 	providers: [

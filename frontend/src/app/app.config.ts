@@ -15,6 +15,7 @@ import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
 import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
+import { provideValuesInfrastructure } from './features/values/data/provide-values-infrastructure';
 
 const appThemePreset = definePreset(Aura, {
 	semantic: {
@@ -31,6 +32,13 @@ const appThemePreset = definePreset(Aura, {
 			900: '{stone.900}',
 			950: '{stone.950}'
 		}
+	},
+	components: {
+		tabs: {
+			tab: {
+				padding: '0.625rem 1.125rem'
+			}
+		}
 	}
 });
 
@@ -40,6 +48,7 @@ export const appConfig: ApplicationConfig = {
 		...provideAuthInfrastructure(),
 		...provideAttributesInfrastructure(),
 		...provideSkillsInfrastructure(),
+		...provideValuesInfrastructure(),
 		provideAppInitializer(() => inject(AuthFacade).initializeSession()),
 		provideHttpClient(withInterceptors([authInterceptor])),
 		provideRouter(appRoutes),

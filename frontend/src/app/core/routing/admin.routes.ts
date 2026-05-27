@@ -39,6 +39,13 @@ export const adminRoutes: Route[] = [
 							import(
 								'../../features/attributes/ui/pages/admin-attributes-page/admin-attributes-page.component'
 							).then(m => m.AdminAttributesPageComponent)
+					},
+					{
+						path: 'values',
+						loadComponent: () =>
+							import(
+								'../../features/values/ui/pages/admin-values-page/admin-values-page.component'
+							).then(m => m.AdminValuesPageComponent)
 					}
 				]
 			},

@@ -188,6 +188,26 @@
 	gap: 0.1875rem;
 }
 
+.admin-attributes-page__system-value {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 0.75rem;
+	background: color-mix(
+		in srgb,
+		var(--p-content-background) 92%,
+		var(--p-primary-50) 8%
+	);
+}
+
+.admin-attributes-page__system-value-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.625rem;
+}
+
 .admin-attributes-page__field-label {
 	color: var(--p-text-muted-color);
 	font-size: 0.875rem;

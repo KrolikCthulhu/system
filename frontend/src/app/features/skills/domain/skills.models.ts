@@ -1,3 +1,5 @@
+import { SystemValueDefinition } from '../../../shared/types/system-value.models';
+
 export interface SkillCategory {
 	id: string;
 	name: string;
@@ -14,6 +16,7 @@ export interface Skill {
 	maxLevel: number;
 	usesDefaultLevelRules: boolean;
 	isActive: boolean;
+	systemValue: SystemValueDefinition;
 }
 
 export interface SkillLevel {

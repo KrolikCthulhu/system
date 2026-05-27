@@ -2,6 +2,7 @@
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormChangeTracker } from '../../../shared/forms/form-change-tracker';
 import { UnsavedChangesGuard } from '../../../shared/forms/unsaved-changes.guard';
+import { createSystemValueDefinition } from '../../../shared/types/system-value.models';
 import { SKILLS_REPOSITORY } from '../data/skills-repository.port';
 import { Skill } from '../domain/skills.models';
 import {
@@ -77,7 +78,12 @@ export class SkillEditorFacade {
 					defaultLevel: 0,
 					maxLevel: 6,
 					usesDefaultLevelRules: true,
-					isActive: true
+					isActive: true,
+					systemValue: createSystemValueDefinition(
+						id,
+						'skill',
+						'character-input'
+					)
 				});
 				this.store.addDraftSkillId(id);
 				this.setSelectedSkillInternal(id);

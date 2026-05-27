@@ -1,3 +1,7 @@
+export type SystemValueBaseSourceTypeDto =
+	| 'CHARACTER_INPUT'
+	| 'COMPUTED';
+
 export interface SkillCategoryDto {
 	id: string;
 	name: string;
@@ -13,6 +17,8 @@ export interface SkillDto {
 	defaultLevel: number;
 	maxLevel: number;
 	usesDefaultLevelRules: boolean;
+	isSystemValue: boolean;
+	baseSourceType: SystemValueBaseSourceTypeDto;
 	isActive: boolean;
 }
 

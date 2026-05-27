@@ -188,6 +188,32 @@
 											></p-inputnumber>
 										</div>
 
+										<div class="admin-attributes-page__system-value">
+											<div class="text-overline">Системное значение</div>
+											<div class="admin-attributes-page__system-value-grid">
+												<div class="admin-attributes-page__form-field">
+													<label class="admin-attributes-page__field-label">
+														Статус
+													</label>
+													<input
+														pInputText
+														[value]="selectedAttribute()?.systemValue?.isSystemValue ? 'Да' : 'Нет'"
+														readonly
+													/>
+												</div>
+												<div class="admin-attributes-page__form-field">
+													<label class="admin-attributes-page__field-label">
+														Источник базы
+													</label>
+													<input
+														pInputText
+														[value]="getSystemValueBaseSourceLabel(selectedAttribute()!.systemValue.baseSourceType)"
+														readonly
+													/>
+												</div>
+											</div>
+										</div>
+
 										<div class="admin-attributes-page__form-field">
 											<label
 												class="admin-attributes-page__field-label"
@@ -574,6 +600,32 @@
 														[min]="0"
 														[showButtons]="false"
 													></p-inputnumber>
+												</div>
+											</div>
+
+											<div class="admin-attributes-page__system-value">
+												<div class="text-overline">Системное значение</div>
+												<div class="admin-attributes-page__system-value-grid">
+													<div class="admin-attributes-page__form-field">
+														<label class="admin-attributes-page__field-label">
+															Статус
+														</label>
+														<input
+															pInputText
+															[value]="selectedCharacteristic()?.systemValue?.isSystemValue ? 'Да' : 'Нет'"
+															readonly
+														/>
+													</div>
+													<div class="admin-attributes-page__form-field">
+														<label class="admin-attributes-page__field-label">
+															Источник базы
+														</label>
+														<input
+															pInputText
+															[value]="getSystemValueBaseSourceLabel(selectedCharacteristic()!.systemValue.baseSourceType)"
+															readonly
+														/>
+													</div>
 												</div>
 											</div>
 

@@ -1,7 +1,13 @@
+export type SystemValueBaseSourceTypeDto =
+	| 'CHARACTER_INPUT'
+	| 'COMPUTED';
+
 export interface AttributeDto {
 	id: string;
 	name: string;
 	description: string;
+	isSystemValue: boolean;
+	baseSourceType: SystemValueBaseSourceTypeDto;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
@@ -16,6 +22,8 @@ export interface CharacteristicDto {
 	minValue: number;
 	maxValue: number;
 	defaultValue: number;
+	isSystemValue: boolean;
+	baseSourceType: SystemValueBaseSourceTypeDto;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
