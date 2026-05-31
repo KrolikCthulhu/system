@@ -1,0 +1,130 @@
+:host {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-attribute-detail-page {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+	flex: 1 1 auto;
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-attribute-detail-page__panel {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	gap: 0;
+	min-height: 0;
+}
+
+.admin-attribute-detail-page__panel-heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0 1rem;
+}
+
+.admin-attribute-detail-page__title {
+	margin: 0;
+	font-size: var(--text-page-title-size);
+	font-weight: var(--text-page-title-weight);
+	line-height: 1.1;
+}
+
+.admin-attribute-detail-page__content {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	gap: 0.625rem;
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-attribute-detail-page__tabpanels {
+	height: 100%;
+	min-height: 0;
+	padding: 0 1rem 0.75rem;
+}
+
+.admin-attribute-detail-page__tabpanel {
+	height: 100%;
+	min-height: 0;
+	padding: 0;
+}
+
+.admin-attribute-detail-page__tabpanel.p-tabpanel-active {
+	display: flex;
+	flex-direction: column;
+}
+
+.admin-attribute-detail-page__tabpanel:not(.p-tabpanel-active) {
+	display: none;
+}
+
+.admin-attribute-detail-page__form {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.admin-attribute-detail-page__grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.admin-attribute-detail-page__field {
+	display: grid;
+	gap: 0.25rem;
+}
+
+.admin-attribute-detail-page__field-label {
+	color: var(--text-label-color);
+	font-size: var(--text-label-size);
+}
+
+.admin-attribute-detail-page__system-value {
+	display: flex;
+	flex-direction: column;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.admin-attribute-detail-page__calculation-editor {
+	display: block;
+	flex: 1 1 auto;
+	min-height: 0;
+	height: 100%;
+}
+
+.admin-attribute-detail-page__actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	padding: 0.75rem 1rem;
+	margin-top: auto;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-attribute-detail-page__state {
+	display: grid;
+	place-items: center;
+}
+
+.admin-attribute-detail-page__state--error {
+	color: var(--p-red-500);
+}
+
+@media (max-width: 960px) {
+	.admin-attribute-detail-page__grid {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-attribute-detail-page__panel-heading {
+		flex-direction: column;
+		align-items: stretch;
+	}
+}

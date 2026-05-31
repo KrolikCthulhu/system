@@ -65,7 +65,11 @@
 }
 
 .admin-skills-page__editor-panel {
-	padding: 0.75rem;
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	gap: 0;
+	height: 100%;
+	padding: 0;
 }
 
 .admin-skills-page__panel-heading {
@@ -177,10 +181,15 @@
 }
 
 .admin-skills-page__editor-content {
-	display: flex;
-	flex: 1;
-	flex-direction: column;
+	display: grid;
+	grid-template-rows: minmax(0, 1fr) auto;
 	min-height: 0;
+}
+
+.admin-skills-page__editor-content > p-fluid {
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0 0.75rem 0.75rem;
 }
 
 .admin-skills-page__form {
@@ -188,8 +197,6 @@
 	flex-direction: column;
 	gap: 0.625rem;
 	min-height: 0;
-	flex: 1;
-	overflow-y: auto;
 	padding-right: 0.125rem;
 }
 
@@ -259,8 +266,7 @@
 	display: flex;
 	justify-content: flex-end;
 	gap: 0.5rem;
-	padding-top: 0.75rem;
-	margin-top: auto;
+	padding: 0.75rem;
 	background: var(--p-content-background);
 	border-top: 1px solid var(--p-content-border-color);
 }
@@ -282,7 +288,6 @@
 }
 
 .admin-skills-page__tabs > p-tabpanels > p-tabpanel {
-	display: block;
 	height: 100%;
 	min-height: 0;
 }

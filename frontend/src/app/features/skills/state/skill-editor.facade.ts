@@ -245,7 +245,11 @@ export class SkillEditorFacade {
 
 	isDraftSelected() {
 		const selectedSkillId = this.catalogFacade.selectedSkillId();
-		return !!selectedSkillId && this.store.draftSkillIds().includes(selectedSkillId);
+		return !!selectedSkillId && this.isDraftSkill(selectedSkillId);
+	}
+
+	isDraftSkill(skillId: string) {
+		return this.store.draftSkillIds().includes(skillId);
 	}
 
 	updateSystemValueCalculation(next: SystemValueCalculationDefinition) {

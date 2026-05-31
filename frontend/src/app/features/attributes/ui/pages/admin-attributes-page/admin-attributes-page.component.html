@@ -39,7 +39,7 @@
 
 		<p-tabpanels>
 			<p-tabpanel value="attributes">
-				@if (attributeEditorOpen() && selectedAttribute()) {
+				@if (attributeEditorOpen() && selectedAttribute() && isDraftAttributeSelected()) {
 					<p-splitter
 						class="admin-attributes-page__splitter"
 						panelStyleClass="admin-attributes-page__splitter-panel"
@@ -69,7 +69,7 @@
 
 								<p-table
 									class="admin-attributes-page__table"
-									[value]="attributes()"
+									[value]="tableAttributes()"
 									[scrollable]="true"
 									scrollHeight="flex"
 									[tableStyle]="{ 'min-width': '40rem' }"
@@ -172,62 +172,6 @@
 												formControlName="name"
 											/>
 										</div>
-
-										<div class="admin-attributes-page__form-field">
-											<label
-												class="admin-attributes-page__field-label"
-												for="attribute-sort-order"
-											>
-												Порядок сортировки
-											</label>
-											<p-inputnumber
-												formControlName="sortOrder"
-												inputId="attribute-sort-order"
-												[min]="0"
-												[showButtons]="false"
-											></p-inputnumber>
-										</div>
-
-										<div class="admin-attributes-page__system-value">
-											<div class="text-muted">Системное значение</div>
-											<div class="admin-attributes-page__system-value-grid">
-												<div class="admin-attributes-page__form-field">
-													<label class="admin-attributes-page__field-label">
-														Статус
-													</label>
-													<input
-														pInputText
-														[value]="selectedAttribute()?.systemValue?.isSystemValue ? 'Да' : 'Нет'"
-														readonly
-													/>
-												</div>
-												<div class="admin-attributes-page__form-field">
-													<label class="admin-attributes-page__field-label">
-														Источник базы
-													</label>
-													<input
-														pInputText
-														[value]="getSystemValueBaseSourceLabel(selectedAttribute()!.systemValue.baseSourceType)"
-														readonly
-													/>
-												</div>
-											</div>
-										</div>
-											<app-system-value-calculation-editor class="admin-attributes-page__calculation-editor" [systemValue]="attributeSystemValueCalculation()" [availableValues]="availableValues()" (systemValueChange)="updateAttributeSystemValueCalculation($event)"></app-system-value-calculation-editor>
-										<div class="admin-attributes-page__form-field">
-											<label
-												class="admin-attributes-page__field-label"
-												for="attribute-description"
-											>
-												Описание
-											</label>
-											<textarea
-												id="attribute-description"
-												pTextarea
-												formControlName="description"
-												rows="4"
-											></textarea>
-										</div>
 										</form>
 									</p-fluid>
 
@@ -271,7 +215,7 @@
 
 							<p-table
 								class="admin-attributes-page__table"
-								[value]="attributes()"
+								[value]="tableAttributes()"
 								[scrollable]="true"
 								scrollHeight="flex"
 								[tableStyle]="{ 'min-width': '40rem' }"
@@ -381,7 +325,7 @@
 						</div>
 					</aside>
 
-					@if (characteristicEditorOpen() && selectedCharacteristic()) {
+					@if (characteristicEditorOpen() && selectedCharacteristic() && isDraftCharacteristicSelected()) {
 						<p-splitter
 							class="admin-attributes-page__splitter"
 							panelStyleClass="admin-attributes-page__splitter-panel"
@@ -412,7 +356,7 @@
 
 									<p-table
 										class="admin-attributes-page__table"
-										[value]="visibleCharacteristics()"
+										[value]="tableCharacteristics()"
 										[scrollable]="true"
 										scrollHeight="flex"
 										[tableStyle]="{ 'min-width': '52rem' }"
@@ -524,125 +468,6 @@
 													formControlName="name"
 												/>
 											</div>
-
-											<div class="admin-attributes-page__form-field">
-												<label
-													class="admin-attributes-page__field-label"
-													for="characteristic-attribute"
-												>
-													Атрибут
-												</label>
-												<p-select
-													inputId="characteristic-attribute"
-													formControlName="attributeId"
-													optionLabel="label"
-													optionValue="value"
-													[options]="attributeOptions()"
-													appendTo="body"
-												></p-select>
-											</div>
-
-											<div class="admin-attributes-page__form-grid">
-												<div class="admin-attributes-page__form-field">
-													<label
-														class="admin-attributes-page__field-label"
-														for="characteristic-min-value"
-													>
-														Минимум
-													</label>
-													<p-inputnumber
-														formControlName="minValue"
-														inputId="characteristic-min-value"
-														[showButtons]="false"
-													></p-inputnumber>
-												</div>
-
-												<div class="admin-attributes-page__form-field">
-													<label
-														class="admin-attributes-page__field-label"
-														for="characteristic-max-value"
-													>
-														Максимум
-													</label>
-													<p-inputnumber
-														formControlName="maxValue"
-														inputId="characteristic-max-value"
-														[showButtons]="false"
-													></p-inputnumber>
-												</div>
-											</div>
-
-											<div class="admin-attributes-page__form-grid">
-												<div class="admin-attributes-page__form-field">
-													<label
-														class="admin-attributes-page__field-label"
-														for="characteristic-default-value"
-													>
-														По умолчанию
-													</label>
-													<p-inputnumber
-														formControlName="defaultValue"
-														inputId="characteristic-default-value"
-														[showButtons]="false"
-													></p-inputnumber>
-												</div>
-
-												<div class="admin-attributes-page__form-field">
-													<label
-														class="admin-attributes-page__field-label"
-														for="characteristic-sort-order"
-													>
-														Порядок сортировки
-													</label>
-													<p-inputnumber
-														formControlName="sortOrder"
-														inputId="characteristic-sort-order"
-														[min]="0"
-														[showButtons]="false"
-													></p-inputnumber>
-												</div>
-											</div>
-
-											<div class="admin-attributes-page__system-value">
-												<div class="text-muted">Системное значение</div>
-												<div class="admin-attributes-page__system-value-grid">
-													<div class="admin-attributes-page__form-field">
-														<label class="admin-attributes-page__field-label">
-															Статус
-														</label>
-														<input
-															pInputText
-															[value]="selectedCharacteristic()?.systemValue?.isSystemValue ? 'Да' : 'Нет'"
-															readonly
-														/>
-													</div>
-													<div class="admin-attributes-page__form-field">
-														<label class="admin-attributes-page__field-label">
-															Источник базы
-														</label>
-														<input
-															pInputText
-															[value]="getSystemValueBaseSourceLabel(selectedCharacteristic()!.systemValue.baseSourceType)"
-															readonly
-														/>
-													</div>
-												</div>
-											</div>
-													<app-system-value-calculation-editor class="admin-attributes-page__calculation-editor" [systemValue]="characteristicSystemValueCalculation()" [availableValues]="availableValues()" (systemValueChange)="updateCharacteristicSystemValueCalculation($event)"></app-system-value-calculation-editor>
-											<div class="admin-attributes-page__form-field">
-												<label
-													class="admin-attributes-page__field-label"
-													for="characteristic-description"
-												>
-													Описание
-												</label>
-												<textarea
-													id="characteristic-description"
-													pTextarea
-													formControlName="description"
-													rows="4"
-												></textarea>
-											</div>
 											</form>
 										</p-fluid>
 
@@ -690,7 +515,7 @@
 
 							<p-table
 								class="admin-attributes-page__table"
-								[value]="visibleCharacteristics()"
+								[value]="tableCharacteristics()"
 								[scrollable]="true"
 								scrollHeight="flex"
 								[tableStyle]="{ 'min-width': '52rem' }"

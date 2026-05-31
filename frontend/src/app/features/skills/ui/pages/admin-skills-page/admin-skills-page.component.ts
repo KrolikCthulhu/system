@@ -1,4 +1,4 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
 import { Router } from '@angular/router';
@@ -102,6 +102,9 @@ export class AdminSkillsPageComponent {
 	protected readonly selectedSkillFilterCategory =
 		this.catalogFacade.selectedSkillFilterCategory;
 	protected readonly visibleSkills = this.catalogFacade.visibleSkills;
+	protected readonly tableSkills = computed(() =>
+		this.visibleSkills().filter(skill => !this.isDraftSkill(skill.id))
+	);
 	protected readonly categoryOptions = this.catalogFacade.categoryOptions;
 	protected readonly selectedSkill = this.catalogFacade.selectedSkill;
 	protected readonly selectedCategory = this.catalogFacade.selectedCategory;
@@ -313,6 +316,10 @@ export class AdminSkillsPageComponent {
 
 	protected isDraftSkillSelected() {
 		return this.skillEditorFacade.isDraftSelected();
+	}
+
+	protected isDraftSkill(skillId: string) {
+		return this.skillEditorFacade.isDraftSkill(skillId);
 	}
 
 	protected isDraftCategorySelected() {

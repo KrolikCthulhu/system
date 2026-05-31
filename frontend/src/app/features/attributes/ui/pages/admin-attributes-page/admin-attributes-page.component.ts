@@ -1,29 +1,23 @@
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
-import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Fluid } from 'primeng/fluid';
-import { Select } from 'primeng/select';
 import { Splitter } from 'primeng/splitter';
 import { TableModule } from 'primeng/table';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
-import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
-import { getSystemValueBaseSourceLabel } from '../../../../../shared/types/system-value.models';
 import {
 	Attribute,
 	Characteristic
 } from '../../../domain/attributes.models';
-import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
-import { SystemValueCalculationDefinition } from '../../../../values/domain/system-value-calculation.models';
-import { SystemValueCalculationEditorComponent } from '../../../../values/ui/components/system-value-calculation-editor/system-value-calculation-editor.component';
 import { AdminAttributesCatalogStore } from '../../../state/admin-attributes-catalog.store';
 import { AttributeEditorFacade } from '../../../state/attribute-editor.facade';
 import { AttributeEditorStore } from '../../../state/attribute-editor.store';
@@ -41,10 +35,8 @@ import { CharacteristicEditorStore } from '../../../state/characteristic-editor.
 		Fluid,
 		IconField,
 		InputIcon,
-		InputNumber,
 		InputText,
 		ReactiveFormsModule,
-		Select,
 		Splitter,
 		Tab,
 		TableModule,
@@ -52,9 +44,7 @@ import { CharacteristicEditorStore } from '../../../state/characteristic-editor.
 		TabPanel,
 		TabPanels,
 		Tabs,
-		Textarea,
-		ToggleSwitch,
-		SystemValueCalculationEditorComponent
+		ToggleSwitch
 	],
 	templateUrl: './admin-attributes-page.component.html',
 	styleUrl: './admin-attributes-page.component.scss',
@@ -72,12 +62,12 @@ import { CharacteristicEditorStore } from '../../../state/characteristic-editor.
 export class AdminAttributesPageComponent {
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly confirmationService = inject(ConfirmationService);
+	private readonly router = inject(Router);
 	private readonly catalogFacade = inject(AttributesCatalogFacade);
 	private readonly attributeEditorFacade = inject(AttributeEditorFacade);
 	private readonly characteristicEditorFacade = inject(
 		CharacteristicEditorFacade
 	);
-	private readonly systemValuesCatalogFacade = inject(SystemValuesCatalogFacade);
 
 	protected readonly tabValue = signal<string | number | undefined>(undefined);
 	protected readonly attributeEditorOpen = signal(false);
@@ -100,19 +90,19 @@ export class AdminAttributesPageComponent {
 		this.catalogFacade.selectedCharacteristicFilterAttribute;
 	protected readonly visibleCharacteristics =
 		this.catalogFacade.visibleCharacteristics;
-	protected readonly attributeOptions = this.catalogFacade.attributeOptions;
+	protected readonly tableAttributes = computed(() =>
+		this.attributes().filter(attribute => !this.isDraftAttribute(attribute.id))
+	);
+	protected readonly tableCharacteristics = computed(() =>
+		this.visibleCharacteristics().filter(
+			characteristic => !this.isDraftCharacteristic(characteristic.id)
+		)
+	);
 	protected readonly selectedAttribute = this.catalogFacade.selectedAttribute;
 	protected readonly selectedCharacteristic =
 		this.catalogFacade.selectedCharacteristic;
-	protected readonly availableValues = this.systemValuesCatalogFacade.values;
-	protected readonly attributeSystemValueCalculation =
-		this.attributeEditorFacade.systemValueCalculation;
-	protected readonly characteristicSystemValueCalculation =
-		this.characteristicEditorFacade.systemValueCalculation;
 
 	constructor() {
-		this.systemValuesCatalogFacade.ensureLoaded();
-
 		effect(() => {
 			this.tabValue.set(this.activeTab());
 		});
@@ -152,13 +142,17 @@ export class AdminAttributesPageComponent {
 	}
 
 	protected openAttributeEditor(attributeId: string) {
-		this.attributeEditorFacade.selectAttribute(attributeId);
-		this.attributeEditorOpen.set(true);
+		void this.router.navigate([
+			'/admin/rules/attributes/attribute',
+			attributeId
+		]);
 	}
 
 	protected openCharacteristicEditor(characteristicId: string) {
-		this.characteristicEditorFacade.selectCharacteristic(characteristicId);
-		this.characteristicEditorOpen.set(true);
+		void this.router.navigate([
+			'/admin/rules/attributes/characteristic',
+			characteristicId
+		]);
 	}
 
 	protected closeAttributeEditor() {
@@ -188,7 +182,15 @@ export class AdminAttributesPageComponent {
 	}
 
 	protected saveAttribute() {
-		this.attributeEditorFacade.saveAttribute();
+		this.attributeEditorFacade.saveAttribute({
+			onCreated: attribute => {
+				this.attributeEditorOpen.set(false);
+				void this.router.navigate([
+					'/admin/rules/attributes/attribute',
+					attribute.id
+				]);
+			}
+		});
 	}
 
 	protected cancelAttribute() {
@@ -196,7 +198,15 @@ export class AdminAttributesPageComponent {
 	}
 
 	protected saveCharacteristic() {
-		this.characteristicEditorFacade.saveCharacteristic();
+		this.characteristicEditorFacade.saveCharacteristic({
+			onCreated: characteristic => {
+				this.characteristicEditorOpen.set(false);
+				void this.router.navigate([
+					'/admin/rules/attributes/characteristic',
+					characteristic.id
+				]);
+			}
+		});
 	}
 
 	protected cancelCharacteristic() {
@@ -281,19 +291,15 @@ export class AdminAttributesPageComponent {
 		return this.characteristicEditorFacade.isDraftSelected();
 	}
 
-	protected updateAttributeSystemValueCalculation(
-		next: SystemValueCalculationDefinition
-	) {
-		this.attributeEditorFacade.updateSystemValueCalculation(next);
+	protected isDraftAttribute(attributeId: string) {
+		return this.attributeEditorFacade.isDraftAttribute(attributeId);
 	}
 
-	protected updateCharacteristicSystemValueCalculation(
-		next: SystemValueCalculationDefinition
-	) {
-		this.characteristicEditorFacade.updateSystemValueCalculation(next);
+	protected isDraftCharacteristic(characteristicId: string) {
+		return this.characteristicEditorFacade.isDraftCharacteristic(
+			characteristicId
+		);
 	}
-
-	protected getSystemValueBaseSourceLabel = getSystemValueBaseSourceLabel;
 
 	private hasCurrentTabUnsavedChanges() {
 		switch (this.activeTab()) {

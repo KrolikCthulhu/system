@@ -124,10 +124,13 @@ export class CharacteristicEditorFacade {
 		});
 	}
 
-	saveCharacteristic() {
+	saveCharacteristic(options?: {
+		onCreated?: (characteristic: Characteristic) => void;
+	}) {
 		const selectedCharacteristicId =
 			this.catalogFacade.selectedCharacteristicId();
 		const calculationDraft = this.systemValueCalculation();
+		const isDraft = this.isDraftSelected();
 
 		if (
 			!selectedCharacteristicId ||
@@ -195,13 +198,14 @@ export class CharacteristicEditorFacade {
 			)
 			.subscribe({
 				next: characteristic => {
-					if (this.isDraftSelected()) {
+					if (isDraft) {
 						this.catalogFacade.replaceCharacteristic(
 							selectedCharacteristicId,
 							characteristic
 						);
 						this.store.removeDraftCharacteristicId(selectedCharacteristicId);
 						this.catalogFacade.setSelectedCharacteristicId(characteristic.id);
+						options?.onCreated?.(characteristic);
 					} else {
 						this.catalogFacade.upsertCharacteristic(characteristic);
 					}
@@ -287,8 +291,12 @@ export class CharacteristicEditorFacade {
 			this.catalogFacade.selectedCharacteristicId();
 		return (
 			!!selectedCharacteristicId &&
-			this.store.draftCharacteristicIds().includes(selectedCharacteristicId)
+			this.isDraftCharacteristic(selectedCharacteristicId)
 		);
+	}
+
+	isDraftCharacteristic(characteristicId: string) {
+		return this.store.draftCharacteristicIds().includes(characteristicId);
 	}
 
 	updateSystemValueCalculation(next: SystemValueCalculationDefinition) {

@@ -7,7 +7,9 @@
 	</header>
 
 	@if (loading()) {
-		<section class="admin-skill-detail-page__panel admin-skill-detail-page__state">
+		<section
+			class="admin-skill-detail-page__panel admin-skill-detail-page__state"
+		>
 			Загрузка навыка...
 		</section>
 	} @else if (errorMessage()) {
@@ -29,16 +31,24 @@
 			>
 				<p-tablist>
 					<p-tab value="general">Общее</p-tab>
-					<p-tab [disabled]="!canEditCalculation()" value="calculation">Расчёт</p-tab>
+					<p-tab [disabled]="!canEditCalculation()" value="calculation"
+						>Расчёт</p-tab
+					>
 				</p-tablist>
 
 				<p-tabpanels class="admin-skill-detail-page__tabpanels">
 					<p-tabpanel class="admin-skill-detail-page__tabpanel" value="general">
 						<p-fluid>
-							<form class="admin-skill-detail-page__form" [formGroup]="skillForm">
+							<form
+								class="admin-skill-detail-page__form"
+								[formGroup]="skillForm"
+							>
 								<div class="admin-skill-detail-page__grid">
 									<div class="admin-skill-detail-page__field">
-										<label class="admin-skill-detail-page__field-label" for="skill-name">
+										<label
+											class="admin-skill-detail-page__field-label"
+											for="skill-name"
+										>
 											Название
 										</label>
 										<input id="skill-name" pInputText formControlName="name" />
@@ -107,7 +117,9 @@
 											[options]="baseSourceOptions"
 											[ngModel]="skillSystemValueCalculation()?.baseSourceType"
 											[ngModelOptions]="{ standalone: true }"
-											(ngModelChange)="updateSkillSystemValueBaseSourceType($event)"
+											(ngModelChange)="
+												updateSkillSystemValueBaseSourceType($event)
+											"
 										></p-select>
 									</div>
 								</div>
@@ -143,7 +155,10 @@
 						</p-fluid>
 					</p-tabpanel>
 
-					<p-tabpanel class="admin-skill-detail-page__tabpanel" value="calculation">
+					<p-tabpanel
+						class="admin-skill-detail-page__tabpanel"
+						value="calculation"
+					>
 						<section class="admin-skill-detail-page__system-value">
 							<app-system-value-calculation-editor
 								class="admin-skill-detail-page__calculation-editor"
@@ -172,7 +187,9 @@
 			</div>
 		</section>
 	} @else {
-		<section class="admin-skill-detail-page__panel admin-skill-detail-page__state">
+		<section
+			class="admin-skill-detail-page__panel admin-skill-detail-page__state"
+		>
 			Навык не найден.
 		</section>
 	}

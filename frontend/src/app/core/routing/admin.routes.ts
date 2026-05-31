@@ -42,7 +42,22 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminSkillsPageComponent)
 					},
 					{
+						path: 'attributes/attribute/:attributeId',
+						loadComponent: () =>
+							import(
+								'../../features/attributes/ui/pages/admin-attribute-detail-page/admin-attribute-detail-page.component'
+							).then(m => m.AdminAttributeDetailPageComponent)
+					},
+					{
+						path: 'attributes/characteristic/:characteristicId',
+						loadComponent: () =>
+							import(
+								'../../features/attributes/ui/pages/admin-characteristic-detail-page/admin-characteristic-detail-page.component'
+							).then(m => m.AdminCharacteristicDetailPageComponent)
+					},
+					{
 						path: 'attributes',
+						pathMatch: 'full',
 						loadComponent: () =>
 							import(
 								'../../features/attributes/ui/pages/admin-attributes-page/admin-attributes-page.component'

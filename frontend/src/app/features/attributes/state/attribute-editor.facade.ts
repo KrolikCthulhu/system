@@ -98,9 +98,10 @@ export class AttributeEditorFacade {
 		});
 	}
 
-	saveAttribute() {
+	saveAttribute(options?: { onCreated?: (attribute: Attribute) => void }) {
 		const selectedAttributeId = this.catalogFacade.selectedAttributeId();
 		const calculationDraft = this.systemValueCalculation();
+		const isDraft = this.isDraftSelected();
 
 		if (
 			!selectedAttributeId ||
@@ -157,10 +158,11 @@ export class AttributeEditorFacade {
 			)
 			.subscribe({
 				next: attribute => {
-					if (this.isDraftSelected()) {
+					if (isDraft) {
 						this.catalogFacade.replaceAttribute(selectedAttributeId, attribute);
 						this.store.removeDraftAttributeId(selectedAttributeId);
 						this.catalogFacade.setSelectedAttributeId(attribute.id);
+						options?.onCreated?.(attribute);
 					} else {
 						this.catalogFacade.upsertAttribute(attribute);
 					}
@@ -246,10 +248,11 @@ export class AttributeEditorFacade {
 
 	isDraftSelected() {
 		const selectedAttributeId = this.catalogFacade.selectedAttributeId();
-		return (
-			!!selectedAttributeId &&
-			this.store.draftAttributeIds().includes(selectedAttributeId)
-		);
+		return !!selectedAttributeId && this.isDraftAttribute(selectedAttributeId);
+	}
+
+	isDraftAttribute(attributeId: string) {
+		return this.store.draftAttributeIds().includes(attributeId);
 	}
 
 	updateSystemValueCalculation(next: SystemValueCalculationDefinition) {

@@ -1,0 +1,217 @@
+<section class="admin-characteristic-detail-page">
+	<header class="admin-characteristic-detail-page__header">
+		<p-breadcrumb
+			class="admin-characteristic-detail-page__breadcrumbs"
+			[model]="breadcrumbs()"
+		></p-breadcrumb>
+	</header>
+
+	@if (loading()) {
+		<section
+			class="admin-characteristic-detail-page__panel admin-characteristic-detail-page__state"
+		>
+			Загрузка характеристики...
+		</section>
+	} @else if (errorMessage()) {
+		<section
+			class="admin-characteristic-detail-page__panel admin-characteristic-detail-page__state admin-characteristic-detail-page__state--error"
+		>
+			{{ errorMessage() }}
+		</section>
+	} @else if (characteristic(); as characteristic) {
+		<section class="admin-characteristic-detail-page__panel">
+			<div class="admin-characteristic-detail-page__panel-heading">
+				<h1 class="admin-characteristic-detail-page__title">
+					{{ characteristic.name }}
+				</h1>
+			</div>
+
+			<p-tabs
+				class="admin-characteristic-detail-page__content"
+				[value]="activeTab()"
+				(valueChange)="setActiveTab($event)"
+			>
+				<p-tablist>
+					<p-tab value="general">Общее</p-tab>
+					<p-tab [disabled]="!canEditCalculation()" value="calculation">
+						Расчёт
+					</p-tab>
+				</p-tablist>
+
+				<p-tabpanels class="admin-characteristic-detail-page__tabpanels">
+					<p-tabpanel
+						class="admin-characteristic-detail-page__tabpanel"
+						value="general"
+					>
+						<p-fluid>
+							<form
+								class="admin-characteristic-detail-page__form"
+								[formGroup]="form"
+							>
+								<div class="admin-characteristic-detail-page__grid">
+									<div class="admin-characteristic-detail-page__field">
+										<label
+											class="admin-characteristic-detail-page__field-label"
+											for="characteristic-name"
+										>
+											Название
+										</label>
+										<input
+											id="characteristic-name"
+											pInputText
+											formControlName="name"
+										/>
+									</div>
+
+									<div class="admin-characteristic-detail-page__field">
+										<label
+											class="admin-characteristic-detail-page__field-label"
+											for="characteristic-attribute"
+										>
+											Атрибут
+										</label>
+										<p-select
+											inputId="characteristic-attribute"
+											formControlName="attributeId"
+											optionLabel="label"
+											optionValue="value"
+											[options]="attributeOptions()"
+											appendTo="body"
+										></p-select>
+									</div>
+								</div>
+
+								<div class="admin-characteristic-detail-page__grid">
+									<div class="admin-characteristic-detail-page__field">
+										<label
+											class="admin-characteristic-detail-page__field-label"
+											for="characteristic-min-value"
+										>
+											Минимум
+										</label>
+										<p-inputnumber
+											formControlName="minValue"
+											inputId="characteristic-min-value"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+
+									<div class="admin-characteristic-detail-page__field">
+										<label
+											class="admin-characteristic-detail-page__field-label"
+											for="characteristic-max-value"
+										>
+											Максимум
+										</label>
+										<p-inputnumber
+											formControlName="maxValue"
+											inputId="characteristic-max-value"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+								</div>
+
+								<div class="admin-characteristic-detail-page__grid">
+									<div class="admin-characteristic-detail-page__field">
+										<label
+											class="admin-characteristic-detail-page__field-label"
+											for="characteristic-default-value"
+										>
+											По умолчанию
+										</label>
+										<p-inputnumber
+											formControlName="defaultValue"
+											inputId="characteristic-default-value"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+
+									<div class="admin-characteristic-detail-page__field">
+										<label
+											class="admin-characteristic-detail-page__field-label"
+											for="characteristic-sort-order"
+										>
+											Порядок сортировки
+										</label>
+										<p-inputnumber
+											formControlName="sortOrder"
+											inputId="characteristic-sort-order"
+											[min]="0"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+								</div>
+
+								<div class="admin-characteristic-detail-page__grid">
+									<div class="admin-characteristic-detail-page__field">
+										<label class="admin-characteristic-detail-page__field-label">
+											Режим значения
+										</label>
+										<p-select
+											optionLabel="label"
+											optionValue="value"
+											[options]="baseSourceOptions"
+											[ngModel]="systemValueCalculation()?.baseSourceType"
+											[ngModelOptions]="{ standalone: true }"
+											(ngModelChange)="updateSystemValueBaseSourceType($event)"
+										></p-select>
+									</div>
+								</div>
+
+								<div class="admin-characteristic-detail-page__field">
+									<label
+										class="admin-characteristic-detail-page__field-label"
+										for="characteristic-description"
+									>
+										Описание
+									</label>
+									<textarea
+										id="characteristic-description"
+										pTextarea
+										formControlName="description"
+										rows="4"
+									></textarea>
+								</div>
+							</form>
+						</p-fluid>
+					</p-tabpanel>
+
+					<p-tabpanel
+						class="admin-characteristic-detail-page__tabpanel"
+						value="calculation"
+					>
+						<section class="admin-characteristic-detail-page__system-value">
+							<app-system-value-calculation-editor
+								class="admin-characteristic-detail-page__calculation-editor"
+								[showBaseSourceField]="false"
+								[systemValue]="systemValueCalculation()"
+								[availableValues]="availableValues()"
+								(systemValueChange)="updateSystemValueCalculation($event)"
+							></app-system-value-calculation-editor>
+						</section>
+					</p-tabpanel>
+				</p-tabpanels>
+			</p-tabs>
+
+			<div class="admin-characteristic-detail-page__actions">
+				<p-button
+					label="Сбросить"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="cancelCharacteristic()"
+				></p-button>
+				<p-button
+					label="Сохранить"
+					[disabled]="isSaveDisabled()"
+					(onClick)="saveCharacteristic()"
+				></p-button>
+			</div>
+		</section>
+	} @else {
+		<section
+			class="admin-characteristic-detail-page__panel admin-characteristic-detail-page__state"
+		>
+			Характеристика не найдена.
+		</section>
+	}
+</section>
