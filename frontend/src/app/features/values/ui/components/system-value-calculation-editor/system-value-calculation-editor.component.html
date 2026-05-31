@@ -1,10 +1,13 @@
-<p-fluid class="system-value-calculation-editor">
+<p-fluid
+	class="system-value-calculation-editor"
+	[class.system-value-calculation-editor--with-toolbar]="showBaseSourceField()"
+>
 	@if (showBaseSourceField()) {
 		<div class="system-value-calculation-editor__toolbar">
 			<div class="system-value-calculation-editor__field">
-				<label class="system-value-calculation-editor__field-label">
+				<span class="system-value-calculation-editor__field-label">
 					Режим значения
-				</label>
+				</span>
 				<p-select
 					[options]="baseSourceOptions"
 					optionLabel="label"
@@ -89,9 +92,9 @@
 
 												@if (selectedNode.kind === 'source') {
 													<div class="system-value-calculation-editor__field">
-														<label class="system-value-calculation-editor__field-label">
+														<span class="system-value-calculation-editor__field-label">
 															Какое значение брать
-														</label>
+														</span>
 														<p-select
 															[options]="dependencyGroups()"
 															[group]="true"
@@ -115,9 +118,9 @@
 
 												@if (selectedNode.kind === 'constant') {
 													<div class="system-value-calculation-editor__field">
-														<label class="system-value-calculation-editor__field-label">
+														<span class="system-value-calculation-editor__field-label">
 															Число
-														</label>
+														</span>
 														<p-inputnumber
 															[ngModel]="selectedNode.constantValue ?? 0"
 															(ngModelChange)="updateSelectedConstantValue($event ?? 0)"
@@ -128,9 +131,9 @@
 
 												@if (selectedNode.kind === 'operation') {
 													<div class="system-value-calculation-editor__field">
-														<label class="system-value-calculation-editor__field-label">
+														<span class="system-value-calculation-editor__field-label">
 															Операция
-														</label>
+														</span>
 														<p-select
 															[options]="operationOptions"
 															optionLabel="label"
@@ -220,9 +223,9 @@
 									<div class="system-value-calculation-editor__test-inputs">
 										@for (input of testInputs(); track input.id) {
 											<div class="system-value-calculation-editor__field">
-												<label class="system-value-calculation-editor__field-label">
+												<span class="system-value-calculation-editor__field-label">
 													{{ input.name }}
-												</label>
+												</span>
 												<div class="text-muted">
 													{{ input.groupLabel }}
 												</div>

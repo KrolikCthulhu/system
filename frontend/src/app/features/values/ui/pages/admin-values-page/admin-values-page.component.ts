@@ -9,7 +9,6 @@ import { InputText } from 'primeng/inputtext';
 import { Tag } from 'primeng/tag';
 import { ConfirmationService } from 'primeng/api';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
-import { getSystemValueBaseSourceLabel } from '../../../../../shared/types/system-value.models';
 import { VALUES_REPOSITORY, ValuesRepository } from '../../../data/values-repository.port';
 import {
 	SystemValueCalculationDraftController
@@ -187,10 +186,6 @@ export class AdminValuesPageComponent {
 
 	protected modeTagSeverity(value: SystemValue) {
 		return value.baseSourceType === 'computed' ? 'info' : 'secondary';
-	}
-
-	protected baseSourceLabel(value: SystemValue) {
-		return getSystemValueBaseSourceLabel(value.baseSourceType);
 	}
 
 	private selectValueInternal(valueId: string) {

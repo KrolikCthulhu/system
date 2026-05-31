@@ -5,9 +5,15 @@
 }
 
 .system-value-calculation-editor {
-	display: block;
+	display: grid;
+	grid-template-rows: minmax(0, 1fr);
 	height: 100%;
 	min-height: 0;
+}
+
+.system-value-calculation-editor--with-toolbar {
+	grid-template-rows: auto minmax(0, 1fr);
+	gap: 0.75rem;
 }
 
 .system-value-calculation-editor__toolbar {
