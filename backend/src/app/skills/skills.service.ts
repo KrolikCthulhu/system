@@ -25,6 +25,7 @@ const skillSelect = {
 	usesDefaultLevelRules: true,
 	isSystemValue: true,
 	baseSourceType: true,
+	calculationGraph: true,
 	isActive: true
 } satisfies Prisma.SkillSelect;
 
@@ -61,9 +62,8 @@ export class SkillsService {
 				defaultLevel: skill.defaultLevel,
 				maxLevel: skill.maxLevel,
 				usesDefaultLevelRules: skill.usesDefaultLevelRules,
-				isSystemValue: skill.isSystemValue,
-				baseSourceType: skill.baseSourceType,
-				isActive: skill.isActive
+				isActive: skill.isActive,
+				systemValue: this.mapSystemValue(skill)
 			})),
 			levels: levels.map(level => ({
 				id: level.id,
@@ -78,6 +78,27 @@ export class SkillsService {
 				isActive: level.isActive
 			}))
 		};
+	}
+
+	async getCategories() {
+		const categories = await this.prisma.skillCategory.findMany({
+			orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+		});
+
+		return categories.map(category => this.mapCategory(category));
+	}
+
+	async getSkill(id: string) {
+		const skill = await this.prisma.skill.findUnique({
+			select: skillSelect,
+			where: { id }
+		});
+
+		if (!skill) {
+			throw new NotFoundException('Навык не найден.');
+		}
+
+		return this.mapSkill(skill);
 	}
 
 	async createSkill(dto: CreateSkillDto) {
@@ -348,6 +369,7 @@ export class SkillsService {
 		usesDefaultLevelRules: boolean;
 		isSystemValue: boolean;
 		baseSourceType: string;
+		calculationGraph: Prisma.JsonValue | null;
 		isActive: boolean;
 	}) {
 		return {
@@ -358,9 +380,22 @@ export class SkillsService {
 			defaultLevel: skill.defaultLevel,
 			maxLevel: skill.maxLevel,
 			usesDefaultLevelRules: skill.usesDefaultLevelRules,
+			isActive: skill.isActive,
+			systemValue: this.mapSystemValue(skill)
+		};
+	}
+
+	private mapSystemValue(skill: {
+		id: string;
+		isSystemValue: boolean;
+		baseSourceType: string;
+		calculationGraph: Prisma.JsonValue | null;
+	}) {
+		return {
+			id: skill.id,
 			isSystemValue: skill.isSystemValue,
 			baseSourceType: skill.baseSourceType,
-			isActive: skill.isActive
+			calculationGraph: skill.calculationGraph
 		};
 	}
 

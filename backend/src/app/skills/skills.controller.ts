@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	ForbiddenException,
+	Get,
 	Param,
 	Patch,
 	Post,
@@ -34,6 +35,21 @@ export class SkillsController {
 	) {
 		this.assertAdmin(user);
 		return this.skillsService.createSkill(dto);
+	}
+
+	@Get('categories')
+	async getCategories(@CurrentUser() user: AuthenticatedUser) {
+		this.assertAdmin(user);
+		return this.skillsService.getCategories();
+	}
+
+	@Get(':id')
+	async getSkill(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string
+	) {
+		this.assertAdmin(user);
+		return this.skillsService.getSkill(id);
 	}
 
 	@Patch(':id')

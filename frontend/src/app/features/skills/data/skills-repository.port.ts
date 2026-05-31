@@ -19,6 +19,8 @@ import {
 
 export interface SkillsRepository {
 	loadAdminCatalog(): Observable<SkillsAdminCatalog>;
+	loadCategories(): Observable<SkillCategory[]>;
+	loadSkill(id: string): Observable<Skill>;
 	createSkill(command: CreateSkillCommand): Observable<Skill>;
 	updateSkill(command: UpdateSkillCommand): Observable<Skill>;
 	updateSkillActive(command: UpdateSkillActiveCommand): Observable<Skill>;

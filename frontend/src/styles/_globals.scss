@@ -1,32 +1,15 @@
-@use 'mixins' as *;
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 
 :root {
 	font-size: 16px;
-
-	@include media(medium) {
-		font-size: 14px;
-	}
-
-	@include media(small) {
-		font-size: 12px;
-	}
-
-	@include media(xsmall) {
-		font-size: 10px;
-	}
 }
 
 body {
 	font-family: var(--font-family-base);
+	font-size: var(--text-body-size);
 }
 
-.text-overline {
-	font-size: var(--text-eyebrow-font-size);
-	font-weight: 600;
-	letter-spacing: var(--text-eyebrow-letter-spacing);
-	text-transform: uppercase;
+.text-muted {
 	color: var(--p-text-muted-color);
 }
 
@@ -48,4 +31,12 @@ h3 {
 h4 {
 	font-size: var(--text-heading-4-size);
 	line-height: 1.3;
+}
+
+p-tablist {
+	font-size: var(--text-tab-size);
+}
+
+p-breadcrumb {
+	font-size: var(--text-breadcrumb-size);
 }

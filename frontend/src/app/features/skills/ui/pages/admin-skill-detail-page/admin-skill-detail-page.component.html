@@ -1,0 +1,179 @@
+<section class="admin-skill-detail-page">
+	<header class="admin-skill-detail-page__header">
+		<p-breadcrumb
+			class="admin-skill-detail-page__breadcrumbs"
+			[model]="breadcrumbs()"
+		></p-breadcrumb>
+	</header>
+
+	@if (loading()) {
+		<section class="admin-skill-detail-page__panel admin-skill-detail-page__state">
+			Загрузка навыка...
+		</section>
+	} @else if (errorMessage()) {
+		<section
+			class="admin-skill-detail-page__panel admin-skill-detail-page__state admin-skill-detail-page__state--error"
+		>
+			{{ errorMessage() }}
+		</section>
+	} @else if (skill(); as skill) {
+		<section class="admin-skill-detail-page__panel">
+			<div class="admin-skill-detail-page__panel-heading">
+				<h1 class="admin-skill-detail-page__title">{{ skill.name }}</h1>
+			</div>
+
+			<p-tabs
+				class="admin-skill-detail-page__content"
+				[value]="activeTab()"
+				(valueChange)="setActiveTab($event)"
+			>
+				<p-tablist>
+					<p-tab value="general">Общее</p-tab>
+					<p-tab [disabled]="!canEditCalculation()" value="calculation">Расчёт</p-tab>
+				</p-tablist>
+
+				<p-tabpanels class="admin-skill-detail-page__tabpanels">
+					<p-tabpanel class="admin-skill-detail-page__tabpanel" value="general">
+						<p-fluid>
+							<form class="admin-skill-detail-page__form" [formGroup]="skillForm">
+								<div class="admin-skill-detail-page__grid">
+									<div class="admin-skill-detail-page__field">
+										<label class="admin-skill-detail-page__field-label" for="skill-name">
+											Название
+										</label>
+										<input id="skill-name" pInputText formControlName="name" />
+									</div>
+
+									<div class="admin-skill-detail-page__field">
+										<label
+											class="admin-skill-detail-page__field-label"
+											for="skill-category"
+										>
+											Категория
+										</label>
+										<p-select
+											inputId="skill-category"
+											formControlName="categoryId"
+											optionLabel="label"
+											optionValue="value"
+											[options]="categoryOptions()"
+											appendTo="body"
+										></p-select>
+									</div>
+								</div>
+
+								<div class="admin-skill-detail-page__grid">
+									<div class="admin-skill-detail-page__field">
+										<label
+											class="admin-skill-detail-page__field-label"
+											for="skill-default-level"
+										>
+											Стартовый уровень
+										</label>
+										<p-inputnumber
+											formControlName="defaultLevel"
+											inputId="skill-default-level"
+											[min]="0"
+											[max]="6"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+
+									<div class="admin-skill-detail-page__field">
+										<label
+											class="admin-skill-detail-page__field-label"
+											for="skill-max-level"
+										>
+											Максимальный уровень
+										</label>
+										<p-inputnumber
+											formControlName="maxLevel"
+											inputId="skill-max-level"
+											[min]="0"
+											[max]="12"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+								</div>
+
+								<div class="admin-skill-detail-page__grid">
+									<div class="admin-skill-detail-page__field">
+										<label class="admin-skill-detail-page__field-label">
+											Режим значения
+										</label>
+										<p-select
+											optionLabel="label"
+											optionValue="value"
+											[options]="baseSourceOptions"
+											[ngModel]="skillSystemValueCalculation()?.baseSourceType"
+											[ngModelOptions]="{ standalone: true }"
+											(ngModelChange)="updateSkillSystemValueBaseSourceType($event)"
+										></p-select>
+									</div>
+								</div>
+
+								<div class="admin-skill-detail-page__switch-row">
+									<label
+										class="admin-skill-detail-page__field-label"
+										for="skill-uses-default-level-rules"
+									>
+										Общие правила уровней
+									</label>
+									<p-toggleswitch
+										inputId="skill-uses-default-level-rules"
+										formControlName="usesDefaultLevelRules"
+									/>
+								</div>
+
+								<div class="admin-skill-detail-page__field">
+									<label
+										class="admin-skill-detail-page__field-label"
+										for="skill-description"
+									>
+										Описание
+									</label>
+									<textarea
+										id="skill-description"
+										pTextarea
+										formControlName="description"
+										rows="4"
+									></textarea>
+								</div>
+							</form>
+						</p-fluid>
+					</p-tabpanel>
+
+					<p-tabpanel class="admin-skill-detail-page__tabpanel" value="calculation">
+						<section class="admin-skill-detail-page__system-value">
+							<app-system-value-calculation-editor
+								class="admin-skill-detail-page__calculation-editor"
+								[showBaseSourceField]="false"
+								[systemValue]="skillSystemValueCalculation()"
+								[availableValues]="availableValues()"
+								(systemValueChange)="updateSkillSystemValueCalculation($event)"
+							></app-system-value-calculation-editor>
+						</section>
+					</p-tabpanel>
+				</p-tabpanels>
+			</p-tabs>
+
+			<div class="admin-skill-detail-page__actions">
+				<p-button
+					label="Сбросить"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="cancelSkill()"
+				></p-button>
+				<p-button
+					label="Сохранить"
+					[disabled]="isSkillSaveDisabled()"
+					(onClick)="saveSkill()"
+				></p-button>
+			</div>
+		</section>
+	} @else {
+		<section class="admin-skill-detail-page__panel admin-skill-detail-page__state">
+			Навык не найден.
+		</section>
+	}
+</section>

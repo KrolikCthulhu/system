@@ -1,6 +1,15 @@
+import { ValueGraphState } from '../../../values/ui/value-graph.models';
+
 export type SystemValueBaseSourceTypeDto =
 	| 'CHARACTER_INPUT'
 	| 'COMPUTED';
+
+export interface SkillSystemValueDto {
+	id: string;
+	isSystemValue: boolean;
+	baseSourceType: SystemValueBaseSourceTypeDto;
+	calculationGraph: ValueGraphState | null;
+}
 
 export interface SkillCategoryDto {
 	id: string;
@@ -17,9 +26,8 @@ export interface SkillDto {
 	defaultLevel: number;
 	maxLevel: number;
 	usesDefaultLevelRules: boolean;
-	isSystemValue: boolean;
-	baseSourceType: SystemValueBaseSourceTypeDto;
 	isActive: boolean;
+	systemValue: SkillSystemValueDto;
 }
 
 export interface SkillLevelDto {

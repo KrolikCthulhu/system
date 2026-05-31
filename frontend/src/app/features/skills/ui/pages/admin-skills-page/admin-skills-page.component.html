@@ -90,9 +90,10 @@
 						</div>
 					</aside>
 
-					@if (skillEditorOpen() && selectedSkill()) {
+					@if (skillEditorOpen() && selectedSkill() && isDraftSkillSelected()) {
 						<p-splitter
 							class="admin-skills-page__splitter"
+							panelStyleClass="admin-skills-page__splitter-panel"
 							[panelSizes]="[70, 30]"
 							[minSizes]="[40, 25]"
 							[gutterSize]="1"
@@ -105,7 +106,6 @@
 										class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 									>
 										<div>
-											<div class="text-overline">Фильтр</div>
 											<h2 class="admin-skills-page__panel-title">
 												{{ selectedSkillFilterCategory().name }}
 											</h2>
@@ -154,7 +154,9 @@
 												<td>
 													<p-toggleswitch
 														[ngModel]="skill.isActive"
-														(ngModelChange)="toggleSkillActive(skill.id, $event)"
+														(ngModelChange)="
+															toggleSkillActive(skill.id, $event)
+														"
 													/>
 												</td>
 												<td
@@ -195,9 +197,8 @@
 										class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 									>
 										<div>
-											<div class="text-overline">Редактор навыка</div>
 											<h2 class="admin-skills-page__panel-title">
-												{{ selectedSkill()?.name }}
+												Новый навык
 											</h2>
 										</div>
 										<p-button
@@ -211,7 +212,11 @@
 									</div>
 
 									<div class="admin-skills-page__editor-content">
-										<form class="admin-skills-page__form" [formGroup]="skillForm">
+										<p-fluid>
+											<form
+												class="admin-skills-page__form"
+												[formGroup]="skillForm"
+											>
 											<div class="admin-skills-page__form-field">
 												<label
 													class="admin-skills-page__field-label"
@@ -241,32 +246,6 @@
 													[options]="categoryOptions()"
 													appendTo="body"
 												></p-select>
-											</div>
-
-											<div class="admin-skills-page__system-value">
-												<div class="text-overline">Системное значение</div>
-												<div class="admin-skills-page__system-value-grid">
-													<div class="admin-skills-page__form-field">
-														<label class="admin-skills-page__field-label">
-															Статус
-														</label>
-														<input
-															pInputText
-															[value]="selectedSkill()?.systemValue?.isSystemValue ? 'Да' : 'Нет'"
-															readonly
-														/>
-													</div>
-													<div class="admin-skills-page__form-field">
-														<label class="admin-skills-page__field-label">
-															Источник базы
-														</label>
-														<input
-															pInputText
-															[value]="getSystemValueBaseSourceLabel(selectedSkill()!.systemValue.baseSourceType)"
-															readonly
-														/>
-													</div>
-												</div>
 											</div>
 
 											<div class="admin-skills-page__form-grid">
@@ -302,49 +281,18 @@
 													></p-inputnumber>
 												</div>
 											</div>
-
-											<div class="admin-skills-page__switch-list">
-												<div class="admin-skills-page__switch-row">
-													<label
-														class="admin-skills-page__field-label"
-														for="skill-uses-default-level-rules"
-													>
-														Общие правила уровней
-													</label>
-													<p-toggleswitch
-														inputId="skill-uses-default-level-rules"
-														formControlName="usesDefaultLevelRules"
-													/>
-												</div>
-											</div>
-
-											<div class="admin-skills-page__form-field">
-												<label
-													class="admin-skills-page__field-label"
-													for="skill-description"
-												>
-													Описание
-												</label>
-												<textarea
-													id="skill-description"
-													pTextarea
-													formControlName="description"
-													rows="4"
-												></textarea>
-											</div>
-										</form>
+											</form>
+										</p-fluid>
 
 										<div class="admin-skills-page__editor-actions">
 											<p-button
 												label="Отмена"
 												severity="secondary"
 												variant="outlined"
-												(onClick)="cancelSkill()"
+												(onClick)="closeSkillEditor()"
 											></p-button>
 											<p-button
-												[label]="
-													isDraftSkillSelected() ? 'Создать' : 'Сохранить изменения'
-												"
+												label="Создать"
 												[disabled]="isSkillSaveDisabled()"
 												(onClick)="saveSkill()"
 											></p-button>
@@ -361,7 +309,6 @@
 								class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 							>
 								<div>
-									<div class="text-overline">Фильтр</div>
 									<h2 class="admin-skills-page__panel-title">
 										{{ selectedSkillFilterCategory().name }}
 									</h2>
@@ -449,6 +396,7 @@
 				@if (categoryEditorOpen() && selectedCategory()) {
 					<p-splitter
 						class="admin-skills-page__splitter"
+						panelStyleClass="admin-skills-page__splitter-panel"
 						[panelSizes]="[70, 30]"
 						[minSizes]="[40, 25]"
 						[gutterSize]="1"
@@ -461,7 +409,6 @@
 									class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 								>
 									<div>
-										<div class="text-overline">Справочник</div>
 										<h2 class="admin-skills-page__panel-title">Категории</h2>
 									</div>
 
@@ -504,7 +451,9 @@
 											<td>
 												<p-toggleswitch
 													[ngModel]="category.isActive"
-													(ngModelChange)="toggleCategoryActive(category.id, $event)"
+													(ngModelChange)="
+														toggleCategoryActive(category.id, $event)
+													"
 												/>
 											</td>
 											<td
@@ -545,7 +494,6 @@
 									class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 								>
 									<div>
-										<div class="text-overline">Редактор категории</div>
 										<h2 class="admin-skills-page__panel-title">
 											{{ selectedCategory()?.name }}
 										</h2>
@@ -561,7 +509,11 @@
 								</div>
 
 								<div class="admin-skills-page__editor-content">
-									<form class="admin-skills-page__form" [formGroup]="categoryForm">
+									<p-fluid>
+										<form
+											class="admin-skills-page__form"
+											[formGroup]="categoryForm"
+										>
 										<div class="admin-skills-page__form-field">
 											<label
 												class="admin-skills-page__field-label"
@@ -590,7 +542,8 @@
 												rows="4"
 											></textarea>
 										</div>
-									</form>
+										</form>
+									</p-fluid>
 
 									<div class="admin-skills-page__editor-actions">
 										<p-button
@@ -601,7 +554,9 @@
 										></p-button>
 										<p-button
 											[label]="
-												isDraftCategorySelected() ? 'Создать' : 'Сохранить изменения'
+												isDraftCategorySelected()
+													? 'Создать'
+													: 'Сохранить изменения'
 											"
 											[disabled]="isCategorySaveDisabled()"
 											(onClick)="saveCategory()"
@@ -620,7 +575,6 @@
 								class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 							>
 								<div>
-									<div class="text-overline">Справочник</div>
 									<h2 class="admin-skills-page__panel-title">Категории</h2>
 								</div>
 
@@ -663,7 +617,9 @@
 										<td>
 											<p-toggleswitch
 												[ngModel]="category.isActive"
-												(ngModelChange)="toggleCategoryActive(category.id, $event)"
+												(ngModelChange)="
+													toggleCategoryActive(category.id, $event)
+												"
 											/>
 										</td>
 										<td
@@ -702,6 +658,7 @@
 				@if (levelEditorOpen() && selectedLevel(); as level) {
 					<p-splitter
 						class="admin-skills-page__splitter"
+						panelStyleClass="admin-skills-page__splitter-panel"
 						[panelSizes]="[70, 30]"
 						[minSizes]="[40, 25]"
 						[gutterSize]="1"
@@ -711,7 +668,6 @@
 								class="admin-skills-page__panel admin-skills-page__table-panel"
 							>
 								<div class="admin-skills-page__panel-heading">
-									<div class="text-overline">Глобальная таблица</div>
 									<h2 class="admin-skills-page__panel-title">Уровни навыков</h2>
 								</div>
 
@@ -794,7 +750,6 @@
 									class="admin-skills-page__panel-heading admin-skills-page__panel-heading--split"
 								>
 									<div>
-										<div class="text-overline">Редактор уровня</div>
 										<h2 class="admin-skills-page__panel-title">
 											{{ level.name }}
 										</h2>
@@ -810,7 +765,8 @@
 								</div>
 
 								<div class="admin-skills-page__editor-content">
-									<form class="admin-skills-page__form" [formGroup]="levelForm">
+									<p-fluid>
+										<form class="admin-skills-page__form" [formGroup]="levelForm">
 										<div class="admin-skills-page__form-grid">
 											<div class="admin-skills-page__form-field">
 												<label
@@ -938,7 +894,8 @@
 												rows="4"
 											></textarea>
 										</div>
-									</form>
+										</form>
+									</p-fluid>
 
 									<div class="admin-skills-page__editor-actions">
 										<p-button
@@ -963,7 +920,6 @@
 							class="admin-skills-page__panel admin-skills-page__table-panel"
 						>
 							<div class="admin-skills-page__panel-heading">
-								<div class="text-overline">Глобальная таблица</div>
 								<h2 class="admin-skills-page__panel-title">Уровни навыков</h2>
 							</div>
 

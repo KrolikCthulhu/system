@@ -15,9 +15,9 @@ import {
 
 export function mapAttributeDto(dto: AttributeDto): Attribute {
 	const systemValue = createSystemValueDefinition(
-		dto.id,
+		dto.systemValue.id,
 		'attribute',
-		mapSystemValueBaseSourceType(dto.baseSourceType)
+		mapSystemValueBaseSourceType(dto.systemValue.baseSourceType)
 	);
 
 	return {
@@ -30,16 +30,17 @@ export function mapAttributeDto(dto: AttributeDto): Attribute {
 		updatedAt: dto.updatedAt,
 		systemValue: {
 			...systemValue,
-			isSystemValue: dto.isSystemValue
+			isSystemValue: dto.systemValue.isSystemValue,
+			calculationGraph: dto.systemValue.calculationGraph
 		}
 	};
 }
 
 export function mapCharacteristicDto(dto: CharacteristicDto): Characteristic {
 	const systemValue = createSystemValueDefinition(
-		dto.id,
+		dto.systemValue.id,
 		'characteristic',
-		mapSystemValueBaseSourceType(dto.baseSourceType)
+		mapSystemValueBaseSourceType(dto.systemValue.baseSourceType)
 	);
 
 	return {
@@ -56,7 +57,8 @@ export function mapCharacteristicDto(dto: CharacteristicDto): Characteristic {
 		updatedAt: dto.updatedAt,
 		systemValue: {
 			...systemValue,
-			isSystemValue: dto.isSystemValue
+			isSystemValue: dto.systemValue.isSystemValue,
+			calculationGraph: dto.systemValue.calculationGraph
 		}
 	};
 }

@@ -4,6 +4,8 @@
 	"license": "MIT",
 	"scripts": {
 		"seed:db": "prisma db seed",
+		"dev:frontend": "nx serve frontend",
+		"dev:backend": "nx serve backend",
 		"dev": "nx run-many --target=serve --projects=frontend,backend"
 	},
 	"prisma": {

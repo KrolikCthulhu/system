@@ -27,7 +27,15 @@ export const adminRoutes: Route[] = [
 						redirectTo: 'skills'
 					},
 					{
+						path: 'skills/:skillId',
+						loadComponent: () =>
+							import(
+								'../../features/skills/ui/pages/admin-skill-detail-page/admin-skill-detail-page.component'
+							).then(m => m.AdminSkillDetailPageComponent)
+					},
+					{
 						path: 'skills',
+						pathMatch: 'full',
 						loadComponent: () =>
 							import(
 								'../../features/skills/ui/pages/admin-skills-page/admin-skills-page.component'

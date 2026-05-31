@@ -48,6 +48,25 @@ export class HttpSkillsRepository implements SkillsRepository {
 			);
 	}
 
+	loadCategories(): Observable<SkillCategory[]> {
+		return this.http
+			.get<SkillCategoryDto[]>(`${this.baseUrl}/admin/skills/categories`, {
+				withCredentials: true
+			})
+			.pipe(
+				map(categories => categories.map(mapSkillCategoryDto)),
+				catchError(error => this.handleHttpError(error))
+			);
+	}
+
+	loadSkill(id: string): Observable<Skill> {
+		return this.http
+			.get<SkillDto>(`${this.baseUrl}/admin/skills/${id}`, {
+				withCredentials: true
+			})
+			.pipe(map(mapSkillDto), catchError(error => this.handleHttpError(error)));
+	}
+
 	createSkill(command: CreateSkillCommand): Observable<Skill> {
 		return this.http
 			.post<SkillDto>(`${this.baseUrl}/admin/skills`, command, {

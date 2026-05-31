@@ -1,0 +1,263 @@
+<p-fluid class="system-value-calculation-editor">
+	@if (showBaseSourceField()) {
+		<div class="system-value-calculation-editor__toolbar">
+			<div class="system-value-calculation-editor__field">
+				<label class="system-value-calculation-editor__field-label">
+					Режим значения
+				</label>
+				<p-select
+					[options]="baseSourceOptions"
+					optionLabel="label"
+					optionValue="value"
+					[ngModel]="baseSourceType()"
+					(ngModelChange)="updateBaseSourceType($event)"
+				></p-select>
+			</div>
+		</div>
+	}
+
+	<p-tabs
+		class="system-value-calculation-editor__tabs"
+		[value]="activeTab()"
+		(valueChange)="setActiveTab($event)"
+	>
+		<p-tablist>
+			<p-tab value="calculation">Расчёт</p-tab>
+			<p-tab value="test">Тест</p-tab>
+		</p-tablist>
+
+		<p-tabpanels class="system-value-calculation-editor__tabpanels">
+			<p-tabpanel class="system-value-calculation-editor__tabpanel" value="calculation">
+				<div class="system-value-calculation-editor__tabpanel-content">
+					@if (baseSourceType() === 'computed') {
+						<div class="system-value-calculation-editor__tabpanel-body system-value-calculation-editor__tabpanel-body--graph">
+							<div class="system-value-calculation-editor__graph-palette">
+								@for (nodeType of graphNodeTypes; track nodeType.kind) {
+									<p-button
+										[label]="nodeType.label"
+										severity="secondary"
+										variant="outlined"
+										[disabled]="nodeType.kind === 'result' && graphHasResultNode()"
+										(onClick)="addGraphNode(nodeType.kind)"
+									></p-button>
+								}
+							</div>
+
+							<div class="system-value-calculation-editor__graph-stage">
+								<p-splitter
+									class="system-value-calculation-editor__graph-splitter"
+									panelStyleClass="system-value-calculation-editor__graph-panel"
+									[panelSizes]="[72, 28]"
+									[minSizes]="[45, 25]"
+									[gutterSize]="1"
+								>
+									<ng-template #panel>
+										<div class="system-value-calculation-editor__graph-canvas">
+											<vflow
+												view="auto"
+												[nodes]="graphNodes()"
+											[edges]="graphEdges()"
+											[connection]="graphConnectionSettings"
+											(connect)="onGraphConnect($event)"
+											changesController
+											(nodesChanges.select)="onGraphSelectionChange($event)"
+											(nodeDragEnd)="onGraphDragEnd()"
+										></vflow>
+									</div>
+									</ng-template>
+
+									<ng-template #panel>
+										<div class="system-value-calculation-editor__graph-inspector">
+											@if (selectedGraphNodeData(); as selectedNode) {
+												<div class="system-value-calculation-editor__inspector-header">
+													<div>
+														<div class="text-muted">Узел</div>
+														<strong>
+															{{ graphNodeTypeLabel(selectedNode.kind) }}
+														</strong>
+													</div>
+
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														[text]="true"
+														[rounded]="true"
+														[disabled]="selectedNode.kind === 'result'"
+														(onClick)="removeSelectedGraphNode()"
+													></p-button>
+												</div>
+
+												@if (selectedNode.kind === 'source') {
+													<div class="system-value-calculation-editor__field">
+														<label class="system-value-calculation-editor__field-label">
+															Какое значение брать
+														</label>
+														<p-select
+															[options]="dependencyGroups()"
+															[group]="true"
+															optionGroupLabel="label"
+															optionGroupChildren="items"
+															optionLabel="label"
+															optionValue="value"
+															[filter]="true"
+															filterBy="label"
+															[showClear]="true"
+															[ngModel]="selectedNode.sourceValueId"
+															(ngModelChange)="updateSelectedSourceValue($event)"
+														></p-select>
+													</div>
+
+													<div class="system-value-calculation-editor__note">
+														<div class="text-muted">Сейчас выбрано</div>
+														<p>{{ selectedSourceValueName() }}</p>
+													</div>
+												}
+
+												@if (selectedNode.kind === 'constant') {
+													<div class="system-value-calculation-editor__field">
+														<label class="system-value-calculation-editor__field-label">
+															Число
+														</label>
+														<p-inputnumber
+															[ngModel]="selectedNode.constantValue ?? 0"
+															(ngModelChange)="updateSelectedConstantValue($event ?? 0)"
+															[showButtons]="false"
+														></p-inputnumber>
+													</div>
+												}
+
+												@if (selectedNode.kind === 'operation') {
+													<div class="system-value-calculation-editor__field">
+														<label class="system-value-calculation-editor__field-label">
+															Операция
+														</label>
+														<p-select
+															[options]="operationOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="selectedNode.operation"
+															(ngModelChange)="updateSelectedOperation($event)"
+														></p-select>
+													</div>
+												}
+
+												@if (selectedNode.kind === 'curve') {
+													<div class="system-value-calculation-editor__inspector-actions">
+														<p-button
+															label="Добавить диапазон"
+															icon="pi pi-plus"
+															severity="secondary"
+															variant="outlined"
+															(onClick)="addSelectedCurveRange()"
+														></p-button>
+													</div>
+
+													<div class="system-value-calculation-editor__curve-list">
+														@for (range of selectedNode.curveRanges ?? []; track range.id) {
+															<div class="system-value-calculation-editor__curve-row">
+																<p-inputnumber
+																	[ngModel]="range.from"
+																	(ngModelChange)="updateSelectedCurveRange(range.id, { from: $event ?? 0 })"
+																	[showButtons]="false"
+																></p-inputnumber>
+																<p-inputnumber
+																	[ngModel]="range.to"
+																	(ngModelChange)="updateSelectedCurveRange(range.id, { to: $event ?? 0 })"
+																	[showButtons]="false"
+																></p-inputnumber>
+																<p-inputnumber
+																	[ngModel]="range.result"
+																	(ngModelChange)="updateSelectedCurveRange(range.id, { result: $event ?? 0 })"
+																	[showButtons]="false"
+																></p-inputnumber>
+																<p-button
+																	icon="pi pi-times"
+																	severity="danger"
+																	[text]="true"
+																	[rounded]="true"
+																	(onClick)="removeSelectedCurveRange(range.id)"
+																></p-button>
+															</div>
+														}
+													</div>
+												}
+
+												<div class="system-value-calculation-editor__inspector-actions">
+													<p-button
+														label="Очистить входы"
+														severity="secondary"
+														variant="outlined"
+														(onClick)="clearSelectedGraphNodeInputs()"
+													></p-button>
+												</div>
+											} @else {
+												<div class="system-value-calculation-editor__state">
+													Выбери узел на canvas, чтобы настроить его свойства.
+												</div>
+											}
+										</div>
+									</ng-template>
+								</p-splitter>
+							</div>
+						</div>
+					} @else {
+						<div class="system-value-calculation-editor__state">
+							Это значение задаётся напрямую. Граф расчёта для него не нужен.
+						</div>
+					}
+				</div>
+			</p-tabpanel>
+
+			<p-tabpanel class="system-value-calculation-editor__tabpanel" value="test">
+				<div class="system-value-calculation-editor__tabpanel-content">
+					<div class="system-value-calculation-editor__tabpanel-body system-value-calculation-editor__tabpanel-body--scroll">
+						<div class="system-value-calculation-editor__test-grid">
+							<div class="system-value-calculation-editor__preview-card">
+								<div class="text-muted">Входные значения</div>
+								@if (baseSourceType() !== 'computed') {
+									<p>Для ручного значения тест расчёта не нужен.</p>
+								} @else if (testInputs().length) {
+									<div class="system-value-calculation-editor__test-inputs">
+										@for (input of testInputs(); track input.id) {
+											<div class="system-value-calculation-editor__field">
+												<label class="system-value-calculation-editor__field-label">
+													{{ input.name }}
+												</label>
+												<div class="text-muted">
+													{{ input.groupLabel }}
+												</div>
+												<p-inputnumber
+													[ngModel]="getTestSourceValue(input.id)"
+													(ngModelChange)="setTestSourceValue(input.id, $event)"
+													[showButtons]="false"
+												></p-inputnumber>
+											</div>
+										}
+									</div>
+								} @else {
+									<p>Для теста нет входных source-узлов.</p>
+								}
+							</div>
+
+							<div class="system-value-calculation-editor__preview-card">
+								<div class="text-muted">Результат</div>
+								<div class="system-value-calculation-editor__test-result">
+									{{ formatResultValue(testResult().final) }}
+								</div>
+							</div>
+						</div>
+
+						<div class="system-value-calculation-editor__preview-card">
+							<div class="text-muted">Разбор</div>
+							<ul class="system-value-calculation-editor__bullets">
+								@for (item of testResult().breakdown; track item) {
+									<li>{{ item }}</li>
+								}
+							</ul>
+						</div>
+					</div>
+				</div>
+			</p-tabpanel>
+		</p-tabpanels>
+	</p-tabs>
+</p-fluid>

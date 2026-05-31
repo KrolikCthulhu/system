@@ -26,9 +26,9 @@ export function mapSkillCategoryDto(dto: SkillCategoryDto): SkillCategory {
 
 export function mapSkillDto(dto: SkillDto): Skill {
 	const systemValue = createSystemValueDefinition(
-		dto.id,
+		dto.systemValue.id,
 		'skill',
-		mapSystemValueBaseSourceType(dto.baseSourceType)
+		mapSystemValueBaseSourceType(dto.systemValue.baseSourceType)
 	);
 
 	return {
@@ -42,7 +42,8 @@ export function mapSkillDto(dto: SkillDto): Skill {
 		isActive: dto.isActive,
 		systemValue: {
 			...systemValue,
-			isSystemValue: dto.isSystemValue
+			isSystemValue: dto.systemValue.isSystemValue,
+			calculationGraph: dto.systemValue.calculationGraph
 		}
 	};
 }

@@ -187,158 +187,21 @@
 	gap: 0.5rem;
 }
 
-.admin-values-page__tabs {
+.admin-values-page__editor-body {
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr);
-	min-height: 0;
-	overflow: hidden;
-}
-
-.admin-values-page__info-grid {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.625rem;
-}
-
-.admin-values-page__field {
-	display: flex;
-	flex-direction: column;
-	gap: 0.1875rem;
-}
-
-.admin-values-page__field--wide {
-	grid-column: 1 / -1;
-}
-
-.admin-values-page__field-label {
-	color: var(--p-text-muted-color);
-	font-size: 0.875rem;
-	font-weight: 500;
-	line-height: 1;
-}
-
-.admin-values-page__graph-palette {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 0.5rem;
-}
-
-.admin-values-page__tabpanel-body {
+	gap: 1rem;
 	min-height: 0;
 }
 
-.admin-values-page__tabpanel-body--scroll {
-	height: 100%;
-	overflow: auto;
+.admin-values-page__meta {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(14rem, max-content));
+	gap: 0.75rem 1rem;
 }
 
-.admin-values-page__tabpanel-body--graph {
-	display: grid;
-	grid-template-rows: auto minmax(0, 1fr);
-	gap: 0.5rem;
-	height: 100%;
-	overflow: hidden;
-}
-
-.admin-values-page__graph-stage {
-	display: grid;
+.admin-values-page__calculation-editor {
 	min-height: 0;
-	overflow: hidden;
-}
-
-.admin-values-page__graph-splitter {
-	height: 100%;
-	min-height: 0;
-}
-
-.admin-values-page__graph-canvas,
-.admin-values-page__graph-inspector {
-	height: 100%;
-	min-height: 0;
-}
-
-.admin-values-page__graph-canvas {
-	border: 0;
-	border-right: 1px solid var(--p-content-border-color);
-	border-radius: 0;
-	overflow: hidden;
-	background:
-		linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px),
-		linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-	background-size: 24px 24px;
-}
-
-.admin-values-page__graph-inspector {
-	display: flex;
-	flex-direction: column;
-	gap: 0.75rem;
-	padding: 0.75rem;
-	border: 0;
-	border-radius: 0;
-	overflow-y: auto;
-}
-
-.admin-values-page__inspector-header {
-	display: flex;
-	align-items: flex-start;
-	justify-content: space-between;
-	gap: 0.75rem;
-}
-
-.admin-values-page__inspector-actions {
-	display: flex;
-	justify-content: flex-end;
-}
-
-.admin-values-page__note,
-.admin-values-page__preview-card {
-	padding: 0.75rem;
-	border: 1px solid var(--p-content-border-color);
-	border-radius: 0.875rem;
-}
-
-.admin-values-page__test-grid {
-	display: grid;
-	grid-template-columns: minmax(0, 2fr) minmax(16rem, 1fr);
-	gap: 0.75rem;
-	margin-bottom: 0.75rem;
-}
-
-.admin-values-page__test-inputs {
-	display: grid;
-	grid-template-columns: repeat(2, minmax(0, 1fr));
-	gap: 0.75rem;
-	margin-top: 0.5rem;
-}
-
-.admin-values-page__test-result {
-	font-size: 2rem;
-	font-weight: 700;
-	line-height: 1;
-	margin-top: 0.5rem;
-}
-
-.admin-values-page__note p,
-.admin-values-page__preview-card p {
-	margin: 0.25rem 0 0;
-}
-
-.admin-values-page__curve-list {
-	display: flex;
-	flex-direction: column;
-	gap: 0.5rem;
-}
-
-.admin-values-page__curve-row {
-	display: grid;
-	grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-	gap: 0.5rem;
-	align-items: center;
-}
-
-.admin-values-page__bullets {
-	margin: 0.375rem 0 0;
-	padding-left: 1.125rem;
 }
 
 .admin-values-page__state {
@@ -363,44 +226,6 @@
 	border-top: 1px solid var(--p-content-border-color);
 }
 
-.admin-values-page__tabs :deep(.p-tabpanels) {
-	min-height: 0;
-	overflow: hidden;
-}
-
-.admin-values-page__tabs :deep(.p-tabpanel) {
-	height: 100%;
-	min-height: 0;
-}
-
-.admin-values-page__editor :deep(.p-inputtext),
-.admin-values-page__editor :deep(.p-inputnumber),
-.admin-values-page__editor :deep(.p-select),
-.admin-values-page__editor :deep(.p-textarea) {
-	width: 100%;
-}
-
-.admin-values-page__editor :deep(.p-inputnumber-input) {
-	width: 100%;
-}
-
-.admin-values-page__breadcrumbs :deep(.p-breadcrumb) {
-	display: inline-flex;
-	padding: 0.125rem 0;
-	border: 0;
-	background: transparent;
-}
-
-.admin-values-page__breadcrumbs :deep(.p-breadcrumb-list) {
-	gap: 0.25rem;
-}
-
-.admin-values-page__breadcrumbs :deep(.p-menuitem-link),
-.admin-values-page__breadcrumbs :deep(.p-breadcrumb-separator),
-.admin-values-page__breadcrumbs :deep(.p-menuitem-text) {
-	font-size: 0.8125rem;
-}
-
 @media (max-width: 1100px) {
 	.admin-values-page__workspace {
 		grid-template-columns: 1fr;
@@ -412,20 +237,8 @@
 		border-bottom: 1px solid var(--p-content-border-color);
 	}
 
-	.admin-values-page__section-pad,
-	.admin-values-page__tabpanel-body {
+	.admin-values-page__section-pad {
 		padding-left: 0;
 		padding-right: 0;
-	}
-
-	.admin-values-page__info-grid,
-	.admin-values-page__test-grid,
-	.admin-values-page__test-inputs,
-	.admin-values-page__curve-row {
-		grid-template-columns: 1fr;
-	}
-
-	.admin-values-page__graph-splitter {
-		min-height: 24rem;
 	}
 }

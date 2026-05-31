@@ -20,9 +20,11 @@
 .admin-skills-page__skills-workspace,
 .admin-skills-page__entity-workspace {
 	display: grid;
-	gap: 0.75rem;
+	gap: 0;
 	min-height: 0;
 	height: 100%;
+	background: var(--p-content-background);
+	overflow: hidden;
 }
 
 .admin-skills-page__skills-workspace {
@@ -37,16 +39,14 @@
 	min-width: 0;
 	min-height: 0;
 	height: 100%;
+	background: var(--p-content-background);
+	overflow: hidden;
 }
 
 .admin-skills-page__panel {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
-	padding: 0.75rem;
-	border: 1px solid var(--p-content-border-color);
-	border-radius: 0.875rem;
-	background: var(--p-content-background);
 }
 
 .admin-skills-page__filter-panel,
@@ -55,10 +55,24 @@
 	gap: 0.625rem;
 }
 
+.admin-skills-page__filter-panel {
+	border-right: 1px solid var(--p-content-border-color);
+}
+
+.admin-skills-page__filter-panel,
+.admin-skills-page__table-panel {
+	padding: 0;
+}
+
+.admin-skills-page__editor-panel {
+	padding: 0.75rem;
+}
+
 .admin-skills-page__panel-heading {
 	display: flex;
 	flex-direction: column;
 	gap: 0.125rem;
+	padding: 0.75rem 0.75rem 0;
 }
 
 .admin-skills-page__panel-heading--split {
@@ -79,6 +93,7 @@
 	display: grid;
 	grid-template-columns: minmax(0, 1fr);
 	align-items: center;
+	padding: 0 0.75rem;
 }
 
 .admin-skills-page__search {
@@ -98,6 +113,7 @@
 	gap: 0.25rem;
 	min-height: 0;
 	overflow-y: auto;
+	padding: 0 0.75rem 0.75rem;
 }
 
 .admin-skills-page__category-item {
@@ -139,6 +155,7 @@
 .admin-skills-page__table {
 	flex: 1;
 	min-height: 0;
+	padding: 0 0.75rem 0.75rem;
 }
 
 .admin-skills-page__table-row--selected td {
@@ -206,6 +223,10 @@
 	);
 }
 
+.admin-skills-page__calculation-editor {
+	min-height: 32rem;
+}
+
 .admin-skills-page__system-value-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -213,9 +234,8 @@
 }
 
 .admin-skills-page__field-label {
-	color: var(--p-text-muted-color);
-	font-size: 0.875rem;
-	font-weight: 500;
+	color: var(--text-label-color);
+	font-size: var(--text-label-size);
 	line-height: 1;
 	text-transform: none;
 	letter-spacing: normal;
@@ -247,7 +267,7 @@
 
 .admin-skills-page__tab-trigger {
 	width: 100%;
-	padding: 0.75rem 1rem;
+	padding: 0;
 	border: 0;
 	background: transparent;
 	color: inherit;
@@ -255,113 +275,33 @@
 	cursor: pointer;
 }
 
-:host ::ng-deep {
-	.admin-skills-page__breadcrumbs .p-breadcrumb {
-		padding: 0.125rem 0;
-		border: 0;
-		background: transparent;
-	}
+.admin-skills-page__tabs > p-tabpanels {
+	flex: 1;
+	min-height: 0;
+	padding: 0;
+}
 
-	.admin-skills-page__breadcrumbs .p-breadcrumb-list {
-		gap: 0.25rem;
-	}
+.admin-skills-page__tabs > p-tabpanels > p-tabpanel {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
 
-	.admin-skills-page__breadcrumbs .p-menuitem-link,
-	.admin-skills-page__breadcrumbs .p-breadcrumb-separator,
-	.admin-skills-page__breadcrumbs .p-menuitem-text {
-		font-size: 0.8125rem;
-	}
+.admin-skills-page__splitter-panel {
+	display: flex;
+	min-width: 0;
+	min-height: 0;
+}
 
-	.admin-skills-page__tabs > .p-tabpanels {
-		flex: 1;
-		min-height: 0;
-		padding: 0.75rem 0 0;
-	}
+.admin-skills-page__splitter-panel > .admin-skills-page__panel {
+	flex: 1;
+	min-width: 0;
+	width: 100%;
+}
 
-	.admin-skills-page__tabs .p-tab {
-		padding: 0;
-		pointer-events: none;
-	}
-
-	.admin-skills-page__tabs .p-tab .admin-skills-page__tab-trigger {
-		pointer-events: auto;
-	}
-
-	.admin-skills-page__tabs .p-tabpanel {
-		height: 100%;
-		padding: 0;
-	}
-
-	.admin-skills-page__splitter.p-splitter {
-		height: 100%;
-		border: 0;
-		background: transparent;
-	}
-
-	.admin-skills-page__splitter .p-splitterpanel {
-		display: flex;
-		min-width: 0;
-		min-height: 0;
-	}
-
-	.admin-skills-page__splitter .p-splitterpanel > .admin-skills-page__panel {
-		flex: 1;
-		min-width: 0;
-		width: 100%;
-	}
-
-	.admin-skills-page__splitter
-		.p-splitterpanel:first-child
-		> .admin-skills-page__panel {
-		border-top-right-radius: 0;
-		border-bottom-right-radius: 0;
-	}
-
-	.admin-skills-page__splitter
-		.p-splitterpanel:last-child
-		> .admin-skills-page__panel {
-		border-top-left-radius: 0;
-		border-bottom-left-radius: 0;
-	}
-
-	.admin-skills-page__splitter .p-splitter-gutter {
-		background: var(--p-content-border-color);
-	}
-
-	.admin-skills-page__splitter .p-splitter-gutter-handle {
-		background: var(--p-content-border-color);
-	}
-
-	.admin-skills-page__table .p-datatable-table-container {
-		height: 100%;
-		overflow-x: auto;
-		overflow-y: auto;
-	}
-
-	.admin-skills-page__editor-content .p-inputtext,
-	.admin-skills-page__editor-content .p-inputnumber,
-	.admin-skills-page__editor-content .p-select,
-	.admin-skills-page__editor-content .p-textarea {
-		width: 100%;
-	}
-
-	.admin-skills-page__editor-content .p-inputtext,
-	.admin-skills-page__editor-content .p-select-label,
-	.admin-skills-page__editor-content .p-inputnumber-input,
-	.admin-skills-page__editor-content .p-textarea {
-		padding-block: 0.5rem;
-	}
-
-	.admin-skills-page__editor-content .p-select,
-	.admin-skills-page__editor-content .p-inputnumber,
-	.admin-skills-page__editor-content .p-inputnumber-input {
-		font-size: 0.9375rem;
-	}
-
-	.admin-skills-page__editor-content .p-textarea {
-		resize: none;
-		overflow: auto;
-	}
+.admin-skills-page__skills-workspace > .admin-skills-page__splitter {
+	border: 0;
+	border-radius: 0;
 }
 
 @media (max-width: 1180px) {
@@ -378,7 +318,7 @@
 		align-items: stretch;
 	}
 
-	:host ::ng-deep .admin-skills-page__splitter.p-splitter {
+	.admin-skills-page__splitter {
 		flex-direction: column;
 	}
 }

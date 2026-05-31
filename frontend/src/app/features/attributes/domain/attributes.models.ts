@@ -1,4 +1,4 @@
-import { SystemValueDefinition } from '../../../shared/types/system-value.models';
+import { SystemValueCalculationDefinition } from '../../values/domain/system-value-calculation.models';
 
 export interface Attribute {
 	id: string;
@@ -8,7 +8,7 @@ export interface Attribute {
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
-	systemValue: SystemValueDefinition;
+	systemValue: SystemValueCalculationDefinition;
 }
 
 export interface Characteristic {
@@ -23,7 +23,7 @@ export interface Characteristic {
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
-	systemValue: SystemValueDefinition;
+	systemValue: SystemValueCalculationDefinition;
 }
 
 export interface AttributesAdminCatalog {

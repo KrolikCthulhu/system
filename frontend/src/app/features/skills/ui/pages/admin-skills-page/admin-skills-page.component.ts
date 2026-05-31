@@ -1,6 +1,7 @@
 import { Component, effect, inject, signal } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
+import { Router } from '@angular/router';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { ConfirmDialog } from 'primeng/confirmdialog';
@@ -8,6 +9,7 @@ import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
+import { Fluid } from 'primeng/fluid';
 import { Select } from 'primeng/select';
 import { Splitter } from 'primeng/splitter';
 import { TableModule } from 'primeng/table';
@@ -15,7 +17,6 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
-import { getSystemValueBaseSourceLabel } from '../../../../../shared/types/system-value.models';
 import {
 	Skill,
 	SkillCategory,
@@ -37,6 +38,7 @@ import { SkillsCatalogFacade } from '../../../state/skills-catalog.facade';
 		Button,
 		ConfirmDialog,
 		FormsModule,
+		Fluid,
 		IconField,
 		InputIcon,
 		InputNumber,
@@ -71,6 +73,7 @@ import { SkillsCatalogFacade } from '../../../state/skills-catalog.facade';
 export class AdminSkillsPageComponent {
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly confirmationService = inject(ConfirmationService);
+	private readonly router = inject(Router);
 	private readonly catalogFacade = inject(SkillsCatalogFacade);
 	private readonly skillEditorFacade = inject(SkillEditorFacade);
 	private readonly categoryEditorFacade = inject(CategoryEditorFacade);
@@ -149,8 +152,7 @@ export class AdminSkillsPageComponent {
 	}
 
 	protected openSkillEditor(skillId: string) {
-		this.skillEditorFacade.selectSkill(skillId);
-		this.skillEditorOpen.set(true);
+		void this.router.navigate(['/admin/rules/skills', skillId]);
 	}
 
 	protected openCategoryEditor(categoryId: string) {
@@ -198,7 +200,12 @@ export class AdminSkillsPageComponent {
 	}
 
 	protected saveSkill() {
-		this.skillEditorFacade.saveSkill();
+		this.skillEditorFacade.saveSkill({
+			onCreated: skill => {
+				this.skillEditorOpen.set(false);
+				void this.router.navigate(['/admin/rules/skills', skill.id]);
+			}
+		});
 	}
 
 	protected cancelSkill() {
@@ -315,8 +322,6 @@ export class AdminSkillsPageComponent {
 	protected getExpectedSuccessPreview() {
 		return this.levelEditorFacade.getExpectedSuccessPreview();
 	}
-
-	protected getSystemValueBaseSourceLabel = getSystemValueBaseSourceLabel;
 
 	private hasCurrentTabUnsavedChanges() {
 		switch (this.activeTab()) {

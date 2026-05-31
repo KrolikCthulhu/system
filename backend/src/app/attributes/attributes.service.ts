@@ -18,6 +18,7 @@ const attributeSelect = {
 	description: true,
 	isSystemValue: true,
 	baseSourceType: true,
+	calculationGraph: true,
 	isActive: true,
 	sortOrder: true,
 	createdAt: true,
@@ -34,6 +35,7 @@ const characteristicSelect = {
 	defaultValue: true,
 	isSystemValue: true,
 	baseSourceType: true,
+	calculationGraph: true,
 	isActive: true,
 	sortOrder: true,
 	createdAt: true,
@@ -279,6 +281,7 @@ export class AttributesService {
 		description: string | null;
 		isSystemValue: boolean;
 		baseSourceType: string;
+		calculationGraph: Prisma.JsonValue | null;
 		isActive: boolean;
 		sortOrder: number;
 		createdAt: Date;
@@ -288,12 +291,11 @@ export class AttributesService {
 			id: attribute.id,
 			name: attribute.name,
 			description: attribute.description ?? '',
-			isSystemValue: attribute.isSystemValue,
-			baseSourceType: attribute.baseSourceType,
 			isActive: attribute.isActive,
 			sortOrder: attribute.sortOrder,
 			createdAt: attribute.createdAt.toISOString(),
-			updatedAt: attribute.updatedAt.toISOString()
+			updatedAt: attribute.updatedAt.toISOString(),
+			systemValue: this.mapSystemValue(attribute)
 		};
 	}
 
@@ -307,6 +309,7 @@ export class AttributesService {
 		defaultValue: number;
 		isSystemValue: boolean;
 		baseSourceType: string;
+		calculationGraph: Prisma.JsonValue | null;
 		isActive: boolean;
 		sortOrder: number;
 		createdAt: Date;
@@ -320,12 +323,25 @@ export class AttributesService {
 			minValue: characteristic.minValue,
 			maxValue: characteristic.maxValue,
 			defaultValue: characteristic.defaultValue,
-			isSystemValue: characteristic.isSystemValue,
-			baseSourceType: characteristic.baseSourceType,
 			isActive: characteristic.isActive,
 			sortOrder: characteristic.sortOrder,
 			createdAt: characteristic.createdAt.toISOString(),
-			updatedAt: characteristic.updatedAt.toISOString()
+			updatedAt: characteristic.updatedAt.toISOString(),
+			systemValue: this.mapSystemValue(characteristic)
+		};
+	}
+
+	private mapSystemValue(value: {
+		id: string;
+		isSystemValue: boolean;
+		baseSourceType: string;
+		calculationGraph: Prisma.JsonValue | null;
+	}) {
+		return {
+			id: value.id,
+			isSystemValue: value.isSystemValue,
+			baseSourceType: value.baseSourceType,
+			calculationGraph: value.calculationGraph
 		};
 	}
 }

@@ -202,6 +202,10 @@
 	);
 }
 
+.admin-attributes-page__calculation-editor {
+	min-height: 32rem;
+}
+
 .admin-attributes-page__system-value-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -209,9 +213,8 @@
 }
 
 .admin-attributes-page__field-label {
-	color: var(--p-text-muted-color);
-	font-size: 0.875rem;
-	font-weight: 500;
+	color: var(--text-label-color);
+	font-size: var(--text-label-size);
 	line-height: 1;
 	text-transform: none;
 	letter-spacing: normal;
@@ -229,7 +232,7 @@
 
 .admin-attributes-page__tab-trigger {
 	width: 100%;
-	padding: 0.75rem 1rem;
+	padding: 0;
 	border: 0;
 	background: transparent;
 	color: inherit;
@@ -237,113 +240,27 @@
 	cursor: pointer;
 }
 
-:host ::ng-deep {
-	.admin-attributes-page__breadcrumbs .p-breadcrumb {
-		padding: 0.125rem 0;
-		border: 0;
-		background: transparent;
-	}
+.admin-attributes-page__tabs > p-tabpanels {
+	flex: 1;
+	min-height: 0;
+}
 
-	.admin-attributes-page__breadcrumbs .p-breadcrumb-list {
-		gap: 0.25rem;
-	}
+.admin-attributes-page__tabs p-tabpanel {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
 
-	.admin-attributes-page__breadcrumbs .p-menuitem-link,
-	.admin-attributes-page__breadcrumbs .p-breadcrumb-separator,
-	.admin-attributes-page__breadcrumbs .p-menuitem-text {
-		font-size: 0.8125rem;
-	}
+.admin-attributes-page__splitter-panel {
+	display: flex;
+	min-width: 0;
+	min-height: 0;
+}
 
-	.admin-attributes-page__tabs > .p-tabpanels {
-		flex: 1;
-		min-height: 0;
-		padding: 0.75rem 0 0;
-	}
-
-	.admin-attributes-page__tabs .p-tab {
-		padding: 0;
-		pointer-events: none;
-	}
-
-	.admin-attributes-page__tabs .p-tab .admin-attributes-page__tab-trigger {
-		pointer-events: auto;
-	}
-
-	.admin-attributes-page__tabs .p-tabpanel {
-		height: 100%;
-		padding: 0;
-	}
-
-	.admin-attributes-page__splitter.p-splitter {
-		height: 100%;
-		border: 0;
-		background: transparent;
-	}
-
-	.admin-attributes-page__splitter .p-splitterpanel {
-		display: flex;
-		min-width: 0;
-		min-height: 0;
-	}
-
-	.admin-attributes-page__splitter .p-splitterpanel > .admin-attributes-page__panel {
-		flex: 1;
-		min-width: 0;
-		width: 100%;
-	}
-
-	.admin-attributes-page__splitter
-		.p-splitterpanel:first-child
-		> .admin-attributes-page__panel {
-		border-top-right-radius: 0;
-		border-bottom-right-radius: 0;
-	}
-
-	.admin-attributes-page__splitter
-		.p-splitterpanel:last-child
-		> .admin-attributes-page__panel {
-		border-top-left-radius: 0;
-		border-bottom-left-radius: 0;
-	}
-
-	.admin-attributes-page__splitter .p-splitter-gutter {
-		background: var(--p-content-border-color);
-	}
-
-	.admin-attributes-page__splitter .p-splitter-gutter-handle {
-		background: var(--p-content-border-color);
-	}
-
-	.admin-attributes-page__table .p-datatable-table-container {
-		height: 100%;
-		overflow-x: auto;
-		overflow-y: auto;
-	}
-
-	.admin-attributes-page__editor-content .p-inputtext,
-	.admin-attributes-page__editor-content .p-inputnumber,
-	.admin-attributes-page__editor-content .p-select,
-	.admin-attributes-page__editor-content .p-textarea {
-		width: 100%;
-	}
-
-	.admin-attributes-page__editor-content .p-inputtext,
-	.admin-attributes-page__editor-content .p-select-label,
-	.admin-attributes-page__editor-content .p-inputnumber-input,
-	.admin-attributes-page__editor-content .p-textarea {
-		padding-block: 0.5rem;
-	}
-
-	.admin-attributes-page__editor-content .p-select,
-	.admin-attributes-page__editor-content .p-inputnumber,
-	.admin-attributes-page__editor-content .p-inputnumber-input {
-		font-size: 0.9375rem;
-	}
-
-	.admin-attributes-page__editor-content .p-textarea {
-		resize: none;
-		overflow: auto;
-	}
+.admin-attributes-page__splitter-panel > .admin-attributes-page__panel {
+	flex: 1;
+	min-width: 0;
+	width: 100%;
 }
 
 @media (max-width: 1180px) {
@@ -358,7 +275,7 @@
 		align-items: stretch;
 	}
 
-	:host ::ng-deep .admin-attributes-page__splitter.p-splitter {
+	.admin-attributes-page__splitter {
 		flex-direction: column;
 	}
 }

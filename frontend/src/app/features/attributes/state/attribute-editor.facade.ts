@@ -1,8 +1,19 @@
 import { DestroyRef, effect, inject, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { map, of, switchMap } from 'rxjs';
 import { FormChangeTracker } from '../../../shared/forms/form-change-tracker';
 import { UnsavedChangesGuard } from '../../../shared/forms/unsaved-changes.guard';
 import { createSystemValueDefinition } from '../../../shared/types/system-value.models';
+import {
+	VALUES_REPOSITORY,
+	ValuesRepository
+} from '../../values/data/values-repository.port';
+import {
+	areCalculationDefinitionsEqual,
+	SystemValueCalculationDraftController
+} from '../../values/domain/system-value-calculation-draft';
+import { SystemValueCalculationDefinition } from '../../values/domain/system-value-calculation.models';
+import { SystemValuesCatalogFacade } from '../../values/state/system-values-catalog.facade';
 import { ATTRIBUTES_REPOSITORY } from '../data/attributes-repository.port';
 import { Attribute } from '../domain/attributes.models';
 import {
@@ -21,10 +32,14 @@ export class AttributeEditorFacade {
 	private readonly catalogFacade = inject(AttributesCatalogFacade);
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly repository = inject(ATTRIBUTES_REPOSITORY);
+	private readonly valuesRepository = inject<ValuesRepository>(VALUES_REPOSITORY);
+	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly store = inject(AttributeEditorStore);
 	private readonly changeTracker = new FormChangeTracker<AttributeFormValue>();
+	private readonly calculationDraft = new SystemValueCalculationDraftController();
 
 	readonly form = createAttributeForm();
+	readonly systemValueCalculation = this.calculationDraft.draft;
 
 	constructor() {
 		effect(() => {
@@ -71,11 +86,10 @@ export class AttributeEditorFacade {
 					sortOrder: 0,
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
-					systemValue: createSystemValueDefinition(
-						id,
-						'attribute',
-						'computed'
-					)
+					systemValue: {
+						...createSystemValueDefinition(id, 'attribute', 'computed'),
+						calculationGraph: null
+					}
 				});
 				this.store.addDraftAttributeId(id);
 				this.catalogFacade.setActiveTab('attributes');
@@ -86,8 +100,14 @@ export class AttributeEditorFacade {
 
 	saveAttribute() {
 		const selectedAttributeId = this.catalogFacade.selectedAttributeId();
+		const calculationDraft = this.systemValueCalculation();
 
-		if (!selectedAttributeId || this.form.invalid || !this.hasUnsavedChanges()) {
+		if (
+			!selectedAttributeId ||
+			!calculationDraft ||
+			this.form.invalid ||
+			!this.hasUnsavedChanges()
+		) {
 			return;
 		}
 
@@ -98,21 +118,59 @@ export class AttributeEditorFacade {
 			? this.repository.createAttribute(raw)
 			: this.repository.updateAttribute({ id: selectedAttributeId, ...raw });
 
-		request$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
-			next: attribute => {
-				if (this.isDraftSelected()) {
-					this.catalogFacade.replaceAttribute(selectedAttributeId, attribute);
-					this.store.removeDraftAttributeId(selectedAttributeId);
-					this.catalogFacade.setSelectedAttributeId(attribute.id);
-				} else {
-					this.catalogFacade.upsertAttribute(attribute);
-				}
+		request$
+			.pipe(
+				switchMap(attribute => {
+					const nextCalculation = toPersistedCalculation(attribute, calculationDraft);
 
-				this.patchForm(attribute);
-				this.store.setSaving(false);
-			},
-			error: () => this.store.setSaving(false)
-		});
+					if (areCalculationDefinitionsEqual(attribute.systemValue, nextCalculation)) {
+						return of(attribute);
+					}
+
+					return this.valuesRepository
+						.updateCalculation(
+							nextCalculation.sourceType,
+							nextCalculation.id,
+							nextCalculation.baseSourceType,
+							nextCalculation.baseSourceType === 'computed'
+								? nextCalculation.calculationGraph
+								: null
+						)
+						.pipe(
+							map(
+								() =>
+									({
+										...attribute,
+										systemValue: {
+											...attribute.systemValue,
+											baseSourceType: nextCalculation.baseSourceType,
+											calculationGraph:
+												nextCalculation.baseSourceType === 'computed'
+													? nextCalculation.calculationGraph
+													: null
+										}
+									}) satisfies Attribute
+							)
+						);
+				}),
+				takeUntilDestroyed(this.destroyRef)
+			)
+			.subscribe({
+				next: attribute => {
+					if (this.isDraftSelected()) {
+						this.catalogFacade.replaceAttribute(selectedAttributeId, attribute);
+						this.store.removeDraftAttributeId(selectedAttributeId);
+						this.catalogFacade.setSelectedAttributeId(attribute.id);
+					} else {
+						this.catalogFacade.upsertAttribute(attribute);
+					}
+
+					this.patchForm(attribute);
+					this.valuesCatalogFacade.reloadIfInitialized();
+					this.store.setSaving(false);
+				},
+				error: () => this.store.setSaving(false)
+			});
 	}
 
 	deleteAttribute(attributeId?: string) {
@@ -152,6 +210,7 @@ export class AttributeEditorFacade {
 					if (this.catalogFacade.selectedAttributeId() === targetAttributeId) {
 						this.catalogFacade.setSelectedAttributeId(null);
 					}
+					this.valuesCatalogFacade.reloadIfInitialized();
 					this.store.setSaving(false);
 				},
 				error: () => this.store.setSaving(false)
@@ -175,7 +234,10 @@ export class AttributeEditorFacade {
 	}
 
 	hasUnsavedChanges() {
-		return this.changeTracker.hasChanges(getAttributeFormValue(this.form));
+		return (
+			this.changeTracker.hasChanges(getAttributeFormValue(this.form)) ||
+			this.calculationDraft.hasChanges()
+		);
 	}
 
 	isSaveDisabled() {
@@ -188,6 +250,10 @@ export class AttributeEditorFacade {
 			!!selectedAttributeId &&
 			this.store.draftAttributeIds().includes(selectedAttributeId)
 		);
+	}
+
+	updateSystemValueCalculation(next: SystemValueCalculationDefinition) {
+		this.calculationDraft.update(next);
 	}
 
 	private setSelectedAttributeInternal(attributeId: string) {
@@ -204,15 +270,18 @@ export class AttributeEditorFacade {
 
 		if (!attribute) {
 			this.changeTracker.clear();
+			this.calculationDraft.clear();
 			return;
 		}
 
 		this.captureFormState();
+		this.calculationDraft.set(attribute.systemValue);
 	}
 
 	private resetForm() {
 		resetAttributeForm(this.form);
 		this.changeTracker.clear();
+		this.calculationDraft.clear();
 	}
 
 	private captureFormState() {
@@ -222,4 +291,16 @@ export class AttributeEditorFacade {
 	private createDraftId() {
 		return `draft-attribute-${crypto.randomUUID()}`;
 	}
+}
+
+function toPersistedCalculation(
+	attribute: Attribute,
+	draft: SystemValueCalculationDefinition
+): SystemValueCalculationDefinition {
+	return {
+		...draft,
+		id: attribute.id,
+		isSystemValue: attribute.systemValue.isSystemValue,
+		sourceType: 'attribute'
+	};
 }

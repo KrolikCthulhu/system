@@ -42,6 +42,7 @@
 				@if (attributeEditorOpen() && selectedAttribute()) {
 					<p-splitter
 						class="admin-attributes-page__splitter"
+						panelStyleClass="admin-attributes-page__splitter-panel"
 						[panelSizes]="[70, 30]"
 						[minSizes]="[40, 25]"
 						[gutterSize]="1"
@@ -54,7 +55,6 @@
 									class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
 								>
 									<div>
-										<div class="text-overline">Справочник</div>
 										<h2 class="admin-attributes-page__panel-title">
 											Атрибуты
 										</h2>
@@ -142,7 +142,6 @@
 									class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
 								>
 									<div>
-										<div class="text-overline">Редактор атрибута</div>
 										<h2 class="admin-attributes-page__panel-title">
 											{{ selectedAttribute()?.name }}
 										</h2>
@@ -158,7 +157,8 @@
 								</div>
 
 								<div class="admin-attributes-page__editor-content">
-									<form class="admin-attributes-page__form" [formGroup]="attributeForm">
+									<p-fluid>
+										<form class="admin-attributes-page__form" [formGroup]="attributeForm">
 										<div class="admin-attributes-page__form-field">
 											<label
 												class="admin-attributes-page__field-label"
@@ -189,7 +189,7 @@
 										</div>
 
 										<div class="admin-attributes-page__system-value">
-											<div class="text-overline">Системное значение</div>
+											<div class="text-muted">Системное значение</div>
 											<div class="admin-attributes-page__system-value-grid">
 												<div class="admin-attributes-page__form-field">
 													<label class="admin-attributes-page__field-label">
@@ -213,7 +213,7 @@
 												</div>
 											</div>
 										</div>
-
+											<app-system-value-calculation-editor class="admin-attributes-page__calculation-editor" [systemValue]="attributeSystemValueCalculation()" [availableValues]="availableValues()" (systemValueChange)="updateAttributeSystemValueCalculation($event)"></app-system-value-calculation-editor>
 										<div class="admin-attributes-page__form-field">
 											<label
 												class="admin-attributes-page__field-label"
@@ -228,7 +228,8 @@
 												rows="4"
 											></textarea>
 										</div>
-									</form>
+										</form>
+									</p-fluid>
 
 									<div class="admin-attributes-page__editor-actions">
 										<p-button
@@ -258,7 +259,6 @@
 								class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
 							>
 								<div>
-									<div class="text-overline">Справочник</div>
 									<h2 class="admin-attributes-page__panel-title">Атрибуты</h2>
 								</div>
 
@@ -384,6 +384,7 @@
 					@if (characteristicEditorOpen() && selectedCharacteristic()) {
 						<p-splitter
 							class="admin-attributes-page__splitter"
+							panelStyleClass="admin-attributes-page__splitter-panel"
 							[panelSizes]="[70, 30]"
 							[minSizes]="[40, 25]"
 							[gutterSize]="1"
@@ -396,7 +397,6 @@
 										class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
 									>
 										<div>
-											<div class="text-overline">Фильтр</div>
 											<h2 class="admin-attributes-page__panel-title">
 												{{ selectedCharacteristicFilterAttribute().name }}
 											</h2>
@@ -491,7 +491,6 @@
 										class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
 									>
 										<div>
-											<div class="text-overline">Редактор характеристики</div>
 											<h2 class="admin-attributes-page__panel-title">
 												{{ selectedCharacteristic()?.name }}
 											</h2>
@@ -507,10 +506,11 @@
 									</div>
 
 									<div class="admin-attributes-page__editor-content">
-										<form
-											class="admin-attributes-page__form"
-											[formGroup]="characteristicForm"
-										>
+										<p-fluid>
+											<form
+												class="admin-attributes-page__form"
+												[formGroup]="characteristicForm"
+											>
 											<div class="admin-attributes-page__form-field">
 												<label
 													class="admin-attributes-page__field-label"
@@ -604,7 +604,7 @@
 											</div>
 
 											<div class="admin-attributes-page__system-value">
-												<div class="text-overline">Системное значение</div>
+												<div class="text-muted">Системное значение</div>
 												<div class="admin-attributes-page__system-value-grid">
 													<div class="admin-attributes-page__form-field">
 														<label class="admin-attributes-page__field-label">
@@ -628,7 +628,7 @@
 													</div>
 												</div>
 											</div>
-
+													<app-system-value-calculation-editor class="admin-attributes-page__calculation-editor" [systemValue]="characteristicSystemValueCalculation()" [availableValues]="availableValues()" (systemValueChange)="updateCharacteristicSystemValueCalculation($event)"></app-system-value-calculation-editor>
 											<div class="admin-attributes-page__form-field">
 												<label
 													class="admin-attributes-page__field-label"
@@ -643,7 +643,8 @@
 													rows="4"
 												></textarea>
 											</div>
-										</form>
+											</form>
+										</p-fluid>
 
 										<div class="admin-attributes-page__editor-actions">
 											<p-button
@@ -674,7 +675,6 @@
 								class="admin-attributes-page__panel-heading admin-attributes-page__panel-heading--split"
 							>
 								<div>
-									<div class="text-overline">Фильтр</div>
 									<h2 class="admin-attributes-page__panel-title">
 										{{ selectedCharacteristicFilterAttribute().name }}
 									</h2>

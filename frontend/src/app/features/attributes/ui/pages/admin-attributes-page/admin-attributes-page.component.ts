@@ -8,6 +8,7 @@ import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
+import { Fluid } from 'primeng/fluid';
 import { Select } from 'primeng/select';
 import { Splitter } from 'primeng/splitter';
 import { TableModule } from 'primeng/table';
@@ -20,6 +21,9 @@ import {
 	Attribute,
 	Characteristic
 } from '../../../domain/attributes.models';
+import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
+import { SystemValueCalculationDefinition } from '../../../../values/domain/system-value-calculation.models';
+import { SystemValueCalculationEditorComponent } from '../../../../values/ui/components/system-value-calculation-editor/system-value-calculation-editor.component';
 import { AdminAttributesCatalogStore } from '../../../state/admin-attributes-catalog.store';
 import { AttributeEditorFacade } from '../../../state/attribute-editor.facade';
 import { AttributeEditorStore } from '../../../state/attribute-editor.store';
@@ -34,6 +38,7 @@ import { CharacteristicEditorStore } from '../../../state/characteristic-editor.
 		Button,
 		ConfirmDialog,
 		FormsModule,
+		Fluid,
 		IconField,
 		InputIcon,
 		InputNumber,
@@ -48,7 +53,8 @@ import { CharacteristicEditorStore } from '../../../state/characteristic-editor.
 		TabPanels,
 		Tabs,
 		Textarea,
-		ToggleSwitch
+		ToggleSwitch,
+		SystemValueCalculationEditorComponent
 	],
 	templateUrl: './admin-attributes-page.component.html',
 	styleUrl: './admin-attributes-page.component.scss',
@@ -71,6 +77,7 @@ export class AdminAttributesPageComponent {
 	private readonly characteristicEditorFacade = inject(
 		CharacteristicEditorFacade
 	);
+	private readonly systemValuesCatalogFacade = inject(SystemValuesCatalogFacade);
 
 	protected readonly tabValue = signal<string | number | undefined>(undefined);
 	protected readonly attributeEditorOpen = signal(false);
@@ -97,8 +104,15 @@ export class AdminAttributesPageComponent {
 	protected readonly selectedAttribute = this.catalogFacade.selectedAttribute;
 	protected readonly selectedCharacteristic =
 		this.catalogFacade.selectedCharacteristic;
+	protected readonly availableValues = this.systemValuesCatalogFacade.values;
+	protected readonly attributeSystemValueCalculation =
+		this.attributeEditorFacade.systemValueCalculation;
+	protected readonly characteristicSystemValueCalculation =
+		this.characteristicEditorFacade.systemValueCalculation;
 
 	constructor() {
+		this.systemValuesCatalogFacade.ensureLoaded();
+
 		effect(() => {
 			this.tabValue.set(this.activeTab());
 		});
@@ -265,6 +279,18 @@ export class AdminAttributesPageComponent {
 
 	protected isDraftCharacteristicSelected() {
 		return this.characteristicEditorFacade.isDraftSelected();
+	}
+
+	protected updateAttributeSystemValueCalculation(
+		next: SystemValueCalculationDefinition
+	) {
+		this.attributeEditorFacade.updateSystemValueCalculation(next);
+	}
+
+	protected updateCharacteristicSystemValueCalculation(
+		next: SystemValueCalculationDefinition
+	) {
+		this.characteristicEditorFacade.updateSystemValueCalculation(next);
 	}
 
 	protected getSystemValueBaseSourceLabel = getSystemValueBaseSourceLabel;

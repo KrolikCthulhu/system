@@ -22,98 +22,183 @@ import {
 			[class.value-graph-node--curve]="kind() === 'curve'"
 			[class.value-graph-node--result]="kind() === 'result'"
 		>
-			<div class="value-graph-node__kind">{{ kindLabel() }}</div>
-			<strong class="value-graph-node__title">{{ title() }}</strong>
-			<span class="value-graph-node__subtitle">{{ subtitle() }}</span>
+			<div class="value-graph-node__card">
+				<div class="value-graph-node__icon" aria-hidden="true">
+					@if (usesDivideIcon()) {
+						<svg
+							class="value-graph-node__svg-icon"
+							xmlns="http://www.w3.org/2000/svg"
+							viewBox="0 0 24 24"
+							focusable="false"
+						>
+							<path d="M12 7.25a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+							<path d="M5 10.5a1.5 1.5 0 0 0 0 3h14a1.5 1.5 0 0 0 0-3H5Z" />
+							<path d="M12 20.75a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z" />
+						</svg>
+					} @else {
+						<i [class]="nodeIconClass()"></i>
+					}
+				</div>
 
-			@if (kind() === 'source') {
-				<handle type="source" position="right" id="out" />
-			}
+				<div class="value-graph-node__content">
+					<div class="value-graph-node__kind">{{ kindLabel() }}</div>
+					<strong class="value-graph-node__title">{{ title() }}</strong>
+					<span class="value-graph-node__subtitle">{{ subtitle() }}</span>
+				</div>
 
-			@if (kind() === 'constant') {
-				<handle type="source" position="right" id="out" />
-			}
-
-			@if (kind() === 'operation') {
-				@if (usesBinaryHandles()) {
-					<handle type="target" position="left" id="a" style="top: 34%" />
-					<handle type="target" position="left" id="b" style="top: 66%" />
-				} @else {
-					<handle type="target" position="left" id="in" />
+				@if (kind() === 'source') {
+					<handle type="source" position="right" id="out" />
 				}
 
-				<handle type="source" position="right" id="out" />
-			}
+				@if (kind() === 'constant') {
+					<handle type="source" position="right" id="out" />
+				}
 
-			@if (kind() === 'curve') {
-				<handle type="target" position="left" id="in" />
-				<handle type="source" position="right" id="out" />
-			}
+				@if (kind() === 'operation') {
+					@if (usesBinaryHandles()) {
+						<handle type="target" position="left" id="a" style="top: 34%" />
+						<handle type="target" position="left" id="b" style="top: 66%" />
+					} @else {
+						<handle type="target" position="left" id="in" />
+					}
 
-			@if (kind() === 'result') {
-				<handle type="target" position="left" id="in" />
-			}
+					<handle type="source" position="right" id="out" />
+				}
+
+				@if (kind() === 'curve') {
+					<handle type="target" position="left" id="in" />
+					<handle type="source" position="right" id="out" />
+				}
+
+				@if (kind() === 'result') {
+					<handle type="target" position="left" id="in" />
+				}
+			</div>
 		</div>
 	`,
 	styles: [
 		`
 			.value-graph-node {
+				display: block;
+				width: 15rem;
+				padding: 0 0.375rem;
+				line-height: normal;
+				--node-accent: var(--p-primary-color);
+				--node-accent-soft: var(--p-primary-50);
+				--node-border: var(--p-content-border-color);
+			}
+
+			.value-graph-node__card {
 				position: relative;
-				width: 14rem;
-				padding: 0.75rem;
-				border: 1px solid var(--p-content-border-color);
-				border-radius: 0.875rem;
+				display: grid;
+				grid-template-columns: 2.5rem minmax(0, 1fr);
+				gap: 0.75rem;
+				align-items: center;
+				padding: 0.625rem 0.75rem 0.625rem 0.625rem;
+				border: 1px solid var(--node-border);
+				border-radius: 0.5rem;
 				background: var(--p-content-background);
-				box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
-				display: flex;
-				flex-direction: column;
-				gap: 0.25rem;
+				box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 				cursor: pointer;
 			}
 
-			.value-graph-node--selected {
+			.value-graph-node__card > handle {
+				position: absolute;
+			}
+
+			.value-graph-node--selected .value-graph-node__card {
 				border-color: var(--p-primary-color);
-				box-shadow: 0 0 0 1px var(--p-primary-color);
+				box-shadow:
+					0 1px 2px rgba(15, 23, 42, 0.04),
+					inset 0 0 0 1px var(--p-primary-color);
+			}
+
+			.value-graph-node__icon {
+				display: inline-flex;
+				align-items: center;
+				justify-content: center;
+				width: 2.5rem;
+				height: 2.5rem;
+				border-radius: 0.5rem;
+				background: var(--node-accent-soft);
+				color: var(--node-accent);
+			}
+
+			.value-graph-node__icon .pi {
+				font-size: 1rem;
+			}
+
+			.value-graph-node__svg-icon {
+				display: block;
+				width: 1.125rem;
+				height: 1.125rem;
+				fill: currentColor;
+			}
+
+			.value-graph-node__content {
+				display: grid;
+				gap: 0.125rem;
+				min-width: 0;
 			}
 
 			.value-graph-node__kind {
-				font-size: 0.75rem;
-				font-weight: 600;
-				letter-spacing: 0.08em;
+				font-size: 0.625rem;
+				font-weight: 700;
+				letter-spacing: 0.06em;
 				text-transform: uppercase;
 				color: var(--p-text-muted-color);
 			}
 
 			.value-graph-node__title {
-				font-size: 1rem;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 0.875rem;
 				line-height: 1.2;
 				color: var(--p-text-color);
 			}
 
 			.value-graph-node__subtitle {
-				font-size: 0.875rem;
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 0.6875rem;
 				line-height: 1.3;
 				color: var(--p-text-muted-color);
 			}
 
 			.value-graph-node--source {
-				background: color-mix(in srgb, var(--p-primary-50) 65%, white);
+				--node-accent: var(--p-green-600);
+				--node-accent-soft: var(--p-green-100);
+				--node-border: var(--p-green-200);
 			}
 
 			.value-graph-node--constant {
-				background: color-mix(in srgb, var(--p-surface-100) 80%, white);
+				--node-accent: var(--p-text-muted-color);
+				--node-accent-soft: var(--p-surface-100);
+				--node-border: var(--p-content-border-color);
 			}
 
 			.value-graph-node--operation {
-				background: color-mix(in srgb, var(--p-cyan-50) 75%, white);
+				--node-accent: var(--p-primary-color);
+				--node-accent-soft: var(--p-primary-50);
+				--node-border: color-mix(
+					in srgb,
+					var(--p-primary-color) 45%,
+					var(--p-content-border-color)
+				);
 			}
 
 			.value-graph-node--curve {
-				background: color-mix(in srgb, var(--p-orange-50) 75%, white);
+				--node-accent: var(--p-orange-600);
+				--node-accent-soft: var(--p-orange-100);
+				--node-border: var(--p-orange-200);
 			}
 
 			.value-graph-node--result {
-				background: color-mix(in srgb, var(--p-green-50) 72%, white);
+				--node-accent: var(--p-green-600);
+				--node-accent-soft: var(--p-green-100);
+				--node-border: var(--p-green-200);
 			}
 		`
 	],
@@ -179,6 +264,44 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 		const operation = this.data()?.operation;
 		return operation === 'subtract' || operation === 'divide';
 	});
+
+	protected readonly nodeIconClass = computed(() => {
+		switch (this.kind()) {
+			case 'source':
+				return 'pi pi-chart-bar';
+			case 'constant':
+				return 'pi pi-hashtag';
+			case 'operation':
+				return operationIconClass(this.data()?.operation ?? 'sum');
+			case 'curve':
+				return 'pi pi-sliders-h';
+			case 'result':
+				return 'pi pi-flag';
+		}
+	});
+
+	protected readonly usesDivideIcon = computed(
+		() => this.kind() === 'operation' && this.data()?.operation === 'divide'
+	);
+}
+
+function operationIconClass(operation: GraphOperation): string {
+	switch (operation) {
+		case 'sum':
+			return 'pi pi-plus';
+		case 'average':
+			return 'pi pi-percentage';
+		case 'min':
+			return 'pi pi-angle-down';
+		case 'max':
+			return 'pi pi-angle-up';
+		case 'multiply':
+			return 'pi pi-times';
+		case 'subtract':
+			return 'pi pi-minus';
+		case 'divide':
+			return '';
+	}
 }
 
 function operationLabel(operation: GraphOperation): string {

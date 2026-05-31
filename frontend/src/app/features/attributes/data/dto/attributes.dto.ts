@@ -1,17 +1,25 @@
+import { ValueGraphState } from '../../../values/ui/value-graph.models';
+
 export type SystemValueBaseSourceTypeDto =
 	| 'CHARACTER_INPUT'
 	| 'COMPUTED';
+
+export interface EntitySystemValueDto {
+	id: string;
+	isSystemValue: boolean;
+	baseSourceType: SystemValueBaseSourceTypeDto;
+	calculationGraph: ValueGraphState | null;
+}
 
 export interface AttributeDto {
 	id: string;
 	name: string;
 	description: string;
-	isSystemValue: boolean;
-	baseSourceType: SystemValueBaseSourceTypeDto;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
+	systemValue: EntitySystemValueDto;
 }
 
 export interface CharacteristicDto {
@@ -22,12 +30,11 @@ export interface CharacteristicDto {
 	minValue: number;
 	maxValue: number;
 	defaultValue: number;
-	isSystemValue: boolean;
-	baseSourceType: SystemValueBaseSourceTypeDto;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
+	systemValue: EntitySystemValueDto;
 }
 
 export interface AttributesAdminCatalogDto {
