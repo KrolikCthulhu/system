@@ -6,8 +6,6 @@ export type SystemValueKindDto =
 	| 'characteristic'
 	| 'roll-consequence'
 	| 'manual';
-export type SystemValueBaseSourceTypeDto = 'CHARACTER_INPUT' | 'COMPUTED';
-
 export interface SystemValueOwnerDto {
 	type: SystemValueKindDto;
 	id: string | null;
@@ -27,7 +25,6 @@ export interface SystemValueDto {
 	groupLabel: string;
 	contextLabel: string;
 	description: string;
-	baseSourceType: SystemValueBaseSourceTypeDto;
 	baseValue: number;
 	calculationGraph: ValueGraphState | null;
 	primaryOwner: SystemValueOwnerDto;
@@ -39,6 +36,5 @@ export interface SystemValuesCatalogDto {
 }
 
 export interface UpdateSystemValueCalculationDto {
-	baseSourceType: SystemValueBaseSourceTypeDto;
 	calculationGraph: ValueGraphState | null;
 }

@@ -42,9 +42,7 @@ export class AdminSkillDetailFacade {
 	readonly categories = this.store.categories;
 	readonly availableValues = this.valuesCatalogFacade.values;
 	readonly systemValueCalculation = this.calculationDraft.draft;
-	readonly canEditCalculation = computed(
-		() => this.systemValueCalculation()?.baseSourceType === 'computed'
-	);
+	readonly canEditCalculation = computed(() => Boolean(this.systemValueCalculation()));
 	readonly categoryOptions = computed(() =>
 		this.categories().map(category => ({
 			label: category.name,
@@ -127,10 +125,7 @@ export class AdminSkillDetailFacade {
 					return this.valuesRepository
 						.updateCalculation(
 							nextCalculation.id,
-							nextCalculation.baseSourceType,
-							nextCalculation.baseSourceType === 'computed'
-								? nextCalculation.calculationGraph
-								: null
+							nextCalculation.calculationGraph
 						)
 						.pipe(
 							map(
@@ -139,11 +134,7 @@ export class AdminSkillDetailFacade {
 										...savedSkill,
 										systemValue: {
 											...savedSkill.systemValue,
-											baseSourceType: nextCalculation.baseSourceType,
-											calculationGraph:
-												nextCalculation.baseSourceType === 'computed'
-													? nextCalculation.calculationGraph
-													: null
+											calculationGraph: nextCalculation.calculationGraph
 										}
 									}) satisfies Skill
 							)
@@ -189,26 +180,6 @@ export class AdminSkillDetailFacade {
 
 	updateSystemValueCalculation(next: SystemValueCalculationDefinition) {
 		this.calculationDraft.update(next);
-	}
-
-	updateSystemValueBaseSourceType(
-		baseSourceType: SystemValueCalculationDefinition['baseSourceType']
-	) {
-		const current = this.systemValueCalculation();
-		if (!current || current.baseSourceType === baseSourceType) {
-			return;
-		}
-
-		this.calculationDraft.update({
-			...current,
-			baseSourceType,
-			calculationGraph:
-				baseSourceType === 'computed' ? current.calculationGraph : null
-		});
-
-		if (baseSourceType !== 'computed' && this.activeTab() === 'calculation') {
-			this.store.setActiveTab('general');
-		}
 	}
 
 	private patchDraft(skill: Skill | null) {

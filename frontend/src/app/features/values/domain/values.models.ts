@@ -1,7 +1,4 @@
-import {
-	SystemValueBaseSourceType,
-	SystemValueSourceType
-} from '../../../shared/types/system-value.models';
+import { SystemValueSourceType } from '../../../shared/types/system-value.models';
 import { ValueGraphState } from '../ui/value-graph.models';
 
 export interface SystemValueOwner {
@@ -23,7 +20,6 @@ export interface SystemValue {
 	groupLabel: string;
 	contextLabel: string;
 	description: string;
-	baseSourceType: SystemValueBaseSourceType;
 	baseValue: number;
 	calculationGraph: ValueGraphState | null;
 	primaryOwner: SystemValueOwner;

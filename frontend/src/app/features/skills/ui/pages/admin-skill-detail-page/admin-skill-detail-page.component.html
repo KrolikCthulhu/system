@@ -31,9 +31,7 @@
 			>
 				<p-tablist>
 					<p-tab value="general">Общее</p-tab>
-					<p-tab [disabled]="!canEditCalculation()" value="calculation"
-						>Расчёт</p-tab
-					>
+					<p-tab value="calculation">Расчёт</p-tab>
 				</p-tablist>
 
 				<p-tabpanels class="admin-skill-detail-page__tabpanels">
@@ -106,24 +104,6 @@
 									</div>
 								</div>
 
-								<div class="admin-skill-detail-page__grid">
-									<div class="admin-skill-detail-page__field">
-										<span class="admin-skill-detail-page__field-label">
-											Режим значения
-										</span>
-										<p-select
-											optionLabel="label"
-											optionValue="value"
-											[options]="baseSourceOptions"
-											[ngModel]="skillSystemValueCalculation()?.baseSourceType"
-											[ngModelOptions]="{ standalone: true }"
-											(ngModelChange)="
-												updateSkillSystemValueBaseSourceType($event)
-											"
-										></p-select>
-									</div>
-								</div>
-
 								<div class="admin-skill-detail-page__switch-row">
 									<label
 										class="admin-skill-detail-page__field-label"
@@ -162,7 +142,6 @@
 						<section class="admin-skill-detail-page__system-value">
 							<app-system-value-calculation-editor
 								class="admin-skill-detail-page__calculation-editor"
-								[showBaseSourceField]="false"
 								[systemValue]="skillSystemValueCalculation()"
 								[availableValues]="availableValues()"
 								(systemValueChange)="updateSkillSystemValueCalculation($event)"

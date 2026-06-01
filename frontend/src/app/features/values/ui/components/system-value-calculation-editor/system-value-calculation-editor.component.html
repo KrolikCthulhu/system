@@ -1,24 +1,6 @@
 <p-fluid
 	class="system-value-calculation-editor"
-	[class.system-value-calculation-editor--with-toolbar]="showBaseSourceField()"
 >
-	@if (showBaseSourceField()) {
-		<div class="system-value-calculation-editor__toolbar">
-			<div class="system-value-calculation-editor__field">
-				<span class="system-value-calculation-editor__field-label">
-					Режим значения
-				</span>
-				<p-select
-					[options]="baseSourceOptions"
-					optionLabel="label"
-					optionValue="value"
-					[ngModel]="baseSourceType()"
-					(ngModelChange)="updateBaseSourceType($event)"
-				></p-select>
-			</div>
-		</div>
-	}
-
 	<p-tabs
 		class="system-value-calculation-editor__tabs"
 		[value]="activeTab()"
@@ -32,7 +14,6 @@
 		<p-tabpanels class="system-value-calculation-editor__tabpanels">
 			<p-tabpanel class="system-value-calculation-editor__tabpanel" value="calculation">
 				<div class="system-value-calculation-editor__tabpanel-content">
-					@if (baseSourceType() === 'computed') {
 						<div class="system-value-calculation-editor__tabpanel-body system-value-calculation-editor__tabpanel-body--graph">
 							<div class="system-value-calculation-editor__graph-palette">
 								@for (nodeType of graphNodeTypes; track nodeType.kind) {
@@ -203,11 +184,6 @@
 								</p-splitter>
 							</div>
 						</div>
-					} @else {
-						<div class="system-value-calculation-editor__state">
-							Это значение задаётся напрямую. Граф расчёта для него не нужен.
-						</div>
-					}
 				</div>
 			</p-tabpanel>
 
@@ -217,9 +193,7 @@
 						<div class="system-value-calculation-editor__test-grid">
 							<div class="system-value-calculation-editor__preview-card">
 								<div class="text-muted">Входные значения</div>
-								@if (baseSourceType() !== 'computed') {
-									<p>Для ручного значения тест расчёта не нужен.</p>
-								} @else if (testInputs().length) {
+								@if (testInputs().length) {
 									<div class="system-value-calculation-editor__test-inputs">
 										@for (input of testInputs(); track input.id) {
 											<div class="system-value-calculation-editor__field">

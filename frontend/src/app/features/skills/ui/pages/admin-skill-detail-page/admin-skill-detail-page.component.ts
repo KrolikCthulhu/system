@@ -43,11 +43,6 @@ import { AdminSkillDetailStore } from '../../../state/admin-skill-detail.store';
 	providers: [AdminSkillDetailStore, AdminSkillDetailFacade]
 })
 export class AdminSkillDetailPageComponent {
-	protected readonly baseSourceOptions = [
-		{ label: 'Вводится у персонажа', value: 'character-input' as const },
-		{ label: 'Вычисляется системой', value: 'computed' as const }
-	];
-
 	private readonly route = inject(ActivatedRoute);
 	private readonly router = inject(Router);
 	private readonly facade = inject(AdminSkillDetailFacade);
@@ -106,12 +101,6 @@ export class AdminSkillDetailPageComponent {
 		next: SystemValueCalculationDefinition
 	) {
 		this.facade.updateSystemValueCalculation(next);
-	}
-
-	protected updateSkillSystemValueBaseSourceType(
-		value: SystemValueCalculationDefinition['baseSourceType']
-	) {
-		this.facade.updateSystemValueBaseSourceType(value);
 	}
 
 	protected setActiveTab(value: string | number | undefined) {

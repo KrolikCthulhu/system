@@ -57,11 +57,6 @@ import {
 	styleUrl: './admin-characteristic-detail-page.component.scss'
 })
 export class AdminCharacteristicDetailPageComponent {
-	protected readonly baseSourceOptions = [
-		{ label: 'Вводится у персонажа', value: 'character-input' as const },
-		{ label: 'Вычисляется системой', value: 'computed' as const }
-	];
-
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly route = inject(ActivatedRoute);
 	private readonly router = inject(Router);
@@ -81,9 +76,7 @@ export class AdminCharacteristicDetailPageComponent {
 	protected readonly attributes = signal<Attribute[]>([]);
 	protected readonly availableValues = this.valuesCatalogFacade.values;
 	protected readonly systemValueCalculation = this.calculationDraft.draft;
-	protected readonly canEditCalculation = computed(
-		() => this.systemValueCalculation()?.baseSourceType === 'computed'
-	);
+	protected readonly canEditCalculation = computed(() => Boolean(this.systemValueCalculation()));
 	protected readonly attributeOptions = computed(() =>
 		this.attributes().map(attribute => ({
 			label: attribute.name,
@@ -147,10 +140,7 @@ export class AdminCharacteristicDetailPageComponent {
 					return this.valuesRepository
 						.updateCalculation(
 							nextCalculation.id,
-							nextCalculation.baseSourceType,
-							nextCalculation.baseSourceType === 'computed'
-								? nextCalculation.calculationGraph
-								: null
+							nextCalculation.calculationGraph
 						)
 						.pipe(
 							map(
@@ -159,11 +149,7 @@ export class AdminCharacteristicDetailPageComponent {
 										...characteristic,
 										systemValue: {
 											...characteristic.systemValue,
-											baseSourceType: nextCalculation.baseSourceType,
-											calculationGraph:
-												nextCalculation.baseSourceType === 'computed'
-													? nextCalculation.calculationGraph
-													: null
+											calculationGraph: nextCalculation.calculationGraph
 										}
 									}) satisfies Characteristic
 							)
@@ -205,26 +191,6 @@ export class AdminCharacteristicDetailPageComponent {
 
 	protected updateSystemValueCalculation(next: SystemValueCalculationDefinition) {
 		this.calculationDraft.update(next);
-	}
-
-	protected updateSystemValueBaseSourceType(
-		baseSourceType: SystemValueCalculationDefinition['baseSourceType']
-	) {
-		const current = this.systemValueCalculation();
-		if (!current || current.baseSourceType === baseSourceType) {
-			return;
-		}
-
-		this.calculationDraft.update({
-			...current,
-			baseSourceType,
-			calculationGraph:
-				baseSourceType === 'computed' ? current.calculationGraph : null
-		});
-
-		if (baseSourceType !== 'computed' && this.activeTab() === 'calculation') {
-			this.activeTab.set('general');
-		}
 	}
 
 	protected setActiveTab(value: string | number | undefined) {

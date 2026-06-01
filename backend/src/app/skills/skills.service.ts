@@ -6,7 +6,6 @@ import {
 import { randomUUID } from 'crypto';
 import {
 	Prisma,
-	SystemValueBaseSourceType,
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
@@ -31,7 +30,6 @@ const skillSelect = {
 	systemValue: {
 		select: {
 			id: true,
-			baseSourceType: true,
 			calculationGraph: true
 		}
 	},
@@ -126,7 +124,7 @@ export class SkillsService {
 						description,
 						primaryOwnerType: SystemValueOwnerType.SKILL,
 						primaryOwnerId: id,
-						baseSourceType: SystemValueBaseSourceType.CHARACTER_INPUT,
+						calculationGraph: createCharacterInputGraph(),
 						links: {
 							create: {
 								id,
@@ -445,7 +443,6 @@ export class SkillsService {
 		usesDefaultLevelRules: boolean;
 		systemValue: {
 			id: string;
-			baseSourceType: SystemValueBaseSourceType;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 		isActive: boolean;
@@ -467,7 +464,6 @@ export class SkillsService {
 		id: string;
 		systemValue: {
 			id: string;
-			baseSourceType: SystemValueBaseSourceType;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 	}) {
@@ -475,7 +471,6 @@ export class SkillsService {
 
 		return {
 			id: systemValue.id,
-			baseSourceType: systemValue.baseSourceType,
 			calculationGraph: systemValue.calculationGraph
 		};
 	}
@@ -519,4 +514,22 @@ export class SkillsService {
 			isActive: level.isActive
 		};
 	}
+}
+
+function createCharacterInputGraph() {
+	return {
+		nodes: [
+			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
+			{ id: 'result', kind: 'result', x: 420, y: 120 }
+		],
+		edges: [
+			{
+				id: 'character-input:out -> result:in',
+				source: 'character-input',
+				target: 'result',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			}
+		]
+	};
 }

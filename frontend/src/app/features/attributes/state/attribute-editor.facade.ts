@@ -87,8 +87,7 @@ export class AttributeEditorFacade {
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
 					systemValue: {
-						...createSystemValueDefinition(id, 'computed'),
-						calculationGraph: null
+						...createSystemValueDefinition(id)
 					}
 				});
 				this.store.addDraftAttributeId(id);
@@ -131,10 +130,7 @@ export class AttributeEditorFacade {
 					return this.valuesRepository
 						.updateCalculation(
 							nextCalculation.id,
-							nextCalculation.baseSourceType,
-							nextCalculation.baseSourceType === 'computed'
-								? nextCalculation.calculationGraph
-								: null
+							nextCalculation.calculationGraph
 						)
 						.pipe(
 							map(
@@ -143,11 +139,7 @@ export class AttributeEditorFacade {
 										...attribute,
 										systemValue: {
 											...attribute.systemValue,
-											baseSourceType: nextCalculation.baseSourceType,
-											calculationGraph:
-												nextCalculation.baseSourceType === 'computed'
-													? nextCalculation.calculationGraph
-													: null
+											calculationGraph: nextCalculation.calculationGraph
 										}
 									}) satisfies Attribute
 							)

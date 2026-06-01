@@ -1,3 +1,5 @@
+import { ValueGraphState } from '../../features/values/ui/value-graph.models';
+
 export type SystemValueSourceType =
 	| 'attribute'
 	| 'characteristic'
@@ -5,43 +7,32 @@ export type SystemValueSourceType =
 	| 'roll-consequence'
 	| 'manual';
 
-export type SystemValueBaseSourceType =
-	| 'character-input'
-	| 'computed';
-
 export interface SystemValueDefinition {
 	id: string;
-	baseSourceType: SystemValueBaseSourceType;
+	calculationGraph: ValueGraphState | null;
 }
 
-export function createSystemValueDefinition(
-	id: string,
-	baseSourceType: SystemValueBaseSourceType
-): SystemValueDefinition {
+export function createSystemValueDefinition(id: string): SystemValueDefinition {
 	return {
 		id,
-		baseSourceType
+		calculationGraph: createCharacterInputGraph()
 	};
 }
 
-export function mapSystemValueBaseSourceType(
-	value: 'CHARACTER_INPUT' | 'COMPUTED'
-): SystemValueBaseSourceType {
-	switch (value) {
-		case 'CHARACTER_INPUT':
-			return 'character-input';
-		case 'COMPUTED':
-			return 'computed';
-	}
-}
-
-export function getSystemValueBaseSourceLabel(
-	value: SystemValueBaseSourceType
-) {
-	switch (value) {
-		case 'character-input':
-			return 'Вводится у персонажа';
-		case 'computed':
-			return 'Вычисляется системой';
-	}
+export function createCharacterInputGraph() {
+	return {
+		nodes: [
+			{ id: 'character-input', kind: 'characterInput' as const, x: 120, y: 120 },
+			{ id: 'result', kind: 'result' as const, x: 420, y: 120 }
+		],
+		edges: [
+			{
+				id: 'character-input:out -> result:in',
+				source: 'character-input',
+				target: 'result',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			}
+		]
+	};
 }

@@ -110,8 +110,7 @@ export class CharacteristicEditorFacade {
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
 					systemValue: {
-						...createSystemValueDefinition(id, 'character-input'),
-						calculationGraph: null
+						...createSystemValueDefinition(id)
 					}
 				});
 				this.store.addDraftCharacteristicId(id);
@@ -167,10 +166,7 @@ export class CharacteristicEditorFacade {
 					return this.valuesRepository
 						.updateCalculation(
 							nextCalculation.id,
-							nextCalculation.baseSourceType,
-							nextCalculation.baseSourceType === 'computed'
-								? nextCalculation.calculationGraph
-								: null
+							nextCalculation.calculationGraph
 						)
 						.pipe(
 							map(
@@ -179,11 +175,7 @@ export class CharacteristicEditorFacade {
 										...characteristic,
 										systemValue: {
 											...characteristic.systemValue,
-											baseSourceType: nextCalculation.baseSourceType,
-											calculationGraph:
-												nextCalculation.baseSourceType === 'computed'
-													? nextCalculation.calculationGraph
-													: null
+											calculationGraph: nextCalculation.calculationGraph
 										}
 									}) satisfies Characteristic
 							)

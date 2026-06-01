@@ -16,6 +16,7 @@ import {
 			selectable
 			class="value-graph-node"
 			[class.value-graph-node--selected]="selected()"
+			[class.value-graph-node--character-input]="kind() === 'characterInput'"
 			[class.value-graph-node--source]="kind() === 'source'"
 			[class.value-graph-node--constant]="kind() === 'constant'"
 			[class.value-graph-node--operation]="kind() === 'operation'"
@@ -45,6 +46,10 @@ import {
 					<strong class="value-graph-node__title">{{ title() }}</strong>
 					<span class="value-graph-node__subtitle">{{ subtitle() }}</span>
 				</div>
+
+				@if (kind() === 'characterInput') {
+					<handle type="source" position="right" id="out" />
+				}
 
 				@if (kind() === 'source') {
 					<handle type="source" position="right" id="out" />
@@ -173,6 +178,12 @@ import {
 				--node-border: var(--p-green-200);
 			}
 
+			.value-graph-node--character-input {
+				--node-accent: var(--p-blue-600);
+				--node-accent-soft: var(--p-blue-100);
+				--node-border: var(--p-blue-200);
+			}
+
 			.value-graph-node--constant {
 				--node-accent: var(--p-text-muted-color);
 				--node-accent-soft: var(--p-surface-100);
@@ -211,6 +222,8 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 
 	protected readonly kindLabel = computed(() => {
 		switch (this.kind()) {
+			case 'characterInput':
+				return 'Ввод';
 			case 'source':
 				return 'Источник';
 			case 'constant':
@@ -228,6 +241,8 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 		const data = this.data();
 
 		switch (this.kind()) {
+			case 'characterInput':
+				return 'Ввод персонажа';
 			case 'source':
 				return data?.sourceValueName ?? 'Выбери значение';
 			case 'constant':
@@ -245,6 +260,8 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 		const data = this.data();
 
 		switch (this.kind()) {
+			case 'characterInput':
+				return 'Из листа персонажа';
 			case 'source':
 				return 'Значение системы';
 			case 'constant':
@@ -267,6 +284,8 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 
 	protected readonly nodeIconClass = computed(() => {
 		switch (this.kind()) {
+			case 'characterInput':
+				return 'pi pi-user-edit';
 			case 'source':
 				return 'pi pi-chart-bar';
 			case 'constant':

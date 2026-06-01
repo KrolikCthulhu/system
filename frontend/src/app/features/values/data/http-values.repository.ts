@@ -29,12 +29,9 @@ export class HttpValuesRepository implements ValuesRepository {
 
 	updateCalculation(
 		id: string,
-		baseSourceType: 'character-input' | 'computed',
 		calculationGraph: ValueGraphState | null
 	): Observable<void> {
 		const payload: UpdateSystemValueCalculationDto = {
-			baseSourceType:
-				baseSourceType === 'computed' ? 'COMPUTED' : 'CHARACTER_INPUT',
 			calculationGraph
 		};
 

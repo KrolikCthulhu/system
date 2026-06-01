@@ -1,13 +1,11 @@
 import { Type } from 'class-transformer';
 import {
 	IsArray,
-	IsEnum,
 	IsNumber,
 	IsOptional,
 	IsString,
 	ValidateNested
 } from 'class-validator';
-import { SystemValueBaseSourceType } from '@prisma/generated';
 
 class UpdateCurveRangeDto {
 	@IsString()
@@ -87,9 +85,6 @@ class UpdateCalculationGraphDto {
 }
 
 export class UpdateSystemValueCalculationDto {
-	@IsEnum(SystemValueBaseSourceType)
-	baseSourceType!: SystemValueBaseSourceType;
-
 	@IsOptional()
 	@ValidateNested()
 	@Type(() => UpdateCalculationGraphDto)

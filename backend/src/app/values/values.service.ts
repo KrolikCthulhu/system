@@ -1,9 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
 	Prisma,
-	SystemValueBaseSourceType,
-	SystemValueOwnerType,
-	SystemValueBaseSourceType as PrismaBaseSourceType
+	SystemValueOwnerType
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -13,7 +11,6 @@ const systemValueSelect = {
 	description: true,
 	primaryOwnerType: true,
 	primaryOwnerId: true,
-	baseSourceType: true,
 	calculationGraph: true,
 	isActive: true,
 	sortOrder: true,
@@ -105,7 +102,6 @@ export class ValuesService {
 
 	async updateCalculation(
 		id: string,
-		baseSourceType: SystemValueBaseSourceType,
 		calculationGraph: unknown | null
 	) {
 		const value = await this.prisma.systemValue.findUnique({
@@ -121,11 +117,8 @@ export class ValuesService {
 			select: systemValueSelect,
 			where: { id },
 			data: {
-				baseSourceType,
-				calculationGraph:
-					baseSourceType === PrismaBaseSourceType.COMPUTED
-						? ((calculationGraph ?? Prisma.JsonNull) as Prisma.InputJsonValue)
-						: Prisma.DbNull
+				calculationGraph: (calculationGraph ??
+					createEmptyGraph()) as Prisma.InputJsonValue
 			}
 		});
 	}
@@ -145,9 +138,8 @@ export class ValuesService {
 			groupLabel: groupLabel(value.primaryOwnerType),
 			contextLabel: this.contextLabel(value, context),
 			description: value.description ?? '',
-			baseSourceType: value.baseSourceType,
 			baseValue: this.baseValue(value, context),
-			calculationGraph: this.calculationGraph(value, context),
+			calculationGraph: value.calculationGraph ?? createEmptyGraph(),
 			primaryOwner: {
 				type: mapOwnerType(value.primaryOwnerType),
 				id: value.primaryOwnerId
@@ -212,26 +204,6 @@ export class ValuesService {
 		return 0;
 	}
 
-	private calculationGraph(
-		value: SystemValueRecord,
-		context: {
-			characteristicsByAttributeId: Map<string, CharacteristicBaseValueRecord[]>;
-		}
-	) {
-		if (
-			value.calculationGraph ||
-			value.baseSourceType !== PrismaBaseSourceType.COMPUTED ||
-			value.primaryOwnerType !== SystemValueOwnerType.ATTRIBUTE ||
-			!value.primaryOwnerId
-		) {
-			return value.calculationGraph;
-		}
-
-		return createAttributeGraph(
-			value.id,
-			context.characteristicsByAttributeId.get(value.primaryOwnerId) ?? []
-		);
-	}
 }
 
 function mapOwnerType(type: SystemValueOwnerType) {
@@ -262,59 +234,6 @@ function groupLabel(type: SystemValueOwnerType) {
 		case SystemValueOwnerType.MANUAL:
 			return 'Без раздела';
 	}
-}
-
-function createAttributeGraph(
-	attributeValueId: string,
-	characteristics: Array<{ id: string }>
-) {
-	if (!characteristics.length) {
-		return createEmptyGraph();
-	}
-
-	const sourceNodes = characteristics.map((characteristic, index) => ({
-		id: `attribute-${attributeValueId}-source-${characteristic.id}`,
-		kind: 'source',
-		x: 56,
-		y: 48 + index * 132,
-		sourceValueId: characteristic.id
-	}));
-
-	const operationNode = {
-		id: `attribute-${attributeValueId}-sum`,
-		kind: 'operation',
-		x: 348,
-		y: 96 + Math.max(0, (characteristics.length - 1) * 66),
-		operation: 'sum'
-	};
-
-	const resultNode = {
-		id: `attribute-${attributeValueId}-result`,
-		kind: 'result',
-		x: 638,
-		y: operationNode.y
-	};
-
-	const edges = sourceNodes.map(node => ({
-		id: `${node.id}:out -> ${operationNode.id}:in`,
-		source: node.id,
-		target: operationNode.id,
-		sourceHandle: 'out',
-		targetHandle: 'in'
-	}));
-
-	edges.push({
-		id: `${operationNode.id}:out -> ${resultNode.id}:in`,
-		source: operationNode.id,
-		target: resultNode.id,
-		sourceHandle: 'out',
-		targetHandle: 'in'
-	});
-
-	return {
-		nodes: [...sourceNodes, operationNode, resultNode],
-		edges
-	};
 }
 
 function createEmptyGraph() {

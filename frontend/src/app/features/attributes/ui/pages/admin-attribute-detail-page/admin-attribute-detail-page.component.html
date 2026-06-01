@@ -31,7 +31,7 @@
 			>
 				<p-tablist>
 					<p-tab value="general">Общее</p-tab>
-					<p-tab [disabled]="!canEditCalculation()" value="calculation">
+					<p-tab value="calculation">
 						Расчёт
 					</p-tab>
 				</p-tablist>
@@ -77,22 +77,6 @@
 									</div>
 								</div>
 
-								<div class="admin-attribute-detail-page__grid">
-									<div class="admin-attribute-detail-page__field">
-										<span class="admin-attribute-detail-page__field-label">
-											Режим значения
-										</span>
-										<p-select
-											optionLabel="label"
-											optionValue="value"
-											[options]="baseSourceOptions"
-											[ngModel]="systemValueCalculation()?.baseSourceType"
-											[ngModelOptions]="{ standalone: true }"
-											(ngModelChange)="updateSystemValueBaseSourceType($event)"
-										></p-select>
-									</div>
-								</div>
-
 								<div class="admin-attribute-detail-page__field">
 									<label
 										class="admin-attribute-detail-page__field-label"
@@ -118,7 +102,6 @@
 						<section class="admin-attribute-detail-page__system-value">
 							<app-system-value-calculation-editor
 								class="admin-attribute-detail-page__calculation-editor"
-								[showBaseSourceField]="false"
 								[systemValue]="systemValueCalculation()"
 								[availableValues]="availableValues()"
 								(systemValueChange)="updateSystemValueCalculation($event)"

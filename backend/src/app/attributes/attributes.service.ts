@@ -6,7 +6,6 @@ import {
 import { randomUUID } from 'crypto';
 import {
 	Prisma,
-	SystemValueBaseSourceType,
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
@@ -24,7 +23,6 @@ const attributeSelect = {
 	systemValue: {
 		select: {
 			id: true,
-			baseSourceType: true,
 			calculationGraph: true
 		}
 	},
@@ -45,7 +43,6 @@ const characteristicSelect = {
 	systemValue: {
 		select: {
 			id: true,
-			baseSourceType: true,
 			calculationGraph: true
 		}
 	},
@@ -92,7 +89,7 @@ export class AttributesService {
 						description,
 						primaryOwnerType: SystemValueOwnerType.ATTRIBUTE,
 						primaryOwnerId: id,
-						baseSourceType: SystemValueBaseSourceType.COMPUTED,
+						calculationGraph: createCharacterInputGraph(),
 						sortOrder: dto.sortOrder,
 						links: {
 							create: {
@@ -216,7 +213,7 @@ export class AttributesService {
 						description,
 						primaryOwnerType: SystemValueOwnerType.CHARACTERISTIC,
 						primaryOwnerId: id,
-						baseSourceType: SystemValueBaseSourceType.CHARACTER_INPUT,
+						calculationGraph: createCharacterInputGraph(),
 						sortOrder: dto.sortOrder,
 						links: {
 							create: {
@@ -410,7 +407,6 @@ export class AttributesService {
 		description: string | null;
 		systemValue: {
 			id: string;
-			baseSourceType: SystemValueBaseSourceType;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 		isActive: boolean;
@@ -440,7 +436,6 @@ export class AttributesService {
 		defaultValue: number;
 		systemValue: {
 			id: string;
-			baseSourceType: SystemValueBaseSourceType;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 		isActive: boolean;
@@ -468,7 +463,6 @@ export class AttributesService {
 		id: string;
 		systemValue: {
 			id: string;
-			baseSourceType: SystemValueBaseSourceType;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 	}) {
@@ -476,8 +470,25 @@ export class AttributesService {
 
 		return {
 			id: systemValue.id,
-			baseSourceType: systemValue.baseSourceType,
 			calculationGraph: systemValue.calculationGraph
 		};
 	}
+}
+
+function createCharacterInputGraph() {
+	return {
+		nodes: [
+			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
+			{ id: 'result', kind: 'result', x: 420, y: 120 }
+		],
+		edges: [
+			{
+				id: 'character-input:out -> result:in',
+				source: 'character-input',
+				target: 'result',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			}
+		]
+	};
 }

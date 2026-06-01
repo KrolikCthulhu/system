@@ -8,7 +8,6 @@ import { Button } from 'primeng/button';
 import { Fluid } from 'primeng/fluid';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { FormChangeTracker } from '../../../../../shared/forms/form-change-tracker';
@@ -44,7 +43,6 @@ import {
 		Fluid,
 		InputNumber,
 		InputText,
-		Select,
 		Tab,
 		TabList,
 		TabPanel,
@@ -57,11 +55,6 @@ import {
 	styleUrl: './admin-attribute-detail-page.component.scss'
 })
 export class AdminAttributeDetailPageComponent {
-	protected readonly baseSourceOptions = [
-		{ label: 'Вводится у персонажа', value: 'character-input' as const },
-		{ label: 'Вычисляется системой', value: 'computed' as const }
-	];
-
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly route = inject(ActivatedRoute);
 	private readonly router = inject(Router);
@@ -79,9 +72,7 @@ export class AdminAttributeDetailPageComponent {
 	protected readonly attribute = signal<Attribute | null>(null);
 	protected readonly availableValues = this.valuesCatalogFacade.values;
 	protected readonly systemValueCalculation = this.calculationDraft.draft;
-	protected readonly canEditCalculation = computed(
-		() => this.systemValueCalculation()?.baseSourceType === 'computed'
-	);
+	protected readonly canEditCalculation = computed(() => Boolean(this.systemValueCalculation()));
 	protected readonly breadcrumbs = computed(() => [
 		{ label: 'Правила системы', routerLink: '/admin/rules/attributes' },
 		{ label: 'Атрибуты и характеристики', routerLink: '/admin/rules/attributes' },
@@ -131,10 +122,7 @@ export class AdminAttributeDetailPageComponent {
 					return this.valuesRepository
 						.updateCalculation(
 							nextCalculation.id,
-							nextCalculation.baseSourceType,
-							nextCalculation.baseSourceType === 'computed'
-								? nextCalculation.calculationGraph
-								: null
+							nextCalculation.calculationGraph
 						)
 						.pipe(
 							map(
@@ -143,11 +131,7 @@ export class AdminAttributeDetailPageComponent {
 										...attribute,
 										systemValue: {
 											...attribute.systemValue,
-											baseSourceType: nextCalculation.baseSourceType,
-											calculationGraph:
-												nextCalculation.baseSourceType === 'computed'
-													? nextCalculation.calculationGraph
-													: null
+											calculationGraph: nextCalculation.calculationGraph
 										}
 									}) satisfies Attribute
 							)
@@ -189,26 +173,6 @@ export class AdminAttributeDetailPageComponent {
 
 	protected updateSystemValueCalculation(next: SystemValueCalculationDefinition) {
 		this.calculationDraft.update(next);
-	}
-
-	protected updateSystemValueBaseSourceType(
-		baseSourceType: SystemValueCalculationDefinition['baseSourceType']
-	) {
-		const current = this.systemValueCalculation();
-		if (!current || current.baseSourceType === baseSourceType) {
-			return;
-		}
-
-		this.calculationDraft.update({
-			...current,
-			baseSourceType,
-			calculationGraph:
-				baseSourceType === 'computed' ? current.calculationGraph : null
-		});
-
-		if (baseSourceType !== 'computed' && this.activeTab() === 'calculation') {
-			this.activeTab.set('general');
-		}
 	}
 
 	protected setActiveTab(value: string | number | undefined) {

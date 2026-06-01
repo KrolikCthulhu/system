@@ -1,12 +1,7 @@
 import { ValueGraphState } from '../../../values/ui/value-graph.models';
 
-export type SystemValueBaseSourceTypeDto =
-	| 'CHARACTER_INPUT'
-	| 'COMPUTED';
-
 export interface SkillSystemValueDto {
 	id: string;
-	baseSourceType: SystemValueBaseSourceTypeDto;
 	calculationGraph: ValueGraphState | null;
 }
 

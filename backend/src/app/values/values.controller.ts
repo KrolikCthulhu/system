@@ -27,7 +27,6 @@ export class ValuesController {
 		this.assertAdmin(user);
 		return this.valuesService.updateCalculation(
 			id,
-			dto.baseSourceType,
 			dto.calculationGraph
 		);
 	}

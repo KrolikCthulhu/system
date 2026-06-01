@@ -19,6 +19,8 @@ export function createGraphNodeState(
 	const y = 48 + index * 72;
 
 	switch (kind) {
+		case 'characterInput':
+			return { id, kind, x, y };
 		case 'source':
 			return { id, kind, x, y, sourceValueId: null };
 		case 'constant':

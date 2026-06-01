@@ -1,7 +1,4 @@
-import {
-	mapSystemValueBaseSourceType,
-	SystemValueSourceType
-} from '../../../../shared/types/system-value.models';
+import { SystemValueSourceType } from '../../../../shared/types/system-value.models';
 import { SystemValue, SystemValuesCatalog } from '../../domain/values.models';
 import { SystemValueDto, SystemValuesCatalogDto } from '../dto/values.dto';
 
@@ -13,7 +10,6 @@ export function mapSystemValueDto(dto: SystemValueDto): SystemValue {
 		groupLabel: dto.groupLabel,
 		contextLabel: dto.contextLabel,
 		description: dto.description,
-		baseSourceType: mapSystemValueBaseSourceType(dto.baseSourceType),
 		baseValue: dto.baseValue,
 		calculationGraph: dto.calculationGraph,
 		primaryOwner: {

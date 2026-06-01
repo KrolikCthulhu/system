@@ -141,16 +141,13 @@ export class AdminValuesPageComponent {
 		this.valuesRepository
 			.updateCalculation(
 				draft.id,
-				draft.baseSourceType,
-				draft.baseSourceType === 'computed' ? draft.calculationGraph : null
+				draft.calculationGraph
 			)
 			.subscribe({
 				next: () => {
 					const nextValue: SystemValue = {
 						...selected,
-						baseSourceType: draft.baseSourceType,
-						calculationGraph:
-							draft.baseSourceType === 'computed' ? draft.calculationGraph : null
+						calculationGraph: draft.calculationGraph
 					};
 					this.valuesCatalogFacade.replaceValue(nextValue);
 					this.calculationDraft.commit(toCalculationDefinition(nextValue));
@@ -181,14 +178,12 @@ export class AdminValuesPageComponent {
 		}
 	}
 
-	protected modeTagLabel(value: SystemValue) {
-		return value.baseSourceType === 'computed'
-			? 'Вычисляется'
-			: 'База персонажа';
+	protected modeTagLabel(_value: SystemValue) {
+		return 'Граф';
 	}
 
-	protected modeTagSeverity(value: SystemValue) {
-		return value.baseSourceType === 'computed' ? 'info' : 'secondary';
+	protected modeTagSeverity(_value: SystemValue) {
+		return 'info' as const;
 	}
 
 	private selectValueInternal(valueId: string) {
@@ -207,7 +202,6 @@ function toCalculationDefinition(
 ): SystemValueCalculationDefinition {
 	return {
 		id: value.id,
-		baseSourceType: value.baseSourceType,
 		calculationGraph: value.calculationGraph
 	};
 }

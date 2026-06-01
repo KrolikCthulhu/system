@@ -63,11 +63,6 @@ interface GraphNodeType {
 	label: string;
 }
 
-const BASE_SOURCE_OPTIONS = [
-	{ label: 'Вводится у персонажа', value: 'character-input' as const },
-	{ label: 'Вычисляется системой', value: 'computed' as const }
-];
-
 const OPERATION_OPTIONS = [
 	{ label: 'Сложить', value: 'sum' as GraphOperation },
 	{ label: 'Среднее', value: 'average' as GraphOperation },
@@ -79,6 +74,7 @@ const OPERATION_OPTIONS = [
 ];
 
 const GRAPH_NODE_TYPES: GraphNodeType[] = [
+	{ kind: 'characterInput', label: 'Ввод персонажа' },
 	{ kind: 'source', label: 'Источник' },
 	{ kind: 'constant', label: 'Число' },
 	{ kind: 'operation', label: 'Операция' },
@@ -110,20 +106,15 @@ const GRAPH_NODE_TYPES: GraphNodeType[] = [
 export class SystemValueCalculationEditorComponent {
 	readonly systemValue = input<SystemValueCalculationDefinition | null>(null);
 	readonly availableValues = input<SystemValue[]>([]);
-	readonly showBaseSourceField = input(true);
 	readonly systemValueChange = output<SystemValueCalculationDefinition>();
 
 	protected readonly activeTab = signal<string | number>('calculation');
-	protected readonly baseSourceType = signal<'character-input' | 'computed'>(
-		'character-input'
-	);
 	protected readonly graphNodes = signal<ComponentNode<ValueGraphNodeData>[]>(
 		[]
 	);
 	protected readonly graphEdges = signal<Edge[]>([]);
 	protected readonly selectedGraphNodeId = signal<string | null>(null);
 	protected readonly testSourceValues = signal<Record<string, number>>({});
-	protected readonly baseSourceOptions = BASE_SOURCE_OPTIONS;
 	protected readonly graphNodeTypes = GRAPH_NODE_TYPES;
 	protected readonly operationOptions = OPERATION_OPTIONS;
 	protected readonly graphConnectionSettings: ConnectionSettings = {
@@ -223,13 +214,6 @@ export class SystemValueCalculationEditorComponent {
 	});
 
 	protected readonly testResult = computed(() => {
-		if (this.baseSourceType() !== 'computed') {
-			return {
-				final: null as number | null,
-				breakdown: ['Значение вводится у персонажа, тест расчёта недоступен.']
-			};
-		}
-
 		const graph = this.currentGraphState();
 
 		if (!graph) {
@@ -262,8 +246,6 @@ export class SystemValueCalculationEditorComponent {
 				const shouldRefreshValueLabels =
 					availableValuesSignature !== this.syncedAvailableValuesSignature;
 
-				this.baseSourceType.set(systemValue?.baseSourceType ?? 'character-input');
-
 				if (!systemValue) {
 					this.loadGraph(null, availableValues);
 					this.initializeTestSourceValues();
@@ -293,11 +275,6 @@ export class SystemValueCalculationEditorComponent {
 		}
 
 		this.activeTab.set(value);
-	}
-
-	protected updateBaseSourceType(value: 'character-input' | 'computed') {
-		this.baseSourceType.set(value);
-		this.emitDraft();
 	}
 
 	protected addGraphNode(kind: GraphNodeKind) {
@@ -484,7 +461,6 @@ export class SystemValueCalculationEditorComponent {
 
 		this.systemValueChange.emit({
 			...systemValue,
-			baseSourceType: this.baseSourceType(),
 			calculationGraph: this.currentGraphState()
 		});
 	}
@@ -523,7 +499,6 @@ export class SystemValueCalculationEditorComponent {
 	private isCurrentStateEqualTo(systemValue: SystemValueCalculationDefinition) {
 		return areCalculationDefinitionsEqual(systemValue, {
 			...systemValue,
-			baseSourceType: this.baseSourceType(),
 			calculationGraph: this.currentGraphState()
 		});
 	}

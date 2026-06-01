@@ -5,6 +5,8 @@ import {
 	ValueGraphState
 } from '../ui/value-graph.models';
 
+const CHARACTER_INPUT_OVERRIDE_KEY = '__characterInput';
+
 export interface GraphEvaluationResult {
 	rawBase: number;
 	calculatedBase: number;
@@ -60,15 +62,13 @@ export function resolveStoredFinalValue(
 	value: SystemValue,
 	values: SystemValue[]
 ): number {
-	if (value.baseSourceType !== 'computed') {
-		return value.baseValue;
-	}
-
 	if (!value.calculationGraph) {
 		return 0;
 	}
 
-	return evaluateGraph(value.calculationGraph, values).finalBase;
+	return evaluateGraph(value.calculationGraph, values, {
+		[CHARACTER_INPUT_OVERRIDE_KEY]: value.baseValue
+	}).finalBase;
 }
 
 export function formatNumber(value: number): string {
@@ -139,6 +139,10 @@ function evaluateGraphNode(
 	let result = 0;
 
 	switch (node.kind) {
+		case 'characterInput':
+			result = sourceOverrides?.[CHARACTER_INPUT_OVERRIDE_KEY] ?? 0;
+			breakdown.push(`Ввод персонажа = ${formatNumber(result)}`);
+			break;
 		case 'source': {
 			const referencedValue = node.sourceValueId
 				? values.find(value => value.id === node.sourceValueId) ?? null

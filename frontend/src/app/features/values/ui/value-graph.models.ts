@@ -2,6 +2,7 @@ export type ValueKind = 'attribute' | 'characteristic' | 'skill';
 export type ValueMode = 'manual' | 'formula';
 
 export type GraphNodeKind =
+	| 'characterInput'
 	| 'source'
 	| 'constant'
 	| 'operation'

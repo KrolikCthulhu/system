@@ -95,8 +95,7 @@ export class SkillEditorFacade {
 					usesDefaultLevelRules: true,
 					isActive: true,
 					systemValue: {
-						...createSystemValueDefinition(id, 'character-input'),
-						calculationGraph: null
+						...createSystemValueDefinition(id)
 					}
 				});
 				this.store.addDraftSkillId(id);
@@ -138,10 +137,7 @@ export class SkillEditorFacade {
 					return this.valuesRepository
 						.updateCalculation(
 							nextCalculation.id,
-							nextCalculation.baseSourceType,
-							nextCalculation.baseSourceType === 'computed'
-								? nextCalculation.calculationGraph
-								: null
+							nextCalculation.calculationGraph
 						)
 						.pipe(
 							map(
@@ -150,11 +146,7 @@ export class SkillEditorFacade {
 										...skill,
 										systemValue: {
 											...skill.systemValue,
-											baseSourceType: nextCalculation.baseSourceType,
-											calculationGraph:
-												nextCalculation.baseSourceType === 'computed'
-													? nextCalculation.calculationGraph
-													: null
+											calculationGraph: nextCalculation.calculationGraph
 										}
 									}) satisfies Skill
 							)

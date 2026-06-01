@@ -7,7 +7,6 @@ export interface ValuesRepository {
 	loadCatalog(): Observable<SystemValuesCatalog>;
 	updateCalculation(
 		id: string,
-		baseSourceType: 'character-input' | 'computed',
 		calculationGraph: ValueGraphState | null
 	): Observable<void>;
 }
