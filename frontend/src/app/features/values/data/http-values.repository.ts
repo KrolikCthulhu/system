@@ -28,7 +28,6 @@ export class HttpValuesRepository implements ValuesRepository {
 	}
 
 	updateCalculation(
-		sourceType: 'skill' | 'attribute' | 'characteristic',
 		id: string,
 		baseSourceType: 'character-input' | 'computed',
 		calculationGraph: ValueGraphState | null
@@ -41,7 +40,7 @@ export class HttpValuesRepository implements ValuesRepository {
 
 		return this.http
 			.patch<void>(
-				`${this.baseUrl}/admin/values/${sourceType}/${id}/calculation`,
+				`${this.baseUrl}/admin/values/${id}/calculation`,
 				payload,
 				{ withCredentials: true }
 			)

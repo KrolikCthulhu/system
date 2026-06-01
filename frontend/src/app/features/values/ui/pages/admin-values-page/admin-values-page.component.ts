@@ -140,7 +140,6 @@ export class AdminValuesPageComponent {
 
 		this.valuesRepository
 			.updateCalculation(
-				draft.sourceType,
 				draft.id,
 				draft.baseSourceType,
 				draft.baseSourceType === 'computed' ? draft.calculationGraph : null
@@ -175,6 +174,10 @@ export class AdminValuesPageComponent {
 				return 'Характеристика';
 			case 'skill':
 				return 'Навык';
+			case 'roll-consequence':
+				return 'Последствие';
+			case 'manual':
+				return 'Значение';
 		}
 	}
 
@@ -204,8 +207,6 @@ function toCalculationDefinition(
 ): SystemValueCalculationDefinition {
 	return {
 		id: value.id,
-		isSystemValue: value.isSystemValue,
-		sourceType: value.kind,
 		baseSourceType: value.baseSourceType,
 		calculationGraph: value.calculationGraph
 	};

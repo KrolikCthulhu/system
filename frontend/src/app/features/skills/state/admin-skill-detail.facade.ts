@@ -112,9 +112,7 @@ export class AdminSkillDetailFacade {
 				switchMap(savedSkill => {
 					const nextCalculation = {
 						...calculation,
-						id: savedSkill.id,
-						sourceType: 'skill' as const,
-						isSystemValue: savedSkill.systemValue.isSystemValue
+						id: savedSkill.systemValue.id
 					} satisfies SystemValueCalculationDefinition;
 
 					if (
@@ -128,8 +126,7 @@ export class AdminSkillDetailFacade {
 
 					return this.valuesRepository
 						.updateCalculation(
-							'skill',
-							savedSkill.id,
+							nextCalculation.id,
 							nextCalculation.baseSourceType,
 							nextCalculation.baseSourceType === 'computed'
 								? nextCalculation.calculationGraph

@@ -1,7 +1,24 @@
 import { ValueGraphState } from '../../ui/value-graph.models';
 
-export type SystemValueKindDto = 'skill' | 'attribute' | 'characteristic';
+export type SystemValueKindDto =
+	| 'skill'
+	| 'attribute'
+	| 'characteristic'
+	| 'roll-consequence'
+	| 'manual';
 export type SystemValueBaseSourceTypeDto = 'CHARACTER_INPUT' | 'COMPUTED';
+
+export interface SystemValueOwnerDto {
+	type: SystemValueKindDto;
+	id: string | null;
+}
+
+export interface SystemValueLinkDto {
+	targetType: SystemValueKindDto;
+	targetId: string | null;
+	label: string;
+	sortOrder: number;
+}
 
 export interface SystemValueDto {
 	id: string;
@@ -10,10 +27,11 @@ export interface SystemValueDto {
 	groupLabel: string;
 	contextLabel: string;
 	description: string;
-	isSystemValue: boolean;
 	baseSourceType: SystemValueBaseSourceTypeDto;
 	baseValue: number;
 	calculationGraph: ValueGraphState | null;
+	primaryOwner: SystemValueOwnerDto;
+	links: SystemValueLinkDto[];
 }
 
 export interface SystemValuesCatalogDto {

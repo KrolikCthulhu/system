@@ -17,6 +17,14 @@ enum SystemValueBaseSourceType {
     COMPUTED
 }
 
+enum SystemValueOwnerType {
+    ATTRIBUTE
+    CHARACTERISTIC
+    SKILL
+    ROLL_CONSEQUENCE
+    MANUAL
+}
+
 model User {
     id                      String                   @id @default(uuid()) @db.Uuid
     email                   String                   @unique
@@ -115,9 +123,8 @@ model Skill {
     maxLevel              Int           @default(6) @map("max_level")
     defaultLevel          Int           @default(0) @map("default_level")
     usesDefaultLevelRules Boolean       @default(true) @map("uses_default_level_rules")
-    isSystemValue         Boolean       @default(true) @map("is_system_value")
-    baseSourceType        SystemValueBaseSourceType @default(CHARACTER_INPUT) @map("base_source_type")
-    calculationGraph      Json?         @map("calculation_graph")
+    systemValueId         String        @unique @map("system_value_id") @db.Uuid
+    systemValue           SystemValue   @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
     isActive              Boolean       @default(true) @map("is_active")
     sortOrder             Int           @default(0) @map("sort_order")
     createdAt             DateTime      @default(now()) @map("created_at")
@@ -132,9 +139,8 @@ model Attribute {
     id              String           @id @default(uuid()) @db.Uuid
     name            String
     description     String?
-    isSystemValue   Boolean          @default(true) @map("is_system_value")
-    baseSourceType  SystemValueBaseSourceType @default(COMPUTED) @map("base_source_type")
-    calculationGraph Json?           @map("calculation_graph")
+    systemValueId   String           @unique @map("system_value_id") @db.Uuid
+    systemValue     SystemValue      @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
     isActive        Boolean          @default(true) @map("is_active")
     sortOrder       Int              @default(0) @map("sort_order")
     createdAt       DateTime         @default(now()) @map("created_at")
@@ -154,9 +160,8 @@ model Characteristic {
     minValue     Int       @default(0) @map("min_value")
     maxValue     Int       @default(10) @map("max_value")
     defaultValue Int       @default(0) @map("default_value")
-    isSystemValue Boolean  @default(true) @map("is_system_value")
-    baseSourceType SystemValueBaseSourceType @default(CHARACTER_INPUT) @map("base_source_type")
-    calculationGraph Json? @map("calculation_graph")
+    systemValueId String  @unique @map("system_value_id") @db.Uuid
+    systemValue   SystemValue @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
     isActive     Boolean   @default(true) @map("is_active")
     sortOrder    Int       @default(0) @map("sort_order")
     createdAt    DateTime  @default(now()) @map("created_at")
@@ -165,4 +170,44 @@ model Characteristic {
     @@index([attributeId])
     @@index([attributeId, isActive, sortOrder])
     @@map("characteristics")
+}
+
+model SystemValue {
+    id               String                    @id @default(uuid()) @db.Uuid
+    name             String
+    description      String?
+    primaryOwnerType SystemValueOwnerType      @map("primary_owner_type")
+    primaryOwnerId   String?                   @map("primary_owner_id") @db.Uuid
+    baseSourceType   SystemValueBaseSourceType @default(CHARACTER_INPUT) @map("base_source_type")
+    calculationGraph Json?                     @map("calculation_graph")
+    isActive         Boolean                   @default(true) @map("is_active")
+    sortOrder        Int                       @default(0) @map("sort_order")
+    createdAt        DateTime                  @default(now()) @map("created_at")
+    updatedAt        DateTime                  @updatedAt @map("updated_at")
+
+    skills           Skill[]
+    attributes       Attribute[]
+    characteristics  Characteristic[]
+    links            SystemValueLink[]
+
+    @@index([primaryOwnerType, primaryOwnerId])
+    @@index([isActive, sortOrder])
+    @@map("system_values")
+}
+
+model SystemValueLink {
+    id            String               @id @default(uuid()) @db.Uuid
+    systemValueId String               @map("system_value_id") @db.Uuid
+    systemValue   SystemValue          @relation(fields: [systemValueId], references: [id], onDelete: Cascade)
+    targetType    SystemValueOwnerType @map("target_type")
+    targetId      String?              @map("target_id") @db.Uuid
+    label         String?
+    sortOrder     Int                  @default(0) @map("sort_order")
+    createdAt     DateTime             @default(now()) @map("created_at")
+    updatedAt     DateTime             @updatedAt @map("updated_at")
+
+    @@unique([systemValueId, targetType, targetId])
+    @@index([targetType, targetId])
+    @@index([systemValueId])
+    @@map("system_value_links")
 }

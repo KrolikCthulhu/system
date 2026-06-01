@@ -6,7 +6,6 @@ export type SystemValueBaseSourceTypeDto =
 
 export interface SkillSystemValueDto {
 	id: string;
-	isSystemValue: boolean;
 	baseSourceType: SystemValueBaseSourceTypeDto;
 	calculationGraph: ValueGraphState | null;
 }

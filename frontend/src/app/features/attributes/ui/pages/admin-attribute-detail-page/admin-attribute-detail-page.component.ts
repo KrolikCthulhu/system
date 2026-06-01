@@ -121,9 +121,7 @@ export class AdminAttributeDetailPageComponent {
 				switchMap(attribute => {
 					const nextCalculation = {
 						...calculation,
-						id: attribute.id,
-						sourceType: 'attribute' as const,
-						isSystemValue: attribute.systemValue.isSystemValue
+						id: attribute.systemValue.id
 					} satisfies SystemValueCalculationDefinition;
 
 					if (areCalculationDefinitionsEqual(attribute.systemValue, nextCalculation)) {
@@ -132,7 +130,6 @@ export class AdminAttributeDetailPageComponent {
 
 					return this.valuesRepository
 						.updateCalculation(
-							nextCalculation.sourceType,
 							nextCalculation.id,
 							nextCalculation.baseSourceType,
 							nextCalculation.baseSourceType === 'computed'

@@ -13,10 +13,19 @@ export function mapSystemValueDto(dto: SystemValueDto): SystemValue {
 		groupLabel: dto.groupLabel,
 		contextLabel: dto.contextLabel,
 		description: dto.description,
-		isSystemValue: dto.isSystemValue,
 		baseSourceType: mapSystemValueBaseSourceType(dto.baseSourceType),
 		baseValue: dto.baseValue,
-		calculationGraph: dto.calculationGraph
+		calculationGraph: dto.calculationGraph,
+		primaryOwner: {
+			type: dto.primaryOwner.type as SystemValueSourceType,
+			id: dto.primaryOwner.id
+		},
+		links: dto.links.map(link => ({
+			targetType: link.targetType as SystemValueSourceType,
+			targetId: link.targetId,
+			label: link.label,
+			sortOrder: link.sortOrder
+		}))
 	};
 }
 

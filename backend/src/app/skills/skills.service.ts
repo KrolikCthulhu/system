@@ -3,7 +3,12 @@ import {
 	Injectable,
 	NotFoundException
 } from '@nestjs/common';
-import { Prisma } from '@prisma/generated';
+import { randomUUID } from 'crypto';
+import {
+	Prisma,
+	SystemValueBaseSourceType,
+	SystemValueOwnerType
+} from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSkillCategoryDto } from './dto/create-skill-category.dto';
 import { CreateSkillDto } from './dto/create-skill.dto';
@@ -23,9 +28,13 @@ const skillSelect = {
 	defaultLevel: true,
 	maxLevel: true,
 	usesDefaultLevelRules: true,
-	isSystemValue: true,
-	baseSourceType: true,
-	calculationGraph: true,
+	systemValue: {
+		select: {
+			id: true,
+			baseSourceType: true,
+			calculationGraph: true
+		}
+	},
 	isActive: true
 } satisfies Prisma.SkillSelect;
 
@@ -106,16 +115,41 @@ export class SkillsService {
 		this.validateSkillLevels(dto.defaultLevel, dto.maxLevel);
 
 		try {
-			const skill = await this.prisma.skill.create({
-				select: skillSelect,
-				data: {
-					name: dto.name,
-					categoryId: dto.categoryId,
-					description: dto.description || null,
-					defaultLevel: dto.defaultLevel,
-					maxLevel: dto.maxLevel,
-					usesDefaultLevelRules: dto.usesDefaultLevelRules
-				}
+			const skill = await this.prisma.$transaction(async tx => {
+				const id = randomUUID();
+				const description = dto.description || null;
+
+				await tx.systemValue.create({
+					data: {
+						id,
+						name: dto.name,
+						description,
+						primaryOwnerType: SystemValueOwnerType.SKILL,
+						primaryOwnerId: id,
+						baseSourceType: SystemValueBaseSourceType.CHARACTER_INPUT,
+						links: {
+							create: {
+								id,
+								targetType: SystemValueOwnerType.SKILL,
+								targetId: id
+							}
+						}
+					}
+				});
+
+				return tx.skill.create({
+					select: skillSelect,
+					data: {
+						id,
+						name: dto.name,
+						categoryId: dto.categoryId,
+						description,
+						defaultLevel: dto.defaultLevel,
+						maxLevel: dto.maxLevel,
+						usesDefaultLevelRules: dto.usesDefaultLevelRules,
+						systemValueId: id
+					}
+				});
 			});
 
 			return this.mapSkill(skill);
@@ -143,17 +177,32 @@ export class SkillsService {
 		);
 
 		try {
-			const skill = await this.prisma.skill.update({
-				select: skillSelect,
-				where: { id },
-				data: {
-					name: dto.name,
-					categoryId: dto.categoryId,
-					description: dto.description === undefined ? undefined : dto.description || null,
-					defaultLevel: dto.defaultLevel,
-					maxLevel: dto.maxLevel,
-					usesDefaultLevelRules: dto.usesDefaultLevelRules
+			const skill = await this.prisma.$transaction(async tx => {
+				const updatedSkill = await tx.skill.update({
+					select: skillSelect,
+					where: { id },
+					data: {
+						name: dto.name,
+						categoryId: dto.categoryId,
+						description:
+							dto.description === undefined ? undefined : dto.description || null,
+						defaultLevel: dto.defaultLevel,
+						maxLevel: dto.maxLevel,
+						usesDefaultLevelRules: dto.usesDefaultLevelRules
+					}
+				});
+
+				if (updatedSkill.systemValue) {
+					await tx.systemValue.update({
+						where: { id: updatedSkill.systemValue.id },
+						data: {
+							name: updatedSkill.name,
+							description: updatedSkill.description
+						}
+					});
 				}
+
+				return updatedSkill;
 			});
 
 			return this.mapSkill(skill);
@@ -168,7 +217,14 @@ export class SkillsService {
 		const skill = await this.prisma.skill.update({
 			select: skillSelect,
 			where: { id },
-			data: { isActive: dto.isActive }
+			data: {
+				isActive: dto.isActive,
+				systemValue: {
+					update: {
+						isActive: dto.isActive
+					}
+				}
+			}
 		});
 
 		return this.mapSkill(skill);
@@ -176,7 +232,15 @@ export class SkillsService {
 
 	async deleteSkill(id: string) {
 		await this.ensureSkillExists(id);
-		await this.prisma.skill.delete({ where: { id } });
+		await this.prisma.$transaction([
+			this.prisma.skill.delete({ where: { id } }),
+			this.prisma.systemValue.deleteMany({
+				where: {
+					primaryOwnerType: SystemValueOwnerType.SKILL,
+					primaryOwnerId: id
+				}
+			})
+		]);
 	}
 
 	async createCategory(dto: CreateSkillCategoryDto) {
@@ -225,10 +289,22 @@ export class SkillsService {
 
 	async deleteCategory(id: string) {
 		await this.ensureCategoryExists(id);
+		const skillIds = (
+			await this.prisma.skill.findMany({
+				select: { id: true },
+				where: { categoryId: id }
+			})
+		).map(skill => skill.id);
 
 		await this.prisma.$transaction([
 			this.prisma.skill.deleteMany({
 				where: { categoryId: id }
+			}),
+			this.prisma.systemValue.deleteMany({
+				where: {
+					primaryOwnerType: SystemValueOwnerType.SKILL,
+					primaryOwnerId: { in: skillIds }
+				}
 			}),
 			this.prisma.skillCategory.delete({
 				where: { id }
@@ -367,9 +443,11 @@ export class SkillsService {
 		defaultLevel: number;
 		maxLevel: number;
 		usesDefaultLevelRules: boolean;
-		isSystemValue: boolean;
-		baseSourceType: string;
-		calculationGraph: Prisma.JsonValue | null;
+		systemValue: {
+			id: string;
+			baseSourceType: SystemValueBaseSourceType;
+			calculationGraph: Prisma.JsonValue | null;
+		};
 		isActive: boolean;
 	}) {
 		return {
@@ -387,15 +465,18 @@ export class SkillsService {
 
 	private mapSystemValue(skill: {
 		id: string;
-		isSystemValue: boolean;
-		baseSourceType: string;
-		calculationGraph: Prisma.JsonValue | null;
+		systemValue: {
+			id: string;
+			baseSourceType: SystemValueBaseSourceType;
+			calculationGraph: Prisma.JsonValue | null;
+		};
 	}) {
+		const systemValue = skill.systemValue;
+
 		return {
-			id: skill.id,
-			isSystemValue: skill.isSystemValue,
-			baseSourceType: skill.baseSourceType,
-			calculationGraph: skill.calculationGraph
+			id: systemValue.id,
+			baseSourceType: systemValue.baseSourceType,
+			calculationGraph: systemValue.calculationGraph
 		};
 	}
 

@@ -3,7 +3,12 @@ import {
 	Injectable,
 	NotFoundException
 } from '@nestjs/common';
-import { Prisma } from '@prisma/generated';
+import { randomUUID } from 'crypto';
+import {
+	Prisma,
+	SystemValueBaseSourceType,
+	SystemValueOwnerType
+} from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateAttributeDto } from './dto/create-attribute.dto';
 import { CreateCharacteristicDto } from './dto/create-characteristic.dto';
@@ -16,9 +21,13 @@ const attributeSelect = {
 	id: true,
 	name: true,
 	description: true,
-	isSystemValue: true,
-	baseSourceType: true,
-	calculationGraph: true,
+	systemValue: {
+		select: {
+			id: true,
+			baseSourceType: true,
+			calculationGraph: true
+		}
+	},
 	isActive: true,
 	sortOrder: true,
 	createdAt: true,
@@ -33,9 +42,13 @@ const characteristicSelect = {
 	minValue: true,
 	maxValue: true,
 	defaultValue: true,
-	isSystemValue: true,
-	baseSourceType: true,
-	calculationGraph: true,
+	systemValue: {
+		select: {
+			id: true,
+			baseSourceType: true,
+			calculationGraph: true
+		}
+	},
 	isActive: true,
 	sortOrder: true,
 	createdAt: true,
@@ -68,13 +81,40 @@ export class AttributesService {
 
 	async createAttribute(dto: CreateAttributeDto) {
 		try {
-			const attribute = await this.prisma.attribute.create({
-				select: attributeSelect,
-				data: {
-					name: dto.name,
-					description: this.toNullableString(dto.description) ?? null,
-					sortOrder: dto.sortOrder
-				}
+			const attribute = await this.prisma.$transaction(async tx => {
+				const id = randomUUID();
+				const description = this.toNullableString(dto.description) ?? null;
+
+				await tx.systemValue.create({
+					data: {
+						id,
+						name: dto.name,
+						description,
+						primaryOwnerType: SystemValueOwnerType.ATTRIBUTE,
+						primaryOwnerId: id,
+						baseSourceType: SystemValueBaseSourceType.COMPUTED,
+						sortOrder: dto.sortOrder,
+						links: {
+							create: {
+								id,
+								targetType: SystemValueOwnerType.ATTRIBUTE,
+								targetId: id,
+								sortOrder: dto.sortOrder
+							}
+						}
+					}
+				});
+
+				return tx.attribute.create({
+					select: attributeSelect,
+					data: {
+						id,
+						name: dto.name,
+						description,
+						sortOrder: dto.sortOrder,
+						systemValueId: id
+					}
+				});
 			});
 
 			return this.mapAttribute(attribute);
@@ -93,7 +133,14 @@ export class AttributesService {
 				data: {
 					name: dto.name,
 					description: this.toOptionalNullableString(dto.description),
-					sortOrder: dto.sortOrder
+					sortOrder: dto.sortOrder,
+					systemValue: {
+						update: {
+							name: dto.name,
+							description: this.toOptionalNullableString(dto.description),
+							sortOrder: dto.sortOrder
+						}
+					}
 				}
 			});
 
@@ -109,7 +156,14 @@ export class AttributesService {
 		const attribute = await this.prisma.attribute.update({
 			select: attributeSelect,
 			where: { id },
-			data: { isActive: dto.isActive }
+			data: {
+				isActive: dto.isActive,
+				systemValue: {
+					update: {
+						isActive: dto.isActive
+					}
+				}
+			}
 		});
 
 		return this.mapAttribute(attribute);
@@ -117,6 +171,12 @@ export class AttributesService {
 
 	async deleteAttribute(id: string) {
 		await this.ensureAttributeExists(id);
+		const characteristicIds = (
+			await this.prisma.characteristic.findMany({
+				select: { id: true },
+				where: { attributeId: id }
+			})
+		).map(characteristic => characteristic.id);
 
 		await this.prisma.$transaction([
 			this.prisma.characteristic.deleteMany({
@@ -124,6 +184,18 @@ export class AttributesService {
 			}),
 			this.prisma.attribute.delete({
 				where: { id }
+			}),
+			this.prisma.systemValue.deleteMany({
+				where: {
+					primaryOwnerType: SystemValueOwnerType.CHARACTERISTIC,
+					primaryOwnerId: { in: characteristicIds }
+				}
+			}),
+			this.prisma.systemValue.deleteMany({
+				where: {
+					primaryOwnerType: SystemValueOwnerType.ATTRIBUTE,
+					primaryOwnerId: id
+				}
 			})
 		]);
 	}
@@ -133,17 +205,44 @@ export class AttributesService {
 		this.validateCharacteristicRange(dto.minValue, dto.maxValue, dto.defaultValue);
 
 		try {
-			const characteristic = await this.prisma.characteristic.create({
-				select: characteristicSelect,
-				data: {
-					name: dto.name,
-					attributeId: dto.attributeId,
-					description: this.toNullableString(dto.description) ?? null,
-					minValue: dto.minValue,
-					maxValue: dto.maxValue,
-					defaultValue: dto.defaultValue,
-					sortOrder: dto.sortOrder
-				}
+			const characteristic = await this.prisma.$transaction(async tx => {
+				const id = randomUUID();
+				const description = this.toNullableString(dto.description) ?? null;
+
+				await tx.systemValue.create({
+					data: {
+						id,
+						name: dto.name,
+						description,
+						primaryOwnerType: SystemValueOwnerType.CHARACTERISTIC,
+						primaryOwnerId: id,
+						baseSourceType: SystemValueBaseSourceType.CHARACTER_INPUT,
+						sortOrder: dto.sortOrder,
+						links: {
+							create: {
+								id,
+								targetType: SystemValueOwnerType.CHARACTERISTIC,
+								targetId: id,
+								sortOrder: dto.sortOrder
+							}
+						}
+					}
+				});
+
+				return tx.characteristic.create({
+					select: characteristicSelect,
+					data: {
+						id,
+						name: dto.name,
+						attributeId: dto.attributeId,
+						description,
+						minValue: dto.minValue,
+						maxValue: dto.maxValue,
+						defaultValue: dto.defaultValue,
+						sortOrder: dto.sortOrder,
+						systemValueId: id
+					}
+				});
 			});
 
 			return this.mapCharacteristic(characteristic);
@@ -169,18 +268,33 @@ export class AttributesService {
 		);
 
 		try {
-			const characteristic = await this.prisma.characteristic.update({
-				select: characteristicSelect,
-				where: { id },
-				data: {
-					name: dto.name,
-					attributeId: dto.attributeId,
-					description: this.toOptionalNullableString(dto.description),
-					minValue: dto.minValue,
-					maxValue: dto.maxValue,
-					defaultValue: dto.defaultValue,
-					sortOrder: dto.sortOrder
+			const characteristic = await this.prisma.$transaction(async tx => {
+				const updatedCharacteristic = await tx.characteristic.update({
+					select: characteristicSelect,
+					where: { id },
+					data: {
+						name: dto.name,
+						attributeId: dto.attributeId,
+						description: this.toOptionalNullableString(dto.description),
+						minValue: dto.minValue,
+						maxValue: dto.maxValue,
+						defaultValue: dto.defaultValue,
+						sortOrder: dto.sortOrder
+					}
+				});
+
+				if (updatedCharacteristic.systemValue) {
+					await tx.systemValue.update({
+						where: { id: updatedCharacteristic.systemValue.id },
+						data: {
+							name: updatedCharacteristic.name,
+							description: updatedCharacteristic.description,
+							sortOrder: updatedCharacteristic.sortOrder
+						}
+					});
 				}
+
+				return updatedCharacteristic;
 			});
 
 			return this.mapCharacteristic(characteristic);
@@ -198,7 +312,14 @@ export class AttributesService {
 		const characteristic = await this.prisma.characteristic.update({
 			select: characteristicSelect,
 			where: { id },
-			data: { isActive: dto.isActive }
+			data: {
+				isActive: dto.isActive,
+				systemValue: {
+					update: {
+						isActive: dto.isActive
+					}
+				}
+			}
 		});
 
 		return this.mapCharacteristic(characteristic);
@@ -206,7 +327,15 @@ export class AttributesService {
 
 	async deleteCharacteristic(id: string) {
 		await this.ensureCharacteristicExists(id);
-		await this.prisma.characteristic.delete({ where: { id } });
+		await this.prisma.$transaction([
+			this.prisma.characteristic.delete({ where: { id } }),
+			this.prisma.systemValue.deleteMany({
+				where: {
+					primaryOwnerType: SystemValueOwnerType.CHARACTERISTIC,
+					primaryOwnerId: id
+				}
+			})
+		]);
 	}
 
 	private async ensureAttributeExists(id: string) {
@@ -279,9 +408,11 @@ export class AttributesService {
 		id: string;
 		name: string;
 		description: string | null;
-		isSystemValue: boolean;
-		baseSourceType: string;
-		calculationGraph: Prisma.JsonValue | null;
+		systemValue: {
+			id: string;
+			baseSourceType: SystemValueBaseSourceType;
+			calculationGraph: Prisma.JsonValue | null;
+		};
 		isActive: boolean;
 		sortOrder: number;
 		createdAt: Date;
@@ -307,9 +438,11 @@ export class AttributesService {
 		minValue: number;
 		maxValue: number;
 		defaultValue: number;
-		isSystemValue: boolean;
-		baseSourceType: string;
-		calculationGraph: Prisma.JsonValue | null;
+		systemValue: {
+			id: string;
+			baseSourceType: SystemValueBaseSourceType;
+			calculationGraph: Prisma.JsonValue | null;
+		};
 		isActive: boolean;
 		sortOrder: number;
 		createdAt: Date;
@@ -333,15 +466,18 @@ export class AttributesService {
 
 	private mapSystemValue(value: {
 		id: string;
-		isSystemValue: boolean;
-		baseSourceType: string;
-		calculationGraph: Prisma.JsonValue | null;
+		systemValue: {
+			id: string;
+			baseSourceType: SystemValueBaseSourceType;
+			calculationGraph: Prisma.JsonValue | null;
+		};
 	}) {
+		const systemValue = value.systemValue;
+
 		return {
-			id: value.id,
-			isSystemValue: value.isSystemValue,
-			baseSourceType: value.baseSourceType,
-			calculationGraph: value.calculationGraph
+			id: systemValue.id,
+			baseSourceType: systemValue.baseSourceType,
+			calculationGraph: systemValue.calculationGraph
 		};
 	}
 }

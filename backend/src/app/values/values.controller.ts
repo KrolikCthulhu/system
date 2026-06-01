@@ -18,16 +18,14 @@ import { ValuesService } from './values.service';
 export class ValuesController {
 	constructor(private readonly valuesService: ValuesService) {}
 
-	@Patch(':sourceType/:id/calculation')
+	@Patch(':id/calculation')
 	async updateCalculation(
 		@CurrentUser() user: AuthenticatedUser,
-		@Param('sourceType') sourceType: 'skill' | 'attribute' | 'characteristic',
 		@Param('id') id: string,
 		@Body() dto: UpdateSystemValueCalculationDto
 	) {
 		this.assertAdmin(user);
 		return this.valuesService.updateCalculation(
-			sourceType,
 			id,
 			dto.baseSourceType,
 			dto.calculationGraph

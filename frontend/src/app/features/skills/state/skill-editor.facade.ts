@@ -95,7 +95,7 @@ export class SkillEditorFacade {
 					usesDefaultLevelRules: true,
 					isActive: true,
 					systemValue: {
-						...createSystemValueDefinition(id, 'skill', 'character-input'),
+						...createSystemValueDefinition(id, 'character-input'),
 						calculationGraph: null
 					}
 				});
@@ -137,7 +137,6 @@ export class SkillEditorFacade {
 
 					return this.valuesRepository
 						.updateCalculation(
-							nextCalculation.sourceType,
 							nextCalculation.id,
 							nextCalculation.baseSourceType,
 							nextCalculation.baseSourceType === 'computed'
@@ -297,8 +296,6 @@ function toPersistedCalculation(
 ): SystemValueCalculationDefinition {
 	return {
 		...draft,
-		id: skill.id,
-		isSystemValue: skill.systemValue.isSystemValue,
-		sourceType: 'skill'
+		id: skill.systemValue.id
 	};
 }

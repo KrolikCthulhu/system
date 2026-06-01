@@ -51,8 +51,6 @@ export function areCalculationDefinitionsEqual(
 
 	return (
 		left.id === right.id &&
-		left.isSystemValue === right.isSystemValue &&
-		left.sourceType === right.sourceType &&
 		left.baseSourceType === right.baseSourceType &&
 		JSON.stringify(normalizeGraphState(left.calculationGraph)) ===
 			JSON.stringify(normalizeGraphState(right.calculationGraph))

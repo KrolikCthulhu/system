@@ -1,7 +1,9 @@
 export type SystemValueSourceType =
 	| 'attribute'
 	| 'characteristic'
-	| 'skill';
+	| 'skill'
+	| 'roll-consequence'
+	| 'manual';
 
 export type SystemValueBaseSourceType =
 	| 'character-input'
@@ -9,20 +11,15 @@ export type SystemValueBaseSourceType =
 
 export interface SystemValueDefinition {
 	id: string;
-	isSystemValue: boolean;
-	sourceType: SystemValueSourceType;
 	baseSourceType: SystemValueBaseSourceType;
 }
 
 export function createSystemValueDefinition(
 	id: string,
-	sourceType: SystemValueSourceType,
 	baseSourceType: SystemValueBaseSourceType
 ): SystemValueDefinition {
 	return {
 		id,
-		isSystemValue: true,
-		sourceType,
 		baseSourceType
 	};
 }

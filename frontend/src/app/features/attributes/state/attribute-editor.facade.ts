@@ -87,7 +87,7 @@ export class AttributeEditorFacade {
 					createdAt: new Date().toISOString(),
 					updatedAt: new Date().toISOString(),
 					systemValue: {
-						...createSystemValueDefinition(id, 'attribute', 'computed'),
+						...createSystemValueDefinition(id, 'computed'),
 						calculationGraph: null
 					}
 				});
@@ -130,7 +130,6 @@ export class AttributeEditorFacade {
 
 					return this.valuesRepository
 						.updateCalculation(
-							nextCalculation.sourceType,
 							nextCalculation.id,
 							nextCalculation.baseSourceType,
 							nextCalculation.baseSourceType === 'computed'
@@ -302,8 +301,6 @@ function toPersistedCalculation(
 ): SystemValueCalculationDefinition {
 	return {
 		...draft,
-		id: attribute.id,
-		isSystemValue: attribute.systemValue.isSystemValue,
-		sourceType: 'attribute'
+		id: attribute.systemValue.id
 	};
 }

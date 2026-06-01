@@ -132,9 +132,7 @@ export class AdminCharacteristicDetailPageComponent {
 				switchMap(characteristic => {
 					const nextCalculation = {
 						...calculation,
-						id: characteristic.id,
-						sourceType: 'characteristic' as const,
-						isSystemValue: characteristic.systemValue.isSystemValue
+						id: characteristic.systemValue.id
 					} satisfies SystemValueCalculationDefinition;
 
 					if (
@@ -148,7 +146,6 @@ export class AdminCharacteristicDetailPageComponent {
 
 					return this.valuesRepository
 						.updateCalculation(
-							nextCalculation.sourceType,
 							nextCalculation.id,
 							nextCalculation.baseSourceType,
 							nextCalculation.baseSourceType === 'computed'
