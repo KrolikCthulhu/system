@@ -3,7 +3,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router, RouterOutlet } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Toolbar } from 'primeng/toolbar';
-import { EMPTY, catchError, concatWith, finalize, from } from 'rxjs';
+import { EMPTY, catchError, finalize } from 'rxjs';
 import { AuthFacade } from '../../../features/auth/state/auth.facade';
 import { AuthUserRole } from '../../../features/auth/domain/auth.models';
 
@@ -26,7 +26,7 @@ export class PrivateLayoutComponent {
 		return role === 'ADMIN' ? 'Admin' : 'User';
 	}
 
-	protected logout() {
+	protected exit() {
 		if (this.pending()) {
 			return;
 		}
@@ -39,13 +39,13 @@ export class PrivateLayoutComponent {
 			.pipe(
 				catchError(error => {
 					this.errorMessage.set(
-						error instanceof Error ? error.message : 'Logout failed.'
+						error instanceof Error ? error.message : 'Не удалось выйти.'
 					);
 					return EMPTY;
 				}),
-				concatWith(from(this.router.navigate(['/auth']))),
 				finalize(() => {
 					this.pending.set(false);
+					void this.router.navigate(['/auth']);
 				}),
 				takeUntilDestroyed(this.destroyRef)
 			)

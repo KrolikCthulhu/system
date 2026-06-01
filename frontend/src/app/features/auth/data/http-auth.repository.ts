@@ -1,15 +1,13 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, map, throwError } from 'rxjs';
 import { AuthRepository } from './auth-repository.port';
-import {
-	SignInCommand,
-	SignUpCommand
-} from '../state/auth.commands';
+import { SignInCommand, SignUpCommand } from '../state/auth.commands';
 import { AuthSession } from '../domain/auth.models';
 import { environment } from '../../../infrastructure/config/environment';
-import { ApiMessageDto, AuthSessionDto, AuthUserDto } from './dto/auth.dto';
-import { mapAuthSessionDto, mapAuthUserDto } from './mappers/auth.mapper';
+import { ApiMessageDto, AuthSessionDto } from './dto/auth.dto';
+import { mapAuthSessionDto } from './mappers/auth.mapper';
+import { extractApiErrorMessage } from './auth-http-error.util';
 
 @Injectable({ providedIn: 'root' })
 export class HttpAuthRepository implements AuthRepository {
@@ -48,18 +46,7 @@ export class HttpAuthRepository implements AuthRepository {
 				}
 			)
 			.pipe(
-				switchMap(refreshResult =>
-					this.http
-						.get<AuthUserDto>(`${this.baseUrl}/auth/me`, {
-							withCredentials: true
-						})
-						.pipe(
-							map(user => ({
-								accessToken: refreshResult.accessToken,
-								user: mapAuthUserDto(user)
-							}))
-						)
-				),
+				map(mapAuthSessionDto),
 				catchError(error => this.handleHttpError(error))
 			);
 	}
@@ -79,24 +66,4 @@ export class HttpAuthRepository implements AuthRepository {
 	private handleHttpError(error: unknown) {
 		return throwError(() => new Error(extractApiErrorMessage(error)));
 	}
-}
-
-function extractApiErrorMessage(error: unknown): string {
-	if (error instanceof HttpErrorResponse) {
-		const message = error.error?.message;
-
-		if (Array.isArray(message)) {
-			return message.join('\n');
-		}
-
-		if (typeof message === 'string' && message.trim()) {
-			return message;
-		}
-
-		if (error.status === 0) {
-			return 'API is unavailable.';
-		}
-	}
-
-	return 'Request failed.';
 }

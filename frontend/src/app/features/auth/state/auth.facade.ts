@@ -12,11 +12,13 @@ import {
 import { AUTH_REPOSITORY } from '../data/auth-repository.port';
 import { AuthUser } from '../domain/auth.models';
 import { SignInCommand, SignUpCommand } from './auth.commands';
+import { AuthRefreshService } from './auth-refresh.service';
 import { AuthSessionService } from './auth-session.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthFacade {
 	private readonly authRepository = inject(AUTH_REPOSITORY);
+	private readonly authRefresh = inject(AuthRefreshService);
 	private readonly authSession = inject(AuthSessionService);
 
 	readonly user = this.authSession.user;
@@ -58,10 +60,7 @@ export class AuthFacade {
 	}
 
 	initializeSession(): Observable<never> {
-		return this.authRepository.restoreSession().pipe(
-			tap(session => {
-				this.authSession.setSession(session);
-			}),
+		return this.authRefresh.refreshSession().pipe(
 			ignoreElements(),
 			catchError(() => {
 				this.authSession.clearSession();
