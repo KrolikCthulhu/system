@@ -3,6 +3,7 @@ import {
 	Component,
 	computed,
 	effect,
+	HostListener,
 	input,
 	output,
 	signal,
@@ -40,6 +41,7 @@ import { SystemValue } from '../../../domain/values.models';
 import { SystemValueCalculationDefinition } from '../../../domain/system-value-calculation.models';
 import {
 	CurveRange,
+	GraphComparison,
 	GraphNodeKind,
 	GraphOperation,
 	ValueGraphNodeData,
@@ -73,11 +75,22 @@ const OPERATION_OPTIONS = [
 	{ label: 'Разделить', value: 'divide' as GraphOperation }
 ];
 
+const COMPARISON_OPTIONS = [
+	{ label: 'Равно', value: 'eq' as GraphComparison },
+	{ label: 'Не равно', value: 'ne' as GraphComparison },
+	{ label: 'Больше', value: 'gt' as GraphComparison },
+	{ label: 'Больше или равно', value: 'gte' as GraphComparison },
+	{ label: 'Меньше', value: 'lt' as GraphComparison },
+	{ label: 'Меньше или равно', value: 'lte' as GraphComparison }
+];
+
 const GRAPH_NODE_TYPES: GraphNodeType[] = [
 	{ kind: 'characterInput', label: 'Ввод персонажа' },
 	{ kind: 'source', label: 'Источник' },
 	{ kind: 'constant', label: 'Число' },
 	{ kind: 'operation', label: 'Операция' },
+	{ kind: 'comparison', label: 'Сравнение' },
+	{ kind: 'condition', label: 'Если' },
 	{ kind: 'curve', label: 'Шкала уровней' },
 	{ kind: 'result', label: 'Результат' }
 ];
@@ -114,14 +127,17 @@ export class SystemValueCalculationEditorComponent {
 	);
 	protected readonly graphEdges = signal<Edge[]>([]);
 	protected readonly selectedGraphNodeId = signal<string | null>(null);
+	protected readonly selectedGraphEdgeId = signal<string | null>(null);
 	protected readonly testSourceValues = signal<Record<string, number>>({});
 	protected readonly graphNodeTypes = GRAPH_NODE_TYPES;
 	protected readonly operationOptions = OPERATION_OPTIONS;
+	protected readonly comparisonOptions = COMPARISON_OPTIONS;
 	protected readonly graphConnectionSettings: ConnectionSettings = {
 		marker: { type: 'arrow-closed' },
 		validator: connection => this.isConnectionValid(connection)
 	};
 	private syncedAvailableValuesSignature: string | null = null;
+	private pendingSelectionClear: ReturnType<typeof setTimeout> | null = null;
 
 	protected readonly currentGraphState = computed<ValueGraphState | null>(() =>
 		normalizeGraphState({
@@ -167,6 +183,13 @@ export class SystemValueCalculationEditorComponent {
 	protected readonly selectedGraphNodeData = computed(
 		() => this.selectedGraphNode()?.data?.() ?? null
 	);
+
+	protected readonly selectedGraphEdge = computed(() => {
+		const edgeId = this.selectedGraphEdgeId();
+		return edgeId
+			? (this.graphEdges().find(edge => edge.id === edgeId) ?? null)
+			: null;
+	});
 
 	protected readonly graphHasResultNode = computed(() =>
 		this.graphNodes().some(node => node.data?.()?.kind === 'result')
@@ -285,6 +308,7 @@ export class SystemValueCalculationEditorComponent {
 		const nodeState = createGraphNodeState(kind, this.graphNodes().length);
 		const runtimeNode = createRuntimeGraphNode(nodeState, null);
 		this.graphNodes.update(nodes => [...nodes, runtimeNode]);
+		this.selectedGraphEdgeId.set(null);
 		this.selectedGraphNodeId.set(runtimeNode.id);
 		this.emitDraft();
 	}
@@ -313,7 +337,44 @@ export class SystemValueCalculationEditorComponent {
 		changes: Array<{ id: string; selected: boolean }>
 	) {
 		const selected = changes.find(change => change.selected);
-		this.selectedGraphNodeId.set(selected?.id ?? null);
+		if (selected) {
+			this.cancelPendingSelectionClear();
+			this.selectedGraphEdgeId.set(null);
+			this.selectedGraphNodeId.set(selected.id);
+			return;
+		}
+
+		const currentNodeId = this.selectedGraphNodeId();
+		const currentWasDeselected = changes.some(
+			change => change.id === currentNodeId && !change.selected
+		);
+
+		if (!currentWasDeselected) {
+			return;
+		}
+
+		this.scheduleSelectionClear();
+	}
+
+	protected onGraphEdgeSelectionChange(
+		changes: Array<{ id: string; selected: boolean }>
+	) {
+		const selected = changes.find(change => change.selected);
+		if (selected) {
+			this.cancelPendingSelectionClear();
+			this.selectedGraphNodeId.set(null);
+			this.selectedGraphEdgeId.set(selected.id);
+			return;
+		}
+
+		const currentEdgeId = this.selectedGraphEdgeId();
+		const currentWasDeselected = changes.some(
+			change => change.id === currentEdgeId && !change.selected
+		);
+
+		if (currentWasDeselected) {
+			this.selectedGraphEdgeId.set(null);
+		}
 	}
 
 	protected onGraphDragEnd() {
@@ -339,6 +400,11 @@ export class SystemValueCalculationEditorComponent {
 
 	protected updateSelectedOperation(operation: GraphOperation) {
 		this.patchSelectedGraphNodeData({ operation });
+		this.emitDraft();
+	}
+
+	protected updateSelectedComparison(comparison: GraphComparison) {
+		this.patchSelectedGraphNodeData({ comparison });
 		this.emitDraft();
 	}
 
@@ -414,13 +480,30 @@ export class SystemValueCalculationEditorComponent {
 			return;
 		}
 
+		const node = this.selectedGraphNode();
+		if (node?.data?.()?.kind === 'result') {
+			return;
+		}
+
 		this.graphNodes.update(nodes => nodes.filter(node => node.id !== nodeId));
 		this.graphEdges.update(edges =>
 			edges.filter(edge => edge.source !== nodeId && edge.target !== nodeId)
 		);
 		this.selectedGraphNodeId.set(null);
+		this.selectedGraphEdgeId.set(null);
 		this.emitDraft();
 		this.initializeTestSourceValues();
+	}
+
+	protected removeSelectedGraphEdge() {
+		const edgeId = this.selectedGraphEdgeId();
+		if (!edgeId) {
+			return;
+		}
+
+		this.graphEdges.update(edges => edges.filter(edge => edge.id !== edgeId));
+		this.selectedGraphEdgeId.set(null);
+		this.emitDraft();
 	}
 
 	protected graphNodeTypeLabel(kind: GraphNodeKind) {
@@ -453,6 +536,28 @@ export class SystemValueCalculationEditorComponent {
 		return value === null ? '—' : formatNumber(value);
 	}
 
+	@HostListener('document:keydown', ['$event'])
+	protected onDocumentKeyDown(event: KeyboardEvent) {
+		if (event.key !== 'Delete' && event.key !== 'Backspace') {
+			return;
+		}
+
+		if (this.isTextInputEvent(event)) {
+			return;
+		}
+
+		if (this.selectedGraphEdgeId()) {
+			event.preventDefault();
+			this.removeSelectedGraphEdge();
+			return;
+		}
+
+		if (this.selectedGraphNodeId()) {
+			event.preventDefault();
+			this.removeSelectedGraphNode();
+		}
+	}
+
 	private emitDraft() {
 		const systemValue = this.systemValue();
 		if (!systemValue) {
@@ -470,6 +575,7 @@ export class SystemValueCalculationEditorComponent {
 			this.graphNodes.set([]);
 			this.graphEdges.set([]);
 			this.selectedGraphNodeId.set(null);
+			this.selectedGraphEdgeId.set(null);
 			return;
 		}
 
@@ -486,6 +592,7 @@ export class SystemValueCalculationEditorComponent {
 		);
 		this.graphEdges.set(graph.edges.map(edge => ({ ...edge })));
 		this.selectedGraphNodeId.set(graph.nodes[0]?.id ?? null);
+		this.selectedGraphEdgeId.set(null);
 	}
 
 	private initializeTestSourceValues() {
@@ -546,6 +653,38 @@ export class SystemValueCalculationEditorComponent {
 		}));
 	}
 
+	private cancelPendingSelectionClear() {
+		if (!this.pendingSelectionClear) {
+			return;
+		}
+
+		clearTimeout(this.pendingSelectionClear);
+		this.pendingSelectionClear = null;
+	}
+
+	private scheduleSelectionClear() {
+		this.cancelPendingSelectionClear();
+		this.pendingSelectionClear = setTimeout(() => {
+			this.selectedGraphNodeId.set(null);
+			this.pendingSelectionClear = null;
+		});
+	}
+
+	private isTextInputEvent(event: KeyboardEvent) {
+		const target = event.target;
+
+		if (!(target instanceof HTMLElement)) {
+			return false;
+		}
+
+		return (
+			target.isContentEditable ||
+			target.tagName === 'INPUT' ||
+			target.tagName === 'TEXTAREA' ||
+			target.tagName === 'SELECT'
+		);
+	}
+
 	private isConnectionValid(connection: Connection) {
 		if (connection.source === connection.target) {
 			return false;
@@ -572,13 +711,30 @@ export class SystemValueCalculationEditorComponent {
 			targetData.kind === 'operation' &&
 			(targetData.operation === 'subtract' || targetData.operation === 'divide')
 		) {
-			return !this.graphEdges().some(
-				edge =>
-					edge.target === targetNode.id &&
-					(edge.targetHandle ?? 'a') === (connection.targetHandle ?? 'a')
-			);
+			return this.isTargetHandleAvailable(targetNode.id, connection, 'a');
+		}
+
+		if (targetData.kind === 'comparison') {
+			return this.isTargetHandleAvailable(targetNode.id, connection, 'in');
+		}
+
+		if (targetData.kind === 'condition') {
+			return this.isTargetHandleAvailable(targetNode.id, connection, 'condition');
 		}
 
 		return true;
+	}
+
+	private isTargetHandleAvailable(
+		targetNodeId: string,
+		connection: Connection,
+		defaultHandleId: string
+	) {
+		return !this.graphEdges().some(
+			edge =>
+				edge.target === targetNodeId &&
+				(edge.targetHandle ?? defaultHandleId) ===
+					(connection.targetHandle ?? defaultHandleId)
+		);
 	}
 }

@@ -6,6 +6,8 @@ export type GraphNodeKind =
 	| 'source'
 	| 'constant'
 	| 'operation'
+	| 'comparison'
+	| 'condition'
 	| 'curve'
 	| 'result';
 
@@ -17,6 +19,8 @@ export type GraphOperation =
 	| 'multiply'
 	| 'subtract'
 	| 'divide';
+
+export type GraphComparison = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
 
 export interface CurveRange {
 	id: string;
@@ -33,6 +37,7 @@ export interface ValueGraphNodeState {
 	sourceValueId?: string | null;
 	constantValue?: number;
 	operation?: GraphOperation;
+	comparison?: GraphComparison;
 	curveRanges?: CurveRange[];
 }
 
@@ -55,5 +60,6 @@ export interface ValueGraphNodeData {
 	sourceValueName?: string | null;
 	constantValue?: number;
 	operation?: GraphOperation;
+	comparison?: GraphComparison;
 	curveRanges?: CurveRange[];
 }

@@ -47,6 +47,10 @@ class UpdateGraphNodeDto {
 	operation?: string;
 
 	@IsOptional()
+	@IsString()
+	comparison?: string;
+
+	@IsOptional()
 	@IsArray()
 	@ValidateNested({ each: true })
 	@Type(() => UpdateCurveRangeDto)

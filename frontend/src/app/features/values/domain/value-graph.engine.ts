@@ -1,6 +1,7 @@
 import { SystemValue } from './values.models';
 import {
 	CurveRange,
+	GraphComparison,
 	GraphOperation,
 	ValueGraphState
 } from '../ui/value-graph.models';
@@ -91,6 +92,40 @@ export function operationLabel(operation: GraphOperation): string {
 			return 'Вычесть';
 		case 'divide':
 			return 'Разделить';
+	}
+}
+
+export function comparisonLabel(comparison: GraphComparison): string {
+	switch (comparison) {
+		case 'eq':
+			return 'Равно';
+		case 'ne':
+			return 'Не равно';
+		case 'gt':
+			return 'Больше';
+		case 'gte':
+			return 'Больше или равно';
+		case 'lt':
+			return 'Меньше';
+		case 'lte':
+			return 'Меньше или равно';
+	}
+}
+
+export function comparisonSymbol(comparison: GraphComparison): string {
+	switch (comparison) {
+		case 'eq':
+			return '=';
+		case 'ne':
+			return '!=';
+		case 'gt':
+			return '>';
+		case 'gte':
+			return '>=';
+		case 'lt':
+			return '<';
+		case 'lte':
+			return '<=';
 	}
 }
 
@@ -196,11 +231,70 @@ function evaluateGraphNode(
 			);
 			break;
 		}
+		case 'comparison': {
+			const left = evaluateHandleValue(
+				node.id,
+				'a',
+				graph,
+				values,
+				breakdown,
+				visited,
+				sourceOverrides
+			);
+			const right = evaluateHandleValue(
+				node.id,
+				'b',
+				graph,
+				values,
+				breakdown,
+				visited,
+				sourceOverrides
+			);
+			result = applyComparison(node.comparison ?? 'gte', left, right) ? 1 : 0;
+			breakdown.push(
+				`Сравнение: ${formatNumber(left)} ${comparisonSymbol(node.comparison ?? 'gte')} ${formatNumber(right)} = ${formatNumber(result)}`
+			);
+			break;
+		}
+		case 'condition': {
+			const condition = evaluateHandleValue(
+				node.id,
+				'condition',
+				graph,
+				values,
+				breakdown,
+				visited,
+				sourceOverrides
+			);
+			const thenValue = evaluateHandleValue(
+				node.id,
+				'then',
+				graph,
+				values,
+				breakdown,
+				visited,
+				sourceOverrides
+			);
+			const elseValue = evaluateHandleValue(
+				node.id,
+				'else',
+				graph,
+				values,
+				breakdown,
+				visited,
+				sourceOverrides
+			);
+			result = condition !== 0 ? thenValue : elseValue;
+			breakdown.push(
+				`Если: ${condition !== 0 ? 'значение если да' : 'значение если нет'} = ${formatNumber(result)}`
+			);
+			break;
+		}
 		case 'curve': {
-			const incoming = findIncomingNode(node.id, graph);
+			const incoming = findIncomingEdge(node.id, graph);
 			const sourceValue = incoming
 				? evaluateGraphNode(
-						incoming.id,
+						incoming.source,
 						graph,
 						values,
 						breakdown,
@@ -213,10 +307,10 @@ function evaluateGraphNode(
 			break;
 		}
 		case 'result': {
-			const incoming = findIncomingNode(node.id, graph);
+			const incoming = findIncomingEdge(node.id, graph);
 			result = incoming
 				? evaluateGraphNode(
-						incoming.id,
+						incoming.source,
 						graph,
 						values,
 						breakdown,
@@ -233,9 +327,38 @@ function evaluateGraphNode(
 	return result;
 }
 
+function evaluateHandleValue(
+	nodeId: string,
+	handleId: string,
+	graph: ValueGraphState,
+	values: SystemValue[],
+	breakdown: string[],
+	visited: Set<string>,
+	sourceOverrides?: Record<string, number>
+) {
+	const incoming = graph.edges.find(
+		edge => edge.target === nodeId && edge.targetHandle === handleId
+	);
+
+	return incoming
+		? evaluateGraphNode(
+				incoming.source,
+				graph,
+				values,
+				breakdown,
+				visited,
+				sourceOverrides
+		  )
+		: 0;
+}
+
 function findIncomingNode(nodeId: string, graph: ValueGraphState) {
 	const incoming = graph.edges.find(edge => edge.target === nodeId);
 	return incoming ? graph.nodes.find(node => node.id === incoming.source) ?? null : null;
+}
+
+function findIncomingEdge(nodeId: string, graph: ValueGraphState) {
+	return graph.edges.find(edge => edge.target === nodeId) ?? null;
 }
 
 function applyCurve(value: number, ranges: CurveRange[]): number {
@@ -263,5 +386,26 @@ function applyOperation(operation: GraphOperation, values: number[]): number {
 			return (values[0] ?? 0) - (values[1] ?? 0);
 		case 'divide':
 			return values[1] ? (values[0] ?? 0) / values[1] : 0;
+	}
+}
+
+function applyComparison(
+	comparison: GraphComparison,
+	left: number,
+	right: number
+): boolean {
+	switch (comparison) {
+		case 'eq':
+			return left === right;
+		case 'ne':
+			return left !== right;
+		case 'gt':
+			return left > right;
+		case 'gte':
+			return left >= right;
+		case 'lt':
+			return left < right;
+		case 'lte':
+			return left <= right;
 	}
 }

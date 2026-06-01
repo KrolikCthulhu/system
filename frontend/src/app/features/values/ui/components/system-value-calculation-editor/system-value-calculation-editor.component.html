@@ -45,6 +45,7 @@
 											(connect)="onGraphConnect($event)"
 											changesController
 											(nodesChanges.select)="onGraphSelectionChange($event)"
+											(edgesChanges.select)="onGraphEdgeSelectionChange($event)"
 											(nodeDragEnd)="onGraphDragEnd()"
 										></vflow>
 									</div>
@@ -52,7 +53,37 @@
 
 									<ng-template #panel>
 										<div class="system-value-calculation-editor__graph-inspector">
-											@if (selectedGraphNodeData(); as selectedNode) {
+											@if (selectedGraphEdge(); as selectedEdge) {
+												<div class="system-value-calculation-editor__inspector-header">
+													<div>
+														<div class="text-muted">Связь</div>
+														<strong>Линия графа</strong>
+													</div>
+
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														[text]="true"
+														[rounded]="true"
+														(onClick)="removeSelectedGraphEdge()"
+													></p-button>
+												</div>
+
+												<div class="system-value-calculation-editor__note">
+													<div class="text-muted">Источник</div>
+													<p>
+														{{ selectedEdge.source }} / {{ selectedEdge.sourceHandle ?? 'out' }}
+													</p>
+												</div>
+
+												<div class="system-value-calculation-editor__note">
+													<div class="text-muted">Приёмник</div>
+													<p>
+														{{ selectedEdge.target }} / {{ selectedEdge.targetHandle ?? 'in' }}
+													</p>
+												</div>
+
+											} @else if (selectedGraphNodeData(); as selectedNode) {
 												<div class="system-value-calculation-editor__inspector-header">
 													<div>
 														<div class="text-muted">Узел</div>
@@ -122,6 +153,37 @@
 															[ngModel]="selectedNode.operation"
 															(ngModelChange)="updateSelectedOperation($event)"
 														></p-select>
+													</div>
+												}
+
+												@if (selectedNode.kind === 'comparison') {
+													<div class="system-value-calculation-editor__field">
+														<span class="system-value-calculation-editor__field-label">
+															Сравнение
+														</span>
+														<p-select
+															[options]="comparisonOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="selectedNode.comparison"
+															(ngModelChange)="updateSelectedComparison($event)"
+														></p-select>
+													</div>
+
+													<div class="system-value-calculation-editor__note">
+														<p>
+															Сравнивает A с B в выбранном порядке. Возвращает 1, если
+															сравнение истинно, и 0, если ложно.
+														</p>
+													</div>
+												}
+
+												@if (selectedNode.kind === 'condition') {
+													<div class="system-value-calculation-editor__note">
+														<p>
+															Вход «Проверка» выбирает значение: если не 0, возвращается
+															«Значение если да», иначе «Значение если нет».
+														</p>
 													</div>
 												}
 

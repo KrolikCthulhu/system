@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
 import { CustomNodeComponent, Vflow } from 'ngx-vflow';
 import {
+	GraphComparison,
 	GraphNodeKind,
 	GraphOperation,
 	ValueGraphNodeData
@@ -20,6 +21,8 @@ import {
 			[class.value-graph-node--source]="kind() === 'source'"
 			[class.value-graph-node--constant]="kind() === 'constant'"
 			[class.value-graph-node--operation]="kind() === 'operation'"
+			[class.value-graph-node--comparison]="kind() === 'comparison'"
+			[class.value-graph-node--condition]="kind() === 'condition'"
 			[class.value-graph-node--curve]="kind() === 'curve'"
 			[class.value-graph-node--result]="kind() === 'result'"
 		>
@@ -47,6 +50,39 @@ import {
 					<span class="value-graph-node__subtitle">{{ subtitle() }}</span>
 				</div>
 
+				@if (kind() === 'comparison') {
+					<div class="value-graph-node__comparison-map">
+						<div class="value-graph-node__comparison-row">
+							<span class="value-graph-node__comparison-port">A</span>
+							<span class="value-graph-node__comparison-text">левое значение</span>
+						</div>
+						<div class="value-graph-node__comparison-row">
+							<span class="value-graph-node__comparison-port">B</span>
+							<span class="value-graph-node__comparison-text">правое значение</span>
+						</div>
+						<div class="value-graph-node__comparison-summary">
+							<span>A {{ comparisonSymbol() }} B</span>
+						</div>
+					</div>
+				}
+
+				@if (kind() === 'condition') {
+					<div class="value-graph-node__condition-map">
+						<div class="value-graph-node__condition-row">
+							<span class="value-graph-node__condition-port">Проверка</span>
+							<span class="value-graph-node__condition-text">если не 0</span>
+						</div>
+						<div class="value-graph-node__condition-row">
+							<span class="value-graph-node__condition-port">Если да</span>
+							<span class="value-graph-node__condition-text">вернуть при истине</span>
+						</div>
+						<div class="value-graph-node__condition-row">
+							<span class="value-graph-node__condition-port">Если нет</span>
+							<span class="value-graph-node__condition-text">вернуть при лжи</span>
+						</div>
+					</div>
+				}
+
 				@if (kind() === 'characterInput') {
 					<handle type="source" position="right" id="out" />
 				}
@@ -61,12 +97,25 @@ import {
 
 				@if (kind() === 'operation') {
 					@if (usesBinaryHandles()) {
-						<handle type="target" position="left" id="a" style="top: 34%" />
-						<handle type="target" position="left" id="b" style="top: 66%" />
+						<handle type="target" position="left" id="a" [offsetY]="12" />
+						<handle type="target" position="left" id="b" [offsetY]="-12" />
 					} @else {
 						<handle type="target" position="left" id="in" />
 					}
 
+					<handle type="source" position="right" id="out" />
+				}
+
+				@if (kind() === 'comparison') {
+					<handle type="target" position="left" id="a" [offsetY]="-11" />
+					<handle type="target" position="left" id="b" [offsetY]="-33" />
+					<handle type="source" position="right" id="out" />
+				}
+
+				@if (kind() === 'condition') {
+					<handle type="target" position="left" id="condition" [offsetY]="-12" />
+					<handle type="target" position="left" id="then" [offsetY]="-32" />
+					<handle type="target" position="left" id="else" [offsetY]="-52" />
 					<handle type="source" position="right" id="out" />
 				}
 
@@ -105,6 +154,10 @@ import {
 				background: var(--p-content-background);
 				box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 				cursor: pointer;
+			}
+
+			.value-graph-node--condition {
+				width: 18.5rem;
 			}
 
 			.value-graph-node__card > handle {
@@ -172,6 +225,108 @@ import {
 				color: var(--p-text-muted-color);
 			}
 
+			.value-graph-node__ports {
+				grid-column: 1 / -1;
+				display: grid;
+				gap: 0.25rem;
+				padding-left: 0.125rem;
+				font-size: 0.6875rem;
+				color: var(--p-text-muted-color);
+			}
+
+			.value-graph-node__ports span {
+				display: flex;
+				align-items: center;
+				min-height: 1rem;
+				padding-left: 1rem;
+				position: relative;
+			}
+
+			.value-graph-node__ports span::before {
+				content: '';
+				position: absolute;
+				left: 0;
+				width: 0.375rem;
+				height: 0.375rem;
+				border-radius: 999px;
+				background: var(--node-accent);
+				opacity: 0.65;
+			}
+
+			.value-graph-node__ports--comparison {
+				grid-template-columns: 1fr 1fr;
+			}
+
+			.value-graph-node__comparison-map {
+				grid-column: 1 / -1;
+				display: grid;
+				gap: 0.25rem;
+				padding-top: 1px;
+			}
+
+			.value-graph-node__comparison-row {
+				display: grid;
+				grid-template-columns: 1.75rem minmax(0, 1fr);
+				gap: 0.5rem;
+				align-items: center;
+				min-height: 1.125rem;
+				padding-left: 0.75rem;
+				border-left: 2px solid var(--node-accent);
+			}
+
+			.value-graph-node__comparison-port,
+			.value-graph-node__comparison-summary {
+				font-size: 0.6875rem;
+				font-weight: 700;
+				color: var(--node-accent);
+			}
+
+			.value-graph-node__comparison-text {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 0.6875rem;
+				color: var(--p-text-muted-color);
+			}
+
+			.value-graph-node__comparison-summary {
+				display: flex;
+				justify-content: flex-start;
+				padding-left: 0.75rem;
+			}
+
+			.value-graph-node__condition-map {
+				grid-column: 1 / -1;
+				display: grid;
+				gap: 0.25rem;
+				padding-top: 0.25rem;
+			}
+
+			.value-graph-node__condition-row {
+				display: grid;
+				grid-template-columns: 3.25rem minmax(0, 1fr);
+				gap: 0.5rem;
+				align-items: center;
+				min-height: 1.125rem;
+				position: relative;
+				padding-left: 0.75rem;
+				border-left: 2px solid var(--node-accent);
+			}
+
+			.value-graph-node__condition-port {
+				font-size: 0.6875rem;
+				font-weight: 700;
+				color: var(--node-accent);
+			}
+
+			.value-graph-node__condition-text {
+				overflow: hidden;
+				text-overflow: ellipsis;
+				white-space: nowrap;
+				font-size: 0.6875rem;
+				color: var(--p-text-muted-color);
+			}
+
 			.value-graph-node--source {
 				--node-accent: var(--p-green-600);
 				--node-accent-soft: var(--p-green-100);
@@ -198,6 +353,18 @@ import {
 					var(--p-primary-color) 45%,
 					var(--p-content-border-color)
 				);
+			}
+
+			.value-graph-node--comparison {
+				--node-accent: var(--p-cyan-600);
+				--node-accent-soft: var(--p-cyan-100);
+				--node-border: var(--p-cyan-200);
+			}
+
+			.value-graph-node--condition {
+				--node-accent: var(--p-yellow-700);
+				--node-accent-soft: var(--p-yellow-100);
+				--node-border: var(--p-yellow-200);
 			}
 
 			.value-graph-node--curve {
@@ -230,6 +397,10 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 				return 'Число';
 			case 'operation':
 				return 'Операция';
+			case 'comparison':
+				return 'Сравнение';
+			case 'condition':
+				return 'Если';
 			case 'curve':
 				return 'Шкала';
 			case 'result':
@@ -249,6 +420,10 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 				return String(data?.constantValue ?? 0);
 			case 'operation':
 				return operationLabel(data?.operation ?? 'sum');
+			case 'comparison':
+				return comparisonLabel(data?.comparison ?? 'gte');
+			case 'condition':
+				return 'Вернуть значение';
 			case 'curve':
 				return 'Таблица уровней';
 			case 'result':
@@ -270,6 +445,10 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 				return this.usesBinaryHandles()
 					? 'Два входа'
 					: 'Принимает несколько входов';
+			case 'comparison':
+				return 'Возвращает 1 или 0';
+			case 'condition':
+				return 'Если проверка не 0';
 			case 'curve':
 				return `${data?.curveRanges?.length ?? 0} диапазонов`;
 			case 'result':
@@ -292,6 +471,10 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 				return 'pi pi-hashtag';
 			case 'operation':
 				return operationIconClass(this.data()?.operation ?? 'sum');
+			case 'comparison':
+				return 'pi pi-verified';
+			case 'condition':
+				return 'pi pi-code-branch';
 			case 'curve':
 				return 'pi pi-sliders-h';
 			case 'result':
@@ -302,6 +485,44 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 	protected readonly usesDivideIcon = computed(
 		() => this.kind() === 'operation' && this.data()?.operation === 'divide'
 	);
+
+	protected readonly comparisonSymbol = computed(() =>
+		comparisonSymbol(this.data()?.comparison ?? 'gte')
+	);
+}
+
+function comparisonSymbol(comparison: GraphComparison): string {
+	switch (comparison) {
+		case 'eq':
+			return '=';
+		case 'ne':
+			return '!=';
+		case 'gt':
+			return '>';
+		case 'gte':
+			return '>=';
+		case 'lt':
+			return '<';
+		case 'lte':
+			return '<=';
+	}
+}
+
+function comparisonLabel(comparison: GraphComparison): string {
+	switch (comparison) {
+		case 'eq':
+			return 'Равно';
+		case 'ne':
+			return 'Не равно';
+		case 'gt':
+			return 'Больше';
+		case 'gte':
+			return 'Больше или равно';
+		case 'lt':
+			return 'Меньше';
+		case 'lte':
+			return 'Меньше или равно';
+	}
 }
 
 function operationIconClass(operation: GraphOperation): string {

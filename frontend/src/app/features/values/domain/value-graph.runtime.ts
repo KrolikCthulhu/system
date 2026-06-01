@@ -3,6 +3,7 @@ import { ComponentNode, Edge } from 'ngx-vflow';
 import { ValueGraphNodeComponent } from '../ui/components/value-graph-node/value-graph-node.component';
 import {
 	CurveRange,
+	GraphComparison,
 	GraphNodeKind,
 	ValueGraphEdgeState,
 	ValueGraphNodeData,
@@ -15,7 +16,14 @@ export function createGraphNodeState(
 	index: number
 ): ValueGraphNodeState {
 	const id = `${kind}-${crypto.randomUUID()}`;
-	const x = kind === 'result' ? 780 : kind === 'curve' ? 540 : 120 + (index % 2) * 160;
+	const x =
+		kind === 'result'
+			? 780
+			: kind === 'curve' || kind === 'condition'
+				? 540
+				: kind === 'comparison'
+					? 360
+					: 120 + (index % 2) * 160;
 	const y = 48 + index * 72;
 
 	switch (kind) {
@@ -27,6 +35,10 @@ export function createGraphNodeState(
 			return { id, kind, x, y, constantValue: 0 };
 		case 'operation':
 			return { id, kind, x, y, operation: 'sum' };
+		case 'comparison':
+			return { id, kind, x, y, comparison: 'gte' };
+		case 'condition':
+			return { id, kind, x, y };
 		case 'curve':
 			return {
 				id,
@@ -54,6 +66,7 @@ export function createRuntimeGraphNode(
 			sourceValueName,
 			constantValue: node.constantValue,
 			operation: node.operation,
+			comparison: node.comparison,
 			curveRanges: structuredClone(node.curveRanges ?? [])
 		})
 	};
@@ -72,6 +85,7 @@ export function serializeGraphNode(
 		sourceValueId: data?.sourceValueId ?? null,
 		constantValue: data?.constantValue,
 		operation: data?.operation,
+		comparison: data?.comparison,
 		curveRanges: structuredClone(data?.curveRanges ?? [])
 	};
 }
@@ -123,6 +137,10 @@ function normalizeGraphNodeState(node: ValueGraphNodeState): ValueGraphNodeState
 		normalized.operation = node.operation;
 	}
 
+	if (node.kind === 'comparison') {
+		normalized.comparison = normalizeComparison(node.comparison);
+	}
+
 	if (node.kind === 'curve' && node.curveRanges?.length) {
 		normalized.curveRanges = structuredClone(node.curveRanges);
 	}
@@ -142,4 +160,10 @@ function normalizeGraphEdgeState(edge: ValueGraphEdgeState): ValueGraphEdgeState
 
 export function cloneCurveRanges(curveRanges: CurveRange[] | undefined) {
 	return structuredClone(curveRanges ?? []);
+}
+
+function normalizeComparison(
+	comparison: GraphComparison | undefined
+): GraphComparison {
+	return comparison ?? 'gte';
 }
