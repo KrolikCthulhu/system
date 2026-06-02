@@ -117,6 +117,8 @@ const GRAPH_NODE_TYPES: GraphNodeType[] = [
 export class SystemValueCalculationEditorComponent {
 	readonly systemValue = input<SystemValueCalculationDefinition | null>(null);
 	readonly availableValues = input<SystemValue[]>([]);
+	readonly showGeneralTab = input(false);
+	readonly readonly = input(false);
 	readonly systemValueChange = output<SystemValueCalculationDefinition>();
 
 	protected readonly activeTab = signal<string | number>('calculation');
@@ -279,6 +281,10 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected addGraphNode(kind: GraphNodeKind) {
+		if (this.readonly()) {
+			return;
+		}
+
 		if (kind === 'result' && this.graphHasResultNode()) {
 			return;
 		}
@@ -292,6 +298,10 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected onGraphConnect(connection: Connection) {
+		if (this.readonly()) {
+			return;
+		}
+
 		const edgeId = `${connection.source}:${connection.sourceHandle ?? 'out'} -> ${connection.target}:${connection.targetHandle ?? 'in'}`;
 
 		if (this.graphEdges().some(edge => edge.id === edgeId)) {
@@ -356,10 +366,18 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected onGraphDragEnd() {
+		if (this.readonly()) {
+			return;
+		}
+
 		this.emitDraft();
 	}
 
 	protected updateSelectedSourceValue(sourceValueId: string | null) {
+		if (this.readonly()) {
+			return;
+		}
+
 		this.patchSelectedGraphNodeData({
 			sourceValueId,
 			sourceValueName: sourceValueId
@@ -372,21 +390,37 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected updateSelectedConstantValue(value: number) {
+		if (this.readonly()) {
+			return;
+		}
+
 		this.patchSelectedGraphNodeData({ constantValue: value });
 		this.emitDraft();
 	}
 
 	protected updateSelectedOperation(operation: GraphOperation) {
+		if (this.readonly()) {
+			return;
+		}
+
 		this.patchSelectedGraphNodeData({ operation });
 		this.emitDraft();
 	}
 
 	protected updateSelectedComparison(comparison: GraphComparison) {
+		if (this.readonly()) {
+			return;
+		}
+
 		this.patchSelectedGraphNodeData({ comparison });
 		this.emitDraft();
 	}
 
 	protected addSelectedCurveRange() {
+		if (this.readonly()) {
+			return;
+		}
+
 		const data = this.selectedGraphNodeData();
 		if (data?.kind !== 'curve') {
 			return;
@@ -413,6 +447,10 @@ export class SystemValueCalculationEditorComponent {
 		rangeId: string,
 		patch: Partial<Omit<CurveRange, 'id'>>
 	) {
+		if (this.readonly()) {
+			return;
+		}
+
 		const data = this.selectedGraphNodeData();
 		if (data?.kind !== 'curve') {
 			return;
@@ -427,6 +465,10 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected removeSelectedCurveRange(rangeId: string) {
+		if (this.readonly()) {
+			return;
+		}
+
 		const data = this.selectedGraphNodeData();
 		if (data?.kind !== 'curve') {
 			return;
@@ -441,6 +483,10 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected clearSelectedGraphNodeInputs() {
+		if (this.readonly()) {
+			return;
+		}
+
 		const nodeId = this.selectedGraphNodeId();
 		if (!nodeId) {
 			return;
@@ -453,6 +499,10 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected removeSelectedGraphNode() {
+		if (this.readonly()) {
+			return;
+		}
+
 		const nodeId = this.selectedGraphNodeId();
 		if (!nodeId) {
 			return;
@@ -474,6 +524,10 @@ export class SystemValueCalculationEditorComponent {
 	}
 
 	protected removeSelectedGraphEdge() {
+		if (this.readonly()) {
+			return;
+		}
+
 		const edgeId = this.selectedGraphEdgeId();
 		if (!edgeId) {
 			return;

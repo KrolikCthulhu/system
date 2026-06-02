@@ -77,6 +77,7 @@
 									<ng-template #header>
 										<tr>
 											<th>Название</th>
+											<th>Штраф пула</th>
 											<th>Порядок</th>
 											<th>Активность</th>
 											<th
@@ -97,6 +98,7 @@
 											"
 										>
 											<td>{{ attribute.name }}</td>
+											<td>{{ getAttributePoolPenaltyName(attribute) }}</td>
 											<td>{{ attribute.sortOrder }}</td>
 											<td>
 												<p-toggleswitch
@@ -223,6 +225,7 @@
 								<ng-template #header>
 									<tr>
 										<th>Название</th>
+										<th>Штраф пула</th>
 										<th>Порядок</th>
 										<th>Активность</th>
 										<th
@@ -243,6 +246,7 @@
 										"
 									>
 										<td>{{ attribute.name }}</td>
+										<td>{{ getAttributePoolPenaltyName(attribute) }}</td>
 										<td>{{ attribute.sortOrder }}</td>
 										<td>
 											<p-toggleswitch

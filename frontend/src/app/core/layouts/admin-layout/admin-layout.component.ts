@@ -30,6 +30,10 @@ export class AdminLayoutComponent {
 				{
 					label: 'Значения',
 					routerLink: '/admin/rules/values'
+				},
+				{
+					label: 'События',
+					routerLink: '/admin/rules/events'
 				}
 			]
 		},

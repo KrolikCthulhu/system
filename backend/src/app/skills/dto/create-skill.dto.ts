@@ -17,7 +17,7 @@ export class CreateSkillDto {
 
 	@IsOptional()
 	@IsUUID()
-	dicePoolValueId?: string | null;
+	rollCharacteristicId?: string | null;
 
 	@IsInt()
 	@Min(0)

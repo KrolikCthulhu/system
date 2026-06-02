@@ -7,12 +7,7 @@
 
 		<div class="admin-character-sheet-page__hero">
 			<div>
-				<p class="admin-character-sheet-page__eyebrow">Админская песочница</p>
 				<h1 class="admin-character-sheet-page__title">Лист персонажа</h1>
-				<p class="admin-character-sheet-page__subtitle">
-					Проверяй реальные значения персонажа, меняй вводимые параметры и
-					кидай навыки в текущей системе правил.
-				</p>
 			</div>
 
 			<div class="admin-character-sheet-page__actions">
@@ -74,7 +69,9 @@
 	</header>
 
 	@if (loading()) {
-		<section class="admin-character-sheet-page__state">Загрузка листа...</section>
+		<section class="admin-character-sheet-page__state">
+			Загрузка листа...
+		</section>
 	} @else if (errorMessage()) {
 		<section
 			class="admin-character-sheet-page__state admin-character-sheet-page__state--error"
@@ -96,17 +93,16 @@
 									<h3>{{ block.attribute.name }}</h3>
 									<span>Итог: {{ formatValue(block.value) }}</span>
 								</div>
-								<p-inputnumber
-									[ngModel]="getInputValue(block.attribute.systemValue.id)"
-									(ngModelChange)="
-										setInputValue(block.attribute.systemValue.id, $event)
-									"
-									[showButtons]="false"
-								></p-inputnumber>
+								<strong class="admin-character-sheet-page__readonly-value">
+									{{ formatValue(block.value) }}
+								</strong>
 							</div>
 
 							<div class="admin-character-sheet-page__characteristic-list">
-								@for (item of block.characteristics; track item.characteristic.id) {
+								@for (
+									item of block.characteristics;
+									track item.characteristic.id
+								) {
 									<div class="admin-character-sheet-page__value-row">
 										<div>
 											<strong>{{ item.characteristic.name }}</strong>
@@ -138,74 +134,83 @@
 				</div>
 			</section>
 
-			<aside class="admin-character-sheet-page__side">
-				<section class="admin-character-sheet-page__skills">
+			<section class="admin-character-sheet-page__skills">
+				<div class="admin-character-sheet-page__section-heading">
+					<h2>Навыки</h2>
+				</div>
+
+				<div class="admin-character-sheet-page__skill-groups">
+					@for (group of skillGroups(); track group.category?.id ?? 'none') {
+						<article class="admin-character-sheet-page__skill-group">
+							<div class="admin-character-sheet-page__skill-group-heading">
+								<h3>{{ group.category?.name ?? 'Без категории' }}</h3>
+								<span>{{ group.skills.length }}</span>
+							</div>
+
+							<div class="admin-character-sheet-page__skill-list">
+								@for (skill of group.skills; track skill.id) {
+									<div class="admin-character-sheet-page__skill-row">
+										<div>
+											<strong>{{ skill.name }}</strong>
+											<span>
+												{{ getSkillConsequenceName(skill) }}
+												@if (!skill.rollCharacteristicId) {
+													· характеристика броска не выбрана
+												}
+											</span>
+										</div>
+										<div class="admin-character-sheet-page__skill-controls">
+											<p-inputnumber
+												[ngModel]="getInputValue(skill.systemValue.id)"
+												(ngModelChange)="
+													setInputValue(skill.systemValue.id, $event)
+												"
+												[min]="0"
+												[max]="skill.maxLevel"
+												[showButtons]="false"
+											></p-inputnumber>
+											<p-button
+												label="Бросить"
+												icon="pi pi-send"
+												severity="secondary"
+												variant="outlined"
+												[loading]="rollingSkillId() === skill.id"
+												[disabled]="rollingSkillId() !== null"
+												(onClick)="rollSkill(skill)"
+											></p-button>
+										</div>
+									</div>
+								}
+							</div>
+						</article>
+					}
+				</div>
+			</section>
+
+			@if (consequenceValues().length) {
+				<section class="admin-character-sheet-page__resources">
 					<div class="admin-character-sheet-page__section-heading">
-						<h2>Навыки</h2>
+						<h2>Последствия и ресурсы</h2>
 					</div>
 
-					<div class="admin-character-sheet-page__skill-list">
-						@for (skill of activeSkills(); track skill.id) {
-							<div class="admin-character-sheet-page__skill-row">
+					<div class="admin-character-sheet-page__resource-list">
+						@for (item of consequenceValues(); track item.value.id) {
+							<div class="admin-character-sheet-page__value-row">
 								<div>
-									<strong>{{ skill.name }}</strong>
-									<span>
-										{{ getSkillConsequenceName(skill) }}
-										@if (!skill.dicePoolValueId) {
-											· пул кубов не выбран
-										}
-									</span>
+									<strong>{{ item.value.name }}</strong>
+									<span>Итог: {{ formatValue(item.calculated) }}</span>
 								</div>
-								<div class="admin-character-sheet-page__skill-controls">
-									<p-inputnumber
-										[ngModel]="getInputValue(skill.systemValue.id)"
-										(ngModelChange)="
-											setInputValue(skill.systemValue.id, $event)
-										"
-										[min]="0"
-										[max]="skill.maxLevel"
-										[showButtons]="false"
-									></p-inputnumber>
-									<p-button
-										label="Бросить"
-										icon="pi pi-send"
-										severity="secondary"
-										variant="outlined"
-										[loading]="rollingSkillId() === skill.id"
-										[disabled]="rollingSkillId() !== null"
-										(onClick)="rollSkill(skill)"
-									></p-button>
-								</div>
+								<p-inputnumber
+									[ngModel]="getInputValue(item.value.id)"
+									(ngModelChange)="setInputValue(item.value.id, $event)"
+									[min]="0"
+									[showButtons]="false"
+								></p-inputnumber>
 							</div>
 						}
 					</div>
 				</section>
-
-				@if (consequenceValues().length) {
-					<section class="admin-character-sheet-page__resources">
-						<div class="admin-character-sheet-page__section-heading">
-							<h2>Последствия и ресурсы</h2>
-						</div>
-
-						<div class="admin-character-sheet-page__resource-list">
-							@for (item of consequenceValues(); track item.value.id) {
-								<div class="admin-character-sheet-page__value-row">
-									<div>
-										<strong>{{ item.value.name }}</strong>
-										<span>Итог: {{ formatValue(item.calculated) }}</span>
-									</div>
-									<p-inputnumber
-										[ngModel]="getInputValue(item.value.id)"
-										(ngModelChange)="setInputValue(item.value.id, $event)"
-										[min]="0"
-										[showButtons]="false"
-									></p-inputnumber>
-								</div>
-							}
-						</div>
-					</section>
-				}
-			</aside>
+			}
 		</div>
 	}
 </section>

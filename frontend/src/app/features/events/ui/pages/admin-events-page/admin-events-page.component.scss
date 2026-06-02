@@ -1,0 +1,340 @@
+:host {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-events-page {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.admin-events-page__header {
+	display: flex;
+	flex: 0 0 auto;
+	flex-direction: column;
+	min-height: 0;
+	padding-bottom: 1rem;
+}
+
+.admin-events-page__workspace {
+	display: grid;
+	grid-template-columns: 19rem minmax(0, 1fr);
+	gap: 0;
+	flex: 1 1 auto;
+	min-height: 0;
+	background: var(--p-content-background);
+	overflow: hidden;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-events-page__panel {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.admin-events-page__sidebar {
+	display: grid;
+	grid-template-rows: auto auto minmax(0, 1fr);
+	gap: 0.625rem;
+	border-right: 1px solid var(--p-content-border-color);
+}
+
+.admin-events-page__editor {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	gap: 0;
+	height: 100%;
+}
+
+.admin-events-page__section-pad {
+	padding: 0 0.75rem;
+}
+
+.admin-events-page__header .admin-events-page__section-pad {
+	display: flex;
+	padding: 0;
+}
+
+.admin-events-page__panel-heading {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	padding: 0.75rem 0.75rem 0;
+}
+
+.admin-events-page__panel-heading.admin-events-page__section-pad {
+	padding: 0.75rem 0.75rem 0;
+}
+
+.admin-events-page__panel-heading--split {
+	flex-direction: row;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.admin-events-page__breadcrumbs {
+	display: block;
+	width: 100%;
+	margin: 0;
+}
+
+.admin-events-page__panel-title {
+	margin: 0;
+	font-size: var(--text-heading-2-size);
+	line-height: 1.2;
+	color: var(--p-text-color);
+}
+
+.admin-events-page__subtitle {
+	margin-top: 0.25rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-events-page__search-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	align-items: center;
+}
+
+.admin-events-page__search {
+	display: block;
+	min-width: 0;
+}
+
+.admin-events-page__search input {
+	width: 100%;
+	height: 2.25rem;
+}
+
+.admin-events-page__group-list,
+.admin-events-page__handler-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.admin-events-page__group-list {
+	min-height: 0;
+	flex: 1 1 auto;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 0 0.75rem 0.75rem;
+}
+
+.admin-events-page__group {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.125rem;
+	margin-top: 0.5rem;
+	padding: 0.375rem;
+	border-radius: 0.75rem;
+	background: color-mix(in srgb, var(--p-surface-100) 52%, transparent);
+}
+
+.admin-events-page__group:first-child {
+	margin-top: 0;
+}
+
+.admin-events-page__group-title {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	width: 100%;
+	padding: 0.125rem 0.25rem;
+	border: 0;
+	background: transparent;
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: left;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+}
+
+.admin-events-page__group-title:hover {
+	color: var(--p-text-color);
+}
+
+.admin-events-page__group-icon {
+	width: 0.75rem;
+	font-size: 0.625rem;
+	transform: rotate(0deg);
+	transition: transform 180ms ease;
+}
+
+.admin-events-page__group-icon--expanded {
+	transform: rotate(90deg);
+}
+
+.admin-events-page__group-count {
+	margin-left: auto;
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 500;
+}
+
+.admin-events-page__handler-list {
+	max-height: 24rem;
+	opacity: 1;
+	overflow: hidden;
+	transform: translateY(0);
+	transition:
+		max-height 200ms ease,
+		opacity 180ms ease,
+		transform 200ms ease;
+}
+
+.admin-events-page__handler-list--collapsed {
+	max-height: 0;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-0.125rem);
+}
+
+.admin-events-page__handler-item {
+	display: flex;
+	align-items: center;
+	width: 100%;
+	min-height: 2rem;
+	padding: 0.25rem 0.5rem;
+	border: 0;
+	border-radius: 0.5rem;
+	background: transparent;
+	color: var(--p-text-color);
+	font: inherit;
+	font-size: 0.875rem;
+	font-weight: 400;
+	line-height: 1.25;
+	text-align: left;
+	cursor: pointer;
+}
+
+.admin-events-page__handler-item:hover {
+	background: color-mix(
+		in srgb,
+		var(--p-primary-color) 8%,
+		var(--p-content-background)
+	);
+	color: var(--p-primary-700);
+}
+
+.admin-events-page__handler-item--active {
+	background: var(--p-primary-color);
+	color: var(--p-primary-contrast-color);
+}
+
+.admin-events-page__handler-item--active:hover {
+	background: color-mix(
+		in srgb,
+		var(--p-primary-color) 88%,
+		var(--p-primary-contrast-color)
+	);
+	color: var(--p-primary-contrast-color);
+}
+
+.admin-events-page__handler-copy {
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: 0;
+	min-width: 0;
+}
+
+.admin-events-page__handler-copy strong {
+	font-weight: 400;
+	line-height: 1.25;
+}
+
+.admin-events-page__handler-copy strong,
+.admin-events-page__handler-copy span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-events-page__handler-copy span {
+	color: var(--p-text-muted-color);
+	font-size: 0.75rem;
+	line-height: 1.1;
+}
+
+.admin-events-page__handler-item--active .admin-events-page__handler-copy span {
+	color: color-mix(in srgb, var(--p-primary-contrast-color) 78%, transparent);
+}
+
+.admin-events-page__heading-tags {
+	display: grid;
+	grid-auto-flow: column;
+	grid-auto-columns: max-content;
+	justify-content: end;
+	gap: 0.5rem;
+}
+
+.admin-events-page__editor-body {
+	display: block;
+	min-height: 0;
+	padding: 0 0.75rem 0.75rem;
+}
+
+.admin-events-page__graph-editor {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-events-page__state {
+	display: grid;
+	min-height: 0;
+	place-items: center;
+	padding: 1rem;
+	color: var(--p-text-muted-color);
+	text-align: center;
+}
+
+.admin-events-page__empty-list {
+	padding: 0.5rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-events-page__state--error {
+	color: var(--p-red-500);
+}
+
+.admin-events-page__editor-actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+@media (max-width: 1100px) {
+	.admin-events-page__workspace {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-events-page__sidebar {
+		padding-right: 0;
+		border-right: 0;
+		border-bottom: 1px solid var(--p-content-border-color);
+	}
+
+	.admin-events-page__section-pad {
+		padding: 0 0.75rem;
+	}
+}

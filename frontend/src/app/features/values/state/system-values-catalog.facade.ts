@@ -47,6 +47,14 @@ export class SystemValuesCatalogFacade {
 		);
 	}
 
+	addValue(value: SystemValue) {
+		this.values.update(current => [...current, value]);
+	}
+
+	removeValue(valueId: string) {
+		this.values.update(current => current.filter(value => value.id !== valueId));
+	}
+
 	reloadIfInitialized() {
 		if (!this.initialized()) {
 			return;

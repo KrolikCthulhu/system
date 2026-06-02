@@ -95,7 +95,7 @@ export class SkillEditorFacade {
 					categoryId: defaultCategoryId,
 					description: '',
 					rollConsequenceId: null,
-					dicePoolValueId: null,
+					rollCharacteristicId: null,
 					defaultLevel: 0,
 					maxLevel: 6,
 					usesDefaultLevelRules: true,

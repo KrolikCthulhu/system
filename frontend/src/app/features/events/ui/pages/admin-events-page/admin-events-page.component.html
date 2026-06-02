@@ -1,0 +1,150 @@
+<section class="admin-events-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-events-page__header">
+		<div class="admin-events-page__section-pad">
+			<p-breadcrumb
+				class="admin-events-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-events-page__workspace">
+		<aside class="admin-events-page__panel admin-events-page__sidebar">
+			<div class="admin-events-page__panel-heading admin-events-page__section-pad">
+				<h2 class="admin-events-page__panel-title">События</h2>
+			</div>
+
+			<div class="admin-events-page__search-row admin-events-page__section-pad">
+				<p-iconfield class="admin-events-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск события"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-events-page__state">Загрузка событий...</div>
+			} @else if (errorMessage()) {
+				<div class="admin-events-page__state admin-events-page__state--error">
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div class="admin-events-page__group-list admin-events-page__section-pad">
+					@for (group of handlerGroups(); track group.label) {
+						<div class="admin-events-page__group">
+							<button
+								type="button"
+								class="admin-events-page__group-title"
+								[attr.aria-expanded]="!isGroupCollapsed(group.label)"
+								(click)="toggleGroup(group.label)"
+							>
+								<i
+									class="pi pi-chevron-right admin-events-page__group-icon"
+									[class.admin-events-page__group-icon--expanded]="
+										!isGroupCollapsed(group.label)
+									"
+									aria-hidden="true"
+								></i>
+								<span>{{ group.label }}</span>
+								<span class="admin-events-page__group-count">
+									{{ group.items.length }}
+								</span>
+							</button>
+
+							<div
+								class="admin-events-page__handler-list"
+								[class.admin-events-page__handler-list--collapsed]="
+									isGroupCollapsed(group.label)
+								"
+							>
+								@for (handler of group.items; track handler.id) {
+									<button
+										type="button"
+										class="admin-events-page__handler-item"
+										[class.admin-events-page__handler-item--active]="
+											handler.id === selectedHandlerId()
+										"
+										(click)="selectHandler(handler.id)"
+									>
+										<div class="admin-events-page__handler-copy">
+											<strong>{{ handler.name }}</strong>
+											<span>Последствие броска</span>
+										</div>
+									</button>
+								} @empty {
+									<div class="admin-events-page__empty-list">
+										Обработчиков не найдено.
+									</div>
+								}
+							</div>
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (selectedHandler(); as handler) {
+			<section class="admin-events-page__panel admin-events-page__editor">
+				<div
+					class="admin-events-page__panel-heading admin-events-page__panel-heading--split admin-events-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-events-page__panel-title">{{ handler.name }}</h2>
+						<div class="admin-events-page__subtitle">
+							Обработчик события «Совершён бросок»
+						</div>
+					</div>
+
+					<div class="admin-events-page__heading-tags">
+						<p-tag value="Совершён бросок" severity="info"></p-tag>
+						<p-tag
+							[value]="activeLabel(handler.isActive)"
+							[severity]="activeSeverity(handler.isActive)"
+						></p-tag>
+					</div>
+				</div>
+
+				<div class="admin-events-page__editor-body admin-events-page__section-pad">
+					<app-roll-event-graph-editor
+						class="admin-events-page__graph-editor"
+						[graph]="graphDraft()"
+						[availableValues]="availableValues()"
+						(graphChange)="updateGraphDraft($event)"
+					></app-roll-event-graph-editor>
+				</div>
+
+				<div class="admin-events-page__editor-actions admin-events-page__section-pad">
+					<p-button
+						label="Сбросить"
+						severity="secondary"
+						variant="outlined"
+						[disabled]="!hasChanges() || saving()"
+						(onClick)="resetDraft()"
+					></p-button>
+					<p-button
+						label="Сохранить"
+						[loading]="saving()"
+						[disabled]="!hasChanges()"
+						(onClick)="saveDraft()"
+					></p-button>
+				</div>
+			</section>
+		} @else {
+			<section class="admin-events-page__panel admin-events-page__editor">
+				<div class="admin-events-page__state">
+					Выбери обработчик события слева, чтобы настроить его граф.
+				</div>
+			</section>
+		}
+	</div>
+</section>

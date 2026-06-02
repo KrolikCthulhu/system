@@ -1,4 +1,12 @@
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import {
+	Component,
+	computed,
+	DestroyRef,
+	effect,
+	inject,
+	signal
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
 import { Router } from '@angular/router';
@@ -17,8 +25,16 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
+import {
+	ATTRIBUTES_REPOSITORY,
+	AttributesRepository
+} from '../../../../attributes/data/attributes-repository.port';
+import { createCharacteristicOptionGroups } from '../../../../attributes/domain/characteristic-option-groups';
+import {
+	Attribute,
+	Characteristic
+} from '../../../../attributes/domain/attributes.models';
 import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
-import { createSystemValueOptionGroups } from '../../../../values/domain/system-value-option-groups';
 import {
 	Skill,
 	SkillCategory,
@@ -75,8 +91,11 @@ import { SkillsCatalogFacade } from '../../../state/skills-catalog.facade';
 export class AdminSkillsPageComponent {
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly confirmationService = inject(ConfirmationService);
+	private readonly destroyRef = inject(DestroyRef);
 	private readonly router = inject(Router);
 	private readonly catalogFacade = inject(SkillsCatalogFacade);
+	private readonly attributesRepository =
+		inject<AttributesRepository>(ATTRIBUTES_REPOSITORY);
 	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly skillEditorFacade = inject(SkillEditorFacade);
 	private readonly categoryEditorFacade = inject(CategoryEditorFacade);
@@ -101,6 +120,8 @@ export class AdminSkillsPageComponent {
 	protected readonly skillForm = this.skillEditorFacade.form;
 	protected readonly categoryForm = this.categoryEditorFacade.form;
 	protected readonly levelForm = this.levelEditorFacade.form;
+	protected readonly attributes = signal<Attribute[]>([]);
+	protected readonly characteristics = signal<Characteristic[]>([]);
 	protected readonly filteredSkillCategories =
 		this.catalogFacade.filteredSkillCategories;
 	protected readonly selectedSkillFilterCategory =
@@ -112,10 +133,8 @@ export class AdminSkillsPageComponent {
 	protected readonly categoryOptions = this.catalogFacade.categoryOptions;
 	protected readonly rollConsequenceOptions =
 		this.catalogFacade.rollConsequenceOptions;
-	protected readonly dicePoolValueOptions = computed(() =>
-		createSystemValueOptionGroups(this.valuesCatalogFacade.values(), {
-			excludeIds: [this.selectedSkill()?.systemValue.id]
-		})
+	protected readonly rollCharacteristicOptions = computed(() =>
+		createCharacteristicOptionGroups(this.attributes(), this.characteristics())
 	);
 	protected readonly selectedSkill = this.catalogFacade.selectedSkill;
 	protected readonly selectedCategory = this.catalogFacade.selectedCategory;
@@ -123,6 +142,15 @@ export class AdminSkillsPageComponent {
 
 	constructor() {
 		this.valuesCatalogFacade.ensureLoaded();
+		this.attributesRepository
+			.loadAdminCatalog()
+			.pipe(takeUntilDestroyed(this.destroyRef))
+			.subscribe({
+				next: catalog => {
+					this.attributes.set(catalog.attributes);
+					this.characteristics.set(catalog.characteristics);
+				}
+			});
 
 		effect(() => {
 			this.tabValue.set(this.activeTab());
@@ -355,15 +383,15 @@ export class AdminSkillsPageComponent {
 		);
 	}
 
-	protected getSkillDicePoolValueName(skill: Skill) {
-		if (!skill.dicePoolValueId) {
+	protected getSkillRollCharacteristicName(skill: Skill) {
+		if (!skill.rollCharacteristicId) {
 			return 'Не выбрано';
 		}
 
 		return (
-			this.valuesCatalogFacade
-				.values()
-				.find(value => value.id === skill.dicePoolValueId)?.name ?? 'Не найдено'
+			this.characteristics().find(
+				characteristic => characteristic.id === skill.rollCharacteristicId
+			)?.name ?? 'Не найдено'
 		);
 	}
 

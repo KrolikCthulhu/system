@@ -128,7 +128,7 @@
 										<ng-template #header>
 											<tr>
 												<th>Навык</th>
-												<th>Пул кубов</th>
+												<th>Характеристика броска</th>
 												<th>Последствие</th>
 												<th>Начальный уровень</th>
 												<th>Максимум</th>
@@ -151,7 +151,7 @@
 												"
 											>
 												<td>{{ skill.name }}</td>
-												<td>{{ getSkillDicePoolValueName(skill) }}</td>
+												<td>{{ getSkillRollCharacteristicName(skill) }}</td>
 												<td>{{ getSkillRollConsequenceName(skill) }}</td>
 												<td>{{ skill.defaultLevel }}</td>
 												<td>{{ skill.maxLevel }}</td>
@@ -256,18 +256,18 @@
 												<div class="admin-skills-page__form-field">
 													<label
 														class="admin-skills-page__field-label"
-														for="skill-dice-pool-value"
+														for="skill-roll-characteristic"
 													>
-														Пул кубов
+														Характеристика броска
 													</label>
 													<p-select
-														inputId="skill-dice-pool-value"
-														formControlName="dicePoolValueId"
+														inputId="skill-roll-characteristic"
+														formControlName="rollCharacteristicId"
 														optionLabel="label"
 														optionValue="value"
 														optionGroupLabel="label"
 														optionGroupChildren="items"
-														[options]="dicePoolValueOptions()"
+														[options]="rollCharacteristicOptions()"
 														[group]="true"
 														[filter]="true"
 														filterBy="label"
@@ -376,7 +376,7 @@
 								<ng-template #header>
 									<tr>
 										<th>Навык</th>
-										<th>Пул кубов</th>
+										<th>Характеристика броска</th>
 										<th>Последствие</th>
 										<th>Начальный уровень</th>
 										<th>Максимум</th>
@@ -399,7 +399,7 @@
 										"
 									>
 										<td>{{ skill.name }}</td>
-										<td>{{ getSkillDicePoolValueName(skill) }}</td>
+										<td>{{ getSkillRollCharacteristicName(skill) }}</td>
 										<td>{{ getSkillRollConsequenceName(skill) }}</td>
 										<td>{{ skill.defaultLevel }}</td>
 										<td>{{ skill.maxLevel }}</td>

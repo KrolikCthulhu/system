@@ -9,23 +9,32 @@
 		<p-tablist>
 			<p-tab value="calculation">Расчёт</p-tab>
 			<p-tab value="test">Тест</p-tab>
+			@if (showGeneralTab()) {
+				<p-tab value="general">Общее</p-tab>
+			}
 		</p-tablist>
 
 		<p-tabpanels class="system-value-calculation-editor__tabpanels">
 			<p-tabpanel class="system-value-calculation-editor__tabpanel" value="calculation">
 				<div class="system-value-calculation-editor__tabpanel-content">
 						<div class="system-value-calculation-editor__tabpanel-body system-value-calculation-editor__tabpanel-body--graph">
-							<div class="system-value-calculation-editor__graph-palette">
-								@for (nodeType of graphNodeTypes; track nodeType.kind) {
-									<p-button
-										[label]="nodeType.label"
-										severity="secondary"
-										variant="outlined"
-										[disabled]="nodeType.kind === 'result' && graphHasResultNode()"
-										(onClick)="addGraphNode(nodeType.kind)"
-									></p-button>
-								}
-							</div>
+							@if (!readonly()) {
+								<div class="system-value-calculation-editor__graph-palette">
+									@for (nodeType of graphNodeTypes; track nodeType.kind) {
+										<p-button
+											[label]="nodeType.label"
+											severity="secondary"
+											variant="outlined"
+											[disabled]="nodeType.kind === 'result' && graphHasResultNode()"
+											(onClick)="addGraphNode(nodeType.kind)"
+										></p-button>
+									}
+								</div>
+							} @else {
+								<div class="system-value-calculation-editor__note">
+									Системное значение: расчёт создаётся автоматически и доступен только для просмотра.
+								</div>
+							}
 
 							<div class="system-value-calculation-editor__graph-stage">
 								<p-splitter
@@ -65,6 +74,7 @@
 														severity="danger"
 														[text]="true"
 														[rounded]="true"
+														[disabled]="readonly()"
 														(onClick)="removeSelectedGraphEdge()"
 													></p-button>
 												</div>
@@ -97,7 +107,7 @@
 														severity="danger"
 														[text]="true"
 														[rounded]="true"
-														[disabled]="selectedNode.kind === 'result'"
+														[disabled]="readonly() || selectedNode.kind === 'result'"
 														(onClick)="removeSelectedGraphNode()"
 													></p-button>
 												</div>
@@ -118,6 +128,7 @@
 															filterBy="label"
 															[showClear]="true"
 															[ngModel]="selectedNode.sourceValueId"
+															[disabled]="readonly()"
 															(ngModelChange)="updateSelectedSourceValue($event)"
 														></p-select>
 													</div>
@@ -135,6 +146,7 @@
 														</span>
 														<p-inputnumber
 															[ngModel]="selectedNode.constantValue ?? 0"
+															[disabled]="readonly()"
 															(ngModelChange)="updateSelectedConstantValue($event ?? 0)"
 															[showButtons]="false"
 														></p-inputnumber>
@@ -151,6 +163,7 @@
 															optionLabel="label"
 															optionValue="value"
 															[ngModel]="selectedNode.operation"
+															[disabled]="readonly()"
 															(ngModelChange)="updateSelectedOperation($event)"
 														></p-select>
 													</div>
@@ -166,6 +179,7 @@
 															optionLabel="label"
 															optionValue="value"
 															[ngModel]="selectedNode.comparison"
+															[disabled]="readonly()"
 															(ngModelChange)="updateSelectedComparison($event)"
 														></p-select>
 													</div>
@@ -188,7 +202,8 @@
 												}
 
 												@if (selectedNode.kind === 'curve') {
-													<div class="system-value-calculation-editor__inspector-actions">
+													@if (!readonly()) {
+														<div class="system-value-calculation-editor__inspector-actions">
 														<p-button
 															label="Добавить диапазон"
 															icon="pi pi-plus"
@@ -196,23 +211,27 @@
 															variant="outlined"
 															(onClick)="addSelectedCurveRange()"
 														></p-button>
-													</div>
+														</div>
+													}
 
 													<div class="system-value-calculation-editor__curve-list">
 														@for (range of selectedNode.curveRanges ?? []; track range.id) {
 															<div class="system-value-calculation-editor__curve-row">
 																<p-inputnumber
 																	[ngModel]="range.from"
+																	[disabled]="readonly()"
 																	(ngModelChange)="updateSelectedCurveRange(range.id, { from: $event ?? 0 })"
 																	[showButtons]="false"
 																></p-inputnumber>
 																<p-inputnumber
 																	[ngModel]="range.to"
+																	[disabled]="readonly()"
 																	(ngModelChange)="updateSelectedCurveRange(range.id, { to: $event ?? 0 })"
 																	[showButtons]="false"
 																></p-inputnumber>
 																<p-inputnumber
 																	[ngModel]="range.result"
+																	[disabled]="readonly()"
 																	(ngModelChange)="updateSelectedCurveRange(range.id, { result: $event ?? 0 })"
 																	[showButtons]="false"
 																></p-inputnumber>
@@ -221,6 +240,7 @@
 																	severity="danger"
 																	[text]="true"
 																	[rounded]="true"
+																	[disabled]="readonly()"
 																	(onClick)="removeSelectedCurveRange(range.id)"
 																></p-button>
 															</div>
@@ -228,14 +248,16 @@
 													</div>
 												}
 
-												<div class="system-value-calculation-editor__inspector-actions">
-													<p-button
-														label="Очистить входы"
-														severity="secondary"
-														variant="outlined"
-														(onClick)="clearSelectedGraphNodeInputs()"
-													></p-button>
-												</div>
+												@if (!readonly()) {
+													<div class="system-value-calculation-editor__inspector-actions">
+														<p-button
+															label="Очистить входы"
+															severity="secondary"
+															variant="outlined"
+															(onClick)="clearSelectedGraphNodeInputs()"
+														></p-button>
+													</div>
+												}
 											} @else {
 												<div class="system-value-calculation-editor__state">
 													Выбери узел на canvas, чтобы настроить его свойства.
@@ -297,6 +319,16 @@
 					</div>
 				</div>
 			</p-tabpanel>
+
+			@if (showGeneralTab()) {
+				<p-tabpanel class="system-value-calculation-editor__tabpanel" value="general">
+					<div class="system-value-calculation-editor__tabpanel-content">
+						<div class="system-value-calculation-editor__tabpanel-body system-value-calculation-editor__tabpanel-body--scroll">
+							<ng-content select="[system-value-general]"></ng-content>
+						</div>
+					</div>
+				</p-tabpanel>
+			}
 		</p-tabpanels>
 	</p-tabs>
 </p-fluid>

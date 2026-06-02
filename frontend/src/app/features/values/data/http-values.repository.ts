@@ -2,13 +2,16 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map, throwError } from 'rxjs';
 import { environment } from '../../../infrastructure/config/environment';
-import { SystemValuesCatalog } from '../domain/values.models';
+import { SystemValue, SystemValuesCatalog } from '../domain/values.models';
 import { ValueGraphState } from '../ui/value-graph.models';
 import {
 	SystemValuesCatalogDto,
-	UpdateSystemValueCalculationDto
+	CreateManualSystemValueDto,
+	SystemValueDto,
+	UpdateSystemValueCalculationDto,
+	UpdateSystemValueDto
 } from './dto/values.dto';
-import { mapSystemValuesCatalogDto } from './mappers/values.mapper';
+import { mapSystemValueDto, mapSystemValuesCatalogDto } from './mappers/values.mapper';
 import { ValuesRepository } from './values-repository.port';
 
 @Injectable({ providedIn: 'root' })
@@ -27,6 +30,47 @@ export class HttpValuesRepository implements ValuesRepository {
 			);
 	}
 
+	createManual(command: {
+		name: string;
+		description?: string;
+	}): Observable<SystemValue> {
+		const payload: CreateManualSystemValueDto = {
+			name: command.name,
+			description: command.description
+		};
+
+		return this.http
+			.post<SystemValueDto>(`${this.baseUrl}/admin/values`, payload, {
+				withCredentials: true
+			})
+			.pipe(
+				map(mapSystemValueDto),
+				catchError(error => this.handleHttpError(error))
+			);
+	}
+
+	updateValue(
+		id: string,
+		command: {
+			name?: string;
+			description?: string;
+		}
+	): Observable<SystemValue> {
+		const payload: UpdateSystemValueDto = {
+			name: command.name,
+			description: command.description
+		};
+
+		return this.http
+			.patch<SystemValueDto>(`${this.baseUrl}/admin/values/${id}`, payload, {
+				withCredentials: true
+			})
+			.pipe(
+				map(mapSystemValueDto),
+				catchError(error => this.handleHttpError(error))
+			);
+	}
+
 	updateCalculation(
 		id: string,
 		calculationGraph: ValueGraphState | null
@@ -41,6 +85,14 @@ export class HttpValuesRepository implements ValuesRepository {
 				payload,
 				{ withCredentials: true }
 			)
+			.pipe(catchError(error => this.handleHttpError(error)));
+	}
+
+	deleteValue(id: string): Observable<void> {
+		return this.http
+			.delete<void>(`${this.baseUrl}/admin/values/${id}`, {
+				withCredentials: true
+			})
 			.pipe(catchError(error => this.handleHttpError(error)));
 	}
 

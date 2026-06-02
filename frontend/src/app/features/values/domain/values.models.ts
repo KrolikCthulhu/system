@@ -20,6 +20,7 @@ export interface SystemValue {
 	groupLabel: string;
 	contextLabel: string;
 	description: string;
+	isSystemManaged: boolean;
 	baseValue: number;
 	calculationGraph: ValueGraphState | null;
 	primaryOwner: SystemValueOwner;

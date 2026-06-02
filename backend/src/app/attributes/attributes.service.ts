@@ -20,6 +20,7 @@ const attributeSelect = {
 	id: true,
 	name: true,
 	description: true,
+	poolPenaltyValueId: true,
 	systemValue: {
 		select: {
 			id: true,
@@ -28,6 +29,7 @@ const attributeSelect = {
 	},
 	isActive: true,
 	sortOrder: true,
+	availablePoolValueId: true,
 	createdAt: true,
 	updatedAt: true
 } satisfies Prisma.AttributeSelect;
@@ -109,10 +111,19 @@ export class AttributesService {
 						name: dto.name,
 						description,
 						sortOrder: dto.sortOrder,
+						poolPenaltyValueId: dto.poolPenaltyValueId ?? null,
 						systemValueId: id
 					}
 				});
 			});
+
+			if (dto.poolPenaltyValueId) {
+				return this.mapAttribute(
+					await this.prisma.$transaction(tx =>
+						this.ensureAvailablePoolValue(tx, attribute.id)
+					)
+				);
+			}
 
 			return this.mapAttribute(attribute);
 		} catch (error) {
@@ -124,21 +135,35 @@ export class AttributesService {
 		await this.ensureAttributeExists(id);
 
 		try {
-			const attribute = await this.prisma.attribute.update({
-				select: attributeSelect,
-				where: { id },
-				data: {
-					name: dto.name,
-					description: this.toOptionalNullableString(dto.description),
-					sortOrder: dto.sortOrder,
-					systemValue: {
-						update: {
-							name: dto.name,
-							description: this.toOptionalNullableString(dto.description),
-							sortOrder: dto.sortOrder
+			const attribute = await this.prisma.$transaction(async tx => {
+				const updatedAttribute = await tx.attribute.update({
+					select: attributeSelect,
+					where: { id },
+					data: {
+						name: dto.name,
+						description: this.toOptionalNullableString(dto.description),
+						sortOrder: dto.sortOrder,
+						poolPenaltyValue:
+							dto.poolPenaltyValueId === undefined
+								? undefined
+								: dto.poolPenaltyValueId
+								  ? { connect: { id: dto.poolPenaltyValueId } }
+								  : { disconnect: true },
+						systemValue: {
+							update: {
+								name: dto.name,
+								description: this.toOptionalNullableString(dto.description),
+								sortOrder: dto.sortOrder
+							}
 						}
 					}
+				});
+
+				if (updatedAttribute.poolPenaltyValueId || updatedAttribute.availablePoolValueId) {
+					return this.ensureAvailablePoolValue(tx, updatedAttribute.id);
 				}
+
+				return updatedAttribute;
 			});
 
 			return this.mapAttribute(attribute);
@@ -150,17 +175,28 @@ export class AttributesService {
 	async updateAttributeActive(id: string, dto: UpdateAttributeActiveDto) {
 		await this.ensureAttributeExists(id);
 
-		const attribute = await this.prisma.attribute.update({
-			select: attributeSelect,
-			where: { id },
-			data: {
-				isActive: dto.isActive,
-				systemValue: {
-					update: {
-						isActive: dto.isActive
+		const attribute = await this.prisma.$transaction(async tx => {
+			const updatedAttribute = await tx.attribute.update({
+				select: attributeSelect,
+				where: { id },
+				data: {
+					isActive: dto.isActive,
+					systemValue: {
+						update: {
+							isActive: dto.isActive
+						}
 					}
 				}
+			});
+
+			if (updatedAttribute.availablePoolValueId) {
+				await tx.systemValue.update({
+					where: { id: updatedAttribute.availablePoolValueId },
+					data: { isActive: dto.isActive }
+				});
 			}
+
+			return updatedAttribute;
 		});
 
 		return this.mapAttribute(attribute);
@@ -353,6 +389,89 @@ export class AttributesService {
 		}
 	}
 
+	private async ensureAvailablePoolValue(
+		tx: Prisma.TransactionClient,
+		attributeId: string
+	) {
+		const attribute = await tx.attribute.findUnique({
+			select: {
+				id: true,
+				name: true,
+				description: true,
+				sortOrder: true,
+				isActive: true,
+				systemValueId: true,
+				poolPenaltyValueId: true,
+				availablePoolValueId: true
+			},
+			where: { id: attributeId }
+		});
+
+		if (!attribute) {
+			throw new NotFoundException('Attribute not found.');
+		}
+
+		const graph = createAvailablePoolGraph(
+			attribute.systemValueId,
+			attribute.poolPenaltyValueId
+		);
+		const name = `Доступный пул ${attribute.name}`;
+		const description =
+			'Системное значение: ограничивает кубы характеристик этим атрибутом с учётом штрафа пула.';
+
+		if (attribute.availablePoolValueId) {
+			await tx.systemValue.update({
+				where: { id: attribute.availablePoolValueId },
+				data: {
+					name,
+					description,
+					calculationGraph: graph as Prisma.InputJsonValue,
+					isActive: attribute.isActive,
+					sortOrder: attribute.sortOrder,
+					isSystemManaged: true
+				}
+			});
+
+			return tx.attribute.findUniqueOrThrow({
+				select: attributeSelect,
+				where: { id: attribute.id }
+			});
+		}
+
+		const availablePoolValueId = randomUUID();
+
+		await tx.systemValue.create({
+			data: {
+				id: availablePoolValueId,
+				name,
+				description,
+				primaryOwnerType: SystemValueOwnerType.ATTRIBUTE,
+				primaryOwnerId: attribute.id,
+				calculationGraph: graph as Prisma.InputJsonValue,
+				isSystemManaged: true,
+				isActive: attribute.isActive,
+				sortOrder: attribute.sortOrder,
+				links: {
+					create: {
+						id: availablePoolValueId,
+						targetType: SystemValueOwnerType.ATTRIBUTE,
+						targetId: attribute.id,
+						label: 'Доступный пул кубов',
+						sortOrder: attribute.sortOrder
+					}
+				}
+			}
+		});
+
+		return tx.attribute.update({
+			select: attributeSelect,
+			where: { id: attribute.id },
+			data: {
+				availablePoolValueId
+			}
+		});
+	}
+
 	private validateCharacteristicRange(
 		minValue: number,
 		maxValue: number,
@@ -405,12 +524,14 @@ export class AttributesService {
 		id: string;
 		name: string;
 		description: string | null;
+		poolPenaltyValueId: string | null;
 		systemValue: {
 			id: string;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 		isActive: boolean;
 		sortOrder: number;
+		availablePoolValueId: string | null;
 		createdAt: Date;
 		updatedAt: Date;
 	}) {
@@ -418,8 +539,10 @@ export class AttributesService {
 			id: attribute.id,
 			name: attribute.name,
 			description: attribute.description ?? '',
+			poolPenaltyValueId: attribute.poolPenaltyValueId,
 			isActive: attribute.isActive,
 			sortOrder: attribute.sortOrder,
+			availablePoolValueId: attribute.availablePoolValueId,
 			createdAt: attribute.createdAt.toISOString(),
 			updatedAt: attribute.updatedAt.toISOString(),
 			systemValue: this.mapSystemValue(attribute)
@@ -485,6 +608,91 @@ function createCharacterInputGraph() {
 			{
 				id: 'character-input:out -> result:in',
 				source: 'character-input',
+				target: 'result',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			}
+		]
+	};
+}
+
+function createAvailablePoolGraph(
+	attributeValueId: string,
+	penaltyValueId: string | null
+) {
+	return {
+		nodes: [
+			{
+				id: 'attribute-value',
+				kind: 'source',
+				x: 120,
+				y: 80,
+				sourceValueId: attributeValueId
+			},
+			{
+				id: 'penalty-value',
+				kind: penaltyValueId ? 'source' : 'constant',
+				x: 120,
+				y: 220,
+				...(penaltyValueId
+					? { sourceValueId: penaltyValueId }
+					: { constantValue: 0 })
+			},
+			{
+				id: 'zero',
+				kind: 'constant',
+				x: 360,
+				y: 240,
+				constantValue: 0
+			},
+			{
+				id: 'subtract-penalty',
+				kind: 'operation',
+				x: 360,
+				y: 120,
+				operation: 'subtract'
+			},
+			{
+				id: 'clamp-min-zero',
+				kind: 'operation',
+				x: 600,
+				y: 140,
+				operation: 'max'
+			},
+			{ id: 'result', kind: 'result', x: 840, y: 140 }
+		],
+		edges: [
+			{
+				id: 'attribute-value:out -> subtract-penalty:a',
+				source: 'attribute-value',
+				target: 'subtract-penalty',
+				sourceHandle: 'out',
+				targetHandle: 'a'
+			},
+			{
+				id: 'penalty-value:out -> subtract-penalty:b',
+				source: 'penalty-value',
+				target: 'subtract-penalty',
+				sourceHandle: 'out',
+				targetHandle: 'b'
+			},
+			{
+				id: 'subtract-penalty:out -> clamp-min-zero:in',
+				source: 'subtract-penalty',
+				target: 'clamp-min-zero',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'zero:out -> clamp-min-zero:in',
+				source: 'zero',
+				target: 'clamp-min-zero',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'clamp-min-zero:out -> result:in',
+				source: 'clamp-min-zero',
 				target: 'result',
 				sourceHandle: 'out',
 				targetHandle: 'in'

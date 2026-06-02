@@ -3,7 +3,7 @@ export interface CreateSkillCommand {
 	categoryId: string;
 	description: string;
 	rollConsequenceId: string | null;
-	dicePoolValueId: string | null;
+	rollCharacteristicId: string | null;
 	defaultLevel: number;
 	maxLevel: number;
 	usesDefaultLevelRules: boolean;

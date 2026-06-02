@@ -25,7 +25,7 @@ const skillSelect = {
 	categoryId: true,
 	description: true,
 	rollConsequenceId: true,
-	dicePoolValueId: true,
+	rollCharacteristicId: true,
 	defaultLevel: true,
 	maxLevel: true,
 	usesDefaultLevelRules: true,
@@ -80,7 +80,7 @@ export class SkillsService {
 				categoryId: skill.categoryId,
 				description: skill.description ?? '',
 				rollConsequenceId: skill.rollConsequenceId,
-				dicePoolValueId: skill.dicePoolValueId,
+				rollCharacteristicId: skill.rollCharacteristicId,
 				defaultLevel: skill.defaultLevel,
 				maxLevel: skill.maxLevel,
 				usesDefaultLevelRules: skill.usesDefaultLevelRules,
@@ -134,7 +134,7 @@ export class SkillsService {
 	async createSkill(dto: CreateSkillDto) {
 		await this.ensureCategoryExists(dto.categoryId);
 		await this.ensureRollConsequenceExists(dto.rollConsequenceId);
-		await this.ensureSystemValueExists(dto.dicePoolValueId);
+		await this.ensureCharacteristicExists(dto.rollCharacteristicId);
 		this.validateSkillLevels(dto.defaultLevel, dto.maxLevel);
 
 		try {
@@ -168,7 +168,7 @@ export class SkillsService {
 						categoryId: dto.categoryId,
 						description,
 						rollConsequenceId: dto.rollConsequenceId ?? null,
-						dicePoolValueId: dto.dicePoolValueId ?? null,
+						rollCharacteristicId: dto.rollCharacteristicId ?? null,
 						defaultLevel: dto.defaultLevel,
 						maxLevel: dto.maxLevel,
 						usesDefaultLevelRules: dto.usesDefaultLevelRules,
@@ -190,7 +190,7 @@ export class SkillsService {
 			await this.ensureCategoryExists(dto.categoryId);
 		}
 		await this.ensureRollConsequenceExists(dto.rollConsequenceId);
-		await this.ensureSystemValueExists(dto.dicePoolValueId);
+		await this.ensureCharacteristicExists(dto.rollCharacteristicId);
 
 		const currentSkill = await this.prisma.skill.findUnique({ where: { id } });
 
@@ -215,8 +215,10 @@ export class SkillsService {
 							dto.description === undefined ? undefined : dto.description || null,
 						rollConsequenceId:
 							dto.rollConsequenceId === undefined ? undefined : dto.rollConsequenceId,
-						dicePoolValueId:
-							dto.dicePoolValueId === undefined ? undefined : dto.dicePoolValueId,
+						rollCharacteristicId:
+							dto.rollCharacteristicId === undefined
+								? undefined
+								: dto.rollCharacteristicId,
 						defaultLevel: dto.defaultLevel,
 						maxLevel: dto.maxLevel,
 						usesDefaultLevelRules: dto.usesDefaultLevelRules
@@ -433,18 +435,18 @@ export class SkillsService {
 		}
 	}
 
-	private async ensureSystemValueExists(id: string | null | undefined) {
+	private async ensureCharacteristicExists(id: string | null | undefined) {
 		if (!id) {
 			return;
 		}
 
-		const value = await this.prisma.systemValue.findUnique({
+		const characteristic = await this.prisma.characteristic.findUnique({
 			select: { id: true },
 			where: { id }
 		});
 
-		if (!value) {
-			throw new NotFoundException('Значение системы не найдено.');
+		if (!characteristic) {
+			throw new BadRequestException('Характеристика броска не найдена.');
 		}
 	}
 
@@ -502,7 +504,7 @@ export class SkillsService {
 		categoryId: string;
 		description: string | null;
 		rollConsequenceId: string | null;
-		dicePoolValueId: string | null;
+		rollCharacteristicId: string | null;
 		defaultLevel: number;
 		maxLevel: number;
 		usesDefaultLevelRules: boolean;
@@ -518,7 +520,7 @@ export class SkillsService {
 			categoryId: skill.categoryId,
 			description: skill.description ?? '',
 			rollConsequenceId: skill.rollConsequenceId,
-			dicePoolValueId: skill.dicePoolValueId,
+			rollCharacteristicId: skill.rollCharacteristicId,
 			defaultLevel: skill.defaultLevel,
 			maxLevel: skill.maxLevel,
 			usesDefaultLevelRules: skill.usesDefaultLevelRules,

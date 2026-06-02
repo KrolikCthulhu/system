@@ -19,7 +19,7 @@ export class UpdateSkillDto {
 
 	@IsOptional()
 	@IsUUID()
-	dicePoolValueId?: string | null;
+	rollCharacteristicId?: string | null;
 
 	@IsOptional()
 	@IsInt()

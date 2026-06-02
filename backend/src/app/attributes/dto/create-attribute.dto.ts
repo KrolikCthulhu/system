@@ -1,4 +1,4 @@
-import { IsInt, IsOptional, IsString, Min } from 'class-validator';
+import { IsInt, IsOptional, IsString, IsUUID, Min } from 'class-validator';
 
 export class CreateAttributeDto {
 	@IsString()
@@ -7,6 +7,10 @@ export class CreateAttributeDto {
 	@IsOptional()
 	@IsString()
 	description?: string;
+
+	@IsOptional()
+	@IsUUID()
+	poolPenaltyValueId?: string | null;
 
 	@IsInt()
 	@Min(0)

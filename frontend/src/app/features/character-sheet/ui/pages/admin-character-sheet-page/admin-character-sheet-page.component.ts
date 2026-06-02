@@ -23,6 +23,7 @@ import {
 } from '../../../../skills/data/skills-repository.port';
 import {
 	Skill,
+	SkillCategory,
 	SkillLevel
 } from '../../../../skills/domain/skills.models';
 import {
@@ -62,6 +63,11 @@ interface AttributeBlock {
 	}>;
 }
 
+interface SkillGroup {
+	category: SkillCategory | null;
+	skills: Skill[];
+}
+
 interface CharacterSheetSandboxDraftDto {
 	inputValues: Record<string, number>;
 }
@@ -73,24 +79,20 @@ interface CharacterSheetSandboxRollDto extends CharacterSheetSandboxDraftDto {
 @Component({
 	selector: 'app-admin-character-sheet-page',
 	standalone: true,
-	imports: [
-		CommonModule,
-		FormsModule,
-		Breadcrumb,
-		Button,
-		InputNumber,
-		Tag
-	],
+	imports: [CommonModule, FormsModule, Breadcrumb, Button, InputNumber, Tag],
 	templateUrl: './admin-character-sheet-page.component.html',
 	styleUrl: './admin-character-sheet-page.component.scss'
 })
 export class AdminCharacterSheetPageComponent {
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly http = inject(HttpClient);
-	private readonly attributesRepository =
-		inject<AttributesRepository>(ATTRIBUTES_REPOSITORY);
-	private readonly skillsRepository = inject<SkillsRepository>(SKILLS_REPOSITORY);
-	private readonly valuesRepository = inject<ValuesRepository>(VALUES_REPOSITORY);
+	private readonly attributesRepository = inject<AttributesRepository>(
+		ATTRIBUTES_REPOSITORY
+	);
+	private readonly skillsRepository =
+		inject<SkillsRepository>(SKILLS_REPOSITORY);
+	private readonly valuesRepository =
+		inject<ValuesRepository>(VALUES_REPOSITORY);
 
 	protected readonly breadcrumbs = [
 		{ label: 'Песочница' },
@@ -102,6 +104,7 @@ export class AdminCharacterSheetPageComponent {
 	protected readonly errorMessage = signal<string | null>(null);
 	protected readonly attributes = signal<Attribute[]>([]);
 	protected readonly characteristics = signal<Characteristic[]>([]);
+	protected readonly skillCategories = signal<SkillCategory[]>([]);
 	protected readonly skills = signal<Skill[]>([]);
 	protected readonly skillLevels = signal<SkillLevel[]>([]);
 	protected readonly systemValues = signal<SystemValue[]>([]);
@@ -120,6 +123,24 @@ export class AdminCharacterSheetPageComponent {
 	protected readonly activeSkills = computed(() =>
 		this.skills().filter(skill => skill.isActive)
 	);
+	protected readonly skillGroups = computed<SkillGroup[]>(() => {
+		const categories = this.skillCategories().filter(category => category.isActive);
+		const activeSkills = this.activeSkills();
+		const groups = categories
+			.map(category => ({
+				category,
+				skills: activeSkills.filter(skill => skill.categoryId === category.id)
+			}))
+			.filter(group => group.skills.length > 0);
+		const categoryIds = new Set(categories.map(category => category.id));
+		const uncategorizedSkills = activeSkills.filter(
+			skill => !categoryIds.has(skill.categoryId)
+		);
+
+		return uncategorizedSkills.length
+			? [...groups, { category: null, skills: uncategorizedSkills }]
+			: groups;
+	});
 	protected readonly valueById = computed(() => {
 		const map = new Map<string, SystemValue>();
 
@@ -143,7 +164,9 @@ export class AdminCharacterSheetPageComponent {
 	);
 	protected readonly consequenceValues = computed(() =>
 		this.systemValues()
-			.filter(value => value.kind === 'roll-consequence' && value.primaryOwner.id)
+			.filter(
+				value => value.kind === 'roll-consequence' && value.primaryOwner.id
+			)
 			.map(value => ({
 				value,
 				calculated: this.getCalculatedValue(value.id)
@@ -293,6 +316,7 @@ export class AdminCharacterSheetPageComponent {
 				next: ({ attributes, skills, values, draft }) => {
 					this.attributes.set(attributes.attributes);
 					this.characteristics.set(attributes.characteristics);
+					this.skillCategories.set(skills.categories);
 					this.skills.set(skills.skills);
 					this.skillLevels.set(skills.levels);
 					this.systemValues.set(values.values);
@@ -392,7 +416,6 @@ export class AdminCharacterSheetPageComponent {
 	private handleHttpError(error: unknown) {
 		return throwError(() => new Error(extractApiErrorMessage(error)));
 	}
-
 }
 
 function areInputValuesEqual(

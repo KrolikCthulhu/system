@@ -57,8 +57,21 @@ export class CharacterSheetSandboxService {
 			select: {
 				id: true,
 				name: true,
-				dicePoolValueId: true,
 				systemValueId: true,
+				rollCharacteristic: {
+					select: {
+						id: true,
+						systemValueId: true,
+						attribute: {
+							select: {
+								id: true,
+								systemValueId: true,
+								poolPenaltyValueId: true,
+								availablePoolValueId: true
+							}
+						}
+					}
+				},
 				rollConsequence: {
 					select: {
 						id: true,
@@ -76,13 +89,11 @@ export class CharacterSheetSandboxService {
 			throw new NotFoundException('Навык не найден.');
 		}
 
-		const dicePoolValue = skill.dicePoolValueId
-			? this.systemValueRuntime.evaluateValue(
-					skill.dicePoolValueId,
-					runtimeValues.values,
-					initialInputValues
-			  )
-			: 0;
+		const dicePoolValue = this.resolveSkillDicePool(
+			skill,
+			runtimeValues.values,
+			initialInputValues
+		);
 		const skillLevel = Math.max(
 			0,
 			Math.floor(
@@ -201,6 +212,68 @@ export class CharacterSheetSandboxService {
 			}),
 			{ ...inputValues }
 		);
+	}
+
+	private resolveSkillDicePool(
+		skill: {
+			rollCharacteristic: {
+				systemValueId: string;
+				attribute: {
+					systemValueId: string;
+					poolPenaltyValueId: string | null;
+					availablePoolValueId: string | null;
+				};
+			} | null;
+		},
+		values: RuntimeSystemValue[],
+		inputValues: Record<string, number>
+	) {
+		if (!skill.rollCharacteristic) {
+			return 0;
+		}
+
+		const characteristicValue = this.systemValueRuntime.evaluateValue(
+			skill.rollCharacteristic.systemValueId,
+			values,
+			inputValues
+		);
+		const availableAttributePool =
+			skill.rollCharacteristic.attribute.availablePoolValueId
+				? this.systemValueRuntime.evaluateValue(
+						skill.rollCharacteristic.attribute.availablePoolValueId,
+						values,
+						inputValues
+				  )
+				: this.resolveInlineAvailableAttributePool(
+						skill.rollCharacteristic.attribute,
+						values,
+						inputValues
+				  );
+
+		return Math.min(characteristicValue, availableAttributePool);
+	}
+
+	private resolveInlineAvailableAttributePool(
+		attribute: {
+			systemValueId: string;
+			poolPenaltyValueId: string | null;
+		},
+		values: RuntimeSystemValue[],
+		inputValues: Record<string, number>
+	) {
+		const attributeValue = this.systemValueRuntime.evaluateValue(
+			attribute.systemValueId,
+			values,
+			inputValues
+		);
+		const penaltyValue = attribute.poolPenaltyValueId
+			? this.systemValueRuntime.evaluateValue(
+					attribute.poolPenaltyValueId,
+					values,
+					inputValues
+			  )
+			: 0;
+		return Math.max(0, attributeValue - penaltyValue);
 	}
 
 	private countSuccesses(

@@ -1,9 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException
+} from '@nestjs/common';
 import {
 	Prisma,
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
+import { CreateManualSystemValueDto } from './dto/create-manual-system-value.dto';
+import { UpdateSystemValueDto } from './dto/update-system-value.dto';
 
 const systemValueSelect = {
 	id: true,
@@ -12,6 +18,7 @@ const systemValueSelect = {
 	primaryOwnerType: true,
 	primaryOwnerId: true,
 	calculationGraph: true,
+	isSystemManaged: true,
 	isActive: true,
 	sortOrder: true,
 	links: {
@@ -54,6 +61,29 @@ type CharacteristicBaseValueRecord = Prisma.CharacteristicGetPayload<{
 @Injectable()
 export class ValuesService {
 	constructor(private readonly prisma: PrismaService) {}
+
+	async createManualValue(dto: CreateManualSystemValueDto) {
+		try {
+			const value = await this.prisma.systemValue.create({
+				select: systemValueSelect,
+				data: {
+					name: dto.name.trim(),
+					description: dto.description?.trim() || null,
+					primaryOwnerType: SystemValueOwnerType.MANUAL,
+					primaryOwnerId: null,
+					calculationGraph: createCharacterInputGraph()
+				}
+			});
+
+			return this.mapSystemValue(value, {
+				skillMap: new Map(),
+				characteristicMap: new Map(),
+				characteristicsByAttributeId: new Map()
+			});
+		} catch (error) {
+			this.rethrowPrismaError(error, 'Не удалось создать значение системы.');
+		}
+	}
 
 	async getCatalog() {
 		const [values, skills, characteristics] = await Promise.all([
@@ -105,12 +135,18 @@ export class ValuesService {
 		calculationGraph: unknown | null
 	) {
 		const value = await this.prisma.systemValue.findUnique({
-			select: { id: true },
+			select: { id: true, isSystemManaged: true },
 			where: { id }
 		});
 
 		if (!value) {
 			throw new NotFoundException('System value not found.');
+		}
+
+		if (value.isSystemManaged) {
+			throw new BadRequestException(
+				'Расчёт системного значения управляется системой.'
+			);
 		}
 
 		return this.prisma.systemValue.update({
@@ -120,6 +156,73 @@ export class ValuesService {
 				calculationGraph: (calculationGraph ??
 					createEmptyGraph()) as Prisma.InputJsonValue
 			}
+		});
+	}
+
+	async updateManualValue(id: string, dto: UpdateSystemValueDto) {
+		const value = await this.prisma.systemValue.findUnique({
+			select: {
+				id: true,
+				primaryOwnerType: true,
+				isSystemManaged: true
+			},
+			where: { id }
+		});
+
+		if (!value) {
+			throw new NotFoundException('System value not found.');
+		}
+
+		if (value.isSystemManaged || value.primaryOwnerType !== SystemValueOwnerType.MANUAL) {
+			throw new BadRequestException(
+				'Можно редактировать только свободные значения системы.'
+			);
+		}
+
+		try {
+			const updated = await this.prisma.systemValue.update({
+				select: systemValueSelect,
+				where: { id },
+				data: {
+					...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
+					...(dto.description !== undefined
+						? { description: dto.description.trim() || null }
+						: {})
+				}
+			});
+
+			return this.mapSystemValue(updated, {
+				skillMap: new Map(),
+				characteristicMap: new Map(),
+				characteristicsByAttributeId: new Map()
+			});
+		} catch (error) {
+			this.rethrowPrismaError(error, 'Не удалось обновить значение системы.');
+		}
+	}
+
+	async deleteManualValue(id: string) {
+		const value = await this.prisma.systemValue.findUnique({
+			select: {
+				id: true,
+				primaryOwnerType: true,
+				isSystemManaged: true
+			},
+			where: { id }
+		});
+
+		if (!value) {
+			throw new NotFoundException('System value not found.');
+		}
+
+		if (value.isSystemManaged || value.primaryOwnerType !== SystemValueOwnerType.MANUAL) {
+			throw new BadRequestException(
+				'Можно удалять только свободные значения системы.'
+			);
+		}
+
+		await this.prisma.systemValue.delete({
+			where: { id }
 		});
 	}
 
@@ -138,6 +241,7 @@ export class ValuesService {
 			groupLabel: groupLabel(value.primaryOwnerType),
 			contextLabel: this.contextLabel(value, context),
 			description: value.description ?? '',
+			isSystemManaged: value.isSystemManaged,
 			baseValue: this.baseValue(value, context),
 			calculationGraph: value.calculationGraph ?? createEmptyGraph(),
 			primaryOwner: {
@@ -204,6 +308,18 @@ export class ValuesService {
 		return 0;
 	}
 
+	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
+		if (
+			error instanceof Prisma.PrismaClientKnownRequestError &&
+			error.code === 'P2002'
+		) {
+			throw new BadRequestException('Значение должно быть уникальным.');
+		}
+
+		throw error instanceof Error
+			? error
+			: new BadRequestException(fallbackMessage);
+	}
 }
 
 function mapOwnerType(type: SystemValueOwnerType) {
@@ -240,5 +356,23 @@ function createEmptyGraph() {
 	return {
 		nodes: [{ id: 'result', kind: 'result', x: 420, y: 180 }],
 		edges: []
+	};
+}
+
+function createCharacterInputGraph() {
+	return {
+		nodes: [
+			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
+			{ id: 'result', kind: 'result', x: 420, y: 120 }
+		],
+		edges: [
+			{
+				id: 'character-input:out -> result:in',
+				source: 'character-input',
+				target: 'result',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			}
+		]
 	};
 }

@@ -56,7 +56,8 @@ export class AdminSkillDetailPageComponent {
 	protected readonly categoryOptions = this.facade.categoryOptions;
 	protected readonly rollConsequenceOptions =
 		this.facade.rollConsequenceOptions;
-	protected readonly dicePoolValueOptions = this.facade.dicePoolValueOptions;
+	protected readonly rollCharacteristicOptions =
+		this.facade.rollCharacteristicOptions;
 	protected readonly availableValues = this.facade.availableValues;
 	protected readonly skillSystemValueCalculation =
 		this.facade.systemValueCalculation;

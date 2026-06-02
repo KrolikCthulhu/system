@@ -17,6 +17,8 @@ export function mapAttributeDto(dto: AttributeDto): Attribute {
 		id: dto.id,
 		name: dto.name,
 		description: dto.description,
+		poolPenaltyValueId: dto.poolPenaltyValueId,
+		availablePoolValueId: dto.availablePoolValueId,
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
 		createdAt: dto.createdAt,

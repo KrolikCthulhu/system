@@ -1,6 +1,7 @@
 export interface CreateAttributeCommand {
 	name: string;
 	description: string;
+	poolPenaltyValueId: string | null;
 	sortOrder: number;
 }
 

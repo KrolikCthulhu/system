@@ -1,7 +1,13 @@
-import { computed, DestroyRef, inject, Injectable } from '@angular/core';
+import { computed, DestroyRef, inject, Injectable, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, map, of, switchMap } from 'rxjs';
 import { SignalFormDraft } from '../../../shared/forms/signal-form-draft';
+import {
+	ATTRIBUTES_REPOSITORY,
+	AttributesRepository
+} from '../../attributes/data/attributes-repository.port';
+import { createCharacteristicOptionGroups } from '../../attributes/domain/characteristic-option-groups';
+import { Attribute, Characteristic } from '../../attributes/domain/attributes.models';
 import {
 	VALUES_REPOSITORY,
 	ValuesRepository
@@ -11,7 +17,6 @@ import {
 	SystemValueCalculationDraftController
 } from '../../values/domain/system-value-calculation-draft';
 import { SystemValueCalculationDefinition } from '../../values/domain/system-value-calculation.models';
-import { createSystemValueOptionGroups } from '../../values/domain/system-value-option-groups';
 import { SystemValuesCatalogFacade } from '../../values/state/system-values-catalog.facade';
 import {
 	ROLL_CONSEQUENCES_REPOSITORY,
@@ -32,6 +37,8 @@ import { AdminSkillDetailStore } from './admin-skill-detail.store';
 export class AdminSkillDetailFacade {
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly repository = inject<SkillsRepository>(SKILLS_REPOSITORY);
+	private readonly attributesRepository =
+		inject<AttributesRepository>(ATTRIBUTES_REPOSITORY);
 	private readonly rollConsequencesRepository =
 		inject<RollConsequencesRepository>(ROLL_CONSEQUENCES_REPOSITORY);
 	private readonly valuesRepository = inject<ValuesRepository>(VALUES_REPOSITORY);
@@ -50,6 +57,8 @@ export class AdminSkillDetailFacade {
 	readonly saving = this.store.saving;
 	readonly errorMessage = this.store.errorMessage;
 	readonly skill = this.store.skill;
+	private readonly attributes = signal<Attribute[]>([]);
+	private readonly characteristics = signal<Characteristic[]>([]);
 	readonly categories = this.store.categories;
 	readonly rollConsequences = this.store.rollConsequences;
 	readonly availableValues = this.valuesCatalogFacade.values;
@@ -68,10 +77,8 @@ export class AdminSkillDetailFacade {
 			value: consequence.id
 		}))
 	]);
-	readonly dicePoolValueOptions = computed(() =>
-		createSystemValueOptionGroups(this.availableValues(), {
-			excludeIds: [this.skill()?.systemValue.id]
-		})
+	readonly rollCharacteristicOptions = computed(() =>
+		createCharacteristicOptionGroups(this.attributes(), this.characteristics())
 	);
 	readonly hasChanges = computed(
 		() =>
@@ -91,15 +98,18 @@ export class AdminSkillDetailFacade {
 					forkJoin({
 						skill: of(skill),
 						categories: this.repository.loadCategories(),
-						rollConsequences: this.rollConsequencesRepository.loadOptions()
+						rollConsequences: this.rollConsequencesRepository.loadOptions(),
+						attributesCatalog: this.attributesRepository.loadAdminCatalog()
 					})
 				),
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe({
-				next: ({ skill, categories, rollConsequences }) => {
+				next: ({ skill, categories, rollConsequences, attributesCatalog }) => {
 					this.store.setCategories(categories);
 					this.store.setRollConsequences(rollConsequences);
+					this.attributes.set(attributesCatalog.attributes);
+					this.characteristics.set(attributesCatalog.characteristics);
 					this.store.setSkill(skill);
 					this.patchDraft(skill);
 					this.store.setLoading(false);

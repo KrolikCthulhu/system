@@ -25,6 +25,7 @@ export interface SystemValueDto {
 	groupLabel: string;
 	contextLabel: string;
 	description: string;
+	isSystemManaged: boolean;
 	baseValue: number;
 	calculationGraph: ValueGraphState | null;
 	primaryOwner: SystemValueOwnerDto;
@@ -37,4 +38,14 @@ export interface SystemValuesCatalogDto {
 
 export interface UpdateSystemValueCalculationDto {
 	calculationGraph: ValueGraphState | null;
+}
+
+export interface CreateManualSystemValueDto {
+	name: string;
+	description?: string;
+}
+
+export interface UpdateSystemValueDto {
+	name?: string;
+	description?: string;
 }

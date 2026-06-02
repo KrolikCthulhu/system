@@ -45,18 +45,18 @@
 									<div class="admin-skill-detail-page__field">
 										<label
 											class="admin-skill-detail-page__field-label"
-											for="skill-dice-pool-value"
+											for="skill-roll-characteristic"
 										>
-											Пул кубов
+											Характеристика броска
 										</label>
 										<p-select
-											inputId="skill-dice-pool-value"
-											formControlName="dicePoolValueId"
+											inputId="skill-roll-characteristic"
+											formControlName="rollCharacteristicId"
 											optionLabel="label"
 											optionValue="value"
 											optionGroupLabel="label"
 											optionGroupChildren="items"
-											[options]="dicePoolValueOptions()"
+											[options]="rollCharacteristicOptions()"
 											[group]="true"
 											[filter]="true"
 											filterBy="label"

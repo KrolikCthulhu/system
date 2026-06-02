@@ -8,6 +8,7 @@ import { Button } from 'primeng/button';
 import { Fluid } from 'primeng/fluid';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
+import { Select } from 'primeng/select';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { FormChangeTracker } from '../../../../../shared/forms/form-change-tracker';
@@ -20,6 +21,7 @@ import {
 	SystemValueCalculationDraftController
 } from '../../../../values/domain/system-value-calculation-draft';
 import { SystemValueCalculationDefinition } from '../../../../values/domain/system-value-calculation.models';
+import { createSystemValueOptionGroups } from '../../../../values/domain/system-value-option-groups';
 import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
 import { SystemValueCalculationEditorComponent } from '../../../../values/ui/components/system-value-calculation-editor/system-value-calculation-editor.component';
 import { ATTRIBUTES_REPOSITORY } from '../../../data/attributes-repository.port';
@@ -43,6 +45,7 @@ import {
 		Fluid,
 		InputNumber,
 		InputText,
+		Select,
 		Tab,
 		TabList,
 		TabPanel,
@@ -71,6 +74,14 @@ export class AdminAttributeDetailPageComponent {
 	protected readonly activeTab = signal<string | number | undefined>('general');
 	protected readonly attribute = signal<Attribute | null>(null);
 	protected readonly availableValues = this.valuesCatalogFacade.values;
+	protected readonly poolPenaltyValueOptions = computed(() =>
+		createSystemValueOptionGroups(this.availableValues(), {
+			excludeIds: [
+				this.attribute()?.systemValue.id,
+				this.attribute()?.availablePoolValueId
+			]
+		})
+	);
 	protected readonly systemValueCalculation = this.calculationDraft.draft;
 	protected readonly canEditCalculation = computed(() => Boolean(this.systemValueCalculation()));
 	protected readonly breadcrumbs = computed(() => [

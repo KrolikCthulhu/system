@@ -82,6 +82,8 @@ export class AttributeEditorFacade {
 					id,
 					name: 'Новый атрибут',
 					description: '',
+					poolPenaltyValueId: null,
+					availablePoolValueId: null,
 					isActive: true,
 					sortOrder: 0,
 					createdAt: new Date().toISOString(),

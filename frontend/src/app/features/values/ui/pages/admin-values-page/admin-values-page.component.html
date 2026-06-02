@@ -17,9 +17,47 @@
 		<aside class="admin-values-page__panel admin-values-page__sidebar">
 			<div class="admin-values-page__panel-heading admin-values-page__section-pad">
 				<h2 class="admin-values-page__panel-title">Значения</h2>
+				<p-button
+					label="Новое значение"
+					icon="pi pi-plus"
+					size="small"
+					[disabled]="creatingValue()"
+					(onClick)="startCreateValue()"
+				></p-button>
 			</div>
 
-			<div class="admin-values-page__section-pad">
+			@if (creatingValue()) {
+				<div class="admin-values-page__create-form admin-values-page__section-pad">
+					<input
+						pInputText
+						type="text"
+						placeholder="Название значения"
+						[value]="createValueName()"
+						(input)="setCreateValueName($any($event.target).value)"
+						(keydown.enter)="createValue()"
+						(keydown.escape)="cancelCreateValue()"
+					/>
+					<div class="admin-values-page__create-actions">
+						<p-button
+							label="Отмена"
+							severity="secondary"
+							variant="outlined"
+							size="small"
+							[disabled]="createValueSaving()"
+							(onClick)="cancelCreateValue()"
+						></p-button>
+						<p-button
+							label="Создать"
+							size="small"
+							[loading]="createValueSaving()"
+							[disabled]="!createValueName().trim()"
+							(onClick)="createValue()"
+						></p-button>
+					</div>
+				</div>
+			}
+
+			<div class="admin-values-page__search-row admin-values-page__section-pad">
 				<p-iconfield class="admin-values-page__search">
 					<p-inputicon class="pi pi-search" />
 					<input
@@ -30,6 +68,78 @@
 						(input)="setSearchQuery($any($event.target).value)"
 					/>
 				</p-iconfield>
+				<div class="admin-values-page__filter-action">
+					<p-button
+						icon="pi pi-filter"
+						styleClass="admin-values-page__filter-button"
+						severity="secondary"
+						variant="outlined"
+						ariaLabel="Фильтры значений"
+						(onClick)="valuesFilter.toggle($event)"
+					></p-button>
+					@if (activeFilterBadge(); as badge) {
+						<span class="admin-values-page__filter-badge">{{ badge }}</span>
+					}
+				</div>
+				<p-popover
+					#valuesFilter
+					styleClass="admin-values-page__filter-popover"
+					appendTo="body"
+				>
+					<div class="admin-values-page__filter-panel">
+						<div class="admin-values-page__filter-head">
+							<strong>Фильтр значений</strong>
+							<p-button
+								label="Сбросить"
+								severity="secondary"
+								variant="text"
+								size="small"
+								[disabled]="!activeFilterCount()"
+								(onClick)="clearFilters()"
+							></p-button>
+						</div>
+
+						<div class="admin-values-page__filter-section">
+							<div class="admin-values-page__filter-title">Разделы</div>
+							@for (option of groupFilterOptions(); track option.label; let i = $index) {
+								<label
+									class="admin-values-page__filter-option"
+									[attr.for]="'value-filter-group-' + i"
+								>
+									<p-checkbox
+										[inputId]="'value-filter-group-' + i"
+										[binary]="true"
+										[ngModel]="isGroupFilterSelected(option.label)"
+										(ngModelChange)="toggleGroupFilter(option.label)"
+									></p-checkbox>
+									<span>{{ option.label }}</span>
+									<small>{{ option.count }}</small>
+								</label>
+							}
+						</div>
+
+						@if (contextFilterOptions().length) {
+							<div class="admin-values-page__filter-section">
+								<div class="admin-values-page__filter-title">Контекст</div>
+								@for (option of contextFilterOptions(); track option.label; let i = $index) {
+									<label
+										class="admin-values-page__filter-option"
+										[attr.for]="'value-filter-context-' + i"
+									>
+										<p-checkbox
+											[inputId]="'value-filter-context-' + i"
+											[binary]="true"
+											[ngModel]="isContextFilterSelected(option.label)"
+											(ngModelChange)="toggleContextFilter(option.label)"
+										></p-checkbox>
+										<span>{{ option.label }}</span>
+										<small>{{ option.count }}</small>
+									</label>
+								}
+							</div>
+						}
+					</div>
+				</p-popover>
 			</div>
 
 			@if (loading()) {
@@ -42,9 +152,31 @@
 				<div class="admin-values-page__group-list admin-values-page__section-pad">
 					@for (group of valueGroups(); track group.label) {
 						<div class="admin-values-page__group">
-							<div class="text-muted">{{ group.label }}</div>
+							<button
+								type="button"
+								class="admin-values-page__group-title"
+								[attr.aria-expanded]="!isGroupCollapsed(group.label)"
+								(click)="toggleGroup(group.label)"
+							>
+								<i
+									class="pi pi-chevron-right admin-values-page__group-icon"
+									[class.admin-values-page__group-icon--expanded]="
+										!isGroupCollapsed(group.label)
+									"
+									aria-hidden="true"
+								></i>
+								<span>{{ group.label }}</span>
+								<span class="admin-values-page__group-count">
+									{{ group.items.length }}
+								</span>
+							</button>
 
-							<div class="admin-values-page__value-list">
+							<div
+								class="admin-values-page__value-list"
+								[class.admin-values-page__value-list--collapsed]="
+									isGroupCollapsed(group.label)
+								"
+							>
 								@for (value of group.items; track value.id) {
 									<button
 										type="button"
@@ -56,14 +188,10 @@
 									>
 										<div class="admin-values-page__value-copy">
 											<strong>{{ value.name }}</strong>
-											<span>
-												{{ value.contextLabel || kindLabel(value.kind) }}
-											</span>
+											@if (value.contextLabel) {
+												<span>{{ value.contextLabel }}</span>
+											}
 										</div>
-										<p-tag
-											[value]="modeTagLabel(value)"
-											[severity]="modeTagSeverity(value)"
-										></p-tag>
 									</button>
 								}
 							</div>
@@ -83,11 +211,20 @@
 					</div>
 
 					<div class="admin-values-page__heading-tags">
+						@if (value.isSystemManaged) {
+							<p-tag value="Системное" severity="info"></p-tag>
+						}
 						<p-tag [value]="kindLabel(value.kind)" severity="secondary"></p-tag>
-						<p-tag
-							[value]="modeTagLabel(value)"
-							[severity]="modeTagSeverity(value)"
-						></p-tag>
+						@if (canDeleteValue(value)) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								[text]="true"
+								[rounded]="true"
+								[loading]="deletingValueId() === value.id"
+								(onClick)="confirmDeleteValue(value)"
+							></p-button>
+						}
 					</div>
 				</div>
 
@@ -96,8 +233,38 @@
 						class="admin-values-page__calculation-editor"
 						[systemValue]="calculationState()"
 						[availableValues]="values()"
+						[showGeneralTab]="true"
+						[readonly]="value.isSystemManaged"
 						(systemValueChange)="updateCalculationState($event)"
-					></app-system-value-calculation-editor>
+					>
+						<form system-value-general class="admin-values-page__metadata-form">
+							<div class="admin-values-page__metadata-field">
+								<label
+									class="admin-values-page__field-label"
+									for="system-value-name"
+								>
+									Название
+								</label>
+								<input
+									id="system-value-name"
+									pInputText
+									type="text"
+									[value]="valueNameDraft()"
+									[readonly]="!canEditMetadata(value)"
+									(input)="setValueNameDraft($any($event.target).value)"
+								/>
+							</div>
+							@if (!canEditMetadata(value)) {
+								<div class="admin-values-page__metadata-hint">
+									@if (value.isSystemManaged) {
+										Системное значение создаётся автоматически и доступно только для просмотра.
+									} @else {
+										Название этого значения меняется в разделе, где оно создано.
+									}
+								</div>
+							}
+						</form>
+					</app-system-value-calculation-editor>
 				</div>
 
 				<div class="admin-values-page__editor-actions admin-values-page__section-pad">

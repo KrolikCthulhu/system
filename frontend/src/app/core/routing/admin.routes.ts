@@ -84,6 +84,13 @@ export const adminRoutes: Route[] = [
 							import(
 								'../../features/values/ui/pages/admin-values-page/admin-values-page.component'
 							).then(m => m.AdminValuesPageComponent)
+					},
+					{
+						path: 'events',
+						loadComponent: () =>
+							import(
+								'../../features/events/ui/pages/admin-events-page/admin-events-page.component'
+							).then(m => m.AdminEventsPageComponent)
 					}
 				]
 			},

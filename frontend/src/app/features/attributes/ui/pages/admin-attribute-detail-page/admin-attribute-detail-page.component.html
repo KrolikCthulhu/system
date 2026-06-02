@@ -75,6 +75,30 @@
 											[showButtons]="false"
 										></p-inputnumber>
 									</div>
+
+									<div class="admin-attribute-detail-page__field">
+										<label
+											class="admin-attribute-detail-page__field-label"
+											for="attribute-pool-penalty"
+										>
+											Штраф пула кубов
+										</label>
+										<p-select
+											inputId="attribute-pool-penalty"
+											formControlName="poolPenaltyValueId"
+											optionLabel="label"
+											optionValue="value"
+											optionGroupLabel="label"
+											optionGroupChildren="items"
+											[options]="poolPenaltyValueOptions()"
+											[group]="true"
+											[filter]="true"
+											filterBy="label"
+											[showClear]="true"
+											placeholder="Не выбран"
+											appendTo="body"
+										></p-select>
+									</div>
 								</div>
 
 								<div class="admin-attribute-detail-page__field">

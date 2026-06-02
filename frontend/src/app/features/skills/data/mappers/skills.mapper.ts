@@ -31,7 +31,7 @@ export function mapSkillDto(dto: SkillDto): Skill {
 		categoryId: dto.categoryId,
 		description: dto.description,
 		rollConsequenceId: dto.rollConsequenceId,
-		dicePoolValueId: dto.dicePoolValueId ?? null,
+		rollCharacteristicId: dto.rollCharacteristicId ?? null,
 		defaultLevel: dto.defaultLevel,
 		maxLevel: dto.maxLevel,
 		usesDefaultLevelRules: dto.usesDefaultLevelRules,

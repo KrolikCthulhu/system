@@ -120,8 +120,8 @@ model Skill {
   usesDefaultLevelRules Boolean          @default(true) @map("uses_default_level_rules")
   systemValueId         String           @unique @map("system_value_id") @db.Uuid
   systemValue           SystemValue      @relation("SkillSystemValue", fields: [systemValueId], references: [id], onDelete: Restrict)
-  dicePoolValueId       String?          @map("dice_pool_value_id") @db.Uuid
-  dicePoolValue         SystemValue?     @relation("SkillDicePoolValue", fields: [dicePoolValueId], references: [id], onDelete: SetNull)
+  rollCharacteristicId  String?          @map("roll_characteristic_id") @db.Uuid
+  rollCharacteristic    Characteristic?   @relation("SkillRollCharacteristic", fields: [rollCharacteristicId], references: [id], onDelete: SetNull)
   rollConsequenceId     String?          @map("roll_consequence_id") @db.Uuid
   rollConsequence       RollConsequence? @relation(fields: [rollConsequenceId], references: [id], onDelete: SetNull)
   isActive              Boolean          @default(true) @map("is_active")
@@ -130,7 +130,7 @@ model Skill {
   updatedAt             DateTime         @updatedAt @map("updated_at")
 
   @@index([categoryId])
-  @@index([dicePoolValueId])
+  @@index([rollCharacteristicId])
   @@index([rollConsequenceId])
   @@index([categoryId, isActive, sortOrder])
   @@map("skills")
@@ -157,6 +157,10 @@ model Attribute {
   description     String?
   systemValueId   String           @unique @map("system_value_id") @db.Uuid
   systemValue     SystemValue      @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
+  poolPenaltyValueId String?        @map("pool_penalty_value_id") @db.Uuid
+  poolPenaltyValue   SystemValue?   @relation("AttributePoolPenaltyValue", fields: [poolPenaltyValueId], references: [id], onDelete: SetNull)
+  availablePoolValueId String?      @unique @map("available_pool_value_id") @db.Uuid
+  availablePoolValue   SystemValue? @relation("AttributeAvailablePoolValue", fields: [availablePoolValueId], references: [id], onDelete: SetNull)
   isActive        Boolean          @default(true) @map("is_active")
   sortOrder       Int              @default(0) @map("sort_order")
   createdAt       DateTime         @default(now()) @map("created_at")
@@ -164,6 +168,7 @@ model Attribute {
   characteristics Characteristic[]
 
   @@index([isActive, sortOrder])
+  @@index([poolPenaltyValueId])
   @@map("attributes")
 }
 
@@ -178,6 +183,7 @@ model Characteristic {
   defaultValue  Int         @default(0) @map("default_value")
   systemValueId String      @unique @map("system_value_id") @db.Uuid
   systemValue   SystemValue @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
+  rollSkills    Skill[]     @relation("SkillRollCharacteristic")
   isActive      Boolean     @default(true) @map("is_active")
   sortOrder     Int         @default(0) @map("sort_order")
   createdAt     DateTime    @default(now()) @map("created_at")
@@ -195,14 +201,16 @@ model SystemValue {
   primaryOwnerType SystemValueOwnerType @map("primary_owner_type")
   primaryOwnerId   String?              @map("primary_owner_id") @db.Uuid
   calculationGraph Json?                @map("calculation_graph")
+  isSystemManaged  Boolean              @default(false) @map("is_system_managed")
   isActive         Boolean              @default(true) @map("is_active")
   sortOrder        Int                  @default(0) @map("sort_order")
   createdAt        DateTime             @default(now()) @map("created_at")
   updatedAt        DateTime             @updatedAt @map("updated_at")
 
   skills          Skill[]           @relation("SkillSystemValue")
-  dicePoolSkills  Skill[]           @relation("SkillDicePoolValue")
   attributes      Attribute[]
+  poolPenaltyAttributes Attribute[] @relation("AttributePoolPenaltyValue")
+  availablePoolAttributes Attribute[] @relation("AttributeAvailablePoolValue")
   characteristics Characteristic[]
   links           SystemValueLink[]
 

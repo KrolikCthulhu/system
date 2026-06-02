@@ -9,6 +9,8 @@ export interface AttributeDto {
 	id: string;
 	name: string;
 	description: string;
+	poolPenaltyValueId: string | null;
+	availablePoolValueId: string | null;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;

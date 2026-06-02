@@ -14,6 +14,7 @@ import { TableModule } from 'primeng/table';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
+import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
 import {
 	Attribute,
 	Characteristic
@@ -64,6 +65,7 @@ export class AdminAttributesPageComponent {
 	private readonly confirmationService = inject(ConfirmationService);
 	private readonly router = inject(Router);
 	private readonly catalogFacade = inject(AttributesCatalogFacade);
+	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly attributeEditorFacade = inject(AttributeEditorFacade);
 	private readonly characteristicEditorFacade = inject(
 		CharacteristicEditorFacade
@@ -82,6 +84,7 @@ export class AdminAttributesPageComponent {
 	protected readonly selectedCharacteristicId =
 		this.catalogFacade.selectedCharacteristicId;
 	protected readonly attributes = this.catalogFacade.attributes;
+	protected readonly values = this.valuesCatalogFacade.values;
 	protected readonly characteristics = this.catalogFacade.characteristics;
 	protected readonly attributeForm = this.attributeEditorFacade.form;
 	protected readonly characteristicForm = this.characteristicEditorFacade.form;
@@ -103,6 +106,8 @@ export class AdminAttributesPageComponent {
 		this.catalogFacade.selectedCharacteristic;
 
 	constructor() {
+		this.valuesCatalogFacade.ensureLoaded();
+
 		effect(() => {
 			this.tabValue.set(this.activeTab());
 		});
@@ -298,6 +303,17 @@ export class AdminAttributesPageComponent {
 	protected isDraftCharacteristic(characteristicId: string) {
 		return this.characteristicEditorFacade.isDraftCharacteristic(
 			characteristicId
+		);
+	}
+
+	protected getAttributePoolPenaltyName(attribute: Attribute) {
+		if (!attribute.poolPenaltyValueId) {
+			return 'Не выбран';
+		}
+
+		return (
+			this.values().find(value => value.id === attribute.poolPenaltyValueId)
+				?.name ?? 'Не найдено'
 		);
 	}
 
