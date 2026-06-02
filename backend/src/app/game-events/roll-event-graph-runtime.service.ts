@@ -8,6 +8,7 @@ import {
 type RollEventInputKey =
 	| 'diceCount'
 	| 'successes'
+	| 'sixes'
 	| 'ones'
 	| 'ignoredOnes'
 	| 'consequenceCount'
@@ -26,6 +27,7 @@ type RollEventThresholdResetMode = 'zero' | 'subtractThreshold';
 export interface RollEventPayload {
 	diceCount: number;
 	successes: number;
+	sixes: number;
 	ones: number;
 	ignoredOnes: number;
 	consequenceCount: number;
@@ -411,6 +413,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function parseEventInputKey(value: unknown): RollEventInputKey | undefined {
 	return value === 'diceCount' ||
 		value === 'successes' ||
+		value === 'sixes' ||
 		value === 'ones' ||
 		value === 'ignoredOnes' ||
 		value === 'consequenceCount' ||

@@ -11,6 +11,7 @@ export type RollEventGraphNodeKind =
 export type RollEventInputKey =
 	| 'diceCount'
 	| 'successes'
+	| 'sixes'
 	| 'ones'
 	| 'ignoredOnes'
 	| 'consequenceCount'

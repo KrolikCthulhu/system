@@ -24,6 +24,13 @@ import { SystemValueCalculationEditorComponent } from '../../components/system-v
 
 interface ValueGroup {
 	label: string;
+	count: number;
+	subgroups: ValueSubgroup[];
+	items: SystemValue[];
+}
+
+interface ValueSubgroup {
+	label: string;
 	items: SystemValue[];
 }
 
@@ -70,9 +77,11 @@ export class AdminValuesPageComponent {
 	protected readonly createValueSaving = signal(false);
 	protected readonly selectedValueId = signal<string | null>(null);
 	protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
+	protected readonly collapsedSubgroups = signal<ReadonlySet<string>>(new Set());
 	protected readonly selectedGroupFilters = signal<ReadonlySet<string>>(new Set());
 	protected readonly selectedContextFilters = signal<ReadonlySet<string>>(new Set());
 	protected readonly valueNameDraft = signal('');
+	protected readonly valueSectionDraft = signal('');
 	protected readonly deletingValueId = signal<string | null>(null);
 	protected readonly loading = this.valuesCatalogFacade.loading;
 	protected readonly errorMessage = this.valuesCatalogFacade.errorMessage;
@@ -85,7 +94,8 @@ export class AdminValuesPageComponent {
 		return Boolean(
 			selected &&
 			this.canEditMetadata(selected) &&
-			this.valueNameDraft().trim() !== selected.name
+			(this.valueNameDraft().trim() !== selected.name ||
+				this.valueSectionDraft().trim() !== selected.displaySection)
 		);
 	});
 	protected readonly hasChanges = computed(
@@ -110,6 +120,15 @@ export class AdminValuesPageComponent {
 		const count = this.activeFilterCount();
 		return count > 0 ? count.toString() : undefined;
 	});
+	protected readonly sectionSuggestions = computed(() =>
+		[
+			...new Set(
+				this.values()
+					.map(value => value.groupLabel.trim())
+					.filter(label => label.length > 0 && label !== 'Без раздела')
+			)
+		].sort((left, right) => left.localeCompare(right, 'ru'))
+	);
 
 	protected readonly selectedValue = computed(() => {
 		const selectedId = this.selectedValueId();
@@ -122,7 +141,7 @@ export class AdminValuesPageComponent {
 		const query = this.searchQuery().trim().toLowerCase();
 		const selectedGroups = this.selectedGroupFilters();
 		const selectedContexts = this.selectedContextFilters();
-		const groups = new Map<string, SystemValue[]>();
+		const groups = new Map<string, ValueSubgroup[]>();
 
 		for (const value of this.values()) {
 			const contextLabel = value.contextLabel?.trim() ?? '';
@@ -140,14 +159,24 @@ export class AdminValuesPageComponent {
 				continue;
 			}
 
-			const items = groups.get(value.groupLabel) ?? [];
-			items.push(value);
-			groups.set(value.groupLabel, items);
+			const subgroups = groups.get(value.groupLabel) ?? [];
+			const subgroupLabel = contextLabel || '';
+			const subgroup =
+				subgroups.find(item => item.label === subgroupLabel) ??
+				createValueSubgroup(subgroups, subgroupLabel);
+
+			subgroup.items.push(value);
+			groups.set(value.groupLabel, subgroups);
 		}
 
-		return Array.from(groups.entries()).map(([label, items]) => ({
+		return Array.from(groups.entries()).map(([label, subgroups]) => ({
 			label,
-			items
+			count: subgroups.reduce(
+				(total, subgroup) => total + subgroup.items.length,
+				0
+			),
+			subgroups: subgroups.filter(subgroup => subgroup.label),
+			items: subgroups.find(subgroup => !subgroup.label)?.items ?? []
 		}));
 	});
 
@@ -198,6 +227,10 @@ export class AdminValuesPageComponent {
 		return this.collapsedGroups().has(label);
 	}
 
+	protected isSubgroupCollapsed(groupLabel: string, subgroupLabel: string) {
+		return this.collapsedSubgroups().has(subgroupKey(groupLabel, subgroupLabel));
+	}
+
 	protected toggleGroup(label: string) {
 		this.collapsedGroups.update(collapsed => {
 			const next = new Set(collapsed);
@@ -206,6 +239,22 @@ export class AdminValuesPageComponent {
 				next.delete(label);
 			} else {
 				next.add(label);
+			}
+
+			return next;
+		});
+	}
+
+	protected toggleSubgroup(groupLabel: string, subgroupLabel: string) {
+		const key = subgroupKey(groupLabel, subgroupLabel);
+
+		this.collapsedSubgroups.update(collapsed => {
+			const next = new Set(collapsed);
+
+			if (next.has(key)) {
+				next.delete(key);
+			} else {
+				next.add(key);
 			}
 
 			return next;
@@ -273,6 +322,7 @@ export class AdminValuesPageComponent {
 	protected resetDraft() {
 		this.calculationDraft.reset();
 		this.valueNameDraft.set(this.selectedValue()?.name ?? '');
+		this.valueSectionDraft.set(this.selectedValue()?.displaySection ?? '');
 	}
 
 	protected saveDraft() {
@@ -284,6 +334,7 @@ export class AdminValuesPageComponent {
 		}
 
 		const name = this.valueNameDraft().trim();
+		const displaySection = this.valueSectionDraft().trim();
 
 		if (this.hasMetadataChanges() && !name) {
 			this.errorMessage.set('Название значения не может быть пустым.');
@@ -291,7 +342,7 @@ export class AdminValuesPageComponent {
 		}
 
 		const metadataRequest = this.hasMetadataChanges()
-			? this.valuesRepository.updateValue(selected.id, { name })
+			? this.valuesRepository.updateValue(selected.id, { name, displaySection })
 			: of(selected);
 		const calculationRequest = this.calculationHasChanges()
 			? selected.isSystemManaged
@@ -313,6 +364,7 @@ export class AdminValuesPageComponent {
 				};
 				this.valuesCatalogFacade.replaceValue(nextValue);
 				this.valueNameDraft.set(nextValue.name);
+				this.valueSectionDraft.set(nextValue.displaySection);
 				this.calculationDraft.commit(toCalculationDefinition(nextValue));
 				this.errorMessage.set(null);
 			},
@@ -356,6 +408,10 @@ export class AdminValuesPageComponent {
 		this.valueNameDraft.set(name);
 	}
 
+	protected setValueSectionDraft(section: string) {
+		this.valueSectionDraft.set(section);
+	}
+
 	protected canEditMetadata(value: SystemValue) {
 		return !value.isSystemManaged && value.primaryOwner.type === 'manual';
 	}
@@ -384,6 +440,7 @@ export class AdminValuesPageComponent {
 		this.selectedValueId.set(valueId);
 		this.calculationDraft.set(toCalculationDefinition(nextValue));
 		this.valueNameDraft.set(nextValue.name);
+		this.valueSectionDraft.set(nextValue.displaySection);
 	}
 
 	private deleteValue(value: SystemValue) {
@@ -398,6 +455,7 @@ export class AdminValuesPageComponent {
 				this.deletingValueId.set(null);
 				this.calculationDraft.clear();
 				this.valueNameDraft.set('');
+				this.valueSectionDraft.set('');
 				this.errorMessage.set(null);
 			},
 			error: error => {
@@ -432,6 +490,19 @@ function buildFilterOptions(labels: string[]): FilterOption[] {
 		label,
 		count
 	}));
+}
+
+function createValueSubgroup(
+	subgroups: ValueSubgroup[],
+	label: string
+): ValueSubgroup {
+	const subgroup = { label, items: [] };
+	subgroups.push(subgroup);
+	return subgroup;
+}
+
+function subgroupKey(groupLabel: string, subgroupLabel: string) {
+	return `${groupLabel}::${subgroupLabel}`;
 }
 
 function toggleSetValue(

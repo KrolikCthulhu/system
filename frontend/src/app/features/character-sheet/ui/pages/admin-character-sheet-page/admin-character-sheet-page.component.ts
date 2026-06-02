@@ -43,6 +43,7 @@ interface DiceRollResult {
 	diceCount: number;
 	dice: number[];
 	successes: number;
+	sixes: number;
 	ones: number;
 	ignoredOnes: number;
 	consequenceCount: number;
@@ -165,7 +166,9 @@ export class AdminCharacterSheetPageComponent {
 	protected readonly consequenceValues = computed(() =>
 		this.systemValues()
 			.filter(
-				value => value.kind === 'roll-consequence' && value.primaryOwner.id
+				value =>
+					(value.kind === 'roll-consequence' && value.primaryOwner.id) ||
+					value.kind === 'manual'
 			)
 			.map(value => ({
 				value,
@@ -366,7 +369,7 @@ export class AdminCharacterSheetPageComponent {
 		}
 
 		for (const value of this.systemValues()) {
-			if (value.kind === 'roll-consequence') {
+			if (value.kind === 'roll-consequence' || value.kind === 'manual') {
 				nextValues[value.id] = value.baseValue;
 			}
 		}

@@ -60,6 +60,7 @@ const NODE_TYPES: EventNodeType[] = [
 const EVENT_INPUT_OPTIONS = [
 	{ label: 'Количество кубов', value: 'diceCount' },
 	{ label: 'Успехи', value: 'successes' },
+	{ label: 'Выпавшие шестерки', value: 'sixes' },
 	{ label: 'Выпавшие единицы', value: 'ones' },
 	{ label: 'Игнорированные единицы', value: 'ignoredOnes' },
 	{ label: 'Количество последствий', value: 'consequenceCount' },

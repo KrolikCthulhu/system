@@ -353,6 +353,8 @@ function eventInputLabel(key: RollEventGraphNodeData['eventInputKey']) {
 			return 'Количество кубов';
 		case 'successes':
 			return 'Успехи';
+		case 'sixes':
+			return 'Выпавшие шестерки';
 		case 'ones':
 			return 'Выпавшие единицы';
 		case 'ignoredOnes':

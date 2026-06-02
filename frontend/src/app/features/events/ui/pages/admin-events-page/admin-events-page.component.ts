@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { catchError, forkJoin, map, Observable, throwError } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
@@ -10,6 +12,7 @@ import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
 import { Tag } from 'primeng/tag';
+import { environment } from '../../../../../infrastructure/config/environment';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
 import {
 	ROLL_CONSEQUENCES_REPOSITORY,
@@ -22,7 +25,34 @@ import { SystemValuesCatalogFacade } from '../../../../values/state/system-value
 
 interface EventHandlerGroup {
 	label: string;
-	items: RollConsequence[];
+	items: EventHandlerItem[];
+}
+
+interface GameEventHandler {
+	id: string;
+	eventType: string;
+	name: string;
+	description: string;
+	graph: RollEventGraphDefinition | null;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+interface GameEventHandlersResponse {
+	handlers: GameEventHandler[];
+}
+
+interface EventHandlerItem {
+	key: string;
+	id: string;
+	type: 'global' | 'consequence';
+	name: string;
+	description: string;
+	graph: RollEventGraphDefinition | null;
+	isActive: boolean;
+	sortOrder: number;
+	subtitle: string;
+	source: GameEventHandler | RollConsequence;
 }
 
 @Component({
@@ -48,6 +78,7 @@ export class AdminEventsPageComponent {
 	private readonly repository = inject<RollConsequencesRepository>(
 		ROLL_CONSEQUENCES_REPOSITORY
 	);
+	private readonly http = inject(HttpClient);
 	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly destroyRef = inject(DestroyRef);
@@ -60,30 +91,60 @@ export class AdminEventsPageComponent {
 	protected readonly loading = signal(true);
 	protected readonly saving = signal(false);
 	protected readonly errorMessage = signal<string | null>(null);
-	protected readonly selectedHandlerId = signal<string | null>(null);
+	protected readonly selectedHandlerKey = signal<string | null>(null);
 	protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
+	protected readonly globalHandlers = signal<GameEventHandler[]>([]);
 	protected readonly consequences = signal<RollConsequence[]>([]);
 	protected readonly graphDraft = signal<RollEventGraphDefinition | null>(null);
 	protected readonly availableValues = this.valuesCatalogFacade.values;
 	private readonly savedGraphSignature = signal('');
 
 	protected readonly selectedHandler = computed(() => {
-		const selectedId = this.selectedHandlerId();
-		return selectedId
-			? this.consequences().find(consequence => consequence.id === selectedId) ??
-					null
+		const selectedKey = this.selectedHandlerKey();
+		return selectedKey
+			? this.allHandlers().find(handler => handler.key === selectedKey) ?? null
 			: null;
 	});
+	protected readonly allHandlers = computed<EventHandlerItem[]>(() => [
+		...this.globalHandlers().map(handler => ({
+			key: `global:${handler.id}`,
+			id: handler.id,
+			type: 'global' as const,
+			name: handler.name,
+			description: handler.description,
+			graph: handler.graph,
+			isActive: handler.isActive,
+			sortOrder: handler.sortOrder,
+			subtitle: 'Глобальный обработчик',
+			source: handler
+		})),
+		...this.consequences().map(consequence => ({
+			key: `consequence:${consequence.id}`,
+			id: consequence.id,
+			type: 'consequence' as const,
+			name: consequence.name,
+			description: consequence.description,
+			graph: consequence.rollEventGraph,
+			isActive: consequence.isActive,
+			sortOrder: consequence.sortOrder,
+			subtitle: 'Последствие броска',
+			source: consequence
+		}))
+	]);
 	protected readonly hasChanges = computed(
 		() => graphSignature(this.graphDraft()) !== this.savedGraphSignature()
 	);
 	protected readonly handlerGroups = computed<EventHandlerGroup[]>(() => {
 		const query = this.searchQuery().trim().toLowerCase();
-		const items = this.consequences().filter(consequence => {
+		const items = this.allHandlers().filter(handler => {
 			const haystack =
-				`${consequence.name} ${consequence.description} Совершён бросок Последствие броска`.toLowerCase();
+				`${handler.name} ${handler.description} Совершён бросок ${handler.subtitle}`.toLowerCase();
 
 			return !query || haystack.includes(query);
+		}).sort((first, second) => {
+			const typeOrder = first.type === second.type ? 0 : first.type === 'global' ? -1 : 1;
+			const orderDiff = first.sortOrder - second.sortOrder;
+			return typeOrder || orderDiff || first.name.localeCompare(second.name, 'ru');
 		});
 
 		return [
@@ -99,20 +160,20 @@ export class AdminEventsPageComponent {
 		this.loadHandlers();
 
 		effect(() => {
-			const handlers = this.consequences();
+			const handlers = this.allHandlers();
 
 			if (!handlers.length) {
-				this.selectedHandlerId.set(null);
+				this.selectedHandlerKey.set(null);
 				this.graphDraft.set(null);
 				this.savedGraphSignature.set(graphSignature(null));
 				return;
 			}
 
 			if (
-				!this.selectedHandlerId() ||
-				!handlers.some(handler => handler.id === this.selectedHandlerId())
+				!this.selectedHandlerKey() ||
+				!handlers.some(handler => handler.key === this.selectedHandlerKey())
 			) {
-				this.selectHandlerInternal(handlers[0].id);
+				this.selectHandlerInternal(handlers[0].key);
 			}
 		});
 	}
@@ -139,15 +200,15 @@ export class AdminEventsPageComponent {
 		});
 	}
 
-	protected selectHandler(handlerId: string) {
-		if (handlerId === this.selectedHandlerId()) {
+	protected selectHandler(handlerKey: string) {
+		if (handlerKey === this.selectedHandlerKey()) {
 			return;
 		}
 
 		this.unsavedChangesGuard.confirmDiscard({
 			hasChanges: this.hasChanges(),
 			discard: () => this.resetDraft(),
-			proceed: () => this.selectHandlerInternal(handlerId)
+			proceed: () => this.selectHandlerInternal(handlerKey)
 		});
 	}
 
@@ -157,7 +218,7 @@ export class AdminEventsPageComponent {
 
 	protected resetDraft() {
 		const handler = this.selectedHandler();
-		const graph = handler?.rollEventGraph ?? null;
+		const graph = handler?.graph ?? null;
 
 		this.graphDraft.set(graph);
 		this.savedGraphSignature.set(graphSignature(graph));
@@ -173,32 +234,13 @@ export class AdminEventsPageComponent {
 		this.saving.set(true);
 		this.errorMessage.set(null);
 
-		this.repository
-			.update({
-				id: handler.id,
-				name: handler.name,
-				description: handler.description,
-				rollEventGraph: this.graphDraft(),
-				isActive: handler.isActive,
-				sortOrder: handler.sortOrder,
-				values: handler.values.map(value => ({
-					id: value.id,
-					name: value.name,
-					description: value.description,
-					isActive: value.isActive,
-					sortOrder: value.sortOrder
-				}))
-			})
+		this.saveHandlerGraph(handler)
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
 				next: saved => {
-					this.consequences.update(consequences =>
-						consequences.map(consequence =>
-							consequence.id === saved.id ? saved : consequence
-						)
-					);
-					this.graphDraft.set(saved.rollEventGraph);
-					this.savedGraphSignature.set(graphSignature(saved.rollEventGraph));
+					this.applySavedHandler(handler, saved);
+					this.graphDraft.set(saved.graph);
+					this.savedGraphSignature.set(graphSignature(saved.graph));
 					this.saving.set(false);
 				},
 				error: error => {
@@ -220,27 +262,30 @@ export class AdminEventsPageComponent {
 		return isActive ? 'success' : 'secondary';
 	}
 
-	private selectHandlerInternal(handlerId: string) {
-		const handler = this.consequences().find(item => item.id === handlerId);
+	private selectHandlerInternal(handlerKey: string) {
+		const handler = this.allHandlers().find(item => item.key === handlerKey);
 
 		if (!handler) {
 			return;
 		}
 
-		this.selectedHandlerId.set(handler.id);
-		this.graphDraft.set(handler.rollEventGraph);
-		this.savedGraphSignature.set(graphSignature(handler.rollEventGraph));
+		this.selectedHandlerKey.set(handler.key);
+		this.graphDraft.set(handler.graph);
+		this.savedGraphSignature.set(graphSignature(handler.graph));
 	}
 
 	private loadHandlers() {
 		this.loading.set(true);
 		this.errorMessage.set(null);
 
-		this.repository
-			.loadCatalog()
+		forkJoin({
+			globalHandlers: this.loadGlobalHandlers(),
+			catalog: this.repository.loadCatalog()
+		})
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
-				next: catalog => {
+				next: ({ globalHandlers, catalog }) => {
+					this.globalHandlers.set(globalHandlers);
 					this.consequences.set(
 						[...catalog.consequences].sort((first, second) => {
 							const orderDiff = first.sortOrder - second.sortOrder;
@@ -259,8 +304,131 @@ export class AdminEventsPageComponent {
 				}
 			});
 	}
+
+	private loadGlobalHandlers(): Observable<GameEventHandler[]> {
+		return this.http
+			.get<GameEventHandlersResponse>(
+				`${environment.apiBaseUrl}/admin/game-events/roll-performed/handlers`,
+				{ withCredentials: true }
+			)
+			.pipe(
+				map(response => response.handlers),
+				catchError(error => this.handleHttpError(error))
+			);
+	}
+
+	private saveHandlerGraph(
+		handler: EventHandlerItem
+	): Observable<EventHandlerItem> {
+		if (handler.type === 'global') {
+			return this.http
+				.patch<GameEventHandler>(
+					`${environment.apiBaseUrl}/admin/game-events/handlers/${handler.id}`,
+					{ graph: this.graphDraft() },
+					{ withCredentials: true }
+				)
+				.pipe(
+					map(saved => this.toGlobalHandlerItem(saved)),
+					catchError(error => this.handleHttpError(error))
+				);
+		}
+
+		const consequence = handler.source as RollConsequence;
+
+		return this.repository
+			.update({
+				id: consequence.id,
+				name: consequence.name,
+				description: consequence.description,
+				rollEventGraph: this.graphDraft(),
+				isActive: consequence.isActive,
+				sortOrder: consequence.sortOrder,
+				values: consequence.values.map(value => ({
+					id: value.id,
+					name: value.name,
+					description: value.description,
+					isActive: value.isActive,
+					sortOrder: value.sortOrder
+				}))
+			})
+			.pipe(map(saved => this.toConsequenceHandlerItem(saved)));
+	}
+
+	private applySavedHandler(
+		handler: EventHandlerItem,
+		saved: EventHandlerItem
+	) {
+		if (handler.type === 'global') {
+			this.globalHandlers.update(handlers =>
+				handlers.map(item =>
+					item.id === saved.id ? (saved.source as GameEventHandler) : item
+				)
+			);
+			return;
+		}
+
+		this.consequences.update(consequences =>
+			consequences.map(consequence =>
+				consequence.id === saved.id ? (saved.source as RollConsequence) : consequence
+			)
+		);
+	}
+
+	private toGlobalHandlerItem(handler: GameEventHandler): EventHandlerItem {
+		return {
+			key: `global:${handler.id}`,
+			id: handler.id,
+			type: 'global',
+			name: handler.name,
+			description: handler.description,
+			graph: handler.graph,
+			isActive: handler.isActive,
+			sortOrder: handler.sortOrder,
+			subtitle: 'Глобальный обработчик',
+			source: handler
+		};
+	}
+
+	private toConsequenceHandlerItem(consequence: RollConsequence): EventHandlerItem {
+		return {
+			key: `consequence:${consequence.id}`,
+			id: consequence.id,
+			type: 'consequence',
+			name: consequence.name,
+			description: consequence.description,
+			graph: consequence.rollEventGraph,
+			isActive: consequence.isActive,
+			sortOrder: consequence.sortOrder,
+			subtitle: 'Последствие броска',
+			source: consequence
+		};
+	}
+
+	private handleHttpError(error: unknown) {
+		return throwError(() => new Error(extractApiErrorMessage(error)));
+	}
 }
 
 function graphSignature(graph: RollEventGraphDefinition | null): string {
 	return JSON.stringify(graph ?? null);
+}
+
+function extractApiErrorMessage(error: unknown): string {
+	if (error instanceof HttpErrorResponse) {
+		const message = error.error?.message;
+
+		if (Array.isArray(message)) {
+			return message.join('\n');
+		}
+
+		if (typeof message === 'string' && message.trim()) {
+			return message;
+		}
+
+		if (error.status === 0) {
+			return 'API is unavailable.';
+		}
+	}
+
+	return 'Request failed.';
 }

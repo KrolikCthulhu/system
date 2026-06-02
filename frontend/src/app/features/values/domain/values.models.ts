@@ -18,6 +18,7 @@ export interface SystemValue {
 	name: string;
 	kind: SystemValueSourceType;
 	groupLabel: string;
+	displaySection: string;
 	contextLabel: string;
 	description: string;
 	isSystemManaged: boolean;

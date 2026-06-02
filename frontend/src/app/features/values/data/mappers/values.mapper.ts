@@ -8,6 +8,7 @@ export function mapSystemValueDto(dto: SystemValueDto): SystemValue {
 		name: dto.name,
 		kind: dto.kind as SystemValueSourceType,
 		groupLabel: dto.groupLabel,
+		displaySection: dto.displaySection,
 		contextLabel: dto.contextLabel,
 		description: dto.description,
 		isSystemManaged: dto.isSystemManaged,

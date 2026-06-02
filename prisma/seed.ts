@@ -257,6 +257,7 @@ type SeedSystemValue = {
 	description: string | null;
 	primaryOwnerType: SystemValueOwnerType;
 	primaryOwnerId: string | null;
+	displaySection: string | null;
 	calculationGraph: Prisma.JsonValue | null;
 	isSystemManaged: boolean;
 	isActive: boolean;
@@ -365,6 +366,7 @@ async function main() {
 				tx,
 				consequences
 			);
+			const sourceValue = await seedSourceValue(tx);
 			const attributes = await seedAttributes(tx);
 			const characteristics = await seedCharacteristics(tx, attributes);
 
@@ -373,11 +375,16 @@ async function main() {
 				attributes,
 				consequenceValues
 			});
+			await seedPotentialValue(tx, {
+				attributes,
+				consequenceValues
+			});
 			await seedRollEventGraphs(tx, {
 				consequences,
 				consequenceValues,
 				attributes
 			});
+			await seedGameEventHandlers(tx, { sourceValue });
 
 			const categories = await seedSkillCategories(tx);
 			await seedSkills(tx, {
@@ -642,6 +649,70 @@ async function seedRollConsequenceValues(
 	return values;
 }
 
+async function seedSourceValue(tx: Prisma.TransactionClient) {
+	const existing = await tx.systemValue.findFirst({
+		where: {
+			name: 'Источник',
+			primaryOwnerType: SystemValueOwnerType.MANUAL,
+			primaryOwnerId: null
+		}
+	});
+
+	return ensureSystemValue(tx, {
+		id: existing?.id ?? randomUUID(),
+		name: 'Источник',
+		description:
+			'Ресурс персонажа: начисляется за выпавшие шестерки при броске.',
+		primaryOwnerType: SystemValueOwnerType.MANUAL,
+		primaryOwnerId: null,
+		displaySection: 'Ресурсы персонажа',
+		calculationGraph: createCharacterInputGraph(),
+		isSystemManaged: false,
+		isActive: true,
+		sortOrder: 0
+	});
+}
+
+async function seedPotentialValue(
+	tx: Prisma.TransactionClient,
+	params: {
+		attributes: SeedAttribute[];
+		consequenceValues: Map<string, SeedSystemValue>;
+	}
+) {
+	const body = findRequiredByName(params.attributes, 'Тело', 'атрибут');
+	const mind = findRequiredByName(params.attributes, 'Разум', 'атрибут');
+	const fatigueLevel = findRequiredMapValue(
+		params.consequenceValues,
+		'Уровень усталости'
+	);
+	const existing = await tx.systemValue.findFirst({
+		where: {
+			name: 'Потенциал',
+			primaryOwnerType: SystemValueOwnerType.MANUAL,
+			primaryOwnerId: null
+		}
+	});
+
+	return ensureSystemValue(tx, {
+		id: existing?.id ?? randomUUID(),
+		name: 'Потенциал',
+		description:
+			'Ресурс персонажа: очки действий в ходу, считается от базовых Тела и Разума с учетом уровня усталости.',
+		primaryOwnerType: SystemValueOwnerType.MANUAL,
+		primaryOwnerId: null,
+		displaySection: 'Ресурсы персонажа',
+		calculationGraph: createPotentialGraph({
+			bodyValueId: body.systemValueId,
+			mindValueId: mind.systemValueId,
+			fatigueLevelValueId: fatigueLevel.id
+		}),
+		isSystemManaged: false,
+		isActive: true,
+		sortOrder: 1
+	});
+}
+
 async function seedAttributePoolRules(
 	tx: Prisma.TransactionClient,
 	params: {
@@ -732,6 +803,40 @@ async function seedRollEventGraphs(
 			}) as Prisma.InputJsonValue
 		}
 	});
+}
+
+async function seedGameEventHandlers(
+	tx: Prisma.TransactionClient,
+	params: {
+		sourceValue: SeedSystemValue;
+	}
+) {
+	const existing = await tx.gameEventHandler.findFirst({
+		where: {
+			eventType: 'ROLL_PERFORMED',
+			name: 'Начисление источника'
+		}
+	});
+	const data = {
+		eventType: 'ROLL_PERFORMED',
+		name: 'Начисление источника',
+		description: 'За каждую выпавшую 6 добавляет 1 к значению Источник.',
+		graph: createSourceGainRollEventGraph(
+			params.sourceValue.id
+		) as Prisma.InputJsonValue,
+		isActive: true,
+		sortOrder: -100
+	};
+
+	if (existing) {
+		await tx.gameEventHandler.update({
+			where: { id: existing.id },
+			data
+		});
+		return;
+	}
+
+	await tx.gameEventHandler.create({ data });
 }
 
 async function seedSkillCategories(tx: Prisma.TransactionClient) {
@@ -857,11 +962,12 @@ async function ensureSystemValue(
 		description: string | null;
 		primaryOwnerType: SystemValueOwnerType;
 		primaryOwnerId: string | null;
+		displaySection?: string | null;
 		calculationGraph: object;
 		isSystemManaged: boolean;
 		isActive: boolean;
 		sortOrder: number;
-		link: {
+		link?: {
 			targetType: SystemValueOwnerType;
 			targetId: string;
 			label: string | null;
@@ -877,6 +983,7 @@ async function ensureSystemValue(
 		description: params.description,
 		primaryOwnerType: params.primaryOwnerType,
 		primaryOwnerId: params.primaryOwnerId,
+		displaySection: params.displaySection ?? null,
 		calculationGraph: params.calculationGraph as Prisma.InputJsonValue,
 		isSystemManaged: params.isSystemManaged,
 		isActive: params.isActive,
@@ -894,27 +1001,29 @@ async function ensureSystemValue(
 				}
 		  });
 
-	await tx.systemValueLink.upsert({
-		where: {
-			systemValueId_targetType_targetId: {
+	if (params.link) {
+		await tx.systemValueLink.upsert({
+			where: {
+				systemValueId_targetType_targetId: {
+					systemValueId: value.id,
+					targetType: params.link.targetType,
+					targetId: params.link.targetId
+				}
+			},
+			create: {
+				id: randomUUID(),
 				systemValueId: value.id,
 				targetType: params.link.targetType,
-				targetId: params.link.targetId
+				targetId: params.link.targetId,
+				label: params.link.label,
+				sortOrder: params.link.sortOrder
+			},
+			update: {
+				label: params.link.label,
+				sortOrder: params.link.sortOrder
 			}
-		},
-		create: {
-			id: randomUUID(),
-			systemValueId: value.id,
-			targetType: params.link.targetType,
-			targetId: params.link.targetId,
-			label: params.link.label,
-			sortOrder: params.link.sortOrder
-		},
-		update: {
-			label: params.link.label,
-			sortOrder: params.link.sortOrder
-		}
-	});
+		});
+	}
 
 	return value;
 }
@@ -1185,6 +1294,118 @@ function createAvailablePoolGraph(
 	};
 }
 
+function createPotentialGraph(params: {
+	bodyValueId: string;
+	mindValueId: string;
+	fatigueLevelValueId: string;
+}) {
+	return {
+		nodes: [
+			{
+				id: 'body-value',
+				kind: 'source',
+				x: 120,
+				y: 80,
+				sourceValueId: params.bodyValueId
+			},
+			{
+				id: 'mind-value',
+				kind: 'source',
+				x: 120,
+				y: 200,
+				sourceValueId: params.mindValueId
+			},
+			{
+				id: 'fatigue-level',
+				kind: 'source',
+				x: 120,
+				y: 340,
+				sourceValueId: params.fatigueLevelValueId
+			},
+			{
+				id: 'zero',
+				kind: 'constant',
+				x: 600,
+				y: 360,
+				constantValue: 0
+			},
+			{
+				id: 'sum-attributes',
+				kind: 'operation',
+				x: 360,
+				y: 140,
+				operation: 'sum'
+			},
+			{
+				id: 'subtract-fatigue',
+				kind: 'operation',
+				x: 600,
+				y: 200,
+				operation: 'subtract'
+			},
+			{
+				id: 'clamp-min-zero',
+				kind: 'operation',
+				x: 840,
+				y: 240,
+				operation: 'max'
+			},
+			{ id: 'result', kind: 'result', x: 1080, y: 240 }
+		],
+		edges: [
+			{
+				id: 'body-value:out -> sum-attributes:in',
+				source: 'body-value',
+				target: 'sum-attributes',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'mind-value:out -> sum-attributes:in',
+				source: 'mind-value',
+				target: 'sum-attributes',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'sum-attributes:out -> subtract-fatigue:a',
+				source: 'sum-attributes',
+				target: 'subtract-fatigue',
+				sourceHandle: 'out',
+				targetHandle: 'a'
+			},
+			{
+				id: 'fatigue-level:out -> subtract-fatigue:b',
+				source: 'fatigue-level',
+				target: 'subtract-fatigue',
+				sourceHandle: 'out',
+				targetHandle: 'b'
+			},
+			{
+				id: 'subtract-fatigue:out -> clamp-min-zero:in',
+				source: 'subtract-fatigue',
+				target: 'clamp-min-zero',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'zero:out -> clamp-min-zero:in',
+				source: 'zero',
+				target: 'clamp-min-zero',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'clamp-min-zero:out -> result:in',
+				source: 'clamp-min-zero',
+				target: 'result',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			}
+		]
+	};
+}
+
 function createThresholdCounterRollEventGraph(params: {
 	accumulatorValueId: string;
 	thresholdValueId: string;
@@ -1219,6 +1440,64 @@ function createThresholdCounterRollEventGraph(params: {
 				target: 'threshold-counter',
 				sourceHandle: 'out',
 				targetHandle: 'increment'
+			}
+		]
+	};
+}
+
+function createSourceGainRollEventGraph(sourceValueId: string) {
+	return {
+		nodes: [
+			{
+				id: 'event-sixes',
+				kind: 'eventInput',
+				x: 120,
+				y: 120,
+				eventInputKey: 'sixes'
+			},
+			{
+				id: 'current-source',
+				kind: 'valueSource',
+				x: 120,
+				y: 260,
+				sourceValueId
+			},
+			{
+				id: 'sum-source',
+				kind: 'operation',
+				x: 420,
+				y: 180,
+				operation: 'sum'
+			},
+			{
+				id: 'write-source',
+				kind: 'writeValue',
+				x: 720,
+				y: 180,
+				targetValueId: sourceValueId
+			}
+		],
+		edges: [
+			{
+				id: 'event-sixes:out -> sum-source:in',
+				source: 'event-sixes',
+				target: 'sum-source',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'current-source:out -> sum-source:in',
+				source: 'current-source',
+				target: 'sum-source',
+				sourceHandle: 'out',
+				targetHandle: 'in'
+			},
+			{
+				id: 'sum-source:out -> write-source:value',
+				source: 'sum-source',
+				target: 'write-source',
+				sourceHandle: 'out',
+				targetHandle: 'value'
 			}
 		]
 	};

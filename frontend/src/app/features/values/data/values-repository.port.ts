@@ -8,12 +8,14 @@ export interface ValuesRepository {
 	createManual(command: {
 		name: string;
 		description?: string;
+		displaySection?: string;
 	}): Observable<SystemValue>;
 	updateValue(
 		id: string,
 		command: {
 			name?: string;
 			description?: string;
+			displaySection?: string;
 		}
 	): Observable<SystemValue>;
 	updateCalculation(

@@ -17,6 +17,7 @@ const systemValueSelect = {
 	description: true,
 	primaryOwnerType: true,
 	primaryOwnerId: true,
+	displaySection: true,
 	calculationGraph: true,
 	isSystemManaged: true,
 	isActive: true,
@@ -71,6 +72,7 @@ export class ValuesService {
 					description: dto.description?.trim() || null,
 					primaryOwnerType: SystemValueOwnerType.MANUAL,
 					primaryOwnerId: null,
+					displaySection: dto.displaySection?.trim() || null,
 					calculationGraph: createCharacterInputGraph()
 				}
 			});
@@ -187,6 +189,9 @@ export class ValuesService {
 					...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
 					...(dto.description !== undefined
 						? { description: dto.description.trim() || null }
+						: {}),
+					...(dto.displaySection !== undefined
+						? { displaySection: dto.displaySection.trim() || null }
 						: {})
 				}
 			});
@@ -238,7 +243,8 @@ export class ValuesService {
 			id: value.id,
 			name: value.name,
 			kind: mapOwnerType(value.primaryOwnerType),
-			groupLabel: groupLabel(value.primaryOwnerType),
+			groupLabel: value.displaySection?.trim() || groupLabel(value.primaryOwnerType),
+			displaySection: value.displaySection ?? '',
 			contextLabel: this.contextLabel(value, context),
 			description: value.description ?? '',
 			isSystemManaged: value.isSystemManaged,

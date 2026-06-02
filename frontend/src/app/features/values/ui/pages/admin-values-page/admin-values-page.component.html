@@ -167,7 +167,7 @@
 								></i>
 								<span>{{ group.label }}</span>
 								<span class="admin-values-page__group-count">
-									{{ group.items.length }}
+									{{ group.count }}
 								</span>
 							</button>
 
@@ -178,27 +178,68 @@
 								"
 							>
 								@for (value of group.items; track value.id) {
-									<button
-										type="button"
-										class="admin-values-page__value-item"
-										[class.admin-values-page__value-item--active]="
-											value.id === selectedValueId()
-										"
-										(click)="selectValue(value.id)"
-									>
-										<div class="admin-values-page__value-copy">
-											<strong>{{ value.name }}</strong>
-											@if (value.contextLabel) {
-												<span>{{ value.contextLabel }}</span>
+									<ng-container
+										[ngTemplateOutlet]="valueItem"
+										[ngTemplateOutletContext]="{ value: value }"
+									></ng-container>
+								}
+
+								@for (subgroup of group.subgroups; track subgroup.label) {
+									<div class="admin-values-page__subgroup">
+										<button
+											type="button"
+											class="admin-values-page__subgroup-title"
+											[attr.aria-expanded]="
+												!isSubgroupCollapsed(group.label, subgroup.label)
+											"
+											(click)="toggleSubgroup(group.label, subgroup.label)"
+										>
+											<i
+												class="pi pi-chevron-right admin-values-page__subgroup-icon"
+												[class.admin-values-page__subgroup-icon--expanded]="
+													!isSubgroupCollapsed(group.label, subgroup.label)
+												"
+												aria-hidden="true"
+											></i>
+											<span>{{ subgroup.label }}</span>
+											<small>{{ subgroup.items.length }}</small>
+										</button>
+
+										<div
+											class="admin-values-page__subgroup-list"
+											[class.admin-values-page__subgroup-list--collapsed]="
+												isSubgroupCollapsed(group.label, subgroup.label)
+											"
+										>
+											@for (value of subgroup.items; track value.id) {
+												<ng-container
+													[ngTemplateOutlet]="valueItem"
+													[ngTemplateOutletContext]="{ value: value }"
+												></ng-container>
 											}
 										</div>
-									</button>
+									</div>
 								}
 							</div>
 						</div>
 					}
 				</div>
 			}
+
+			<ng-template #valueItem let-value="value">
+				<button
+					type="button"
+					class="admin-values-page__value-item"
+					[class.admin-values-page__value-item--active]="
+						value.id === selectedValueId()
+					"
+					(click)="selectValue(value.id)"
+				>
+					<div class="admin-values-page__value-copy">
+						<strong>{{ value.name }}</strong>
+					</div>
+				</button>
+			</ng-template>
 		</aside>
 
 		@if (selectedValue(); as value) {
@@ -253,6 +294,29 @@
 									[readonly]="!canEditMetadata(value)"
 									(input)="setValueNameDraft($any($event.target).value)"
 								/>
+							</div>
+							<div class="admin-values-page__metadata-field">
+								<label
+									class="admin-values-page__field-label"
+									for="system-value-section"
+								>
+									Раздел
+								</label>
+								<input
+									id="system-value-section"
+									pInputText
+									type="text"
+									placeholder="Например: Ресурсы персонажа"
+									list="system-value-section-suggestions"
+									[value]="valueSectionDraft()"
+									[readonly]="!canEditMetadata(value)"
+									(input)="setValueSectionDraft($any($event.target).value)"
+								/>
+								<datalist id="system-value-section-suggestions">
+									@for (section of sectionSuggestions(); track section) {
+										<option [value]="section"></option>
+									}
+								</datalist>
 							</div>
 							@if (!canEditMetadata(value)) {
 								<div class="admin-values-page__metadata-hint">

@@ -7,6 +7,7 @@ import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { CharacterSheetSandboxModule } from './character-sheet-sandbox/character-sheet-sandbox.module';
+import { GameEventsModule } from './game-events/game-events.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RollConsequencesModule } from './roll-consequences/roll-consequences.module';
 import { SkillsModule } from './skills/skills.module';
@@ -36,6 +37,7 @@ import { ValuesModule } from './values/values.module';
 		AuthModule,
 		AttributesModule,
 		CharacterSheetSandboxModule,
+		GameEventsModule,
 		RollConsequencesModule,
 		SkillsModule,
 		ValuesModule

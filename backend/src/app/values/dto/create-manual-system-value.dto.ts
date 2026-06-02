@@ -10,4 +10,9 @@ export class CreateManualSystemValueDto {
 	@IsString()
 	@MaxLength(500)
 	description?: string;
+
+	@IsOptional()
+	@IsString()
+	@MaxLength(120)
+	displaySection?: string;
 }

@@ -8,7 +8,7 @@ import {
 import { RuntimeSystemValue } from './system-value-runtime.service';
 
 export interface RollPerformedHandler {
-	ownerType: 'ROLL_CONSEQUENCE';
+	ownerType: 'ROLL_CONSEQUENCE' | 'GAME_EVENT_HANDLER';
 	ownerId: string;
 	name: string;
 	graph: Prisma.JsonValue | null;

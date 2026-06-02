@@ -33,10 +33,12 @@ export class HttpValuesRepository implements ValuesRepository {
 	createManual(command: {
 		name: string;
 		description?: string;
+		displaySection?: string;
 	}): Observable<SystemValue> {
 		const payload: CreateManualSystemValueDto = {
 			name: command.name,
-			description: command.description
+			description: command.description,
+			displaySection: command.displaySection
 		};
 
 		return this.http
@@ -54,11 +56,13 @@ export class HttpValuesRepository implements ValuesRepository {
 		command: {
 			name?: string;
 			description?: string;
+			displaySection?: string;
 		}
 	): Observable<SystemValue> {
 		const payload: UpdateSystemValueDto = {
 			name: command.name,
-			description: command.description
+			description: command.description,
+			displaySection: command.displaySection
 		};
 
 		return this.http
