@@ -11,6 +11,7 @@ import {
 	SkillsAdminCatalogDto
 } from '../dto/skills.dto';
 import { createSystemValueDefinition } from '../../../../shared/types/system-value.models';
+import { mapRollConsequenceDto } from '../../../roll-consequences/data/mappers/roll-consequences.mapper';
 
 export function mapSkillCategoryDto(dto: SkillCategoryDto): SkillCategory {
 	return {
@@ -29,6 +30,8 @@ export function mapSkillDto(dto: SkillDto): Skill {
 		name: dto.name,
 		categoryId: dto.categoryId,
 		description: dto.description,
+		rollConsequenceId: dto.rollConsequenceId,
+		dicePoolValueId: dto.dicePoolValueId ?? null,
 		defaultLevel: dto.defaultLevel,
 		maxLevel: dto.maxLevel,
 		usesDefaultLevelRules: dto.usesDefaultLevelRules,
@@ -61,6 +64,7 @@ export function mapSkillsAdminCatalogDto(
 	return {
 		categories: dto.categories.map(mapSkillCategoryDto),
 		skills: dto.skills.map(mapSkillDto),
-		levels: dto.levels.map(mapSkillLevelDto)
+		levels: dto.levels.map(mapSkillLevelDto),
+		rollConsequences: dto.rollConsequences.map(mapRollConsequenceDto)
 	};
 }

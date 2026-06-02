@@ -11,6 +11,14 @@ export class CreateSkillDto {
 	@IsString()
 	description?: string;
 
+	@IsOptional()
+	@IsUUID()
+	rollConsequenceId?: string | null;
+
+	@IsOptional()
+	@IsUUID()
+	dicePoolValueId?: string | null;
+
 	@IsInt()
 	@Min(0)
 	@Max(12)

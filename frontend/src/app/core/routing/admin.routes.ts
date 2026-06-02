@@ -64,11 +64,43 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminAttributesPageComponent)
 					},
 					{
+						path: 'roll-consequences/:consequenceId',
+						loadComponent: () =>
+							import(
+								'../../features/roll-consequences/ui/pages/admin-roll-consequence-detail-page/admin-roll-consequence-detail-page.component'
+							).then(m => m.AdminRollConsequenceDetailPageComponent)
+					},
+					{
+						path: 'roll-consequences',
+						pathMatch: 'full',
+						loadComponent: () =>
+							import(
+								'../../features/roll-consequences/ui/pages/admin-roll-consequences-page/admin-roll-consequences-page.component'
+							).then(m => m.AdminRollConsequencesPageComponent)
+					},
+					{
 						path: 'values',
 						loadComponent: () =>
 							import(
 								'../../features/values/ui/pages/admin-values-page/admin-values-page.component'
 							).then(m => m.AdminValuesPageComponent)
+					}
+				]
+			},
+			{
+				path: 'sandbox',
+				children: [
+					{
+						path: '',
+						pathMatch: 'full',
+						redirectTo: 'character-sheet'
+					},
+					{
+						path: 'character-sheet',
+						loadComponent: () =>
+							import(
+								'../../features/character-sheet/ui/pages/admin-character-sheet-page/admin-character-sheet-page.component'
+							).then(m => m.AdminCharacterSheetPageComponent)
 					}
 				]
 			},

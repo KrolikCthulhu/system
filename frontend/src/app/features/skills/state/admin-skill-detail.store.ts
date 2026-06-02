@@ -1,4 +1,5 @@
 import { patchState, signalStore, withMethods, withState } from '@ngrx/signals';
+import { RollConsequence } from '../../roll-consequences/domain/roll-consequences.models';
 import { Skill, SkillCategory } from '../domain/skills.models';
 
 interface AdminSkillDetailState {
@@ -8,6 +9,7 @@ interface AdminSkillDetailState {
 	errorMessage: string | null;
 	skill: Skill | null;
 	categories: SkillCategory[];
+	rollConsequences: RollConsequence[];
 }
 
 export const AdminSkillDetailStore = signalStore(
@@ -16,8 +18,9 @@ export const AdminSkillDetailStore = signalStore(
 		loading: true,
 		saving: false,
 		errorMessage: null,
-		skill: null,
-		categories: []
+	skill: null,
+	categories: [],
+	rollConsequences: []
 	}),
 	withMethods(store => ({
 		setActiveTab(activeTab: 'general' | 'calculation') {
@@ -37,6 +40,9 @@ export const AdminSkillDetailStore = signalStore(
 		},
 		setCategories(categories: SkillCategory[]) {
 			patchState(store, { categories });
+		},
+		setRollConsequences(rollConsequences: RollConsequence[]) {
+			patchState(store, { rollConsequences });
 		}
 	}))
 );

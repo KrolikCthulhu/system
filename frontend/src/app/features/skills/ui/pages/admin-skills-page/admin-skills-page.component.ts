@@ -17,6 +17,8 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
+import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
+import { createSystemValueOptionGroups } from '../../../../values/domain/system-value-option-groups';
 import {
 	Skill,
 	SkillCategory,
@@ -75,6 +77,7 @@ export class AdminSkillsPageComponent {
 	private readonly confirmationService = inject(ConfirmationService);
 	private readonly router = inject(Router);
 	private readonly catalogFacade = inject(SkillsCatalogFacade);
+	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly skillEditorFacade = inject(SkillEditorFacade);
 	private readonly categoryEditorFacade = inject(CategoryEditorFacade);
 	private readonly levelEditorFacade = inject(SkillLevelEditorFacade);
@@ -94,6 +97,7 @@ export class AdminSkillsPageComponent {
 	protected readonly selectedLevelId = this.catalogFacade.selectedLevelId;
 	protected readonly categories = this.catalogFacade.categories;
 	protected readonly levels = this.catalogFacade.levels;
+	protected readonly rollConsequences = this.catalogFacade.rollConsequences;
 	protected readonly skillForm = this.skillEditorFacade.form;
 	protected readonly categoryForm = this.categoryEditorFacade.form;
 	protected readonly levelForm = this.levelEditorFacade.form;
@@ -106,11 +110,20 @@ export class AdminSkillsPageComponent {
 		this.visibleSkills().filter(skill => !this.isDraftSkill(skill.id))
 	);
 	protected readonly categoryOptions = this.catalogFacade.categoryOptions;
+	protected readonly rollConsequenceOptions =
+		this.catalogFacade.rollConsequenceOptions;
+	protected readonly dicePoolValueOptions = computed(() =>
+		createSystemValueOptionGroups(this.valuesCatalogFacade.values(), {
+			excludeIds: [this.selectedSkill()?.systemValue.id]
+		})
+	);
 	protected readonly selectedSkill = this.catalogFacade.selectedSkill;
 	protected readonly selectedCategory = this.catalogFacade.selectedCategory;
 	protected readonly selectedLevel = this.catalogFacade.selectedLevel;
 
 	constructor() {
+		this.valuesCatalogFacade.ensureLoaded();
+
 		effect(() => {
 			this.tabValue.set(this.activeTab());
 		});
@@ -328,6 +341,30 @@ export class AdminSkillsPageComponent {
 
 	protected getExpectedSuccessPreview() {
 		return this.levelEditorFacade.getExpectedSuccessPreview();
+	}
+
+	protected getSkillRollConsequenceName(skill: Skill) {
+		if (!skill.rollConsequenceId) {
+			return 'Без последствий';
+		}
+
+		return (
+			this.rollConsequences().find(
+				consequence => consequence.id === skill.rollConsequenceId
+			)?.name ?? 'Не найдено'
+		);
+	}
+
+	protected getSkillDicePoolValueName(skill: Skill) {
+		if (!skill.dicePoolValueId) {
+			return 'Не выбрано';
+		}
+
+		return (
+			this.valuesCatalogFacade
+				.values()
+				.find(value => value.id === skill.dicePoolValueId)?.name ?? 'Не найдено'
+		);
 	}
 
 	private hasCurrentTabUnsavedChanges() {

@@ -12,6 +12,7 @@ import {
 	SkillLevel,
 	SkillsAdminCatalog
 } from '../domain/skills.models';
+import { RollConsequence } from '../../roll-consequences/domain/roll-consequences.models';
 
 export type SkillsTabValue = 'skills' | 'categories' | 'levels';
 
@@ -32,6 +33,7 @@ interface AdminSkillsCatalogState {
 	categories: SkillCategory[];
 	skills: Skill[];
 	levels: SkillLevel[];
+	rollConsequences: RollConsequence[];
 }
 
 const initialState: AdminSkillsCatalogState = {
@@ -44,7 +46,8 @@ const initialState: AdminSkillsCatalogState = {
 	loading: true,
 	categories: [],
 	skills: [],
-	levels: []
+	levels: [],
+	rollConsequences: []
 };
 
 export const AdminSkillsCatalogStore = signalStore(
@@ -87,11 +90,11 @@ export const AdminSkillsCatalogStore = signalStore(
 			filteredSkillCategories,
 			selectedSkillFilterCategory,
 			visibleSkills: computed(() => {
-			const filterCategoryId = store.selectedSkillFilterCategoryId();
+				const filterCategoryId = store.selectedSkillFilterCategoryId();
 
-			if (filterCategoryId === 'all') {
-				return store.skills();
-			}
+				if (filterCategoryId === 'all') {
+					return store.skills();
+				}
 
 				return store
 					.skills()
@@ -103,6 +106,13 @@ export const AdminSkillsCatalogStore = signalStore(
 					value: category.id
 				}))
 			),
+			rollConsequenceOptions: computed(() => [
+				{ label: 'Без последствий', value: null },
+				...store.rollConsequences().map(consequence => ({
+					label: consequence.name,
+					value: consequence.id
+				}))
+			]),
 			selectedSkill: computed(() => {
 				const selectedSkillId = store.selectedSkillId();
 				return store.skills().find(skill => skill.id === selectedSkillId) ?? null;
@@ -130,6 +140,7 @@ export const AdminSkillsCatalogStore = signalStore(
 				categories: catalog.categories,
 				skills: catalog.skills,
 				levels: catalog.levels,
+				rollConsequences: catalog.rollConsequences,
 				loading: false
 			});
 		},

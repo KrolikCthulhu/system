@@ -1,8 +1,8 @@
 import { DestroyRef, effect, inject, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { map, of, switchMap } from 'rxjs';
-import { FormChangeTracker } from '../../../shared/forms/form-change-tracker';
 import { UnsavedChangesGuard } from '../../../shared/forms/unsaved-changes.guard';
+import { SignalFormDraft } from '../../../shared/forms/signal-form-draft';
 import { createSystemValueDefinition } from '../../../shared/types/system-value.models';
 import {
 	VALUES_REPOSITORY,
@@ -35,10 +35,14 @@ export class SkillEditorFacade {
 	private readonly valuesRepository = inject<ValuesRepository>(VALUES_REPOSITORY);
 	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly store = inject(SkillEditorStore);
-	private readonly changeTracker = new FormChangeTracker<SkillFormValue>();
 	private readonly calculationDraft = new SystemValueCalculationDraftController();
 
 	readonly form = createSkillForm();
+	private readonly formDraft = new SignalFormDraft<SkillFormValue>(
+		this.form,
+		() => getSkillFormValue(this.form),
+		this.destroyRef
+	);
 	readonly systemValueCalculation = this.calculationDraft.draft;
 
 	constructor() {
@@ -90,6 +94,8 @@ export class SkillEditorFacade {
 					name: 'Новый навык',
 					categoryId: defaultCategoryId,
 					description: '',
+					rollConsequenceId: null,
+					dicePoolValueId: null,
 					defaultLevel: 0,
 					maxLevel: 6,
 					usesDefaultLevelRules: true,
@@ -225,7 +231,7 @@ export class SkillEditorFacade {
 
 	hasUnsavedChanges() {
 		return (
-			this.changeTracker.hasChanges(getSkillFormValue(this.form)) ||
+			this.formDraft.hasChanges() ||
 			this.calculationDraft.hasChanges()
 		);
 	}
@@ -258,7 +264,7 @@ export class SkillEditorFacade {
 		patchSkillForm(this.form, skill);
 
 		if (!skill) {
-			this.changeTracker.clear();
+			this.formDraft.clear();
 			this.calculationDraft.clear();
 			return;
 		}
@@ -269,12 +275,12 @@ export class SkillEditorFacade {
 
 	private resetForm() {
 		resetSkillForm(this.form);
-		this.changeTracker.clear();
+		this.formDraft.clear();
 		this.calculationDraft.clear();
 	}
 
 	private captureFormState() {
-		this.changeTracker.capture(getSkillFormValue(this.form));
+		this.formDraft.capture();
 	}
 
 	private createDraftId() {

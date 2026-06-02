@@ -10,7 +10,6 @@ import {
 	untracked
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SelectItemGroup } from 'primeng/api';
 import { Button } from 'primeng/button';
 import { Fluid } from 'primeng/fluid';
 import { InputNumber } from 'primeng/inputnumber';
@@ -40,6 +39,10 @@ import {
 import { SystemValue } from '../../../domain/values.models';
 import { SystemValueCalculationDefinition } from '../../../domain/system-value-calculation.models';
 import {
+	createSystemValueOptionGroups,
+	SystemValueOptionGroup
+} from '../../../domain/system-value-option-groups';
+import {
 	CurveRange,
 	GraphComparison,
 	GraphNodeKind,
@@ -47,11 +50,6 @@ import {
 	ValueGraphNodeData,
 	ValueGraphState
 } from '../../value-graph.models';
-
-interface ValueSourceOption {
-	label: string;
-	value: string;
-}
 
 interface ValueTestInputViewModel {
 	id: string;
@@ -146,31 +144,11 @@ export class SystemValueCalculationEditorComponent {
 		})
 	);
 
-	protected readonly dependencyGroups = computed<SelectItemGroup[]>(() => {
+	protected readonly dependencyGroups = computed<SystemValueOptionGroup[]>(() => {
 		const currentValueId = this.systemValue()?.id;
-		const grouped = new Map<string, ValueSourceOption[]>();
-
-		for (const value of this.availableValues()) {
-			if (value.id === currentValueId) {
-				continue;
-			}
-
-			const groupLabel = value.contextLabel
-				? `${value.groupLabel} / ${value.contextLabel}`
-				: value.groupLabel;
-			const items = grouped.get(groupLabel) ?? [];
-			items.push({
-				label: value.name,
-				value: value.id
-			});
-			grouped.set(groupLabel, items);
-		}
-
-		return Array.from(grouped.entries()).map(([label, items]) => ({
-			label,
-			value: label,
-			items
-		}));
+		return createSystemValueOptionGroups(this.availableValues(), {
+			excludeIds: [currentValueId]
+		});
 	});
 
 	protected readonly selectedGraphNode = computed(() => {

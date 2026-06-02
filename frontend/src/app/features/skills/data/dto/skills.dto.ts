@@ -1,4 +1,5 @@
 import { ValueGraphState } from '../../../values/ui/value-graph.models';
+import { RollConsequenceDto } from '../../../roll-consequences/data/dto/roll-consequences.dto';
 
 export interface SkillSystemValueDto {
 	id: string;
@@ -17,6 +18,8 @@ export interface SkillDto {
 	name: string;
 	categoryId: string;
 	description: string;
+	rollConsequenceId: string | null;
+	dicePoolValueId?: string | null;
 	defaultLevel: number;
 	maxLevel: number;
 	usesDefaultLevelRules: boolean;
@@ -41,4 +44,5 @@ export interface SkillsAdminCatalogDto {
 	categories: SkillCategoryDto[];
 	skills: SkillDto[];
 	levels: SkillLevelDto[];
+	rollConsequences: RollConsequenceDto[];
 }

@@ -20,10 +20,12 @@ export class SkillsCatalogFacade {
 	readonly categories = this.store.categories;
 	readonly skills = this.store.skills;
 	readonly levels = this.store.levels;
+	readonly rollConsequences = this.store.rollConsequences;
 	readonly filteredSkillCategories = this.store.filteredSkillCategories;
 	readonly selectedSkillFilterCategory = this.store.selectedSkillFilterCategory;
 	readonly visibleSkills = this.store.visibleSkills;
 	readonly categoryOptions = this.store.categoryOptions;
+	readonly rollConsequenceOptions = this.store.rollConsequenceOptions;
 	readonly selectedSkill = this.store.selectedSkill;
 	readonly selectedCategory = this.store.selectedCategory;
 	readonly selectedLevel = this.store.selectedLevel;

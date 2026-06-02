@@ -1,207 +1,238 @@
 generator client {
-    provider = "prisma-client-js"
-    output   = "./__generated__"
+  provider = "prisma-client-js"
+  output   = "./__generated__"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 enum UserRole {
-    ADMIN
-    USER
+  ADMIN
+  USER
 }
 
 enum SystemValueOwnerType {
-    ATTRIBUTE
-    CHARACTERISTIC
-    SKILL
-    ROLL_CONSEQUENCE
-    MANUAL
+  ATTRIBUTE
+  CHARACTERISTIC
+  SKILL
+  ROLL_CONSEQUENCE
+  MANUAL
 }
 
 model User {
-    id                      String                   @id @default(uuid()) @db.Uuid
-    email                   String                   @unique
-    username                String                   @unique
-    displayUsername         String
-    passwordHash            String
-    role                    UserRole                 @default(USER)
-    isActive                Boolean                  @default(true)
-    isEmailVerified         Boolean                  @default(false)
-    authSessions            AuthSession[]
-    emailVerificationTokens EmailVerificationToken[]
-    createdAt               DateTime                 @default(now())
-    updatedAt               DateTime                 @updatedAt
+  id                      String                   @id @default(uuid()) @db.Uuid
+  email                   String                   @unique
+  username                String                   @unique
+  displayUsername         String
+  passwordHash            String
+  role                    UserRole                 @default(USER)
+  isActive                Boolean                  @default(true)
+  isEmailVerified         Boolean                  @default(false)
+  authSessions            AuthSession[]
+  emailVerificationTokens EmailVerificationToken[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
 
-    @@map("users")
+  @@map("users")
 }
 
 model AuthSession {
-    id           String        @id @default(uuid()) @db.Uuid
-    userId       String        @db.Uuid
-    user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-    tokenHash    String
-    familyId     String        @db.Uuid
-    parentId     String?       @db.Uuid
-    parent       AuthSession?  @relation("AuthSessionRotation", fields: [parentId], references: [id], onDelete: SetNull)
-    children     AuthSession[] @relation("AuthSessionRotation")
-    expiresAt    DateTime
-    revokedAt    DateTime?
-    replacedById String?       @db.Uuid
-    ipAddress    String?
-    userAgent    String?
-    createdAt    DateTime      @default(now())
-    updatedAt    DateTime      @updatedAt
+  id           String        @id @default(uuid()) @db.Uuid
+  userId       String        @db.Uuid
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash    String
+  familyId     String        @db.Uuid
+  parentId     String?       @db.Uuid
+  parent       AuthSession?  @relation("AuthSessionRotation", fields: [parentId], references: [id], onDelete: SetNull)
+  children     AuthSession[] @relation("AuthSessionRotation")
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?       @db.Uuid
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-    @@index([userId])
-    @@index([familyId])
-    @@index([expiresAt])
-    @@index([parentId])
-    @@map("auth_sessions")
+  @@index([userId])
+  @@index([familyId])
+  @@index([expiresAt])
+  @@index([parentId])
+  @@map("auth_sessions")
 }
 
 model EmailVerificationToken {
-    id        String    @id @default(uuid()) @db.Uuid
-    userId    String    @db.Uuid
-    user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-    tokenHash String
-    expiresAt DateTime
-    usedAt    DateTime?
-    createdAt DateTime  @default(now())
+  id        String    @id @default(uuid()) @db.Uuid
+  userId    String    @db.Uuid
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
 
-    @@index([userId])
-    @@index([expiresAt])
-    @@map("email_verification_tokens")
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("email_verification_tokens")
 }
 
 model SkillCategory {
-    id          String   @id @default(uuid()) @db.Uuid
-    name        String
-    description String?
-    isActive    Boolean  @default(true) @map("is_active")
-    sortOrder   Int      @default(0) @map("sort_order")
-    createdAt   DateTime @default(now()) @map("created_at")
-    updatedAt   DateTime @updatedAt @map("updated_at")
-    skills      Skill[]
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  skills      Skill[]
 
-    @@index([isActive, sortOrder])
-    @@map("skill_categories")
+  @@index([isActive, sortOrder])
+  @@map("skill_categories")
 }
 
 model SkillLevel {
-    id                    String   @id @default(uuid()) @db.Uuid
-    level                 Int      @unique
-    name                  String
-    canRoll               Boolean  @default(true) @map("can_roll")
-    successMin            Int?     @map("success_min")
-    doubleSuccessMin      Int?     @map("double_success_min")
-    ignoreOnesCount       Int      @default(0) @map("ignore_ones_count")
-    expectedSuccessPerDie Decimal  @default(0) @map("expected_success_per_die") @db.Decimal(8, 4)
-    ruleText              String?  @map("rule_text")
-    isActive              Boolean  @default(true) @map("is_active")
-    sortOrder             Int      @default(0) @map("sort_order")
-    createdAt             DateTime @default(now()) @map("created_at")
-    updatedAt             DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(uuid()) @db.Uuid
+  level                 Int      @unique
+  name                  String
+  canRoll               Boolean  @default(true) @map("can_roll")
+  successMin            Int?     @map("success_min")
+  doubleSuccessMin      Int?     @map("double_success_min")
+  ignoreOnesCount       Int      @default(0) @map("ignore_ones_count")
+  expectedSuccessPerDie Decimal  @default(0) @map("expected_success_per_die") @db.Decimal(8, 4)
+  ruleText              String?  @map("rule_text")
+  isActive              Boolean  @default(true) @map("is_active")
+  sortOrder             Int      @default(0) @map("sort_order")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
-    @@index([isActive, sortOrder])
-    @@map("skill_levels")
+  @@index([isActive, sortOrder])
+  @@map("skill_levels")
 }
 
 model Skill {
-    id                    String        @id @default(uuid()) @db.Uuid
-    name                  String
-    shortName             String?       @map("short_name")
-    categoryId            String        @map("category_id") @db.Uuid
-    category              SkillCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-    description           String?
-    maxLevel              Int           @default(6) @map("max_level")
-    defaultLevel          Int           @default(0) @map("default_level")
-    usesDefaultLevelRules Boolean       @default(true) @map("uses_default_level_rules")
-    systemValueId         String        @unique @map("system_value_id") @db.Uuid
-    systemValue           SystemValue   @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
-    isActive              Boolean       @default(true) @map("is_active")
-    sortOrder             Int           @default(0) @map("sort_order")
-    createdAt             DateTime      @default(now()) @map("created_at")
-    updatedAt             DateTime      @updatedAt @map("updated_at")
+  id                    String           @id @default(uuid()) @db.Uuid
+  name                  String
+  shortName             String?          @map("short_name")
+  categoryId            String           @map("category_id") @db.Uuid
+  category              SkillCategory    @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  description           String?
+  maxLevel              Int              @default(6) @map("max_level")
+  defaultLevel          Int              @default(0) @map("default_level")
+  usesDefaultLevelRules Boolean          @default(true) @map("uses_default_level_rules")
+  systemValueId         String           @unique @map("system_value_id") @db.Uuid
+  systemValue           SystemValue      @relation("SkillSystemValue", fields: [systemValueId], references: [id], onDelete: Restrict)
+  dicePoolValueId       String?          @map("dice_pool_value_id") @db.Uuid
+  dicePoolValue         SystemValue?     @relation("SkillDicePoolValue", fields: [dicePoolValueId], references: [id], onDelete: SetNull)
+  rollConsequenceId     String?          @map("roll_consequence_id") @db.Uuid
+  rollConsequence       RollConsequence? @relation(fields: [rollConsequenceId], references: [id], onDelete: SetNull)
+  isActive              Boolean          @default(true) @map("is_active")
+  sortOrder             Int              @default(0) @map("sort_order")
+  createdAt             DateTime         @default(now()) @map("created_at")
+  updatedAt             DateTime         @updatedAt @map("updated_at")
 
-    @@index([categoryId])
-    @@index([categoryId, isActive, sortOrder])
-    @@map("skills")
+  @@index([categoryId])
+  @@index([dicePoolValueId])
+  @@index([rollConsequenceId])
+  @@index([categoryId, isActive, sortOrder])
+  @@map("skills")
+}
+
+model RollConsequence {
+  id          String   @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  rollEventGraph Json?    @map("roll_event_graph")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  skills      Skill[]
+
+  @@index([isActive, sortOrder])
+  @@map("roll_consequences")
 }
 
 model Attribute {
-    id              String           @id @default(uuid()) @db.Uuid
-    name            String
-    description     String?
-    systemValueId   String           @unique @map("system_value_id") @db.Uuid
-    systemValue     SystemValue      @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
-    isActive        Boolean          @default(true) @map("is_active")
-    sortOrder       Int              @default(0) @map("sort_order")
-    createdAt       DateTime         @default(now()) @map("created_at")
-    updatedAt       DateTime         @updatedAt @map("updated_at")
-    characteristics Characteristic[]
+  id              String           @id @default(uuid()) @db.Uuid
+  name            String
+  description     String?
+  systemValueId   String           @unique @map("system_value_id") @db.Uuid
+  systemValue     SystemValue      @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
+  isActive        Boolean          @default(true) @map("is_active")
+  sortOrder       Int              @default(0) @map("sort_order")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+  characteristics Characteristic[]
 
-    @@index([isActive, sortOrder])
-    @@map("attributes")
+  @@index([isActive, sortOrder])
+  @@map("attributes")
 }
 
 model Characteristic {
-    id           String    @id @default(uuid()) @db.Uuid
-    name         String
-    attributeId  String    @map("attribute_id") @db.Uuid
-    attribute    Attribute @relation(fields: [attributeId], references: [id], onDelete: Restrict)
-    description  String?
-    minValue     Int       @default(0) @map("min_value")
-    maxValue     Int       @default(10) @map("max_value")
-    defaultValue Int       @default(0) @map("default_value")
-    systemValueId String  @unique @map("system_value_id") @db.Uuid
-    systemValue   SystemValue @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
-    isActive     Boolean   @default(true) @map("is_active")
-    sortOrder    Int       @default(0) @map("sort_order")
-    createdAt    DateTime  @default(now()) @map("created_at")
-    updatedAt    DateTime  @updatedAt @map("updated_at")
+  id            String      @id @default(uuid()) @db.Uuid
+  name          String
+  attributeId   String      @map("attribute_id") @db.Uuid
+  attribute     Attribute   @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+  description   String?
+  minValue      Int         @default(0) @map("min_value")
+  maxValue      Int         @default(10) @map("max_value")
+  defaultValue  Int         @default(0) @map("default_value")
+  systemValueId String      @unique @map("system_value_id") @db.Uuid
+  systemValue   SystemValue @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
+  isActive      Boolean     @default(true) @map("is_active")
+  sortOrder     Int         @default(0) @map("sort_order")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
 
-    @@index([attributeId])
-    @@index([attributeId, isActive, sortOrder])
-    @@map("characteristics")
+  @@index([attributeId])
+  @@index([attributeId, isActive, sortOrder])
+  @@map("characteristics")
 }
 
 model SystemValue {
-    id               String                    @id @default(uuid()) @db.Uuid
-    name             String
-    description      String?
-    primaryOwnerType SystemValueOwnerType      @map("primary_owner_type")
-    primaryOwnerId   String?                   @map("primary_owner_id") @db.Uuid
-    calculationGraph Json?                     @map("calculation_graph")
-    isActive         Boolean                   @default(true) @map("is_active")
-    sortOrder        Int                       @default(0) @map("sort_order")
-    createdAt        DateTime                  @default(now()) @map("created_at")
-    updatedAt        DateTime                  @updatedAt @map("updated_at")
+  id               String               @id @default(uuid()) @db.Uuid
+  name             String
+  description      String?
+  primaryOwnerType SystemValueOwnerType @map("primary_owner_type")
+  primaryOwnerId   String?              @map("primary_owner_id") @db.Uuid
+  calculationGraph Json?                @map("calculation_graph")
+  isActive         Boolean              @default(true) @map("is_active")
+  sortOrder        Int                  @default(0) @map("sort_order")
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
 
-    skills           Skill[]
-    attributes       Attribute[]
-    characteristics  Characteristic[]
-    links            SystemValueLink[]
+  skills          Skill[]           @relation("SkillSystemValue")
+  dicePoolSkills  Skill[]           @relation("SkillDicePoolValue")
+  attributes      Attribute[]
+  characteristics Characteristic[]
+  links           SystemValueLink[]
 
-    @@index([primaryOwnerType, primaryOwnerId])
-    @@index([isActive, sortOrder])
-    @@map("system_values")
+  @@index([primaryOwnerType, primaryOwnerId])
+  @@index([isActive, sortOrder])
+  @@map("system_values")
 }
 
 model SystemValueLink {
-    id            String               @id @default(uuid()) @db.Uuid
-    systemValueId String               @map("system_value_id") @db.Uuid
-    systemValue   SystemValue          @relation(fields: [systemValueId], references: [id], onDelete: Cascade)
-    targetType    SystemValueOwnerType @map("target_type")
-    targetId      String?              @map("target_id") @db.Uuid
-    label         String?
-    sortOrder     Int                  @default(0) @map("sort_order")
-    createdAt     DateTime             @default(now()) @map("created_at")
-    updatedAt     DateTime             @updatedAt @map("updated_at")
+  id            String               @id @default(uuid()) @db.Uuid
+  systemValueId String               @map("system_value_id") @db.Uuid
+  systemValue   SystemValue          @relation(fields: [systemValueId], references: [id], onDelete: Cascade)
+  targetType    SystemValueOwnerType @map("target_type")
+  targetId      String?              @map("target_id") @db.Uuid
+  label         String?
+  sortOrder     Int                  @default(0) @map("sort_order")
+  createdAt     DateTime             @default(now()) @map("created_at")
+  updatedAt     DateTime             @updatedAt @map("updated_at")
 
-    @@unique([systemValueId, targetType, targetId])
-    @@index([targetType, targetId])
-    @@index([systemValueId])
-    @@map("system_value_links")
+  @@unique([systemValueId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@index([systemValueId])
+  @@map("system_value_links")
+}
+
+model CharacterSheetSandboxDraft {
+  key         String   @id
+  inputValues Json     @map("input_values")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("character_sheet_sandbox_drafts")
 }

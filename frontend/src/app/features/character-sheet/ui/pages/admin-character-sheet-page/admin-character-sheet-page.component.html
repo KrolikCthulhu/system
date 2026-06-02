@@ -1,0 +1,211 @@
+<section class="admin-character-sheet-page">
+	<header class="admin-character-sheet-page__header">
+		<p-breadcrumb
+			class="admin-character-sheet-page__breadcrumbs"
+			[model]="breadcrumbs"
+		></p-breadcrumb>
+
+		<div class="admin-character-sheet-page__hero">
+			<div>
+				<p class="admin-character-sheet-page__eyebrow">Админская песочница</p>
+				<h1 class="admin-character-sheet-page__title">Лист персонажа</h1>
+				<p class="admin-character-sheet-page__subtitle">
+					Проверяй реальные значения персонажа, меняй вводимые параметры и
+					кидай навыки в текущей системе правил.
+				</p>
+			</div>
+
+			<div class="admin-character-sheet-page__actions">
+				@if (hasChanges()) {
+					<p-tag value="Есть изменения" severity="warn"></p-tag>
+				} @else {
+					<p-tag value="Сохранено" severity="success"></p-tag>
+				}
+				<p-button
+					label="Очистить"
+					severity="secondary"
+					variant="outlined"
+					[disabled]="loading() || saving()"
+					(onClick)="clearDraft()"
+				></p-button>
+				<p-button
+					label="Сбросить"
+					severity="secondary"
+					variant="outlined"
+					[disabled]="loading() || saving() || !hasChanges()"
+					(onClick)="resetDraft()"
+				></p-button>
+				<p-button
+					label="Сохранить"
+					[loading]="saving()"
+					[disabled]="loading() || !hasChanges()"
+					(onClick)="saveDraft()"
+				></p-button>
+			</div>
+
+			@if (lastRoll(); as roll) {
+				<aside class="admin-character-sheet-page__roll-summary">
+					<div class="admin-character-sheet-page__roll-heading">
+						<span>{{ roll.skillName }}</span>
+						<p-tag value="Совершён бросок" severity="info"></p-tag>
+					</div>
+					<div class="admin-character-sheet-page__dice-row">
+						@for (die of roll.dice; track $index) {
+							<span
+								class="admin-character-sheet-page__die"
+								[class.admin-character-sheet-page__die--one]="die === 1"
+							>
+								{{ die }}
+							</span>
+						} @empty {
+							<span class="admin-character-sheet-page__muted">Нет кубов</span>
+						}
+					</div>
+					<div class="admin-character-sheet-page__roll-meta">
+						<span>Успехи: {{ roll.successes }}</span>
+						<span>Единицы: {{ roll.ones }}</span>
+						<span>Игнор: {{ roll.ignoredOnes }}</span>
+						<span>Последствия: {{ roll.consequenceCount }}</span>
+						<span>{{ roll.consequenceName }}</span>
+					</div>
+				</aside>
+			}
+		</div>
+	</header>
+
+	@if (loading()) {
+		<section class="admin-character-sheet-page__state">Загрузка листа...</section>
+	} @else if (errorMessage()) {
+		<section
+			class="admin-character-sheet-page__state admin-character-sheet-page__state--error"
+		>
+			{{ errorMessage() }}
+		</section>
+	} @else {
+		<div class="admin-character-sheet-page__layout">
+			<section class="admin-character-sheet-page__attributes">
+				<div class="admin-character-sheet-page__section-heading">
+					<h2>Атрибуты и характеристики</h2>
+				</div>
+
+				<div class="admin-character-sheet-page__attribute-grid">
+					@for (block of attributeBlocks(); track block.attribute.id) {
+						<article class="admin-character-sheet-page__attribute-card">
+							<div class="admin-character-sheet-page__attribute-top">
+								<div>
+									<h3>{{ block.attribute.name }}</h3>
+									<span>Итог: {{ formatValue(block.value) }}</span>
+								</div>
+								<p-inputnumber
+									[ngModel]="getInputValue(block.attribute.systemValue.id)"
+									(ngModelChange)="
+										setInputValue(block.attribute.systemValue.id, $event)
+									"
+									[showButtons]="false"
+								></p-inputnumber>
+							</div>
+
+							<div class="admin-character-sheet-page__characteristic-list">
+								@for (item of block.characteristics; track item.characteristic.id) {
+									<div class="admin-character-sheet-page__value-row">
+										<div>
+											<strong>{{ item.characteristic.name }}</strong>
+											<span>Итог: {{ formatValue(item.value) }}</span>
+										</div>
+										<p-inputnumber
+											[ngModel]="
+												getInputValue(item.characteristic.systemValue.id)
+											"
+											(ngModelChange)="
+												setInputValue(
+													item.characteristic.systemValue.id,
+													$event
+												)
+											"
+											[min]="item.characteristic.minValue"
+											[max]="item.characteristic.maxValue"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+								} @empty {
+									<div class="admin-character-sheet-page__muted">
+										Характеристик пока нет.
+									</div>
+								}
+							</div>
+						</article>
+					}
+				</div>
+			</section>
+
+			<aside class="admin-character-sheet-page__side">
+				<section class="admin-character-sheet-page__skills">
+					<div class="admin-character-sheet-page__section-heading">
+						<h2>Навыки</h2>
+					</div>
+
+					<div class="admin-character-sheet-page__skill-list">
+						@for (skill of activeSkills(); track skill.id) {
+							<div class="admin-character-sheet-page__skill-row">
+								<div>
+									<strong>{{ skill.name }}</strong>
+									<span>
+										{{ getSkillConsequenceName(skill) }}
+										@if (!skill.dicePoolValueId) {
+											· пул кубов не выбран
+										}
+									</span>
+								</div>
+								<div class="admin-character-sheet-page__skill-controls">
+									<p-inputnumber
+										[ngModel]="getInputValue(skill.systemValue.id)"
+										(ngModelChange)="
+											setInputValue(skill.systemValue.id, $event)
+										"
+										[min]="0"
+										[max]="skill.maxLevel"
+										[showButtons]="false"
+									></p-inputnumber>
+									<p-button
+										label="Бросить"
+										icon="pi pi-send"
+										severity="secondary"
+										variant="outlined"
+										[loading]="rollingSkillId() === skill.id"
+										[disabled]="rollingSkillId() !== null"
+										(onClick)="rollSkill(skill)"
+									></p-button>
+								</div>
+							</div>
+						}
+					</div>
+				</section>
+
+				@if (consequenceValues().length) {
+					<section class="admin-character-sheet-page__resources">
+						<div class="admin-character-sheet-page__section-heading">
+							<h2>Последствия и ресурсы</h2>
+						</div>
+
+						<div class="admin-character-sheet-page__resource-list">
+							@for (item of consequenceValues(); track item.value.id) {
+								<div class="admin-character-sheet-page__value-row">
+									<div>
+										<strong>{{ item.value.name }}</strong>
+										<span>Итог: {{ formatValue(item.calculated) }}</span>
+									</div>
+									<p-inputnumber
+										[ngModel]="getInputValue(item.value.id)"
+										(ngModelChange)="setInputValue(item.value.id, $event)"
+										[min]="0"
+										[showButtons]="false"
+									></p-inputnumber>
+								</div>
+							}
+						</div>
+					</section>
+				}
+			</aside>
+		</div>
+	}
+</section>

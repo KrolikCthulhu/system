@@ -14,6 +14,14 @@ export class UpdateSkillDto {
 	description?: string;
 
 	@IsOptional()
+	@IsUUID()
+	rollConsequenceId?: string | null;
+
+	@IsOptional()
+	@IsUUID()
+	dicePoolValueId?: string | null;
+
+	@IsOptional()
 	@IsInt()
 	@Min(0)
 	@Max(12)

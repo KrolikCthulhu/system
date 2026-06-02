@@ -24,8 +24,22 @@ export class AdminLayoutComponent {
 					routerLink: '/admin/rules/attributes'
 				},
 				{
+					label: 'Последствия броска',
+					routerLink: '/admin/rules/roll-consequences'
+				},
+				{
 					label: 'Значения',
 					routerLink: '/admin/rules/values'
+				}
+			]
+		},
+		{
+			label: 'Песочница',
+			expanded: true,
+			items: [
+				{
+					label: 'Лист персонажа',
+					routerLink: '/admin/sandbox/character-sheet'
 				}
 			]
 		}

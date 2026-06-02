@@ -45,6 +45,47 @@
 									<div class="admin-skill-detail-page__field">
 										<label
 											class="admin-skill-detail-page__field-label"
+											for="skill-dice-pool-value"
+										>
+											Пул кубов
+										</label>
+										<p-select
+											inputId="skill-dice-pool-value"
+											formControlName="dicePoolValueId"
+											optionLabel="label"
+											optionValue="value"
+											optionGroupLabel="label"
+											optionGroupChildren="items"
+											[options]="dicePoolValueOptions()"
+											[group]="true"
+											[filter]="true"
+											filterBy="label"
+											[showClear]="true"
+											placeholder="Не выбрано"
+											appendTo="body"
+										></p-select>
+									</div>
+
+									<div class="admin-skill-detail-page__field">
+										<label
+											class="admin-skill-detail-page__field-label"
+											for="skill-roll-consequence"
+										>
+											Последствие броска
+										</label>
+										<p-select
+											inputId="skill-roll-consequence"
+											formControlName="rollConsequenceId"
+											optionLabel="label"
+											optionValue="value"
+											[options]="rollConsequenceOptions()"
+											appendTo="body"
+										></p-select>
+									</div>
+
+									<div class="admin-skill-detail-page__field">
+										<label
+											class="admin-skill-detail-page__field-label"
 											for="skill-name"
 										>
 											Название

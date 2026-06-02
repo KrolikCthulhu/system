@@ -123,11 +123,13 @@
 										[value]="tableSkills()"
 										[scrollable]="true"
 										scrollHeight="flex"
-										[tableStyle]="{ 'min-width': '52rem' }"
+										[tableStyle]="{ 'min-width': '60rem' }"
 									>
 										<ng-template #header>
 											<tr>
 												<th>Навык</th>
+												<th>Пул кубов</th>
+												<th>Последствие</th>
 												<th>Начальный уровень</th>
 												<th>Максимум</th>
 												<th>Активность</th>
@@ -149,6 +151,8 @@
 												"
 											>
 												<td>{{ skill.name }}</td>
+												<td>{{ getSkillDicePoolValueName(skill) }}</td>
+												<td>{{ getSkillRollConsequenceName(skill) }}</td>
 												<td>{{ skill.defaultLevel }}</td>
 												<td>{{ skill.maxLevel }}</td>
 												<td>
@@ -252,6 +256,47 @@
 												<div class="admin-skills-page__form-field">
 													<label
 														class="admin-skills-page__field-label"
+														for="skill-dice-pool-value"
+													>
+														Пул кубов
+													</label>
+													<p-select
+														inputId="skill-dice-pool-value"
+														formControlName="dicePoolValueId"
+														optionLabel="label"
+														optionValue="value"
+														optionGroupLabel="label"
+														optionGroupChildren="items"
+														[options]="dicePoolValueOptions()"
+														[group]="true"
+														[filter]="true"
+														filterBy="label"
+														[showClear]="true"
+														placeholder="Не выбрано"
+														appendTo="body"
+													></p-select>
+												</div>
+
+												<div class="admin-skills-page__form-field">
+													<label
+														class="admin-skills-page__field-label"
+														for="skill-roll-consequence"
+													>
+														Последствие броска
+													</label>
+													<p-select
+														inputId="skill-roll-consequence"
+														formControlName="rollConsequenceId"
+														optionLabel="label"
+														optionValue="value"
+														[options]="rollConsequenceOptions()"
+														appendTo="body"
+													></p-select>
+												</div>
+
+												<div class="admin-skills-page__form-field">
+													<label
+														class="admin-skills-page__field-label"
 														for="skill-default-level"
 													>
 														Начальный уровень
@@ -326,11 +371,13 @@
 								[value]="tableSkills()"
 								[scrollable]="true"
 								scrollHeight="flex"
-								[tableStyle]="{ 'min-width': '52rem' }"
+								[tableStyle]="{ 'min-width': '60rem' }"
 							>
 								<ng-template #header>
 									<tr>
 										<th>Навык</th>
+										<th>Пул кубов</th>
+										<th>Последствие</th>
 										<th>Начальный уровень</th>
 										<th>Максимум</th>
 										<th>Активность</th>
@@ -352,6 +399,8 @@
 										"
 									>
 										<td>{{ skill.name }}</td>
+										<td>{{ getSkillDicePoolValueName(skill) }}</td>
+										<td>{{ getSkillRollConsequenceName(skill) }}</td>
 										<td>{{ skill.defaultLevel }}</td>
 										<td>{{ skill.maxLevel }}</td>
 										<td>

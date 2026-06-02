@@ -1,0 +1,198 @@
+<section class="admin-roll-consequence-detail-page">
+	<header class="admin-roll-consequence-detail-page__header">
+		<p-breadcrumb
+			class="admin-roll-consequence-detail-page__breadcrumbs"
+			[model]="breadcrumbs()"
+		></p-breadcrumb>
+	</header>
+
+	@if (loading()) {
+		<section class="admin-roll-consequence-detail-page__panel admin-roll-consequence-detail-page__state">
+			Загрузка последствия...
+		</section>
+	} @else if (errorMessage()) {
+		<section class="admin-roll-consequence-detail-page__panel admin-roll-consequence-detail-page__state admin-roll-consequence-detail-page__state--error">
+			{{ errorMessage() }}
+		</section>
+	} @else if (consequence(); as consequence) {
+		<section class="admin-roll-consequence-detail-page__panel">
+			<div class="admin-roll-consequence-detail-page__panel-heading">
+				<h1 class="admin-roll-consequence-detail-page__title">
+					{{ consequence.name }}
+				</h1>
+			</div>
+
+			<p-tabs
+				class="admin-roll-consequence-detail-page__content"
+				[value]="activeTab()"
+				(valueChange)="setActiveTab($event)"
+			>
+				<p-tablist>
+					<p-tab value="general">Общее</p-tab>
+					<p-tab value="values">Связанные значения</p-tab>
+					<p-tab value="roll-event">При броске</p-tab>
+				</p-tablist>
+
+				<p-tabpanels class="admin-roll-consequence-detail-page__tabpanels">
+					<p-tabpanel class="admin-roll-consequence-detail-page__tabpanel" value="general">
+						<p-fluid>
+							<form class="admin-roll-consequence-detail-page__form" [formGroup]="form">
+								<div class="admin-roll-consequence-detail-page__grid">
+									<div class="admin-roll-consequence-detail-page__field">
+										<label class="admin-roll-consequence-detail-page__field-label" for="consequence-name">
+											Название
+										</label>
+										<input id="consequence-name" pInputText formControlName="name" />
+									</div>
+
+									<div class="admin-roll-consequence-detail-page__field">
+										<label class="admin-roll-consequence-detail-page__field-label" for="consequence-sort-order">
+											Порядок отображения
+										</label>
+										<p-inputnumber
+											inputId="consequence-sort-order"
+											formControlName="sortOrder"
+											[min]="0"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+								</div>
+
+								<div class="admin-roll-consequence-detail-page__switch-row">
+									<label class="admin-roll-consequence-detail-page__field-label" for="consequence-active">
+										Активно
+									</label>
+									<p-toggleswitch
+										inputId="consequence-active"
+										formControlName="isActive"
+									/>
+								</div>
+
+								<div class="admin-roll-consequence-detail-page__field">
+									<label class="admin-roll-consequence-detail-page__field-label" for="consequence-description">
+										Описание
+									</label>
+									<textarea
+										id="consequence-description"
+										pTextarea
+										formControlName="description"
+										rows="4"
+									></textarea>
+								</div>
+							</form>
+						</p-fluid>
+					</p-tabpanel>
+
+					<p-tabpanel class="admin-roll-consequence-detail-page__tabpanel" value="values">
+						<p-fluid>
+							<form class="admin-roll-consequence-detail-page__form" [formGroup]="form">
+								<section class="admin-roll-consequence-detail-page__values-block">
+									<div class="admin-roll-consequence-detail-page__values-heading">
+										<h2 class="admin-roll-consequence-detail-page__section-title">
+											Связанные значения
+										</h2>
+										<p-button
+											label="Добавить"
+											icon="pi pi-plus"
+											severity="secondary"
+											variant="outlined"
+											(onClick)="addValue()"
+										></p-button>
+									</div>
+
+									<div
+										class="admin-roll-consequence-detail-page__values-list"
+										formArrayName="values"
+									>
+										@for (valueForm of valuesForm.controls; track valueForm; let index = $index) {
+											<div
+												class="admin-roll-consequence-detail-page__value-card"
+												[formGroupName]="index"
+											>
+												<div class="admin-roll-consequence-detail-page__grid">
+													<div class="admin-roll-consequence-detail-page__field">
+														<label class="admin-roll-consequence-detail-page__field-label">
+															Название
+														</label>
+														<input pInputText formControlName="name" />
+													</div>
+
+													<div class="admin-roll-consequence-detail-page__field">
+														<label class="admin-roll-consequence-detail-page__field-label">
+															Порядок
+														</label>
+														<p-inputnumber
+															formControlName="sortOrder"
+															[min]="0"
+															[showButtons]="false"
+														></p-inputnumber>
+													</div>
+												</div>
+
+												<div class="admin-roll-consequence-detail-page__field">
+													<label class="admin-roll-consequence-detail-page__field-label">
+														Описание
+													</label>
+													<textarea
+														pTextarea
+														formControlName="description"
+														rows="2"
+													></textarea>
+												</div>
+
+												<div class="admin-roll-consequence-detail-page__value-actions">
+													<div class="admin-roll-consequence-detail-page__switch-row">
+														<label class="admin-roll-consequence-detail-page__field-label">
+															Активно
+														</label>
+														<p-toggleswitch formControlName="isActive" />
+													</div>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														[text]="true"
+														[rounded]="true"
+														ariaLabel="Удалить связанное значение"
+														(onClick)="removeValue(index)"
+													></p-button>
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-roll-consequence-detail-page__empty">
+												Связанных значений пока нет.
+											</div>
+										}
+									</div>
+								</section>
+							</form>
+						</p-fluid>
+					</p-tabpanel>
+
+					<p-tabpanel class="admin-roll-consequence-detail-page__tabpanel admin-roll-consequence-detail-page__tabpanel--graph" value="roll-event">
+						<section class="admin-roll-consequence-detail-page__event-block">
+							<app-roll-event-graph-editor
+								[graph]="form.controls.rollEventGraph.value"
+								[availableValues]="availableValues()"
+								(graphChange)="updateRollEventGraph($event)"
+							></app-roll-event-graph-editor>
+						</section>
+					</p-tabpanel>
+				</p-tabpanels>
+			</p-tabs>
+
+			<div class="admin-roll-consequence-detail-page__actions">
+				<p-button
+					label="Сбросить"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="cancel()"
+				></p-button>
+				<p-button
+					label="Сохранить"
+					[disabled]="isSaveDisabled()"
+					(onClick)="save()"
+				></p-button>
+			</div>
+		</section>
+	}
+</section>

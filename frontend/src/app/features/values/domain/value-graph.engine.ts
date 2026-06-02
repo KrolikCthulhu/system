@@ -6,7 +6,7 @@ import {
 	ValueGraphState
 } from '../ui/value-graph.models';
 
-const CHARACTER_INPUT_OVERRIDE_KEY = '__characterInput';
+export const CHARACTER_INPUT_OVERRIDE_KEY = '__characterInput';
 
 export interface GraphEvaluationResult {
 	rawBase: number;

@@ -1,0 +1,329 @@
+<p-fluid class="roll-event-graph-editor">
+	<div class="roll-event-graph-editor__palette">
+		@for (nodeType of nodeTypes; track nodeType.kind) {
+			<p-button
+				[label]="nodeType.label"
+				severity="secondary"
+				variant="outlined"
+				(onClick)="addGraphNode(nodeType.kind)"
+			></p-button>
+		}
+	</div>
+
+	<div class="roll-event-graph-editor__stage">
+		<p-splitter
+			class="roll-event-graph-editor__splitter"
+			panelStyleClass="roll-event-graph-editor__panel"
+			[panelSizes]="[72, 28]"
+			[minSizes]="[45, 25]"
+			[gutterSize]="1"
+		>
+			<ng-template #panel>
+				<div class="roll-event-graph-editor__canvas">
+					<vflow
+						view="auto"
+						[nodes]="graphNodes()"
+						[edges]="graphEdges()"
+						[connection]="connectionSettings"
+						(connect)="onGraphConnect($event)"
+						changesController
+						(nodesChanges.select)="onGraphSelectionChange($event)"
+						(edgesChanges.select)="onGraphEdgeSelectionChange($event)"
+						(nodeDragEnd)="onGraphDragEnd()"
+					></vflow>
+				</div>
+			</ng-template>
+
+			<ng-template #panel>
+				<div class="roll-event-graph-editor__inspector">
+				@if (selectedGraphEdge(); as selectedEdge) {
+					<div class="roll-event-graph-editor__inspector-header">
+						<div>
+							<div class="text-muted">Связь</div>
+							<strong>Линия события</strong>
+						</div>
+						<p-button
+							icon="pi pi-trash"
+							severity="danger"
+							[text]="true"
+							[rounded]="true"
+							(onClick)="removeSelectedGraphEdge()"
+						></p-button>
+					</div>
+
+					<div class="roll-event-graph-editor__note">
+						<div class="text-muted">Источник</div>
+						<p>{{ selectedEdge.source }} / {{ selectedEdge.sourceHandle ?? 'out' }}</p>
+					</div>
+					<div class="roll-event-graph-editor__note">
+						<div class="text-muted">Приёмник</div>
+						<p>{{ selectedEdge.target }} / {{ selectedEdge.targetHandle ?? 'in' }}</p>
+					</div>
+				} @else if (selectedGraphNodeData(); as selectedNode) {
+					<div class="roll-event-graph-editor__inspector-header">
+						<div>
+							<div class="text-muted">Узел</div>
+							<strong>{{ graphNodeTypeLabel(selectedNode.kind) }}</strong>
+						</div>
+						<p-button
+							icon="pi pi-trash"
+							severity="danger"
+							[text]="true"
+							[rounded]="true"
+							(onClick)="removeSelectedGraphNode()"
+						></p-button>
+					</div>
+
+					@if (selectedNode.kind === 'eventInput') {
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Что взять из события
+							</span>
+							<p-select
+								[options]="eventInputOptions"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[ngModel]="selectedNode.eventInputKey"
+								(ngModelChange)="updateSelectedEventInput($event)"
+							></p-select>
+						</div>
+					}
+
+					@if (selectedNode.kind === 'valueSource') {
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Какое значение читать
+							</span>
+							<p-select
+								[options]="valueGroups()"
+								[group]="true"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[filter]="true"
+								filterBy="label"
+								[showClear]="true"
+								[ngModel]="selectedNode.sourceValueId"
+								(ngModelChange)="updateSelectedSourceValue($event)"
+							></p-select>
+						</div>
+					}
+
+					@if (selectedNode.kind === 'writeValue') {
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Куда записать результат
+							</span>
+							<p-select
+								[options]="valueGroups()"
+								[group]="true"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[filter]="true"
+								filterBy="label"
+								[showClear]="true"
+								[ngModel]="selectedNode.targetValueId"
+								(ngModelChange)="updateSelectedTargetValue($event)"
+							></p-select>
+						</div>
+
+						<div class="roll-event-graph-editor__note">
+							<p>
+								Вход ноды должен получить новое значение целиком. Например:
+								«Очки усталости + Количество последствий».
+							</p>
+						</div>
+					}
+
+					@if (selectedNode.kind === 'constant') {
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">Число</span>
+							<p-inputnumber
+								[ngModel]="selectedNode.constantValue ?? 0"
+								(ngModelChange)="updateSelectedConstantValue($event ?? 0)"
+								[showButtons]="false"
+							></p-inputnumber>
+						</div>
+					}
+
+					@if (selectedNode.kind === 'operation') {
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">Операция</span>
+							<p-select
+								[options]="operationOptions"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[ngModel]="selectedNode.operation"
+								(ngModelChange)="updateSelectedOperation($event)"
+							></p-select>
+						</div>
+					}
+
+					@if (selectedNode.kind === 'comparison') {
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">Сравнение</span>
+							<p-select
+								[options]="comparisonOptions"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[ngModel]="selectedNode.comparison"
+								(ngModelChange)="updateSelectedComparison($event)"
+							></p-select>
+						</div>
+						<div class="roll-event-graph-editor__note">
+							<p>Сравнивает A с B и возвращает 1 или 0.</p>
+						</div>
+					}
+
+					@if (selectedNode.kind === 'condition') {
+						<div class="roll-event-graph-editor__note">
+							<p>
+								Если «Проверка» не 0, вернет «Если да», иначе вернет «Если нет».
+							</p>
+						</div>
+					}
+
+					@if (selectedNode.kind === 'thresholdCounter') {
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Накопитель
+							</span>
+							<span class="roll-event-graph-editor__field-help">
+								Значение, которое постепенно заполняется после события. Вход «Добавить» увеличивает именно его.
+							</span>
+							<p-select
+								[options]="valueGroups()"
+								[group]="true"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[filter]="true"
+								filterBy="label"
+								[showClear]="true"
+								[ngModel]="selectedNode.accumulatorValueId"
+								(ngModelChange)="updateSelectedAccumulatorValue($event)"
+							></p-select>
+						</div>
+
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Порог
+							</span>
+							<span class="roll-event-graph-editor__field-help">
+								Значение, с которым сравнивается новый накопитель после прибавления.
+							</span>
+							<p-select
+								[options]="valueGroups()"
+								[group]="true"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[filter]="true"
+								filterBy="label"
+								[showClear]="true"
+								[ngModel]="selectedNode.thresholdValueId"
+								(ngModelChange)="updateSelectedThresholdValue($event)"
+							></p-select>
+						</div>
+
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Источник порога
+							</span>
+							<span class="roll-event-graph-editor__field-help">
+								Откуда брать порог: из введённого значения персонажа или из итогового значения после расчётов.
+							</span>
+							<p-select
+								[options]="thresholdSourceOptions"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[ngModel]="selectedNode.thresholdSource ?? 'base'"
+								(ngModelChange)="updateSelectedThresholdSource($event)"
+							></p-select>
+						</div>
+
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Значение при переполнении
+							</span>
+							<span class="roll-event-graph-editor__field-help">
+								Значение, которое изменится, если накопитель достиг порога или превысил его.
+							</span>
+							<p-select
+								[options]="valueGroups()"
+								[group]="true"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[filter]="true"
+								filterBy="label"
+								[showClear]="true"
+								[ngModel]="selectedNode.overflowValueId"
+								(ngModelChange)="updateSelectedOverflowValue($event)"
+							></p-select>
+						</div>
+
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Шаг переполнения
+							</span>
+							<span class="roll-event-graph-editor__field-help">
+								На сколько увеличить значение при переполнении.
+							</span>
+							<p-inputnumber
+								[ngModel]="selectedNode.overflowIncrement ?? 1"
+								(ngModelChange)="updateSelectedOverflowIncrement($event ?? 1)"
+								[showButtons]="false"
+							></p-inputnumber>
+						</div>
+
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
+								Сброс накопителя
+							</span>
+							<span class="roll-event-graph-editor__field-help">
+								Что записать в накопитель после переполнения: ноль или остаток после вычитания порога.
+							</span>
+							<p-select
+								[options]="resetModeOptions"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[ngModel]="selectedNode.resetMode ?? 'zero'"
+								(ngModelChange)="updateSelectedResetMode($event)"
+							></p-select>
+						</div>
+
+						<div class="roll-event-graph-editor__note">
+							<p>
+								Вход «Добавить» увеличивает накопитель. Если новое значение достигает порога,
+								накопитель сбрасывается по выбранному правилу, а значение при переполнении
+								увеличивается на заданный шаг.
+							</p>
+						</div>
+					}
+				} @else {
+					<div class="roll-event-graph-editor__empty">
+						Выбери узел на canvas, чтобы настроить его свойства.
+					</div>
+				}
+				</div>
+			</ng-template>
+		</p-splitter>
+	</div>
+</p-fluid>

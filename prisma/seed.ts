@@ -46,30 +46,30 @@ const SKILL_LEVEL_SEEDS = [
 	},
 	{
 		level: 4,
-		name: '4-6',
+		name: '4-6 и игнор 1',
 		canRoll: true,
 		successMin: 4,
 		doubleSuccessMin: null,
-		ignoreOnesCount: 0,
-		ruleText: 'Успехи на 4-6.'
+		ignoreOnesCount: 1,
+		ruleText: 'Успехи на 4-6, можно игнорировать одну выпавшую 1.'
 	},
 	{
 		level: 5,
-		name: '4-6, 6 = 2 успеха',
+		name: '4-6, 6 = 2 успеха, игнор 1',
 		canRoll: true,
 		successMin: 4,
 		doubleSuccessMin: 6,
-		ignoreOnesCount: 0,
-		ruleText: 'Успехи на 4-6, 6 даёт 2 успеха.'
+		ignoreOnesCount: 1,
+		ruleText: 'Успехи на 4-6, 6 даёт 2 успеха, можно игнорировать одну выпавшую 1.'
 	},
 	{
 		level: 6,
-		name: '4-6, 5-6 = 2 успеха',
+		name: '4-6, 5-6 = 2 успеха, игнор 1',
 		canRoll: true,
 		successMin: 4,
 		doubleSuccessMin: 5,
-		ignoreOnesCount: 0,
-		ruleText: 'Успехи на 4-6, 5-6 дают 2 успеха.'
+		ignoreOnesCount: 1,
+		ruleText: 'Успехи на 4-6, 5-6 дают 2 успеха, можно игнорировать одну выпавшую 1.'
 	}
 ] as const;
 

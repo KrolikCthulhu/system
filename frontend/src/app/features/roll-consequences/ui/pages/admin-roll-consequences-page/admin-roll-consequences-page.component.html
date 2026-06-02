@@ -1,0 +1,240 @@
+<section class="admin-roll-consequences-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-roll-consequences-page__header">
+		<p-breadcrumb
+			class="admin-roll-consequences-page__breadcrumbs"
+			[model]="breadcrumbs"
+		></p-breadcrumb>
+	</header>
+
+	@if (errorMessage()) {
+		<section
+			class="admin-roll-consequences-page__panel admin-roll-consequences-page__state admin-roll-consequences-page__state--error"
+		>
+			{{ errorMessage() }}
+		</section>
+	}
+
+	@if (editorOpen() && selectedConsequence(); as consequence) {
+		<p-splitter
+			class="admin-roll-consequences-page__splitter"
+			panelStyleClass="admin-roll-consequences-page__splitter-panel"
+			[panelSizes]="[62, 38]"
+			[minSizes]="[40, 30]"
+			[gutterSize]="1"
+		>
+			<ng-template #panel>
+				<ng-container *ngTemplateOutlet="tablePanel"></ng-container>
+			</ng-template>
+
+			<ng-template #panel>
+				<aside
+					class="admin-roll-consequences-page__panel admin-roll-consequences-page__editor-panel"
+				>
+					<div
+						class="admin-roll-consequences-page__panel-heading admin-roll-consequences-page__panel-heading--split"
+					>
+						<div>
+							<h2 class="admin-roll-consequences-page__panel-title">
+								Новое последствие
+							</h2>
+						</div>
+						<p-button
+							icon="pi pi-times"
+							severity="secondary"
+							[text]="true"
+							[rounded]="true"
+							ariaLabel="Закрыть редактор последствия"
+							(onClick)="closeEditor()"
+						></p-button>
+					</div>
+
+					<div class="admin-roll-consequences-page__editor-content">
+						<p-fluid>
+							<form
+								class="admin-roll-consequences-page__form"
+								[formGroup]="form"
+							>
+								<div class="admin-roll-consequences-page__form-field">
+									<label
+										class="admin-roll-consequences-page__field-label"
+										for="consequence-name"
+									>
+										Название
+									</label>
+									<input
+										id="consequence-name"
+										pInputText
+										formControlName="name"
+									/>
+								</div>
+
+								<div class="admin-roll-consequences-page__form-field">
+									<label
+										class="admin-roll-consequences-page__field-label"
+										for="consequence-description"
+									>
+										Описание
+									</label>
+									<textarea
+										id="consequence-description"
+										pTextarea
+										formControlName="description"
+										rows="3"
+									></textarea>
+								</div>
+
+								<div class="admin-roll-consequences-page__form-grid">
+									<div class="admin-roll-consequences-page__form-field">
+										<label
+											class="admin-roll-consequences-page__field-label"
+											for="consequence-sort-order"
+										>
+											Порядок отображения
+										</label>
+										<p-inputnumber
+											inputId="consequence-sort-order"
+											formControlName="sortOrder"
+											[min]="0"
+											[showButtons]="false"
+										></p-inputnumber>
+									</div>
+
+									<div class="admin-roll-consequences-page__switch-row">
+										<label
+											class="admin-roll-consequences-page__field-label"
+											for="consequence-active"
+										>
+											Активно
+										</label>
+										<p-toggleswitch
+											inputId="consequence-active"
+											formControlName="isActive"
+										/>
+									</div>
+								</div>
+							</form>
+						</p-fluid>
+
+						<div class="admin-roll-consequences-page__editor-actions">
+							<p-button
+								label="Отмена"
+								severity="secondary"
+								variant="outlined"
+								(onClick)="cancel()"
+							></p-button>
+							<p-button
+								label="Создать"
+								[disabled]="isSaveDisabled()"
+								(onClick)="save()"
+							></p-button>
+						</div>
+					</div>
+				</aside>
+			</ng-template>
+		</p-splitter>
+	} @else {
+		<div class="admin-roll-consequences-page__workspace">
+			<ng-container *ngTemplateOutlet="tablePanel"></ng-container>
+		</div>
+	}
+
+	<ng-template #tablePanel>
+		<section
+			class="admin-roll-consequences-page__panel admin-roll-consequences-page__table-panel"
+		>
+			<div
+				class="admin-roll-consequences-page__panel-heading admin-roll-consequences-page__panel-heading--split"
+			>
+				<div>
+					<h2 class="admin-roll-consequences-page__panel-title">
+						Последствия броска
+					</h2>
+				</div>
+
+				<p-button
+					label="Новое последствие"
+					icon="pi pi-plus"
+					(onClick)="addConsequence()"
+				></p-button>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-roll-consequences-page__state">
+					Загрузка последствий...
+				</div>
+			} @else {
+				<p-table
+					class="admin-roll-consequences-page__table"
+					[value]="consequences()"
+					[scrollable]="true"
+					scrollHeight="flex"
+					[tableStyle]="{ 'min-width': '48rem' }"
+				>
+					<ng-template #header>
+						<tr>
+							<th>Название</th>
+							<th>Связанные значения</th>
+							<th>Порядок</th>
+							<th>Активность</th>
+							<th
+								pFrozenColumn
+								alignFrozen="right"
+								class="admin-roll-consequences-page__actions-column"
+							>
+								Действия
+							</th>
+						</tr>
+					</ng-template>
+
+					<ng-template #body let-consequence>
+						<tr
+							class="admin-roll-consequences-page__table-row"
+							[class.admin-roll-consequences-page__table-row--selected]="
+								consequence.id === selectedConsequenceId()
+							"
+						>
+							<td>{{ consequence.name }}</td>
+							<td>{{ getRelatedValuesLabel(consequence) }}</td>
+							<td>{{ consequence.sortOrder }}</td>
+							<td>
+								<p-toggleswitch
+									[ngModel]="consequence.isActive"
+									(ngModelChange)="toggleActive(consequence.id, $event)"
+								/>
+							</td>
+							<td
+								pFrozenColumn
+								alignFrozen="right"
+								class="admin-roll-consequences-page__actions-cell"
+							>
+								<div class="admin-roll-consequences-page__row-actions">
+									<p-button
+										icon="pi pi-pencil"
+										severity="secondary"
+										[text]="true"
+										[rounded]="true"
+										ariaLabel="Редактировать последствие"
+										(onClick)="openEditor(consequence.id)"
+									></p-button>
+									<p-button
+										icon="pi pi-trash"
+										severity="danger"
+										[text]="true"
+										[rounded]="true"
+										ariaLabel="Удалить последствие"
+										(onClick)="confirmDelete(consequence)"
+									></p-button>
+								</div>
+							</td>
+						</tr>
+					</ng-template>
+				</p-table>
+			}
+		</section>
+	</ng-template>
+</section>

@@ -1,4 +1,5 @@
 import { SystemValueCalculationDefinition } from '../../values/domain/system-value-calculation.models';
+import { RollConsequence } from '../../roll-consequences/domain/roll-consequences.models';
 
 export interface SkillCategory {
 	id: string;
@@ -12,6 +13,8 @@ export interface Skill {
 	name: string;
 	categoryId: string;
 	description: string;
+	rollConsequenceId: string | null;
+	dicePoolValueId: string | null;
 	defaultLevel: number;
 	maxLevel: number;
 	usesDefaultLevelRules: boolean;
@@ -36,4 +39,5 @@ export interface SkillsAdminCatalog {
 	categories: SkillCategory[];
 	skills: Skill[];
 	levels: SkillLevel[];
+	rollConsequences: RollConsequence[];
 }

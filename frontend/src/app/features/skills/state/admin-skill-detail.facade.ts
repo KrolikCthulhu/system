@@ -1,7 +1,7 @@
 import { computed, DestroyRef, inject, Injectable } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin, map, of, switchMap } from 'rxjs';
-import { FormChangeTracker } from '../../../shared/forms/form-change-tracker';
+import { SignalFormDraft } from '../../../shared/forms/signal-form-draft';
 import {
 	VALUES_REPOSITORY,
 	ValuesRepository
@@ -11,7 +11,12 @@ import {
 	SystemValueCalculationDraftController
 } from '../../values/domain/system-value-calculation-draft';
 import { SystemValueCalculationDefinition } from '../../values/domain/system-value-calculation.models';
+import { createSystemValueOptionGroups } from '../../values/domain/system-value-option-groups';
 import { SystemValuesCatalogFacade } from '../../values/state/system-values-catalog.facade';
+import {
+	ROLL_CONSEQUENCES_REPOSITORY,
+	RollConsequencesRepository
+} from '../../roll-consequences/data/roll-consequences-repository.port';
 import { SKILLS_REPOSITORY, SkillsRepository } from '../data/skills-repository.port';
 import { Skill } from '../domain/skills.models';
 import {
@@ -27,19 +32,26 @@ import { AdminSkillDetailStore } from './admin-skill-detail.store';
 export class AdminSkillDetailFacade {
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly repository = inject<SkillsRepository>(SKILLS_REPOSITORY);
+	private readonly rollConsequencesRepository =
+		inject<RollConsequencesRepository>(ROLL_CONSEQUENCES_REPOSITORY);
 	private readonly valuesRepository = inject<ValuesRepository>(VALUES_REPOSITORY);
 	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly store = inject(AdminSkillDetailStore);
-	private readonly changeTracker = new FormChangeTracker<SkillFormValue>();
 	private readonly calculationDraft = new SystemValueCalculationDraftController();
 
 	readonly form = createSkillForm();
+	private readonly formDraft = new SignalFormDraft<SkillFormValue>(
+		this.form,
+		() => getSkillFormValue(this.form),
+		this.destroyRef
+	);
 	readonly activeTab = this.store.activeTab;
 	readonly loading = this.store.loading;
 	readonly saving = this.store.saving;
 	readonly errorMessage = this.store.errorMessage;
 	readonly skill = this.store.skill;
 	readonly categories = this.store.categories;
+	readonly rollConsequences = this.store.rollConsequences;
 	readonly availableValues = this.valuesCatalogFacade.values;
 	readonly systemValueCalculation = this.calculationDraft.draft;
 	readonly canEditCalculation = computed(() => Boolean(this.systemValueCalculation()));
@@ -49,9 +61,21 @@ export class AdminSkillDetailFacade {
 			value: category.id
 		}))
 	);
+	readonly rollConsequenceOptions = computed(() => [
+		{ label: 'Без последствий', value: null },
+		...this.rollConsequences().map(consequence => ({
+			label: consequence.name,
+			value: consequence.id
+		}))
+	]);
+	readonly dicePoolValueOptions = computed(() =>
+		createSystemValueOptionGroups(this.availableValues(), {
+			excludeIds: [this.skill()?.systemValue.id]
+		})
+	);
 	readonly hasChanges = computed(
 		() =>
-			this.changeTracker.hasChanges(getSkillFormValue(this.form)) ||
+			this.formDraft.hasChanges() ||
 			this.calculationDraft.hasChanges()
 	);
 
@@ -66,14 +90,16 @@ export class AdminSkillDetailFacade {
 				switchMap(skill =>
 					forkJoin({
 						skill: of(skill),
-						categories: this.repository.loadCategories()
+						categories: this.repository.loadCategories(),
+						rollConsequences: this.rollConsequencesRepository.loadOptions()
 					})
 				),
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe({
-				next: ({ skill, categories }) => {
+				next: ({ skill, categories, rollConsequences }) => {
 					this.store.setCategories(categories);
+					this.store.setRollConsequences(rollConsequences);
 					this.store.setSkill(skill);
 					this.patchDraft(skill);
 					this.store.setLoading(false);
@@ -185,13 +211,13 @@ export class AdminSkillDetailFacade {
 	private patchDraft(skill: Skill | null) {
 		if (!skill) {
 			resetSkillForm(this.form);
-			this.changeTracker.clear();
+			this.formDraft.clear();
 			this.calculationDraft.clear();
 			return;
 		}
 
 		patchSkillForm(this.form, skill);
-		this.changeTracker.capture(getSkillFormValue(this.form));
+		this.formDraft.capture();
 		this.calculationDraft.set(skill.systemValue);
 	}
 }

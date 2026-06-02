@@ -24,6 +24,8 @@ const skillSelect = {
 	name: true,
 	categoryId: true,
 	description: true,
+	rollConsequenceId: true,
+	dicePoolValueId: true,
 	defaultLevel: true,
 	maxLevel: true,
 	usesDefaultLevelRules: true,
@@ -41,7 +43,7 @@ export class SkillsService {
 	constructor(private readonly prisma: PrismaService) {}
 
 	async getAdminCatalog() {
-		const [categories, skills, levels] = await Promise.all([
+		const [categories, skills, levels, rollConsequences] = await Promise.all([
 			this.prisma.skillCategory.findMany({
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			}),
@@ -51,6 +53,17 @@ export class SkillsService {
 			}),
 			this.prisma.skillLevel.findMany({
 				orderBy: [{ level: 'asc' }]
+			}),
+			this.prisma.rollConsequence.findMany({
+				select: {
+					id: true,
+					name: true,
+					description: true,
+					isActive: true,
+					sortOrder: true
+				},
+				where: { isActive: true },
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			})
 		]);
 
@@ -66,6 +79,8 @@ export class SkillsService {
 				name: skill.name,
 				categoryId: skill.categoryId,
 				description: skill.description ?? '',
+				rollConsequenceId: skill.rollConsequenceId,
+				dicePoolValueId: skill.dicePoolValueId,
 				defaultLevel: skill.defaultLevel,
 				maxLevel: skill.maxLevel,
 				usesDefaultLevelRules: skill.usesDefaultLevelRules,
@@ -83,6 +98,14 @@ export class SkillsService {
 				expectedSuccessPerDie: Number(level.expectedSuccessPerDie),
 				ruleText: level.ruleText ?? '',
 				isActive: level.isActive
+			})),
+			rollConsequences: rollConsequences.map(consequence => ({
+				id: consequence.id,
+				name: consequence.name,
+				description: consequence.description ?? '',
+				isActive: consequence.isActive,
+				sortOrder: consequence.sortOrder,
+				values: []
 			}))
 		};
 	}
@@ -110,6 +133,8 @@ export class SkillsService {
 
 	async createSkill(dto: CreateSkillDto) {
 		await this.ensureCategoryExists(dto.categoryId);
+		await this.ensureRollConsequenceExists(dto.rollConsequenceId);
+		await this.ensureSystemValueExists(dto.dicePoolValueId);
 		this.validateSkillLevels(dto.defaultLevel, dto.maxLevel);
 
 		try {
@@ -142,6 +167,8 @@ export class SkillsService {
 						name: dto.name,
 						categoryId: dto.categoryId,
 						description,
+						rollConsequenceId: dto.rollConsequenceId ?? null,
+						dicePoolValueId: dto.dicePoolValueId ?? null,
 						defaultLevel: dto.defaultLevel,
 						maxLevel: dto.maxLevel,
 						usesDefaultLevelRules: dto.usesDefaultLevelRules,
@@ -162,6 +189,8 @@ export class SkillsService {
 		if (dto.categoryId) {
 			await this.ensureCategoryExists(dto.categoryId);
 		}
+		await this.ensureRollConsequenceExists(dto.rollConsequenceId);
+		await this.ensureSystemValueExists(dto.dicePoolValueId);
 
 		const currentSkill = await this.prisma.skill.findUnique({ where: { id } });
 
@@ -184,6 +213,10 @@ export class SkillsService {
 						categoryId: dto.categoryId,
 						description:
 							dto.description === undefined ? undefined : dto.description || null,
+						rollConsequenceId:
+							dto.rollConsequenceId === undefined ? undefined : dto.rollConsequenceId,
+						dicePoolValueId:
+							dto.dicePoolValueId === undefined ? undefined : dto.dicePoolValueId,
 						defaultLevel: dto.defaultLevel,
 						maxLevel: dto.maxLevel,
 						usesDefaultLevelRules: dto.usesDefaultLevelRules
@@ -385,6 +418,36 @@ export class SkillsService {
 		}
 	}
 
+	private async ensureRollConsequenceExists(id: string | null | undefined) {
+		if (!id) {
+			return;
+		}
+
+		const consequence = await this.prisma.rollConsequence.findUnique({
+			select: { id: true },
+			where: { id }
+		});
+
+		if (!consequence) {
+			throw new NotFoundException('Последствие броска не найдено.');
+		}
+	}
+
+	private async ensureSystemValueExists(id: string | null | undefined) {
+		if (!id) {
+			return;
+		}
+
+		const value = await this.prisma.systemValue.findUnique({
+			select: { id: true },
+			where: { id }
+		});
+
+		if (!value) {
+			throw new NotFoundException('Значение системы не найдено.');
+		}
+	}
+
 	private validateSkillLevels(defaultLevel: number, maxLevel: number) {
 		if (defaultLevel > maxLevel) {
 			throw new BadRequestException(
@@ -438,6 +501,8 @@ export class SkillsService {
 		name: string;
 		categoryId: string;
 		description: string | null;
+		rollConsequenceId: string | null;
+		dicePoolValueId: string | null;
 		defaultLevel: number;
 		maxLevel: number;
 		usesDefaultLevelRules: boolean;
@@ -452,6 +517,8 @@ export class SkillsService {
 			name: skill.name,
 			categoryId: skill.categoryId,
 			description: skill.description ?? '',
+			rollConsequenceId: skill.rollConsequenceId,
+			dicePoolValueId: skill.dicePoolValueId,
 			defaultLevel: skill.defaultLevel,
 			maxLevel: skill.maxLevel,
 			usesDefaultLevelRules: skill.usesDefaultLevelRules,
