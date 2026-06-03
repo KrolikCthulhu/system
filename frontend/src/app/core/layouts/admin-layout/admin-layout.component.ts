@@ -34,6 +34,14 @@ export class AdminLayoutComponent {
 				{
 					label: 'События',
 					routerLink: '/admin/rules/events'
+				},
+				{
+					label: 'Слова магии',
+					routerLink: '/admin/rules/magic-words'
+				},
+				{
+					label: 'Заклинания',
+					routerLink: '/admin/rules/spells'
 				}
 			]
 		},

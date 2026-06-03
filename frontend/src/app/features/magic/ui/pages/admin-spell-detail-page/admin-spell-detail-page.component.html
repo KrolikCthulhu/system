@@ -1,0 +1,117 @@
+<section class="admin-spell-detail-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-spell-detail-page__header">
+		<p-breadcrumb [model]="breadcrumbs()"></p-breadcrumb>
+	</header>
+
+	@if (loading()) {
+		<div class="admin-spell-detail-page__state">Загрузка заклинания...</div>
+	} @else if (errorMessage() && !draft()) {
+		<div class="admin-spell-detail-page__state admin-spell-detail-page__state--error">
+			{{ errorMessage() }}
+		</div>
+	} @else if (draft(); as currentDraft) {
+		<section class="admin-spell-detail-page__editor">
+			<header class="admin-spell-detail-page__editor-head">
+				<div>
+					<h2>{{ currentDraft.name || 'Новое заклинание' }}</h2>
+					<p>{{ currentDraft.formulaName }}</p>
+				</div>
+
+				<div class="admin-spell-detail-page__editor-actions">
+					<p-tag
+						[value]="statusLabel(currentDraft.status)"
+						[severity]="statusSeverity(currentDraft.status)"
+					></p-tag>
+					@if (currentDraft.id) {
+						<p-button
+							icon="pi pi-trash"
+							severity="danger"
+							text
+							rounded
+							(click)="deleteSpell()"
+						></p-button>
+					}
+				</div>
+			</header>
+
+			<div class="admin-spell-detail-page__editor-body">
+				@if (errorMessage()) {
+					<div class="admin-spell-detail-page__form-error">
+						{{ errorMessage() }}
+					</div>
+				}
+
+				<label class="admin-spell-detail-page__field">
+					<span>Формула</span>
+					<input
+						pInputText
+						type="text"
+						[value]="currentDraft.formulaName"
+						readonly
+					/>
+				</label>
+
+				<label class="admin-spell-detail-page__field">
+					<span>Название</span>
+					<input
+						pInputText
+						type="text"
+						[value]="currentDraft.name"
+						(input)="updateDraftName($any($event.target).value)"
+					/>
+				</label>
+
+				<label class="admin-spell-detail-page__field">
+					<span>Статус</span>
+					<p-select
+						[options]="statusOptions"
+						optionLabel="label"
+						optionValue="value"
+						[ngModel]="currentDraft.status"
+						(ngModelChange)="updateDraftStatus($event)"
+					></p-select>
+				</label>
+
+				<label class="admin-spell-detail-page__switch-field">
+					<span>Активно</span>
+					<p-toggleswitch
+						[disabled]="!canManageActivity(currentDraft.status)"
+						[ngModel]="currentDraft.isActive"
+						(ngModelChange)="updateDraftActive($event)"
+					></p-toggleswitch>
+				</label>
+
+				<label class="admin-spell-detail-page__field">
+					<span>Порядок отображения</span>
+					<p-inputnumber
+						[ngModel]="currentDraft.sortOrder"
+						[min]="0"
+						(ngModelChange)="updateDraftSortOrder($event)"
+					></p-inputnumber>
+				</label>
+
+				<label class="admin-spell-detail-page__field admin-spell-detail-page__field--wide">
+					<span>Описание</span>
+					<textarea
+						pTextarea
+						rows="8"
+						[value]="currentDraft.description"
+						(input)="updateDraftDescription($any($event.target).value)"
+					></textarea>
+				</label>
+			</div>
+
+			<app-editor-actions-bar
+				[hasChanges]="hasChanges()"
+				[saving]="saving()"
+				(reset)="resetDraft()"
+				(save)="saveDraft()"
+			></app-editor-actions-bar>
+		</section>
+	}
+</section>

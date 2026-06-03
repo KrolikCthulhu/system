@@ -1,0 +1,107 @@
+:host {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-spell-detail-page {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.admin-spell-detail-page__header {
+	padding-bottom: 1rem;
+}
+
+.admin-spell-detail-page__editor {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	min-height: 0;
+	border-top: 1px solid var(--p-content-border-color);
+	background: var(--p-content-background);
+	overflow: hidden;
+}
+
+.admin-spell-detail-page__editor-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+	padding: 0.75rem;
+}
+
+.admin-spell-detail-page__editor-head h2 {
+	margin: 0;
+	font-size: var(--text-heading-2-size);
+	line-height: 1.2;
+}
+
+.admin-spell-detail-page__editor-head p {
+	margin: 0.25rem 0 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-spell-detail-page__editor-actions {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+}
+
+.admin-spell-detail-page__editor-body {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-content: start;
+	gap: 0.75rem;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0.75rem;
+}
+
+.admin-spell-detail-page__field,
+.admin-spell-detail-page__switch-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-spell-detail-page__field input,
+.admin-spell-detail-page__field textarea,
+.admin-spell-detail-page__field p-select,
+.admin-spell-detail-page__field p-inputnumber {
+	width: 100%;
+}
+
+.admin-spell-detail-page__field--wide,
+.admin-spell-detail-page__form-error {
+	grid-column: 1 / -1;
+}
+
+.admin-spell-detail-page__switch-field {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 2.75rem;
+}
+
+.admin-spell-detail-page__state {
+	display: grid;
+	min-height: 0;
+	place-items: center;
+	padding: 1rem;
+	color: var(--p-text-muted-color);
+	text-align: center;
+}
+
+.admin-spell-detail-page__state--error,
+.admin-spell-detail-page__form-error {
+	color: var(--p-red-500);
+}

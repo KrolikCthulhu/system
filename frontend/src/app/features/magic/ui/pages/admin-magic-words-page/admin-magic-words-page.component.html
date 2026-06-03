@@ -1,0 +1,210 @@
+<section class="admin-magic-words-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-magic-words-page__header">
+		<div class="admin-magic-words-page__section-pad">
+			<p-breadcrumb
+				class="admin-magic-words-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-magic-words-page__workspace">
+		<aside class="admin-magic-words-page__panel admin-magic-words-page__sidebar">
+			<div class="admin-magic-words-page__panel-heading admin-magic-words-page__section-pad">
+				<h2 class="admin-magic-words-page__panel-title">Слова магии</h2>
+				<p-button
+					label="Новое слово"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createWord()"
+				></p-button>
+			</div>
+
+			<div class="admin-magic-words-page__search-row admin-magic-words-page__section-pad">
+				<p-iconfield class="admin-magic-words-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск слова"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			<div class="admin-magic-words-page__types admin-magic-words-page__section-pad">
+				@for (option of typeOptions; track option.value) {
+					<button
+						type="button"
+						class="admin-magic-words-page__type"
+						[class.admin-magic-words-page__type--active]="
+							option.value === selectedType()
+						"
+						(click)="selectType(option.value)"
+					>
+						<span>{{ option.pluralLabel }}</span>
+						<span class="admin-magic-words-page__type-count">
+							{{ getTypeCount(option.value) }}
+						</span>
+					</button>
+				}
+			</div>
+
+			@if (loading()) {
+				<div class="admin-magic-words-page__state">Загрузка слов...</div>
+			} @else if (errorMessage() && !draft()) {
+				<div class="admin-magic-words-page__state admin-magic-words-page__state--error">
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div class="admin-magic-words-page__word-list admin-magic-words-page__section-pad">
+					<div class="admin-magic-words-page__list-title">
+						{{ typePluralLabel(selectedType()) }}
+					</div>
+
+					@for (word of filteredWords(); track word.id) {
+						<button
+							type="button"
+							class="admin-magic-words-page__word-item"
+							[class.admin-magic-words-page__word-item--active]="
+								word.id === selectedWordId()
+							"
+							(click)="selectWord(word)"
+						>
+							<span>{{ word.name }}</span>
+							@if (!word.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-magic-words-page__empty-list">
+							Слов этого типа пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section class="admin-magic-words-page__panel admin-magic-words-page__editor">
+				<div
+					class="admin-magic-words-page__panel-heading admin-magic-words-page__panel-heading--split admin-magic-words-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-magic-words-page__panel-title">{{ title() }}</h2>
+					</div>
+
+					<div class="admin-magic-words-page__heading-actions">
+						<p-tag [value]="typeLabel()" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedWord()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div class="admin-magic-words-page__editor-body admin-magic-words-page__section-pad">
+					@if (errorMessage()) {
+						<div class="admin-magic-words-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-magic-words-page__form-grid">
+						<label class="admin-magic-words-page__field">
+							<span>Тип</span>
+							<p-select
+								[options]="typeOptions"
+								optionLabel="label"
+								optionValue="value"
+								[ngModel]="currentDraft.type"
+								(ngModelChange)="updateDraftType($event)"
+							></p-select>
+						</label>
+
+						<label class="admin-magic-words-page__field">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</label>
+
+						<label class="admin-magic-words-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</label>
+
+						<label class="admin-magic-words-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</label>
+
+						<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+							<span>Описание</span>
+							<textarea
+								pTextarea
+								rows="4"
+								[value]="currentDraft.description"
+								(input)="updateDraftDescription($any($event.target).value)"
+							></textarea>
+						</label>
+
+						@if (currentDraft.type === 'MODIFIER') {
+							<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+								<span>Разрешённые жесты</span>
+								<p-multiselect
+									[options]="gestureOptions()"
+									optionLabel="name"
+									optionValue="id"
+									placeholder="Без ограничений"
+									display="chip"
+									[ngModel]="currentDraft.allowedGestureIds"
+									(ngModelChange)="updateDraftAllowedGestures($event)"
+								></p-multiselect>
+								<small>
+									Если ничего не выбрано, модификатор не ограничен конкретными
+									жестами.
+								</small>
+							</label>
+						}
+					</div>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(reset)="resetDraft()"
+					(save)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section class="admin-magic-words-page__panel admin-magic-words-page__editor">
+				<div class="admin-magic-words-page__state">
+					Выбери слово магии слева или создай новое.
+				</div>
+			</section>
+		}
+	</div>
+</section>

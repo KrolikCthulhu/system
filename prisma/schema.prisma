@@ -20,6 +20,19 @@ enum SystemValueOwnerType {
   MANUAL
 }
 
+enum MagicWordType {
+  ACTION
+  ESSENCE
+  GESTURE
+  MODIFIER
+}
+
+enum SpellStatus {
+  DRAFT
+  TESTING
+  READY
+}
+
 model User {
   id                      String                   @id @default(uuid()) @db.Uuid
   email                   String                   @unique
@@ -164,6 +177,65 @@ model GameEventHandler {
 
   @@index([eventType, isActive, sortOrder])
   @@map("game_event_handlers")
+}
+
+model MagicWord {
+  id          String   @id @default(uuid()) @db.Uuid
+  type        MagicWordType
+  name        String
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  modifierGestureRestrictions MagicWordGestureRestriction[] @relation("MagicModifierRestrictions")
+  gestureModifierRestrictions  MagicWordGestureRestriction[] @relation("MagicGestureRestrictions")
+  actionSpells                 Spell[] @relation("SpellAction")
+  essenceSpells                Spell[] @relation("SpellEssence")
+  gestureSpells                Spell[] @relation("SpellGesture")
+
+  @@unique([type, name])
+  @@index([type, isActive, sortOrder])
+  @@map("magic_words")
+}
+
+model Spell {
+  id          String      @id @default(uuid()) @db.Uuid
+  actionId    String      @map("action_id") @db.Uuid
+  action      MagicWord   @relation("SpellAction", fields: [actionId], references: [id], onDelete: Restrict)
+  essenceId   String      @map("essence_id") @db.Uuid
+  essence     MagicWord   @relation("SpellEssence", fields: [essenceId], references: [id], onDelete: Restrict)
+  gestureId   String      @map("gesture_id") @db.Uuid
+  gesture     MagicWord   @relation("SpellGesture", fields: [gestureId], references: [id], onDelete: Restrict)
+  name        String
+  description String?
+  status      SpellStatus @default(DRAFT)
+  isActive    Boolean     @default(false) @map("is_active")
+  sortOrder   Int         @default(0) @map("sort_order")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  @@unique([actionId, essenceId, gestureId])
+  @@index([status, isActive, sortOrder])
+  @@index([actionId])
+  @@index([essenceId])
+  @@index([gestureId])
+  @@map("spells")
+}
+
+model MagicWordGestureRestriction {
+  id         String    @id @default(uuid()) @db.Uuid
+  modifierId String   @map("modifier_id") @db.Uuid
+  modifier   MagicWord @relation("MagicModifierRestrictions", fields: [modifierId], references: [id], onDelete: Cascade)
+  gestureId  String   @map("gesture_id") @db.Uuid
+  gesture    MagicWord @relation("MagicGestureRestrictions", fields: [gestureId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@unique([modifierId, gestureId])
+  @@index([modifierId])
+  @@index([gestureId])
+  @@map("magic_word_gesture_restrictions")
 }
 
 model Attribute {

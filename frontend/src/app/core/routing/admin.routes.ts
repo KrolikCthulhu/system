@@ -91,6 +91,35 @@ export const adminRoutes: Route[] = [
 							import(
 								'../../features/events/ui/pages/admin-events-page/admin-events-page.component'
 							).then(m => m.AdminEventsPageComponent)
+					},
+					{
+						path: 'magic-words',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-magic-words-page/admin-magic-words-page.component'
+							).then(m => m.AdminMagicWordsPageComponent)
+					},
+					{
+						path: 'spells/formula/:actionId/:essenceId/:gestureId',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-spell-detail-page/admin-spell-detail-page.component'
+							).then(m => m.AdminSpellDetailPageComponent)
+					},
+					{
+						path: 'spells/:spellId',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-spell-detail-page/admin-spell-detail-page.component'
+							).then(m => m.AdminSpellDetailPageComponent)
+					},
+					{
+						path: 'spells',
+						pathMatch: 'full',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-spells-page/admin-spells-page.component'
+							).then(m => m.AdminSpellsPageComponent)
 					}
 				]
 			},

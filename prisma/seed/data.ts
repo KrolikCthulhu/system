@@ -239,6 +239,65 @@ export const SKILL_SEEDS = [
 	}
 ] as const;
 
+export const MAGIC_WORD_SEEDS = [
+	{ type: 'ACTION', name: 'Создать', sortOrder: 0 },
+	{ type: 'ACTION', name: 'Уничтожить', sortOrder: 1 },
+	{ type: 'ACTION', name: 'Изменить', sortOrder: 2 },
+	{ type: 'ACTION', name: 'Управлять', sortOrder: 3 },
+	{ type: 'ACTION', name: 'Запечатать', sortOrder: 4 },
+	{ type: 'ACTION', name: 'Обнаружить', sortOrder: 5 },
+	{ type: 'ACTION', name: 'Скрыть', sortOrder: 6 },
+	{ type: 'ACTION', name: 'Поднимать', sortOrder: 7 },
+	{ type: 'ACTION', name: 'Ускорить', sortOrder: 8 },
+	{ type: 'ACTION', name: 'Замедлить', sortOrder: 9 },
+	{ type: 'ACTION', name: 'Усилить', sortOrder: 10 },
+	{ type: 'ACTION', name: 'Ослабить', sortOrder: 11 },
+	{ type: 'ACTION', name: 'Исцелить', sortOrder: 12 },
+	{ type: 'ESSENCE', name: 'Огонь', sortOrder: 0 },
+	{ type: 'ESSENCE', name: 'Вода', sortOrder: 1 },
+	{ type: 'ESSENCE', name: 'Земля', sortOrder: 2 },
+	{ type: 'ESSENCE', name: 'Воздух', sortOrder: 3 },
+	{ type: 'ESSENCE', name: 'Смерть', sortOrder: 4 },
+	{ type: 'ESSENCE', name: 'Жизнь', sortOrder: 5 },
+	{ type: 'ESSENCE', name: 'Свет', sortOrder: 6 },
+	{ type: 'ESSENCE', name: 'Тьма', sortOrder: 7 },
+	{ type: 'ESSENCE', name: 'Тень', sortOrder: 8 },
+	{ type: 'ESSENCE', name: 'Разум', sortOrder: 9 },
+	{ type: 'ESSENCE', name: 'Кровь', sortOrder: 10 },
+	{ type: 'ESSENCE', name: 'Яд', sortOrder: 11 },
+	{ type: 'ESSENCE', name: 'Гром', sortOrder: 12 },
+	{ type: 'ESSENCE', name: 'Туман', sortOrder: 13 },
+	{ type: 'ESSENCE', name: 'Барьер', sortOrder: 14 },
+	{ type: 'ESSENCE', name: 'Разложение', sortOrder: 15 },
+	{ type: 'GESTURE', name: 'Снаряд', sortOrder: 0 },
+	{ type: 'GESTURE', name: 'Касание', sortOrder: 1 },
+	{ type: 'GESTURE', name: 'Закрепление', sortOrder: 2 },
+	{ type: 'GESTURE', name: 'Материализация', sortOrder: 3 },
+	{ type: 'GESTURE', name: 'Точка', sortOrder: 4 },
+	{ type: 'GESTURE', name: 'Линия', sortOrder: 5 },
+	{ type: 'GESTURE', name: 'Конус', sortOrder: 6 },
+	{ type: 'GESTURE', name: 'Кольцо', sortOrder: 7 },
+	{ type: 'GESTURE', name: 'Сфера', sortOrder: 8 },
+	{ type: 'GESTURE', name: 'Куб', sortOrder: 9 },
+	{ type: 'GESTURE', name: 'Цилиндр', sortOrder: 10 },
+	{ type: 'MODIFIER', name: 'Продолжительный', sortOrder: 0 },
+	{ type: 'MODIFIER', name: 'Прикрепленный', sortOrder: 1 },
+	{ type: 'MODIFIER', name: 'Отложенный', sortOrder: 2 },
+	{ type: 'MODIFIER', name: 'Отскакивающий', sortOrder: 3 },
+	{ type: 'MODIFIER', name: 'Безмолвное', sortOrder: 4 }
+] as const;
+
+export const MAGIC_MODIFIER_GESTURE_RESTRICTION_SEEDS = [
+	{
+		modifierName: 'Прикрепленный',
+		gestureNames: ['Сфера', 'Кольцо'] as const
+	},
+	{
+		modifierName: 'Отскакивающий',
+		gestureNames: ['Снаряд'] as const
+	}
+] as const;
+
 export function calculateExpectedSuccessPerDie(params: {
 	canRoll: boolean;
 	successMin: number | null;
