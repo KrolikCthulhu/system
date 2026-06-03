@@ -201,12 +201,9 @@
 									<strong>{{ item.value.name }}</strong>
 									<span>Итог: {{ formatValue(item.calculated) }}</span>
 								</div>
-								<p-inputnumber
-									[ngModel]="getInputValue(item.value.id)"
-									(ngModelChange)="setInputValue(item.value.id, $event)"
-									[min]="0"
-									[showButtons]="false"
-								></p-inputnumber>
+								<strong class="admin-character-sheet-page__readonly-value">
+									{{ formatValue(item.calculated) }}
+								</strong>
 							</div>
 						}
 					</div>

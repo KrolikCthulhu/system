@@ -13,6 +13,12 @@ import { Tag } from 'primeng/tag';
 import { ConfirmationService } from 'primeng/api';
 import { forkJoin, of } from 'rxjs';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
+import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
+import {
+	NavigationTreeGroup,
+	NavigationTreeSubgroup
+} from '../../../../../shared/ui/navigation-tree/navigation-tree.models';
+import { NavigationTreeComponent } from '../../../../../shared/ui/navigation-tree/navigation-tree.component';
 import { VALUES_REPOSITORY, ValuesRepository } from '../../../data/values-repository.port';
 import {
 	SystemValueCalculationDraftController
@@ -21,18 +27,6 @@ import { SystemValueCalculationDefinition } from '../../../domain/system-value-c
 import { SystemValue } from '../../../domain/values.models';
 import { SystemValuesCatalogFacade } from '../../../state/system-values-catalog.facade';
 import { SystemValueCalculationEditorComponent } from '../../components/system-value-calculation-editor/system-value-calculation-editor.component';
-
-interface ValueGroup {
-	label: string;
-	count: number;
-	subgroups: ValueSubgroup[];
-	items: SystemValue[];
-}
-
-interface ValueSubgroup {
-	label: string;
-	items: SystemValue[];
-}
 
 interface FilterOption {
 	label: string;
@@ -54,6 +48,8 @@ interface FilterOption {
 		InputText,
 		Popover,
 		Tag,
+		EditorActionsBarComponent,
+		NavigationTreeComponent,
 		SystemValueCalculationEditorComponent
 	],
 	templateUrl: './admin-values-page.component.html',
@@ -137,11 +133,11 @@ export class AdminValuesPageComponent {
 			: null;
 	});
 
-	protected readonly valueGroups = computed<ValueGroup[]>(() => {
+	protected readonly valueGroups = computed<NavigationTreeGroup[]>(() => {
 		const query = this.searchQuery().trim().toLowerCase();
 		const selectedGroups = this.selectedGroupFilters();
 		const selectedContexts = this.selectedContextFilters();
-		const groups = new Map<string, ValueSubgroup[]>();
+		const groups = new Map<string, NavigationTreeSubgroup[]>();
 
 		for (const value of this.values()) {
 			const contextLabel = value.contextLabel?.trim() ?? '';
@@ -165,7 +161,10 @@ export class AdminValuesPageComponent {
 				subgroups.find(item => item.label === subgroupLabel) ??
 				createValueSubgroup(subgroups, subgroupLabel);
 
-			subgroup.items.push(value);
+			subgroup.items.push({
+				id: value.id,
+				label: value.name
+			});
 			groups.set(value.groupLabel, subgroups);
 		}
 
@@ -221,14 +220,6 @@ export class AdminValuesPageComponent {
 	protected clearFilters() {
 		this.selectedGroupFilters.set(new Set());
 		this.selectedContextFilters.set(new Set());
-	}
-
-	protected isGroupCollapsed(label: string) {
-		return this.collapsedGroups().has(label);
-	}
-
-	protected isSubgroupCollapsed(groupLabel: string, subgroupLabel: string) {
-		return this.collapsedSubgroups().has(subgroupKey(groupLabel, subgroupLabel));
 	}
 
 	protected toggleGroup(label: string) {
@@ -493,10 +484,10 @@ function buildFilterOptions(labels: string[]): FilterOption[] {
 }
 
 function createValueSubgroup(
-	subgroups: ValueSubgroup[],
+	subgroups: NavigationTreeSubgroup[],
 	label: string
-): ValueSubgroup {
-	const subgroup = { label, items: [] };
+): NavigationTreeSubgroup {
+	const subgroup: NavigationTreeSubgroup = { label, items: [] };
 	subgroups.push(subgroup);
 	return subgroup;
 }

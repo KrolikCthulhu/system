@@ -1,26 +1,15 @@
 import { CommonModule } from '@angular/common';
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, DestroyRef, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, forkJoin, map, Observable, throwError } from 'rxjs';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
 import { InputNumber } from 'primeng/inputnumber';
 import { Tag } from 'primeng/tag';
-import { environment } from '../../../../../infrastructure/config/environment';
-import {
-	ATTRIBUTES_REPOSITORY,
-	AttributesRepository
-} from '../../../../attributes/data/attributes-repository.port';
 import {
 	Attribute,
 	Characteristic
 } from '../../../../attributes/domain/attributes.models';
-import {
-	SKILLS_REPOSITORY,
-	SkillsRepository
-} from '../../../../skills/data/skills-repository.port';
 import {
 	Skill,
 	SkillCategory,
@@ -32,28 +21,8 @@ import {
 	formatNumber
 } from '../../../../values/domain/value-graph.engine';
 import { SystemValue } from '../../../../values/domain/values.models';
-import {
-	VALUES_REPOSITORY,
-	ValuesRepository
-} from '../../../../values/data/values-repository.port';
-
-interface DiceRollResult {
-	skillId: string;
-	skillName: string;
-	diceCount: number;
-	dice: number[];
-	successes: number;
-	sixes: number;
-	ones: number;
-	ignoredOnes: number;
-	consequenceCount: number;
-	consequenceName: string;
-	eventLogs: string[];
-	valueChanges: Array<{
-		valueId: string;
-		value: number;
-	}>;
-}
+import { CharacterSheetSandboxRoll } from '../../../domain/character-sheet-sandbox.models';
+import { AdminCharacterSheetFacade } from '../../../state/admin-character-sheet.facade';
 
 interface AttributeBlock {
 	attribute: Attribute;
@@ -69,14 +38,6 @@ interface SkillGroup {
 	skills: Skill[];
 }
 
-interface CharacterSheetSandboxDraftDto {
-	inputValues: Record<string, number>;
-}
-
-interface CharacterSheetSandboxRollDto extends CharacterSheetSandboxDraftDto {
-	roll: DiceRollResult;
-}
-
 @Component({
 	selector: 'app-admin-character-sheet-page',
 	standalone: true,
@@ -86,14 +47,7 @@ interface CharacterSheetSandboxRollDto extends CharacterSheetSandboxDraftDto {
 })
 export class AdminCharacterSheetPageComponent {
 	private readonly destroyRef = inject(DestroyRef);
-	private readonly http = inject(HttpClient);
-	private readonly attributesRepository = inject<AttributesRepository>(
-		ATTRIBUTES_REPOSITORY
-	);
-	private readonly skillsRepository =
-		inject<SkillsRepository>(SKILLS_REPOSITORY);
-	private readonly valuesRepository =
-		inject<ValuesRepository>(VALUES_REPOSITORY);
+	private readonly facade = inject(AdminCharacterSheetFacade);
 
 	protected readonly breadcrumbs = [
 		{ label: 'Песочница' },
@@ -111,7 +65,7 @@ export class AdminCharacterSheetPageComponent {
 	protected readonly systemValues = signal<SystemValue[]>([]);
 	protected readonly inputValues = signal<Record<string, number>>({});
 	protected readonly savedInputValues = signal<Record<string, number>>({});
-	protected readonly lastRoll = signal<DiceRollResult | null>(null);
+	protected readonly lastRoll = signal<CharacterSheetSandboxRoll | null>(null);
 	protected readonly hasChanges = computed(
 		() => !areInputValuesEqual(this.inputValues(), this.savedInputValues())
 	);
@@ -195,7 +149,8 @@ export class AdminCharacterSheetPageComponent {
 		this.saving.set(true);
 		this.errorMessage.set(null);
 
-		this.updateDraft(this.inputValues())
+		this.facade
+			.saveDraft(this.inputValues())
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
 				next: draft => {
@@ -251,7 +206,8 @@ export class AdminCharacterSheetPageComponent {
 		this.rollingSkillId.set(skill.id);
 		this.errorMessage.set(null);
 
-		this.rollSkillOnServer(skill.id, this.inputValues())
+		this.facade
+			.rollSkill(skill.id, this.inputValues())
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
 				next: result => {
@@ -308,28 +264,19 @@ export class AdminCharacterSheetPageComponent {
 		this.loading.set(true);
 		this.errorMessage.set(null);
 
-		forkJoin({
-			attributes: this.attributesRepository.loadAdminCatalog(),
-			skills: this.skillsRepository.loadAdminCatalog(),
-			values: this.valuesRepository.loadCatalog(),
-			draft: this.loadDraft()
-		})
+		this.facade
+			.loadPageData()
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
-				next: ({ attributes, skills, values, draft }) => {
-					this.attributes.set(attributes.attributes);
-					this.characteristics.set(attributes.characteristics);
-					this.skillCategories.set(skills.categories);
-					this.skills.set(skills.skills);
-					this.skillLevels.set(skills.levels);
-					this.systemValues.set(values.values);
-					this.skillsCatalogRollConsequences.set(
-						skills.rollConsequences.map(consequence => ({
-							id: consequence.id,
-							name: consequence.name
-						}))
-					);
-					this.initializeInputValues(draft.inputValues);
+				next: data => {
+					this.attributes.set(data.attributes);
+					this.characteristics.set(data.characteristics);
+					this.skillCategories.set(data.skillCategories);
+					this.skills.set(data.skills);
+					this.skillLevels.set(data.skillLevels);
+					this.systemValues.set(data.systemValues);
+					this.skillsCatalogRollConsequences.set(data.rollConsequences);
+					this.initializeInputValues(data.draft.inputValues);
 					this.loading.set(false);
 				},
 				error: error => {
@@ -376,49 +323,6 @@ export class AdminCharacterSheetPageComponent {
 
 		return nextValues;
 	}
-
-	private loadDraft(): Observable<CharacterSheetSandboxDraftDto> {
-		return this.http
-			.get<CharacterSheetSandboxDraftDto>(
-				`${environment.apiBaseUrl}/admin/character-sheet-sandbox`,
-				{ withCredentials: true }
-			)
-			.pipe(catchError(error => this.handleHttpError(error)));
-	}
-
-	private updateDraft(
-		inputValues: Record<string, number>
-	): Observable<CharacterSheetSandboxDraftDto> {
-		return this.http
-			.patch<CharacterSheetSandboxDraftDto>(
-				`${environment.apiBaseUrl}/admin/character-sheet-sandbox`,
-				{ inputValues },
-				{ withCredentials: true }
-			)
-			.pipe(
-				map(draft => ({
-					inputValues: draft.inputValues
-				})),
-				catchError(error => this.handleHttpError(error))
-			);
-	}
-
-	private rollSkillOnServer(
-		skillId: string,
-		inputValues: Record<string, number>
-	): Observable<CharacterSheetSandboxRollDto> {
-		return this.http
-			.post<CharacterSheetSandboxRollDto>(
-				`${environment.apiBaseUrl}/admin/character-sheet-sandbox/roll`,
-				{ skillId, inputValues },
-				{ withCredentials: true }
-			)
-			.pipe(catchError(error => this.handleHttpError(error)));
-	}
-
-	private handleHttpError(error: unknown) {
-		return throwError(() => new Error(extractApiErrorMessage(error)));
-	}
 }
 
 function areInputValuesEqual(
@@ -436,24 +340,4 @@ function areInputValuesEqual(
 		const rightKey = rightKeys[index];
 		return key === rightKey && left[key] === right[rightKey];
 	});
-}
-
-function extractApiErrorMessage(error: unknown): string {
-	if (error instanceof HttpErrorResponse) {
-		const message = error.error?.message;
-
-		if (Array.isArray(message)) {
-			return message.join('\n');
-		}
-
-		if (typeof message === 'string' && message.trim()) {
-			return message;
-		}
-
-		if (error.status === 0) {
-			return 'API is unavailable.';
-		}
-	}
-
-	return 'Request failed.';
 }

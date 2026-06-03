@@ -192,19 +192,14 @@
 				</p-tabpanels>
 			</p-tabs>
 
-			<div class="admin-skill-detail-page__actions">
-				<p-button
-					label="Сбросить"
-					severity="secondary"
-					variant="outlined"
-					(onClick)="cancelSkill()"
-				></p-button>
-				<p-button
-					label="Сохранить"
-					[disabled]="isSkillSaveDisabled()"
-					(onClick)="saveSkill()"
-				></p-button>
-			</div>
+			<app-editor-actions-bar
+				[hasChanges]="true"
+				[saving]="saving()"
+				[saveDisabled]="isSkillSaveDisabled()"
+				[resetDisabled]="false"
+				(reset)="cancelSkill()"
+				(save)="saveSkill()"
+			></app-editor-actions-bar>
 		</section>
 	} @else {
 		<section

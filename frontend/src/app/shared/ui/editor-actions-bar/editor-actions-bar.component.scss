@@ -1,0 +1,13 @@
+:host {
+	display: block;
+	flex: 0 0 auto;
+	margin-top: auto;
+}
+
+.editor-actions-bar {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	padding: 0.75rem;
+	border-top: 1px solid var(--p-content-border-color);
+}

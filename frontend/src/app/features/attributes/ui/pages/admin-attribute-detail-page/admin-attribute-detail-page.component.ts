@@ -4,7 +4,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { map, of, switchMap } from 'rxjs';
 import { Breadcrumb } from 'primeng/breadcrumb';
-import { Button } from 'primeng/button';
 import { Fluid } from 'primeng/fluid';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
@@ -12,6 +11,7 @@ import { Select } from 'primeng/select';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { FormChangeTracker } from '../../../../../shared/forms/form-change-tracker';
+import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import {
 	VALUES_REPOSITORY,
 	ValuesRepository
@@ -41,7 +41,7 @@ import {
 		FormsModule,
 		ReactiveFormsModule,
 		Breadcrumb,
-		Button,
+		EditorActionsBarComponent,
 		Fluid,
 		InputNumber,
 		InputText,

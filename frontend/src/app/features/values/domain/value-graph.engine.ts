@@ -189,7 +189,7 @@ function evaluateGraphNode(
 						? resolveStoredFinalValue(referencedValue, values)
 						: 0;
 			breakdown.push(
-				`Источник ${referencedValue?.name ?? node.sourceValueId ?? 'не выбран'} = ${formatNumber(result)}`
+				`Значение системы ${referencedValue?.name ?? node.sourceValueId ?? 'не выбрано'} = ${formatNumber(result)}`
 			);
 			break;
 		}

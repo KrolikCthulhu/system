@@ -1,0 +1,219 @@
+:host {
+	display: block;
+	min-height: 0;
+}
+
+.navigation-tree,
+.navigation-tree__item-list,
+.navigation-tree__subgroup-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+}
+
+.navigation-tree {
+	min-height: 0;
+	height: 100%;
+	overflow-y: auto;
+	overflow-x: hidden;
+	padding: 0 0.75rem 0.75rem;
+}
+
+.navigation-tree__item-list,
+.navigation-tree__subgroup-list {
+	max-height: 24rem;
+	opacity: 1;
+	overflow: hidden;
+	transform: translateY(0);
+	transition:
+		max-height 200ms ease,
+		opacity 180ms ease,
+		transform 200ms ease;
+}
+
+.navigation-tree__item-list--collapsed,
+.navigation-tree__subgroup-list--collapsed {
+	max-height: 0;
+	opacity: 0;
+	pointer-events: none;
+	transform: translateY(-0.125rem);
+}
+
+.navigation-tree__group {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 0.125rem;
+	margin-top: 0.5rem;
+	padding: 0.375rem;
+	border-radius: 0.75rem;
+	background: color-mix(
+		in srgb,
+		var(--p-surface-100) 52%,
+		transparent
+	);
+}
+
+.navigation-tree__group:first-child {
+	margin-top: 0;
+}
+
+.navigation-tree__group-title {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	width: 100%;
+	padding: 0.125rem 0.25rem;
+	border: 0;
+	background: transparent;
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: left;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+}
+
+.navigation-tree__group-title:hover {
+	color: var(--p-text-color);
+}
+
+.navigation-tree__group-icon,
+.navigation-tree__subgroup-icon {
+	width: 0.75rem;
+	font-size: 0.625rem;
+	transform: rotate(0deg);
+	transition: transform 180ms ease;
+}
+
+.navigation-tree__group-icon--expanded,
+.navigation-tree__subgroup-icon--expanded {
+	transform: rotate(90deg);
+}
+
+.navigation-tree__group-count {
+	margin-left: auto;
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 500;
+}
+
+.navigation-tree__subgroup {
+	display: flex;
+	flex-direction: column;
+	gap: 0;
+	margin-top: 0.3125rem;
+	padding-left: 0.375rem;
+	border-left: 1px solid color-mix(
+		in srgb,
+		var(--p-text-muted-color) 22%,
+		var(--p-content-border-color)
+	);
+}
+
+.navigation-tree__subgroup:first-child {
+	margin-top: 0.125rem;
+}
+
+.navigation-tree__subgroup-title {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	width: 100%;
+	min-height: 1.5rem;
+	padding: 0.125rem 0.375rem;
+	border: 0;
+	border-radius: 0.4375rem;
+	background: color-mix(
+		in srgb,
+		var(--p-surface-100) 76%,
+		transparent
+	);
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-align: left;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+	cursor: pointer;
+}
+
+.navigation-tree__subgroup-title:hover {
+	background: color-mix(
+		in srgb,
+		var(--p-surface-200) 70%,
+		transparent
+	);
+	color: var(--p-text-color);
+}
+
+.navigation-tree__subgroup-title small {
+	margin-left: auto;
+	padding: 0 0.3125rem;
+	border-radius: 999rem;
+	background: color-mix(
+		in srgb,
+		var(--p-surface-200) 78%,
+		transparent
+	);
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 500;
+}
+
+.navigation-tree__subgroup-list {
+	padding-left: 0.375rem;
+}
+
+.navigation-tree__item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	width: 100%;
+	min-height: 1.625rem;
+	padding: 0.1875rem 0.5rem;
+	border: 0;
+	border-radius: 0.5rem;
+	background: transparent;
+	color: var(--p-text-color);
+	font: inherit;
+	font-size: 0.875rem;
+	font-weight: 400;
+	line-height: 1.25;
+	text-align: left;
+	cursor: pointer;
+}
+
+.navigation-tree__item:hover {
+	background: color-mix(
+		in srgb,
+		var(--p-primary-color) 8%,
+		var(--p-content-background)
+	);
+	color: var(--p-primary-700);
+}
+
+.navigation-tree__item--active {
+	background: var(--p-primary-color);
+	color: var(--p-primary-contrast-color);
+	box-shadow: none;
+}
+
+.navigation-tree__item--active:hover {
+	background: color-mix(
+		in srgb,
+		var(--p-primary-color) 88%,
+		var(--p-primary-contrast-color)
+	);
+	color: var(--p-primary-contrast-color);
+}
+
+.navigation-tree__item span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}

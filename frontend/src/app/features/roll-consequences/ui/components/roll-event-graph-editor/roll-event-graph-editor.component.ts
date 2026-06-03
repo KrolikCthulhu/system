@@ -49,7 +49,7 @@ interface EventNodeType {
 
 const NODE_TYPES: EventNodeType[] = [
 	{ kind: 'eventInput', label: 'Данные броска' },
-	{ kind: 'valueSource', label: 'Значение' },
+	{ kind: 'valueSource', label: 'Значение системы' },
 	{ kind: 'constant', label: 'Число' },
 	{ kind: 'operation', label: 'Операция' },
 	{ kind: 'comparison', label: 'Сравнение' },

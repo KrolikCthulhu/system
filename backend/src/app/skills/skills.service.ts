@@ -9,6 +9,8 @@ import {
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
+import { createCharacterInputGraph } from '../shared/system-value-graph.factory';
+import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { CreateSkillCategoryDto } from './dto/create-skill-category.dto';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillCategoryActiveDto } from './dto/update-skill-category-active.dto';
@@ -179,7 +181,7 @@ export class SkillsService {
 
 			return this.mapSkill(skill);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось создать навык.');
+			rethrowPrismaError(error, 'Не удалось создать навык.');
 		}
 	}
 
@@ -240,7 +242,7 @@ export class SkillsService {
 
 			return this.mapSkill(skill);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось обновить навык.');
+			rethrowPrismaError(error, 'Не удалось обновить навык.');
 		}
 	}
 
@@ -287,7 +289,7 @@ export class SkillsService {
 
 			return this.mapCategory(category);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось создать категорию.');
+			rethrowPrismaError(error, 'Не удалось создать категорию.');
 		}
 	}
 
@@ -305,7 +307,7 @@ export class SkillsService {
 
 			return this.mapCategory(category);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось обновить категорию.');
+			rethrowPrismaError(error, 'Не удалось обновить категорию.');
 		}
 	}
 
@@ -458,19 +460,6 @@ export class SkillsService {
 		}
 	}
 
-	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		) {
-			throw new BadRequestException('Значение должно быть уникальным.');
-		}
-
-		throw error instanceof Error
-			? error
-			: new BadRequestException(fallbackMessage);
-	}
-
 	private calculateExpectedSuccessPerDie(params: {
 		canRoll: boolean;
 		successMin: number | null;
@@ -583,22 +572,4 @@ export class SkillsService {
 			isActive: level.isActive
 		};
 	}
-}
-
-function createCharacterInputGraph() {
-	return {
-		nodes: [
-			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
-			{ id: 'result', kind: 'result', x: 420, y: 120 }
-		],
-		edges: [
-			{
-				id: 'character-input:out -> result:in',
-				source: 'character-input',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
 }

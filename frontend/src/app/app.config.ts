@@ -14,6 +14,8 @@ import { AuthFacade } from './features/auth/state/auth.facade';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
+import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
+import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
 import { provideRollConsequencesInfrastructure } from './features/roll-consequences/data/provide-roll-consequences-infrastructure';
 import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
 import { provideValuesInfrastructure } from './features/values/data/provide-values-infrastructure';
@@ -85,6 +87,8 @@ export const appConfig: ApplicationConfig = {
 		provideBrowserGlobalErrorListeners(),
 		...provideAuthInfrastructure(),
 		...provideAttributesInfrastructure(),
+		...provideCharacterSheetInfrastructure(),
+		...provideGameEventsInfrastructure(),
 		...provideRollConsequencesInfrastructure(),
 		...provideSkillsInfrastructure(),
 		...provideValuesInfrastructure(),

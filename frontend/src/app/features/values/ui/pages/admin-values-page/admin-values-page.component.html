@@ -149,97 +149,17 @@
 					{{ errorMessage() }}
 				</div>
 			} @else {
-				<div class="admin-values-page__group-list admin-values-page__section-pad">
-					@for (group of valueGroups(); track group.label) {
-						<div class="admin-values-page__group">
-							<button
-								type="button"
-								class="admin-values-page__group-title"
-								[attr.aria-expanded]="!isGroupCollapsed(group.label)"
-								(click)="toggleGroup(group.label)"
-							>
-								<i
-									class="pi pi-chevron-right admin-values-page__group-icon"
-									[class.admin-values-page__group-icon--expanded]="
-										!isGroupCollapsed(group.label)
-									"
-									aria-hidden="true"
-								></i>
-								<span>{{ group.label }}</span>
-								<span class="admin-values-page__group-count">
-									{{ group.count }}
-								</span>
-							</button>
-
-							<div
-								class="admin-values-page__value-list"
-								[class.admin-values-page__value-list--collapsed]="
-									isGroupCollapsed(group.label)
-								"
-							>
-								@for (value of group.items; track value.id) {
-									<ng-container
-										[ngTemplateOutlet]="valueItem"
-										[ngTemplateOutletContext]="{ value: value }"
-									></ng-container>
-								}
-
-								@for (subgroup of group.subgroups; track subgroup.label) {
-									<div class="admin-values-page__subgroup">
-										<button
-											type="button"
-											class="admin-values-page__subgroup-title"
-											[attr.aria-expanded]="
-												!isSubgroupCollapsed(group.label, subgroup.label)
-											"
-											(click)="toggleSubgroup(group.label, subgroup.label)"
-										>
-											<i
-												class="pi pi-chevron-right admin-values-page__subgroup-icon"
-												[class.admin-values-page__subgroup-icon--expanded]="
-													!isSubgroupCollapsed(group.label, subgroup.label)
-												"
-												aria-hidden="true"
-											></i>
-											<span>{{ subgroup.label }}</span>
-											<small>{{ subgroup.items.length }}</small>
-										</button>
-
-										<div
-											class="admin-values-page__subgroup-list"
-											[class.admin-values-page__subgroup-list--collapsed]="
-												isSubgroupCollapsed(group.label, subgroup.label)
-											"
-										>
-											@for (value of subgroup.items; track value.id) {
-												<ng-container
-													[ngTemplateOutlet]="valueItem"
-													[ngTemplateOutletContext]="{ value: value }"
-												></ng-container>
-											}
-										</div>
-									</div>
-								}
-							</div>
-						</div>
-					}
-				</div>
+				<app-navigation-tree
+					class="admin-values-page__navigation-tree"
+					[groups]="valueGroups()"
+					[selectedItemId]="selectedValueId()"
+					[collapsedGroups]="collapsedGroups()"
+					[collapsedSubgroups]="collapsedSubgroups()"
+					(itemSelect)="selectValue($event)"
+					(groupToggle)="toggleGroup($event)"
+					(subgroupToggle)="toggleSubgroup($event.groupLabel, $event.subgroupLabel)"
+				></app-navigation-tree>
 			}
-
-			<ng-template #valueItem let-value="value">
-				<button
-					type="button"
-					class="admin-values-page__value-item"
-					[class.admin-values-page__value-item--active]="
-						value.id === selectedValueId()
-					"
-					(click)="selectValue(value.id)"
-				>
-					<div class="admin-values-page__value-copy">
-						<strong>{{ value.name }}</strong>
-					</div>
-				</button>
-			</ng-template>
 		</aside>
 
 		@if (selectedValue(); as value) {
@@ -331,20 +251,11 @@
 					</app-system-value-calculation-editor>
 				</div>
 
-				<div class="admin-values-page__editor-actions admin-values-page__section-pad">
-					<p-button
-						label="Сбросить"
-						severity="secondary"
-						variant="outlined"
-						[disabled]="!hasChanges()"
-						(onClick)="resetDraft()"
-					></p-button>
-					<p-button
-						label="Сохранить"
-						[disabled]="!hasChanges()"
-						(onClick)="saveDraft()"
-					></p-button>
-				</div>
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					(reset)="resetDraft()"
+					(save)="saveDraft()"
+				></app-editor-actions-bar>
 			</section>
 		} @else {
 			<section class="admin-values-page__panel admin-values-page__editor">

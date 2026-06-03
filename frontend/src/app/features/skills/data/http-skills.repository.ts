@@ -1,6 +1,6 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, throwError } from 'rxjs';
+import { Observable, catchError, map } from 'rxjs';
 import {
 	Skill,
 	SkillCategory,
@@ -8,6 +8,7 @@ import {
 	SkillsAdminCatalog
 } from '../domain/skills.models';
 import { environment } from '../../../infrastructure/config/environment';
+import { handleApiError } from '../../../shared/http/api-error.util';
 import {
 	CreateSkillCategoryCommand,
 	CreateSkillCommand,
@@ -44,7 +45,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			})
 			.pipe(
 				map(mapSkillsAdminCatalogDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -55,7 +56,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			})
 			.pipe(
 				map(categories => categories.map(mapSkillCategoryDto)),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -64,7 +65,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			.get<SkillDto>(`${this.baseUrl}/admin/skills/${id}`, {
 				withCredentials: true
 			})
-			.pipe(map(mapSkillDto), catchError(error => this.handleHttpError(error)));
+			.pipe(map(mapSkillDto), catchError(handleApiError));
 	}
 
 	createSkill(command: CreateSkillCommand): Observable<Skill> {
@@ -72,7 +73,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			.post<SkillDto>(`${this.baseUrl}/admin/skills`, command, {
 				withCredentials: true
 			})
-			.pipe(map(mapSkillDto), catchError(error => this.handleHttpError(error)));
+			.pipe(map(mapSkillDto), catchError(handleApiError));
 	}
 
 	updateSkill(command: UpdateSkillCommand): Observable<Skill> {
@@ -82,7 +83,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			.patch<SkillDto>(`${this.baseUrl}/admin/skills/${id}`, payload, {
 				withCredentials: true
 			})
-			.pipe(map(mapSkillDto), catchError(error => this.handleHttpError(error)));
+			.pipe(map(mapSkillDto), catchError(handleApiError));
 	}
 
 	updateSkillActive(command: UpdateSkillActiveCommand): Observable<Skill> {
@@ -92,7 +93,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 				{ isActive: command.isActive },
 				{ withCredentials: true }
 			)
-			.pipe(map(mapSkillDto), catchError(error => this.handleHttpError(error)));
+			.pipe(map(mapSkillDto), catchError(handleApiError));
 	}
 
 	deleteSkill(id: string): Observable<void> {
@@ -100,7 +101,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			.delete<void>(`${this.baseUrl}/admin/skills/${id}`, {
 				withCredentials: true
 			})
-			.pipe(catchError(error => this.handleHttpError(error)));
+			.pipe(catchError(handleApiError));
 	}
 
 	createCategory(command: CreateSkillCategoryCommand): Observable<SkillCategory> {
@@ -112,7 +113,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			)
 			.pipe(
 				map(mapSkillCategoryDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -127,7 +128,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			)
 			.pipe(
 				map(mapSkillCategoryDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -142,7 +143,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			)
 			.pipe(
 				map(mapSkillCategoryDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -151,7 +152,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			.delete<void>(`${this.baseUrl}/admin/skills/categories/${id}`, {
 				withCredentials: true
 			})
-			.pipe(catchError(error => this.handleHttpError(error)));
+			.pipe(catchError(handleApiError));
 	}
 
 	updateLevel(command: UpdateSkillLevelCommand): Observable<SkillLevel> {
@@ -165,7 +166,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			)
 			.pipe(
 				map(mapSkillLevelDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -180,7 +181,7 @@ export class HttpSkillsRepository implements SkillsRepository {
 			)
 			.pipe(
 				map(mapSkillLevelDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -189,30 +190,6 @@ export class HttpSkillsRepository implements SkillsRepository {
 			.delete<void>(`${this.baseUrl}/admin/skills/levels/${id}`, {
 				withCredentials: true
 			})
-			.pipe(catchError(error => this.handleHttpError(error)));
+			.pipe(catchError(handleApiError));
 	}
-
-	private handleHttpError(error: unknown) {
-		return throwError(() => new Error(extractApiErrorMessage(error)));
-	}
-}
-
-function extractApiErrorMessage(error: unknown): string {
-	if (error instanceof HttpErrorResponse) {
-		const message = error.error?.message;
-
-		if (Array.isArray(message)) {
-			return message.join('\n');
-		}
-
-		if (typeof message === 'string' && message.trim()) {
-			return message;
-		}
-
-		if (error.status === 0) {
-			return 'API is unavailable.';
-		}
-	}
-
-	return 'Request failed.';
 }

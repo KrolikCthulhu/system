@@ -1,7 +1,8 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, throwError } from 'rxjs';
+import { Observable, catchError, map } from 'rxjs';
 import { environment } from '../../../infrastructure/config/environment';
+import { handleApiError } from '../../../shared/http/api-error.util';
 import { SystemValue, SystemValuesCatalog } from '../domain/values.models';
 import { ValueGraphState } from '../ui/value-graph.models';
 import {
@@ -26,7 +27,7 @@ export class HttpValuesRepository implements ValuesRepository {
 			})
 			.pipe(
 				map(mapSystemValuesCatalogDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -47,7 +48,7 @@ export class HttpValuesRepository implements ValuesRepository {
 			})
 			.pipe(
 				map(mapSystemValueDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -71,7 +72,7 @@ export class HttpValuesRepository implements ValuesRepository {
 			})
 			.pipe(
 				map(mapSystemValueDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -89,7 +90,7 @@ export class HttpValuesRepository implements ValuesRepository {
 				payload,
 				{ withCredentials: true }
 			)
-			.pipe(catchError(error => this.handleHttpError(error)));
+			.pipe(catchError(handleApiError));
 	}
 
 	deleteValue(id: string): Observable<void> {
@@ -97,30 +98,6 @@ export class HttpValuesRepository implements ValuesRepository {
 			.delete<void>(`${this.baseUrl}/admin/values/${id}`, {
 				withCredentials: true
 			})
-			.pipe(catchError(error => this.handleHttpError(error)));
+			.pipe(catchError(handleApiError));
 	}
-
-	private handleHttpError(error: unknown) {
-		return throwError(() => new Error(extractApiErrorMessage(error)));
-	}
-}
-
-function extractApiErrorMessage(error: unknown): string {
-	if (error instanceof HttpErrorResponse) {
-		const message = error.error?.message;
-
-		if (Array.isArray(message)) {
-			return message.join('\n');
-		}
-
-		if (typeof message === 'string' && message.trim()) {
-			return message;
-		}
-
-		if (error.status === 0) {
-			return 'API is unavailable.';
-		}
-	}
-
-	return 'Request failed.';
 }

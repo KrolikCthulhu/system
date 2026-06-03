@@ -15,6 +15,11 @@ import { UpdateAttributeActiveDto } from './dto/update-attribute-active.dto';
 import { UpdateAttributeDto } from './dto/update-attribute.dto';
 import { UpdateCharacteristicActiveDto } from './dto/update-characteristic-active.dto';
 import { UpdateCharacteristicDto } from './dto/update-characteristic.dto';
+import {
+	createAvailablePoolGraph,
+	createCharacterInputGraph
+} from '../shared/system-value-graph.factory';
+import { rethrowPrismaError } from '../shared/prisma-error.util';
 
 const attributeSelect = {
 	id: true,
@@ -127,7 +132,9 @@ export class AttributesService {
 
 			return this.mapAttribute(attribute);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to create attribute.');
+			rethrowPrismaError(error, 'Failed to create attribute.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
@@ -168,7 +175,9 @@ export class AttributesService {
 
 			return this.mapAttribute(attribute);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to update attribute.');
+			rethrowPrismaError(error, 'Failed to update attribute.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
@@ -280,7 +289,9 @@ export class AttributesService {
 
 			return this.mapCharacteristic(characteristic);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to create characteristic.');
+			rethrowPrismaError(error, 'Failed to create characteristic.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
@@ -332,7 +343,9 @@ export class AttributesService {
 
 			return this.mapCharacteristic(characteristic);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to update characteristic.');
+			rethrowPrismaError(error, 'Failed to update characteristic.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
@@ -507,19 +520,6 @@ export class AttributesService {
 		return this.toNullableString(value);
 	}
 
-	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		) {
-			throw new BadRequestException('Value must be unique.');
-		}
-
-		throw error instanceof Error
-			? error
-			: new BadRequestException(fallbackMessage);
-	}
-
 	private mapAttribute(attribute: {
 		id: string;
 		name: string;
@@ -596,107 +596,4 @@ export class AttributesService {
 			calculationGraph: systemValue.calculationGraph
 		};
 	}
-}
-
-function createCharacterInputGraph() {
-	return {
-		nodes: [
-			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
-			{ id: 'result', kind: 'result', x: 420, y: 120 }
-		],
-		edges: [
-			{
-				id: 'character-input:out -> result:in',
-				source: 'character-input',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
-}
-
-function createAvailablePoolGraph(
-	attributeValueId: string,
-	penaltyValueId: string | null
-) {
-	return {
-		nodes: [
-			{
-				id: 'attribute-value',
-				kind: 'source',
-				x: 120,
-				y: 80,
-				sourceValueId: attributeValueId
-			},
-			{
-				id: 'penalty-value',
-				kind: penaltyValueId ? 'source' : 'constant',
-				x: 120,
-				y: 220,
-				...(penaltyValueId
-					? { sourceValueId: penaltyValueId }
-					: { constantValue: 0 })
-			},
-			{
-				id: 'zero',
-				kind: 'constant',
-				x: 360,
-				y: 240,
-				constantValue: 0
-			},
-			{
-				id: 'subtract-penalty',
-				kind: 'operation',
-				x: 360,
-				y: 120,
-				operation: 'subtract'
-			},
-			{
-				id: 'clamp-min-zero',
-				kind: 'operation',
-				x: 600,
-				y: 140,
-				operation: 'max'
-			},
-			{ id: 'result', kind: 'result', x: 840, y: 140 }
-		],
-		edges: [
-			{
-				id: 'attribute-value:out -> subtract-penalty:a',
-				source: 'attribute-value',
-				target: 'subtract-penalty',
-				sourceHandle: 'out',
-				targetHandle: 'a'
-			},
-			{
-				id: 'penalty-value:out -> subtract-penalty:b',
-				source: 'penalty-value',
-				target: 'subtract-penalty',
-				sourceHandle: 'out',
-				targetHandle: 'b'
-			},
-			{
-				id: 'subtract-penalty:out -> clamp-min-zero:in',
-				source: 'subtract-penalty',
-				target: 'clamp-min-zero',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			},
-			{
-				id: 'zero:out -> clamp-min-zero:in',
-				source: 'zero',
-				target: 'clamp-min-zero',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			},
-			{
-				id: 'clamp-min-zero:out -> result:in',
-				source: 'clamp-min-zero',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
 }

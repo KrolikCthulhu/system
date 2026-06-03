@@ -1,13 +1,13 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, throwError } from 'rxjs';
+import { Observable, catchError, map } from 'rxjs';
+import { handleApiError } from '../../../shared/http/api-error.util';
 import { AuthRepository } from './auth-repository.port';
 import { SignInCommand, SignUpCommand } from '../state/auth.commands';
 import { AuthSession } from '../domain/auth.models';
 import { environment } from '../../../infrastructure/config/environment';
 import { ApiMessageDto, AuthSessionDto } from './dto/auth.dto';
 import { mapAuthSessionDto } from './mappers/auth.mapper';
-import { extractApiErrorMessage } from './auth-http-error.util';
 
 @Injectable({ providedIn: 'root' })
 export class HttpAuthRepository implements AuthRepository {
@@ -21,7 +21,7 @@ export class HttpAuthRepository implements AuthRepository {
 			})
 			.pipe(
 				map(mapAuthSessionDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -32,7 +32,7 @@ export class HttpAuthRepository implements AuthRepository {
 			})
 			.pipe(
 				map(() => undefined),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -47,7 +47,7 @@ export class HttpAuthRepository implements AuthRepository {
 			)
 			.pipe(
 				map(mapAuthSessionDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -60,10 +60,6 @@ export class HttpAuthRepository implements AuthRepository {
 					withCredentials: true
 				}
 			)
-			.pipe(catchError(error => this.handleHttpError(error)));
-	}
-
-	private handleHttpError(error: unknown) {
-		return throwError(() => new Error(extractApiErrorMessage(error)));
+			.pipe(catchError(handleApiError));
 	}
 }

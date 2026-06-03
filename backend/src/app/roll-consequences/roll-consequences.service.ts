@@ -1,14 +1,12 @@
-import {
-	BadRequestException,
-	Injectable,
-	NotFoundException
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
 	Prisma,
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { createCharacterInputGraph } from '../shared/system-value-graph.factory';
+import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { CreateRollConsequenceDto } from './dto/create-roll-consequence.dto';
 import { RollConsequenceValueDto } from './dto/roll-consequence-value.dto';
 import { UpdateRollConsequenceActiveDto } from './dto/update-roll-consequence-active.dto';
@@ -99,7 +97,7 @@ export class RollConsequencesService {
 
 			return this.mapConsequence(consequence, values.get(consequence.id) ?? []);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось создать последствие броска.');
+			rethrowPrismaError(error, 'Не удалось создать последствие броска.');
 		}
 	}
 
@@ -136,7 +134,7 @@ export class RollConsequencesService {
 
 			return this.mapConsequence(consequence, values.get(id) ?? []);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось обновить последствие броска.');
+			rethrowPrismaError(error, 'Не удалось обновить последствие броска.');
 		}
 	}
 
@@ -324,36 +322,6 @@ export class RollConsequencesService {
 		}
 	}
 
-	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		) {
-			throw new BadRequestException('Значение должно быть уникальным.');
-		}
-
-		throw error instanceof Error
-			? error
-			: new BadRequestException(fallbackMessage);
-	}
-}
-
-function createCharacterInputGraph() {
-	return {
-		nodes: [
-			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
-			{ id: 'result', kind: 'result', x: 420, y: 120 }
-		],
-		edges: [
-			{
-				id: 'character-input:out -> result:in',
-				source: 'character-input',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
 }
 
 function normalizeJsonObject(value: Prisma.JsonValue | null) {

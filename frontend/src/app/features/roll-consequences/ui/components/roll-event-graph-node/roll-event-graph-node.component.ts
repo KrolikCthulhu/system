@@ -249,7 +249,7 @@ export class RollEventGraphNodeComponent extends CustomNodeComponent<RollEventGr
 			case 'eventInput':
 				return 'Событие';
 			case 'valueSource':
-				return 'Значение';
+				return 'Значение системы';
 			case 'constant':
 				return 'Число';
 			case 'operation':

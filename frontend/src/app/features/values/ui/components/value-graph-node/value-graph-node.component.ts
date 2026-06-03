@@ -392,7 +392,7 @@ export class ValueGraphNodeComponent extends CustomNodeComponent<ValueGraphNodeD
 			case 'characterInput':
 				return 'Ввод';
 			case 'source':
-				return 'Источник';
+				return 'Значение системы';
 			case 'constant':
 				return 'Число';
 			case 'operation':
