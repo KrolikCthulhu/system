@@ -58,6 +58,7 @@ import {
 						<div><b>Накопитель</b><span>{{ data()?.accumulatorValueName ?? 'не выбрано' }}</span></div>
 						<div><b>Порог</b><span>{{ data()?.thresholdValueName ?? 'не выбрано' }}</span></div>
 						<div><b>Переполнение</b><span>{{ data()?.overflowValueName ?? 'не выбрано' }}</span></div>
+						<div><b>Режим</b><span>{{ overflowModeLabel() }}</span></div>
 					</div>
 				}
 
@@ -344,6 +345,12 @@ export class RollEventGraphNodeComponent extends CustomNodeComponent<RollEventGr
 			case 'lte':
 				return '<=';
 		}
+	}
+
+	protected overflowModeLabel() {
+		return this.data()?.overflowMode === 'multiple'
+			? 'за каждый порог'
+			: 'один раз';
 	}
 }
 

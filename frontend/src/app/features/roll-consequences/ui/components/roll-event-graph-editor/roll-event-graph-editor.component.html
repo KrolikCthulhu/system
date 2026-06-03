@@ -294,6 +294,23 @@
 
 						<div class="roll-event-graph-editor__field">
 							<span class="roll-event-graph-editor__field-label">
+								Как считать переполнение
+							</span>
+							<span class="roll-event-graph-editor__field-help">
+								Один раз за событие или за каждый полный порог, если прирост большой.
+							</span>
+							<p-select
+								[options]="overflowModeOptions"
+								optionLabel="label"
+								optionValue="value"
+								appendTo="body"
+								[ngModel]="selectedNode.overflowMode ?? 'single'"
+								(ngModelChange)="updateSelectedOverflowMode($event)"
+							></p-select>
+						</div>
+
+						<div class="roll-event-graph-editor__field">
+							<span class="roll-event-graph-editor__field-label">
 								Сброс накопителя
 							</span>
 							<span class="roll-event-graph-editor__field-help">
@@ -313,7 +330,7 @@
 							<p>
 								Вход «Добавить» увеличивает накопитель. Если новое значение достигает порога,
 								накопитель сбрасывается по выбранному правилу, а значение при переполнении
-								увеличивается на заданный шаг.
+								увеличивается на заданный шаг с учётом режима переполнения.
 							</p>
 						</div>
 					}

@@ -1430,6 +1430,7 @@ function createThresholdCounterRollEventGraph(params: {
 				overflowValueId: params.overflowValueId,
 				thresholdSource: 'final',
 				resetMode: 'zero',
+				overflowMode: 'single',
 				overflowIncrement: 1
 			}
 		],

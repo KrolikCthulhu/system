@@ -23,6 +23,7 @@ type RollEventGraphOperation =
 type RollEventGraphComparison = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
 type RollEventThresholdSource = 'base' | 'final';
 type RollEventThresholdResetMode = 'zero' | 'subtractThreshold';
+type RollEventThresholdOverflowMode = 'single' | 'multiple';
 
 export interface RollEventPayload {
 	diceCount: number;
@@ -55,6 +56,7 @@ interface RollEventGraphNode {
 	thresholdValueId?: string | null;
 	thresholdSource?: RollEventThresholdSource;
 	resetMode?: RollEventThresholdResetMode;
+	overflowMode?: RollEventThresholdOverflowMode;
 	overflowIncrement?: number;
 	constantValue?: number;
 	operation?: RollEventGraphOperation;
@@ -177,16 +179,27 @@ export class RollEventGraphRuntimeService {
 				  )
 				: (params.inputValues[thresholdValueId] ?? 0);
 		const nextCounter = currentCounter + increment;
-		const overflow = threshold > 0 && nextCounter >= threshold;
+		const overflowCount = resolveOverflowCount(
+			node.overflowMode ?? 'single',
+			nextCounter,
+			threshold
+		);
+		const overflow = overflowCount > 0;
 		const accumulatorValue = overflow
-			? applyResetMode(node.resetMode ?? 'zero', nextCounter, threshold)
+			? applyResetMode(
+					node.resetMode ?? 'zero',
+					node.overflowMode ?? 'single',
+					nextCounter,
+					threshold,
+					overflowCount
+			  )
 			: nextCounter;
 		const overflowValue = overflow
-			? currentOverflowValue + (node.overflowIncrement ?? 1)
+			? currentOverflowValue + (node.overflowIncrement ?? 1) * overflowCount
 			: currentOverflowValue;
 
 		logs.push(
-			`${params.handlerName}: накопитель ${accumulatorValueId} + ${formatNumber(increment)}, порог ${formatNumber(threshold)}, ${overflow ? 'переполнение' : 'без переполнения'}.`
+			`${params.handlerName}: накопитель ${accumulatorValueId} + ${formatNumber(increment)}, порог ${formatNumber(threshold)}, ${overflow ? `переполнение x${overflowCount}` : 'без переполнения'}.`
 		);
 
 		return [
@@ -370,6 +383,7 @@ function parseRollEventGraphNode(value: unknown): RollEventGraphNode | null {
 			typeof value.thresholdValueId === 'string' ? value.thresholdValueId : null,
 		thresholdSource: parseThresholdSource(value.thresholdSource),
 		resetMode: parseResetMode(value.resetMode),
+		overflowMode: parseOverflowMode(value.overflowMode),
 		overflowIncrement:
 			typeof value.overflowIncrement === 'number'
 				? value.overflowIncrement
@@ -452,16 +466,37 @@ function parseResetMode(value: unknown): RollEventThresholdResetMode | undefined
 	return value === 'zero' || value === 'subtractThreshold' ? value : undefined;
 }
 
-function applyResetMode(
-	mode: RollEventThresholdResetMode,
+function parseOverflowMode(value: unknown): RollEventThresholdOverflowMode | undefined {
+	return value === 'single' || value === 'multiple' ? value : undefined;
+}
+
+function resolveOverflowCount(
+	mode: RollEventThresholdOverflowMode,
 	nextCounter: number,
 	threshold: number
+) {
+	if (threshold <= 0 || nextCounter < threshold) {
+		return 0;
+	}
+
+	return mode === 'multiple' ? Math.floor(nextCounter / threshold) : 1;
+}
+
+function applyResetMode(
+	mode: RollEventThresholdResetMode,
+	overflowMode: RollEventThresholdOverflowMode,
+	nextCounter: number,
+	threshold: number,
+	overflowCount: number
 ) {
 	switch (mode) {
 		case 'zero':
 			return 0;
 		case 'subtractThreshold':
-			return Math.max(0, nextCounter - threshold);
+			return Math.max(
+				0,
+				nextCounter - threshold * (overflowMode === 'multiple' ? overflowCount : 1)
+			);
 	}
 }
 

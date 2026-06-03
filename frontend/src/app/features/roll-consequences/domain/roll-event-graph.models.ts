@@ -28,6 +28,7 @@ export type RollEventGraphOperation =
 export type RollEventGraphComparison = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte';
 export type RollEventThresholdSource = 'base' | 'final';
 export type RollEventThresholdResetMode = 'zero' | 'subtractThreshold';
+export type RollEventThresholdOverflowMode = 'single' | 'multiple';
 
 export interface RollEventGraphNodeState {
 	id: string;
@@ -42,6 +43,7 @@ export interface RollEventGraphNodeState {
 	thresholdValueId?: string | null;
 	thresholdSource?: RollEventThresholdSource;
 	resetMode?: RollEventThresholdResetMode;
+	overflowMode?: RollEventThresholdOverflowMode;
 	overflowIncrement?: number;
 	constantValue?: number;
 	operation?: RollEventGraphOperation;
@@ -76,6 +78,7 @@ export interface RollEventGraphNodeData {
 	thresholdValueName?: string | null;
 	thresholdSource?: RollEventThresholdSource;
 	resetMode?: RollEventThresholdResetMode;
+	overflowMode?: RollEventThresholdOverflowMode;
 	overflowIncrement?: number;
 	constantValue?: number;
 	operation?: RollEventGraphOperation;
