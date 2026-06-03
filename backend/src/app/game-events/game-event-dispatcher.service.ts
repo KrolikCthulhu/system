@@ -37,18 +37,20 @@ export class GameEventDispatcherService {
 
 		const logs: string[] = [];
 		const valueChanges: EventValueChange[] = [];
+		let currentInputValues = { ...params.inputValues };
 
 		for (const handler of sortedHandlers) {
 			const result = this.rollRuntime.execute({
 				graph: handler.graph,
 				payload: params.payload,
 				values: params.values,
-				inputValues: params.inputValues,
+				inputValues: currentInputValues,
 				handlerName: handler.name
 			});
 
 			logs.push(...result.logs);
 			valueChanges.push(...result.valueChanges);
+			currentInputValues = applyValueChanges(currentInputValues, result.valueChanges);
 		}
 
 		return {
@@ -56,4 +58,17 @@ export class GameEventDispatcherService {
 			logs
 		};
 	}
+}
+
+function applyValueChanges(
+	inputValues: Record<string, number>,
+	changes: readonly EventValueChange[]
+) {
+	return changes.reduce(
+		(nextValues, change) => ({
+			...nextValues,
+			[change.valueId]: change.value
+		}),
+		inputValues
+	);
 }
