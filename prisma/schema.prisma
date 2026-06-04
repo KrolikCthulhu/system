@@ -180,7 +180,7 @@ model GameEventHandler {
 }
 
 model MagicWord {
-  id          String   @id @default(uuid()) @db.Uuid
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   type        MagicWordType
   name        String
   description String?
@@ -201,7 +201,7 @@ model MagicWord {
 }
 
 model Spell {
-  id          String      @id @default(uuid()) @db.Uuid
+  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   actionId    String      @map("action_id") @db.Uuid
   action      MagicWord   @relation("SpellAction", fields: [actionId], references: [id], onDelete: Restrict)
   essenceId   String      @map("essence_id") @db.Uuid
@@ -225,7 +225,7 @@ model Spell {
 }
 
 model MagicWordGestureRestriction {
-  id         String    @id @default(uuid()) @db.Uuid
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   modifierId String   @map("modifier_id") @db.Uuid
   modifier   MagicWord @relation("MagicModifierRestrictions", fields: [modifierId], references: [id], onDelete: Cascade)
   gestureId  String   @map("gesture_id") @db.Uuid
@@ -236,6 +236,32 @@ model MagicWordGestureRestriction {
   @@index([modifierId])
   @@index([gestureId])
   @@map("magic_word_gesture_restrictions")
+}
+
+model DamageType {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("damage_types")
+}
+
+model Condition {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("conditions")
 }
 
 model Attribute {

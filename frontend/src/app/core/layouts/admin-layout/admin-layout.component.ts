@@ -12,29 +12,55 @@ import { NavigationSidebarComponent } from '../../../shared/ui/navigation-sideba
 export class AdminLayoutComponent {
 	protected readonly navigationItems: MenuItem[] = [
 		{
-			label: 'Правила системы',
+			label: 'Персонаж',
 			expanded: true,
 			items: [
-				{
-					label: 'Навыки',
-					routerLink: '/admin/rules/skills'
-				},
 				{
 					label: 'Атрибуты и характеристики',
 					routerLink: '/admin/rules/attributes'
 				},
 				{
-					label: 'Последствия броска',
-					routerLink: '/admin/rules/roll-consequences'
+					label: 'Навыки',
+					routerLink: '/admin/rules/skills'
 				},
 				{
 					label: 'Значения',
 					routerLink: '/admin/rules/values'
+				}
+			]
+		},
+		{
+			label: 'Броски и события',
+			expanded: true,
+			items: [
+				{
+					label: 'Последствия броска',
+					routerLink: '/admin/rules/roll-consequences'
 				},
 				{
 					label: 'События',
 					routerLink: '/admin/rules/events'
+				}
+			]
+		},
+		{
+			label: 'Эффекты',
+			expanded: true,
+			items: [
+				{
+					label: 'Типы урона',
+					routerLink: '/admin/rules/damage-types'
 				},
+				{
+					label: 'Состояния',
+					routerLink: '/admin/rules/conditions'
+				},
+			]
+		},
+		{
+			label: 'Магия',
+			expanded: true,
+			items: [
 				{
 					label: 'Слова магии',
 					routerLink: '/admin/rules/magic-words'

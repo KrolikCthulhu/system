@@ -298,6 +298,30 @@ export const MAGIC_MODIFIER_GESTURE_RESTRICTION_SEEDS = [
 	}
 ] as const;
 
+export const DAMAGE_TYPE_SEEDS = [
+	{ name: 'Режущий', sortOrder: 0 },
+	{ name: 'Дробящий', sortOrder: 1 },
+	{ name: 'Колющий', sortOrder: 2 },
+	{ name: 'Огонь', sortOrder: 3 },
+	{ name: 'Холод', sortOrder: 4 },
+	{ name: 'Молния', sortOrder: 5 },
+	{ name: 'Яд', sortOrder: 6 },
+	{ name: 'Психический', sortOrder: 7 },
+	{ name: 'Некротический', sortOrder: 8 },
+	{ name: 'Силовой', sortOrder: 9 }
+] as const;
+
+export const CONDITION_SEEDS = [
+	{ name: 'Горение', sortOrder: 0 },
+	{ name: 'Мокрый', sortOrder: 1 },
+	{ name: 'Заморозка', sortOrder: 2 },
+	{ name: 'Кровотечение', sortOrder: 3 },
+	{ name: 'Отравление', sortOrder: 4 },
+	{ name: 'Ослепление', sortOrder: 5 },
+	{ name: 'Оглушение', sortOrder: 6 },
+	{ name: 'Обездвиживание', sortOrder: 7 }
+] as const;
+
 export function calculateExpectedSuccessPerDie(params: {
 	canRoll: boolean;
 	successMin: number | null;

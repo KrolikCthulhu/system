@@ -7,6 +7,8 @@ import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { CharacterSheetSandboxModule } from './character-sheet-sandbox/character-sheet-sandbox.module';
+import { ConditionsModule } from './conditions/conditions.module';
+import { DamageTypesModule } from './damage-types/damage-types.module';
 import { GameEventsModule } from './game-events/game-events.module';
 import { MagicModule } from './magic/magic.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -38,6 +40,8 @@ import { ValuesModule } from './values/values.module';
 		AuthModule,
 		AttributesModule,
 		CharacterSheetSandboxModule,
+		ConditionsModule,
+		DamageTypesModule,
 		GameEventsModule,
 		MagicModule,
 		RollConsequencesModule,

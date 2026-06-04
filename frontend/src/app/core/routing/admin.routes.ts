@@ -79,6 +79,20 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminRollConsequencesPageComponent)
 					},
 					{
+						path: 'damage-types',
+						loadComponent: () =>
+							import(
+								'../../features/damage-types/ui/pages/admin-damage-types-page/admin-damage-types-page.component'
+							).then(m => m.AdminDamageTypesPageComponent)
+					},
+					{
+						path: 'conditions',
+						loadComponent: () =>
+							import(
+								'../../features/conditions/ui/pages/admin-conditions-page/admin-conditions-page.component'
+							).then(m => m.AdminConditionsPageComponent)
+					},
+					{
 						path: 'values',
 						loadComponent: () =>
 							import(

@@ -5,6 +5,8 @@ import {
 	seedAttributes
 } from './seed-attributes';
 import { seedCharacteristics } from './seed-characteristics';
+import { seedConditions } from './seed-conditions';
+import { seedDamageTypes } from './seed-damage-types';
 import { seedGameEventHandlers } from './seed-game-events';
 import { seedMagicWords } from './seed-magic-words';
 import {
@@ -40,6 +42,8 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 		attributes
 	});
 	await seedGameEventHandlers(tx, { sourceValue });
+	await seedDamageTypes(tx);
+	await seedConditions(tx);
 	await seedMagicWords(tx);
 
 	const categories = await seedSkillCategories(tx);

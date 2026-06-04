@@ -15,6 +15,8 @@ import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
 import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
+import { provideConditionsInfrastructure } from './features/conditions/data/provide-conditions-infrastructure';
+import { provideDamageTypesInfrastructure } from './features/damage-types/data/provide-damage-types-infrastructure';
 import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
 import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
 import { provideRollConsequencesInfrastructure } from './features/roll-consequences/data/provide-roll-consequences-infrastructure';
@@ -89,6 +91,8 @@ export const appConfig: ApplicationConfig = {
 		...provideAuthInfrastructure(),
 		...provideAttributesInfrastructure(),
 		...provideCharacterSheetInfrastructure(),
+		...provideConditionsInfrastructure(),
+		...provideDamageTypesInfrastructure(),
 		...provideGameEventsInfrastructure(),
 		...provideMagicWordsInfrastructure(),
 		...provideRollConsequencesInfrastructure(),
