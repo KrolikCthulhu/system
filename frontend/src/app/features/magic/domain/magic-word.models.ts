@@ -5,6 +5,17 @@ export interface MagicWordGestureOption {
 	name: string;
 }
 
+export interface MagicWordSkillOption {
+	id: string;
+	name: string;
+	categoryName: string;
+}
+
+export interface MagicWordLinkedOption {
+	id: string;
+	name: string;
+}
+
 export interface MagicWord {
 	id: string;
 	type: MagicWordType;
@@ -14,6 +25,12 @@ export interface MagicWord {
 	sortOrder: number;
 	allowedGestureIds: string[];
 	allowedGestures: MagicWordGestureOption[];
+	skillIds: string[];
+	skills: MagicWordSkillOption[];
+	damageTypeIds: string[];
+	damageTypes: MagicWordLinkedOption[];
+	conditionIds: string[];
+	conditions: MagicWordLinkedOption[];
 	createdAt: string;
 	updatedAt: string;
 }

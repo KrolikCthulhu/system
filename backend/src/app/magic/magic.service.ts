@@ -34,6 +34,47 @@ const magicWordSelect = {
 				}
 			}
 		}
+	},
+	skillLinks: {
+		select: {
+			skillId: true,
+			skill: {
+				select: {
+					id: true,
+					name: true,
+					category: {
+						select: {
+							name: true
+						}
+					},
+					sortOrder: true
+				}
+			}
+		}
+	},
+	damageTypeLinks: {
+		select: {
+			damageTypeId: true,
+			damageType: {
+				select: {
+					id: true,
+					name: true,
+					sortOrder: true
+				}
+			}
+		}
+	},
+	conditionLinks: {
+		select: {
+			conditionId: true,
+			condition: {
+				select: {
+					id: true,
+					name: true,
+					sortOrder: true
+				}
+			}
+		}
 	}
 } satisfies Prisma.MagicWordSelect;
 
@@ -217,7 +258,15 @@ export class MagicService {
 
 	async createWord(dto: CreateMagicWordDto) {
 		const allowedGestureIds = dto.allowedGestureIds ?? [];
+		const skillIds = dto.skillIds ?? [];
+		const damageTypeIds = dto.damageTypeIds ?? [];
+		const conditionIds = dto.conditionIds ?? [];
 		await this.assertAllowedGestureIds(dto.type, allowedGestureIds);
+		await Promise.all([
+			this.assertSkillIds(skillIds),
+			this.assertDamageTypeIds(damageTypeIds),
+			this.assertConditionIds(conditionIds)
+		]);
 
 		try {
 			const word = await this.prisma.$transaction(async tx => {
@@ -238,6 +287,11 @@ export class MagicService {
 					dto.type,
 					allowedGestureIds
 				);
+				await this.syncWordLinks(tx, created.id, {
+					skillIds,
+					damageTypeIds,
+					conditionIds
+				});
 
 				return tx.magicWord.findUniqueOrThrow({
 					select: magicWordSelect,
@@ -269,6 +323,15 @@ export class MagicService {
 		if (dto.allowedGestureIds !== undefined) {
 			await this.assertAllowedGestureIds(nextType, allowedGestureIds);
 		}
+		await Promise.all([
+			dto.skillIds === undefined ? Promise.resolve() : this.assertSkillIds(dto.skillIds),
+			dto.damageTypeIds === undefined
+				? Promise.resolve()
+				: this.assertDamageTypeIds(dto.damageTypeIds),
+			dto.conditionIds === undefined
+				? Promise.resolve()
+				: this.assertConditionIds(dto.conditionIds)
+		]);
 
 		try {
 			const word = await this.prisma.$transaction(async tx => {
@@ -293,6 +356,17 @@ export class MagicService {
 						nextType,
 						dto.allowedGestureIds ?? []
 					);
+				}
+				if (
+					dto.skillIds !== undefined ||
+					dto.damageTypeIds !== undefined ||
+					dto.conditionIds !== undefined
+				) {
+					await this.syncWordLinks(tx, id, {
+						skillIds: dto.skillIds,
+						damageTypeIds: dto.damageTypeIds,
+						conditionIds: dto.conditionIds
+					});
 				}
 
 				return tx.magicWord.findUniqueOrThrow({
@@ -351,6 +425,57 @@ export class MagicService {
 		}
 	}
 
+	private async assertSkillIds(skillIds: string[]) {
+		if (!skillIds.length) {
+			return;
+		}
+
+		const skills = await this.prisma.skill.findMany({
+			select: { id: true },
+			where: { id: { in: skillIds } }
+		});
+
+		if (skills.length !== skillIds.length) {
+			throw new BadRequestException(
+				'Все связи слова магии должны ссылаться на существующие навыки.'
+			);
+		}
+	}
+
+	private async assertDamageTypeIds(damageTypeIds: string[]) {
+		if (!damageTypeIds.length) {
+			return;
+		}
+
+		const damageTypes = await this.prisma.damageType.findMany({
+			select: { id: true },
+			where: { id: { in: damageTypeIds } }
+		});
+
+		if (damageTypes.length !== damageTypeIds.length) {
+			throw new BadRequestException(
+				'Все связи слова магии должны ссылаться на существующие типы урона.'
+			);
+		}
+	}
+
+	private async assertConditionIds(conditionIds: string[]) {
+		if (!conditionIds.length) {
+			return;
+		}
+
+		const conditions = await this.prisma.condition.findMany({
+			select: { id: true },
+			where: { id: { in: conditionIds } }
+		});
+
+		if (conditions.length !== conditionIds.length) {
+			throw new BadRequestException(
+				'Все связи слова магии должны ссылаться на существующие состояния.'
+			);
+		}
+	}
+
 	private async syncGestureRestrictions(
 		tx: Prisma.TransactionClient,
 		modifierId: string,
@@ -374,9 +499,73 @@ export class MagicService {
 		});
 	}
 
+	private async syncWordLinks(
+		tx: Prisma.TransactionClient,
+		magicWordId: string,
+		links: {
+			skillIds?: string[];
+			damageTypeIds?: string[];
+			conditionIds?: string[];
+		}
+	) {
+		if (links.skillIds !== undefined) {
+			await tx.magicWordSkillLink.deleteMany({ where: { magicWordId } });
+			await tx.magicWordSkillLink.createMany({
+				data: links.skillIds.map((skillId, index) => ({
+					magicWordId,
+					skillId,
+					sortOrder: index
+				})),
+				skipDuplicates: true
+			});
+		}
+
+		if (links.damageTypeIds !== undefined) {
+			await tx.magicWordDamageTypeLink.deleteMany({ where: { magicWordId } });
+			await tx.magicWordDamageTypeLink.createMany({
+				data: links.damageTypeIds.map((damageTypeId, index) => ({
+					magicWordId,
+					damageTypeId,
+					sortOrder: index
+				})),
+				skipDuplicates: true
+			});
+		}
+
+		if (links.conditionIds !== undefined) {
+			await tx.magicWordConditionLink.deleteMany({ where: { magicWordId } });
+			await tx.magicWordConditionLink.createMany({
+				data: links.conditionIds.map((conditionId, index) => ({
+					magicWordId,
+					conditionId,
+					sortOrder: index
+				})),
+				skipDuplicates: true
+			});
+		}
+	}
+
 	private mapWord(word: MagicWordRecord) {
 		const allowedGestures = word.modifierGestureRestrictions
 			.map(restriction => restriction.gesture)
+			.sort((first, second) => {
+				const orderDiff = first.sortOrder - second.sortOrder;
+				return orderDiff || first.name.localeCompare(second.name, 'ru');
+			});
+		const skills = word.skillLinks
+			.map(link => link.skill)
+			.sort((first, second) => {
+				const orderDiff = first.sortOrder - second.sortOrder;
+				return orderDiff || first.name.localeCompare(second.name, 'ru');
+			});
+		const damageTypes = word.damageTypeLinks
+			.map(link => link.damageType)
+			.sort((first, second) => {
+				const orderDiff = first.sortOrder - second.sortOrder;
+				return orderDiff || first.name.localeCompare(second.name, 'ru');
+			});
+		const conditions = word.conditionLinks
+			.map(link => link.condition)
 			.sort((first, second) => {
 				const orderDiff = first.sortOrder - second.sortOrder;
 				return orderDiff || first.name.localeCompare(second.name, 'ru');
@@ -393,6 +582,22 @@ export class MagicService {
 			allowedGestures: allowedGestures.map(gesture => ({
 				id: gesture.id,
 				name: gesture.name
+			})),
+			skillIds: skills.map(skill => skill.id),
+			skills: skills.map(skill => ({
+				id: skill.id,
+				name: skill.name,
+				categoryName: skill.category.name
+			})),
+			damageTypeIds: damageTypes.map(damageType => damageType.id),
+			damageTypes: damageTypes.map(damageType => ({
+				id: damageType.id,
+				name: damageType.name
+			})),
+			conditionIds: conditions.map(condition => condition.id),
+			conditions: conditions.map(condition => ({
+				id: condition.id,
+				name: condition.name
 			})),
 			createdAt: word.createdAt.toISOString(),
 			updatedAt: word.updatedAt.toISOString()

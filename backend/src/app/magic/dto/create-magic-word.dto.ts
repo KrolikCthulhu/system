@@ -36,4 +36,22 @@ export class CreateMagicWordDto {
 	@ArrayUnique()
 	@IsUUID('4', { each: true })
 	allowedGestureIds?: string[];
+
+	@IsOptional()
+	@IsArray()
+	@ArrayUnique()
+	@IsUUID('4', { each: true })
+	skillIds?: string[];
+
+	@IsOptional()
+	@IsArray()
+	@ArrayUnique()
+	@IsUUID('4', { each: true })
+	damageTypeIds?: string[];
+
+	@IsOptional()
+	@IsArray()
+	@ArrayUnique()
+	@IsUUID('4', { each: true })
+	conditionIds?: string[];
 }

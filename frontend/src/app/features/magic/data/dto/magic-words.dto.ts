@@ -5,6 +5,17 @@ export interface MagicWordGestureOptionDto {
 	name: string;
 }
 
+export interface MagicWordSkillOptionDto {
+	id: string;
+	name: string;
+	categoryName: string;
+}
+
+export interface MagicWordLinkedOptionDto {
+	id: string;
+	name: string;
+}
+
 export interface MagicWordDto {
 	id: string;
 	type: MagicWordType;
@@ -14,6 +25,12 @@ export interface MagicWordDto {
 	sortOrder: number;
 	allowedGestureIds: string[];
 	allowedGestures: MagicWordGestureOptionDto[];
+	skillIds: string[];
+	skills: MagicWordSkillOptionDto[];
+	damageTypeIds: string[];
+	damageTypes: MagicWordLinkedOptionDto[];
+	conditionIds: string[];
+	conditions: MagicWordLinkedOptionDto[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -41,6 +58,9 @@ export interface CreateMagicWordDto {
 	isActive?: boolean;
 	sortOrder?: number;
 	allowedGestureIds?: string[];
+	skillIds?: string[];
+	damageTypeIds?: string[];
+	conditionIds?: string[];
 }
 
 export interface UpdateMagicWordDto {
@@ -50,6 +70,9 @@ export interface UpdateMagicWordDto {
 	isActive?: boolean;
 	sortOrder?: number;
 	allowedGestureIds?: string[];
+	skillIds?: string[];
+	damageTypeIds?: string[];
+	conditionIds?: string[];
 }
 
 export type SpellStatusDto = 'DRAFT' | 'TESTING' | 'READY';

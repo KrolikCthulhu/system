@@ -64,6 +64,12 @@ export function mapMagicWordDto(dto: MagicWordDto): MagicWord {
 		sortOrder: dto.sortOrder,
 		allowedGestureIds: dto.allowedGestureIds ?? [],
 		allowedGestures: dto.allowedGestures ?? [],
+		skillIds: dto.skillIds ?? [],
+		skills: dto.skills ?? [],
+		damageTypeIds: dto.damageTypeIds ?? [],
+		damageTypes: dto.damageTypes ?? [],
+		conditionIds: dto.conditionIds ?? [],
+		conditions: dto.conditions ?? [],
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
 	};

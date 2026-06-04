@@ -15,10 +15,13 @@ import {
 export class NavigationTreeComponent {
 	readonly groups = input<NavigationTreeGroup[]>([]);
 	readonly selectedItemId = input<string | null>(null);
+	readonly selectedGroupId = input<string | null>(null);
 	readonly collapsedGroups = input<ReadonlySet<string>>(new Set());
 	readonly collapsedSubgroups = input<ReadonlySet<string>>(new Set());
+	readonly selectableGroups = input(false);
 
 	readonly itemSelect = output<string>();
+	readonly groupSelect = output<string>();
 	readonly groupToggle = output<string>();
 	readonly subgroupToggle = output<{
 		groupLabel: string;
@@ -39,7 +42,17 @@ export class NavigationTreeComponent {
 		this.itemSelect.emit(item.id);
 	}
 
-	protected toggleGroup(group: NavigationTreeGroup) {
+	protected selectOrToggleGroup(group: NavigationTreeGroup) {
+		if (this.selectableGroups() && group.id) {
+			this.groupSelect.emit(group.id);
+			return;
+		}
+
+		this.toggleGroup(group);
+	}
+
+	protected toggleGroup(group: NavigationTreeGroup, event?: MouseEvent) {
+		event?.stopPropagation();
 		this.groupToggle.emit(group.label);
 	}
 

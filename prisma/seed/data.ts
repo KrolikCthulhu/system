@@ -203,6 +203,13 @@ export const SKILL_SEEDS = [
 		sortOrder: 6
 	},
 	{
+		name: 'Уклонение',
+		categoryName: 'Боевые навыки',
+		rollCharacteristicName: 'Рефлексы',
+		rollConsequenceName: 'Усталость',
+		sortOrder: 7
+	},
+	{
 		name: 'Понимание Сущности',
 		categoryName: 'Магические навыки',
 		rollCharacteristicName: 'Душа',
@@ -298,6 +305,105 @@ export const MAGIC_MODIFIER_GESTURE_RESTRICTION_SEEDS = [
 	}
 ] as const;
 
+export const MAGIC_WORD_LINK_SEEDS = [
+	{
+		magicWordName: 'Огонь',
+		skillNames: ['Понимание Потока'] as const,
+		damageTypeNames: ['Огонь'] as const,
+		conditionNames: ['Горение'] as const
+	},
+	{
+		magicWordName: 'Вода',
+		skillNames: ['Понимание Формы'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Земля',
+		skillNames: ['Понимание Формы'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Воздух',
+		skillNames: ['Понимание Формы'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Смерть',
+		skillNames: ['Понимание Сущности'] as const,
+		damageTypeNames: ['Некротический'] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Жизнь',
+		skillNames: ['Понимание Сущности'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Свет',
+		skillNames: ['Понимание Потока'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Тьма',
+		skillNames: ['Понимание Порядка'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Тень',
+		skillNames: ['Понимание Сознания'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Разум',
+		skillNames: ['Понимание Сознания'] as const,
+		damageTypeNames: ['Психический'] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Кровь',
+		skillNames: ['Понимание Сущности'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Яд',
+		skillNames: ['Понимание Сущности'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Гром',
+		skillNames: ['Понимание Потока'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Туман',
+		skillNames: ['Понимание Формы'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Барьер',
+		skillNames: ['Понимание Формы'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	},
+	{
+		magicWordName: 'Разложение',
+		skillNames: ['Понимание Сущности'] as const,
+		damageTypeNames: [] as const,
+		conditionNames: [] as const
+	}
+] as const;
+
 export const DAMAGE_TYPE_SEEDS = [
 	{ name: 'Режущий', sortOrder: 0 },
 	{ name: 'Дробящий', sortOrder: 1 },
@@ -320,6 +426,282 @@ export const CONDITION_SEEDS = [
 	{ name: 'Ослепление', sortOrder: 5 },
 	{ name: 'Оглушение', sortOrder: 6 },
 	{ name: 'Обездвиживание', sortOrder: 7 }
+] as const;
+
+export const SPELL_MECHANIC_CATEGORY_SEEDS = [
+	{ name: 'Урон', sortOrder: 0 },
+	{ name: 'Состояния', sortOrder: 1 }
+] as const;
+
+export const SPELL_MECHANIC_SEEDS = [
+	{
+		categoryName: 'Урон',
+		name: 'Атака заклинанием',
+		sortOrder: 0,
+		configSchema: {},
+		parameters: [
+			{
+				name: 'Цель',
+				kind: 'target',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: false,
+				defaultValue: { mode: 'empty', value: '' }
+			},
+			{
+				name: 'Навык атаки',
+				kind: 'skill',
+				required: true,
+				configuredBySpell: false,
+				overrideAllowed: true,
+				defaultValue: { mode: 'fromMagicWord', value: '' }
+			},
+			{
+				name: 'Навык защиты',
+				kind: 'skill',
+				required: true,
+				configuredBySpell: false,
+				overrideAllowed: true,
+				defaultValue: { mode: 'static', value: 'Уклонение' }
+			},
+			{
+				name: 'Дополнительный урон',
+				kind: 'number',
+				required: false,
+				configuredBySpell: true,
+				overrideAllowed: true,
+				defaultValue: { mode: 'static', value: '0' }
+			},
+			{
+				name: 'Тип урона',
+				kind: 'damageType',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: true,
+				defaultValue: { mode: 'fromMagicWord', value: '' }
+			}
+		],
+		actions: [
+			{
+				name: 'Бросок кастера',
+				kind: 'roll',
+				config: {
+					actor: { kind: 'caster' },
+					skill: {
+						kind: 'mechanicParameterByName',
+						parameterName: 'Навык атаки'
+					},
+					resultName: 'Успехи кастера'
+				}
+			},
+			{
+				name: 'Бросок защиты',
+				kind: 'roll',
+				config: {
+					actor: {
+						kind: 'mechanicParameterByName',
+						parameterName: 'Цель'
+					},
+					skill: {
+						kind: 'mechanicParameterByName',
+						parameterName: 'Навык защиты'
+					},
+					optional: true,
+					resultName: 'Успехи защиты'
+				}
+			},
+			{
+				name: 'Сравнить успехи',
+				kind: 'comparison',
+				config: {
+					left: {
+						kind: 'actionResultByName',
+						actionName: 'Бросок кастера',
+						resultName: 'Успехи кастера'
+					},
+					right: {
+						kind: 'actionResultByName',
+						actionName: 'Бросок защиты',
+						resultName: 'Успехи защиты'
+					},
+					operator: 'gt',
+					resultName: 'Атака успешна',
+					marginResultName: 'Незащищённые успехи'
+				}
+			},
+			{
+				name: 'Если атака успешна',
+				kind: 'branch',
+				config: {
+					condition: {
+						kind: 'actionResultByName',
+						actionName: 'Сравнить успехи',
+						resultName: 'Атака успешна'
+					},
+					thenActions: [
+						{
+							name: 'Расчёт урона',
+							kind: 'calculation',
+							config: {
+								resultName: 'Количество урона',
+								graph: {
+									nodes: [
+										{
+											id: 'source-unprotected-successes',
+											kind: 'source',
+											x: 120,
+											y: 120,
+											sourceId: {
+												kind: 'actionResultByName',
+												actionName: 'Сравнить успехи',
+												resultName: 'Незащищённые успехи'
+											}
+										},
+										{
+											id: 'source-extra-damage',
+											kind: 'source',
+											x: 120,
+											y: 260,
+											sourceId: {
+												kind: 'mechanicParameterByName',
+												parameterName: 'Дополнительный урон'
+											}
+										},
+										{
+											id: 'operation-damage-sum',
+											kind: 'operation',
+											x: 420,
+											y: 190,
+											operation: 'sum'
+										},
+										{
+											id: 'result-damage',
+											kind: 'result',
+											x: 720,
+											y: 190
+										}
+									],
+									edges: [
+										{
+											id: 'edge-unprotected-to-sum',
+											source: 'source-unprotected-successes',
+											target: 'operation-damage-sum',
+											sourceHandle: 'out',
+											targetHandle: 'in'
+										},
+										{
+											id: 'edge-extra-to-sum',
+											source: 'source-extra-damage',
+											target: 'operation-damage-sum',
+											sourceHandle: 'out',
+											targetHandle: 'in'
+										},
+										{
+											id: 'edge-sum-to-result',
+											source: 'operation-damage-sum',
+											target: 'result-damage',
+											sourceHandle: 'out',
+											targetHandle: 'in'
+										}
+									]
+								}
+							}
+						},
+						{
+							name: 'Нанести урон',
+							kind: 'valueChange',
+							config: {
+								target: {
+									kind: 'mechanicParameterByName',
+									parameterName: 'Цель'
+								},
+								systemValueName: 'Здоровье',
+								operation: 'decrease',
+								amount: {
+									kind: 'actionResultByName',
+									actionName: 'Расчёт урона',
+									resultName: 'Количество урона'
+								}
+							}
+						}
+					],
+					elseActions: []
+				}
+			}
+		],
+		textTemplate:
+			'Атакуйте цель в пределах дистанции. Цель защищается выбранным навыком. При успехе цель получает урон: незащищённые успехи + дополнительный урон.'
+	},
+	{
+		categoryName: 'Состояния',
+		name: 'Наложение состояния',
+		sortOrder: 0,
+		configSchema: {},
+		parameters: [
+			{
+				name: 'Цель',
+				kind: 'target',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: false,
+				defaultValue: { mode: 'empty', value: '' }
+			},
+			{
+				name: 'Состояние',
+				kind: 'condition',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: true,
+				defaultValue: { mode: 'fromMagicWord', value: '' }
+			}
+		],
+		actions: [
+			{
+				name: 'Наложить состояние',
+				kind: 'conditionAdd',
+				config: {
+					targetParameter: 'Цель',
+					conditionParameter: 'Состояние'
+				}
+			}
+		],
+		textTemplate: 'Цель получает выбранное состояние.'
+	},
+	{
+		categoryName: 'Состояния',
+		name: 'Снятие состояния',
+		sortOrder: 1,
+		configSchema: {},
+		parameters: [
+			{
+				name: 'Цель',
+				kind: 'target',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: false,
+				defaultValue: { mode: 'empty', value: '' }
+			},
+			{
+				name: 'Состояние',
+				kind: 'condition',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: true,
+				defaultValue: { mode: 'fromMagicWord', value: '' }
+			}
+		],
+		actions: [
+			{
+				name: 'Снять состояние',
+				kind: 'conditionRemove',
+				config: {
+					targetParameter: 'Цель',
+					conditionParameter: 'Состояние'
+				}
+			}
+		],
+		textTemplate: 'Снимает выбранное состояние с цели.'
+	}
 ] as const;
 
 export function calculateExpectedSuccessPerDie(params: {

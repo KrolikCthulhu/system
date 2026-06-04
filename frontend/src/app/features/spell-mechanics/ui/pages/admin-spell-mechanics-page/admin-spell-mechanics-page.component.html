@@ -1,0 +1,1799 @@
+<section class="admin-spell-mechanics-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-spell-mechanics-page__header">
+		<div class="admin-spell-mechanics-page__section-pad">
+			<p-breadcrumb
+				class="admin-spell-mechanics-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-spell-mechanics-page__workspace">
+		<aside
+			class="admin-spell-mechanics-page__panel admin-spell-mechanics-page__sidebar"
+		>
+			<div
+				class="admin-spell-mechanics-page__panel-heading admin-spell-mechanics-page__section-pad"
+			>
+				<h2 class="admin-spell-mechanics-page__panel-title">Механики</h2>
+				<div class="admin-spell-mechanics-page__heading-actions">
+					<p-button
+						label="Категория"
+						icon="pi pi-folder-plus"
+						size="small"
+						severity="secondary"
+						variant="outlined"
+						(onClick)="createCategory()"
+					></p-button>
+					<p-button
+						label="Механика"
+						icon="pi pi-plus"
+						size="small"
+						[disabled]="!categories().length"
+						(onClick)="createMechanic()"
+					></p-button>
+				</div>
+			</div>
+
+			<div
+				class="admin-spell-mechanics-page__search-row admin-spell-mechanics-page__section-pad"
+			>
+				<p-iconfield class="admin-spell-mechanics-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск механики"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-spell-mechanics-page__state">Загрузка механик...</div>
+			} @else if (errorMessage() && !categoryDraft() && !mechanicDraft()) {
+				<div
+					class="admin-spell-mechanics-page__state admin-spell-mechanics-page__state--error"
+				>
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<app-navigation-tree
+					class="admin-spell-mechanics-page__navigation-tree"
+					[groups]="treeGroups()"
+					[selectedItemId]="selectedMechanicId()"
+					[selectedGroupId]="
+						selectedKind() === 'category' ? selectedCategoryId() : null
+					"
+					[collapsedGroups]="collapsedGroups()"
+					[selectableGroups]="true"
+					(itemSelect)="selectMechanic($event)"
+					(groupSelect)="selectCategory($event)"
+					(groupToggle)="toggleGroup($event)"
+				></app-navigation-tree>
+			}
+		</aside>
+
+		<section
+			class="admin-spell-mechanics-page__panel admin-spell-mechanics-page__editor"
+		>
+			<div
+				class="admin-spell-mechanics-page__panel-heading admin-spell-mechanics-page__panel-heading--split admin-spell-mechanics-page__section-pad"
+			>
+				<div>
+					<h2 class="admin-spell-mechanics-page__panel-title">{{ title() }}</h2>
+				</div>
+
+				<div class="admin-spell-mechanics-page__heading-actions">
+					<p-tag
+						[value]="selectedKind() === 'category' ? 'Категория' : 'Механика'"
+						severity="info"
+					></p-tag>
+					@if (
+						(selectedKind() === 'category' && categoryDraft()?.id) ||
+						(selectedKind() === 'mechanic' && mechanicDraft()?.id)
+					) {
+						<p-button
+							icon="pi pi-trash"
+							severity="danger"
+							text
+							rounded
+							(click)="deleteSelected()"
+						></p-button>
+					}
+				</div>
+			</div>
+
+			<div
+				class="admin-spell-mechanics-page__editor-body admin-spell-mechanics-page__section-pad"
+			>
+				@if (errorMessage()) {
+					<div class="admin-spell-mechanics-page__form-error">
+						{{ errorMessage() }}
+					</div>
+				}
+
+				@if (selectedKind() === 'category' && categoryDraft(); as draft) {
+					<div class="admin-spell-mechanics-page__form-grid">
+						<label class="admin-spell-mechanics-page__field">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="draft.name"
+								(input)="updateCategoryName($any($event.target).value)"
+							/>
+						</label>
+
+						<label class="admin-spell-mechanics-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="draft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateCategorySortOrder($event)"
+							></p-inputnumber>
+						</label>
+
+						<label class="admin-spell-mechanics-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="draft.isActive"
+								(ngModelChange)="updateCategoryActive($event)"
+							></p-toggleswitch>
+						</label>
+
+						<label
+							class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide"
+						>
+							<span>Описание</span>
+							<textarea
+								pTextarea
+								rows="5"
+								[value]="draft.description"
+								(input)="updateCategoryDescription($any($event.target).value)"
+							></textarea>
+						</label>
+					</div>
+				} @else if (
+					selectedKind() === 'mechanic' && mechanicDraft();
+					as draft
+				) {
+					<p-tabs value="general" class="admin-spell-mechanics-page__tabs">
+						<p-tablist>
+							<p-tab value="general">Основное</p-tab>
+							<p-tab value="parameters">Параметры</p-tab>
+							<p-tab value="actions">Сценарий</p-tab>
+							<p-tab value="json">JSON</p-tab>
+						</p-tablist>
+
+						<p-tabpanels class="admin-spell-mechanics-page__tabpanels">
+							<p-tabpanel
+								class="admin-spell-mechanics-page__tabpanel"
+								value="general"
+							>
+								<div class="admin-spell-mechanics-page__form-grid">
+									<label class="admin-spell-mechanics-page__field">
+										<span>Категория</span>
+										<p-select
+											[options]="categoryOptions()"
+											optionLabel="label"
+											optionValue="value"
+											[ngModel]="draft.categoryId"
+											(ngModelChange)="updateMechanicCategory($event)"
+										></p-select>
+									</label>
+
+									<label class="admin-spell-mechanics-page__field">
+										<span>Название</span>
+										<input
+											pInputText
+											type="text"
+											[value]="draft.name"
+											(input)="updateMechanicName($any($event.target).value)"
+										/>
+									</label>
+
+									<label class="admin-spell-mechanics-page__field">
+										<span>Порядок отображения</span>
+										<p-inputnumber
+											[ngModel]="draft.sortOrder"
+											[showButtons]="false"
+											[min]="0"
+											(ngModelChange)="updateMechanicSortOrder($event)"
+										></p-inputnumber>
+									</label>
+
+									<label class="admin-spell-mechanics-page__switch-field">
+										<span>Активно</span>
+										<p-toggleswitch
+											[ngModel]="draft.isActive"
+											(ngModelChange)="updateMechanicActive($event)"
+										></p-toggleswitch>
+									</label>
+
+									<label
+										class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide"
+									>
+										<span>Описание</span>
+										<textarea
+											pTextarea
+											rows="4"
+											[value]="draft.description"
+											(input)="
+												updateMechanicDescription($any($event.target).value)
+											"
+										></textarea>
+									</label>
+
+									<label
+										class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide"
+									>
+										<span>Шаблон текста</span>
+										<textarea
+											pTextarea
+											rows="4"
+											[value]="draft.textTemplate"
+											(input)="
+												updateMechanicTextTemplate($any($event.target).value)
+											"
+										></textarea>
+									</label>
+								</div>
+							</p-tabpanel>
+
+							<p-tabpanel
+								class="admin-spell-mechanics-page__tabpanel admin-spell-mechanics-page__tabpanel--parameters"
+								value="parameters"
+							>
+								<div class="admin-spell-mechanics-page__parameters-layout">
+									<div class="admin-spell-mechanics-page__parameters-table">
+										<div class="admin-spell-mechanics-page__block-heading">
+											<span>Входные параметры</span>
+											<p-button
+												label="Параметр"
+												icon="pi pi-plus"
+												size="small"
+												severity="secondary"
+												variant="outlined"
+												(onClick)="addMechanicSlot()"
+											></p-button>
+										</div>
+
+										<p-table
+											[value]="mechanicSlots()"
+											[scrollable]="true"
+											scrollHeight="flex"
+											size="small"
+											styleClass="p-datatable-sm"
+										>
+											<ng-template #header>
+												<tr>
+													<th>Название</th>
+													<th>Тип</th>
+													<th>Источник</th>
+													<th>Значение</th>
+													<th>Обяз.</th>
+													<th>В закл.</th>
+													<th>Переопр.</th>
+													<th></th>
+												</tr>
+											</ng-template>
+
+											<ng-template #body let-slot let-slotIndex="rowIndex">
+												<tr
+													class="admin-spell-mechanics-page__slot-table-row"
+													[class.admin-spell-mechanics-page__slot-table-row--active]="
+														slotIndex === selectedSlotIndex()
+													"
+													(click)="selectMechanicSlot(slotIndex)"
+												>
+													<td>{{ slot.name || 'Без названия' }}</td>
+													<td>{{ slotKindLabel(slot.kind) }}</td>
+													<td>{{ slotDefaultValueModeLabel(slot) }}</td>
+													<td>{{ slotDefaultValueDisplay(slot) }}</td>
+													<td>
+														<p-toggleswitch
+															[ngModel]="slot.required"
+															(ngModelChange)="
+																updateMechanicSlot(slotIndex, {
+																	required: $event
+																})
+															"
+															(click)="$event.stopPropagation()"
+														></p-toggleswitch>
+													</td>
+													<td>
+														<p-toggleswitch
+															[ngModel]="slot.configuredBySpell"
+															(ngModelChange)="
+																updateMechanicSlot(slotIndex, {
+																	configuredBySpell: $event
+																})
+															"
+															(click)="$event.stopPropagation()"
+														></p-toggleswitch>
+													</td>
+													<td>
+														<p-toggleswitch
+															[ngModel]="slot.overrideAllowed"
+															(ngModelChange)="
+																updateMechanicSlot(slotIndex, {
+																	overrideAllowed: $event
+																})
+															"
+															(click)="$event.stopPropagation()"
+														></p-toggleswitch>
+													</td>
+													<td>
+														<p-button
+															icon="pi pi-trash"
+															severity="danger"
+															text
+															rounded
+															(onClick)="deleteMechanicSlot(slotIndex)"
+															(click)="$event.stopPropagation()"
+														></p-button>
+													</td>
+												</tr>
+											</ng-template>
+
+											<ng-template #emptymessage>
+												<tr>
+													<td colspan="8">Параметры пока не добавлены.</td>
+												</tr>
+											</ng-template>
+										</p-table>
+									</div>
+
+									<aside
+										class="admin-spell-mechanics-page__panel admin-spell-mechanics-page__parameter-editor"
+									>
+										@if (selectedSlot(); as slot) {
+											<div
+												class="admin-spell-mechanics-page__panel-heading admin-spell-mechanics-page__panel-heading--split"
+											>
+												<div>
+													<h2 class="admin-spell-mechanics-page__panel-title">
+														Редактирование параметра
+													</h2>
+												</div>
+												<p-tag
+													[value]="slotKindLabel(slot.kind)"
+													severity="secondary"
+												></p-tag>
+											</div>
+
+											<div
+												class="admin-spell-mechanics-page__parameter-editor-content"
+											>
+												<div class="admin-spell-mechanics-page__parameter-form">
+														<div class="admin-spell-mechanics-page__form-field">
+															<label
+																class="admin-spell-mechanics-page__field-label"
+															>
+																Название
+																<i
+																	class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																	pTooltip="Название, по которому параметр будет отображаться в редакторе механики и в настройках заклинания."
+																	tooltipPosition="top"
+																></i>
+															</label>
+															<input
+																pInputText
+																type="text"
+																[value]="slot.name"
+																(input)="
+																	updateSelectedMechanicSlot({
+																		name: $any($event.target).value
+																	})
+																"
+															/>
+														</div>
+
+														<div class="admin-spell-mechanics-page__form-field">
+															<label
+																class="admin-spell-mechanics-page__field-label"
+															>
+																Тип
+																<i
+																	class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																	pTooltip="Определяет, какие данные хранит параметр и какой редактор значения будет доступен."
+																	tooltipPosition="top"
+																></i>
+															</label>
+															<p-select
+																[options]="slotKindOptions"
+																optionLabel="label"
+																optionValue="value"
+																[ngModel]="slot.kind"
+																(ngModelChange)="
+																	updateSelectedMechanicSlotKind($event)
+																"
+															></p-select>
+														</div>
+
+														@if (supportsDefaultValue(slot.kind)) {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Источник
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Задает, откуда механика возьмет значение до ручной настройки в заклинании."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="
+																		slotDefaultValueModeOptions(slot.kind)
+																	"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="slot.defaultValue.mode"
+																	(ngModelChange)="
+																		updateSelectedMechanicSlotDefaultValueMode(
+																			$event
+																		)
+																	"
+																></p-select>
+															</div>
+														}
+
+														@if (
+															supportsDefaultValue(slot.kind) &&
+															slot.defaultValue.mode === 'static'
+														) {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	{{ slotDefaultValueLabel(slot.kind) }}
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Базовое значение, которое используется механикой, если параметр не задан иначе."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																@if (usesDefaultValueSelect(slot.kind)) {
+																	<p-select
+																		[options]="
+																			slotDefaultValueOptions(slot.kind)
+																		"
+																		[group]="true"
+																		optionGroupLabel="label"
+																		optionGroupChildren="items"
+																		optionLabel="name"
+																		optionValue="id"
+																		appendTo="body"
+																		[filter]="true"
+																		filterBy="name,searchText"
+																		filterPlaceHolder="Поиск"
+																		[showClear]="true"
+																		placeholder="Не выбрано"
+																		[ngModel]="slot.defaultValue.value || null"
+																		(ngModelChange)="
+																			updateSelectedMechanicSlotDefaultValue(
+																				$event
+																			)
+																		"
+																	>
+																		<ng-template let-group #group>
+																			<div
+																				class="admin-spell-mechanics-page__option-group"
+																			>
+																				{{ group.label }}
+																			</div>
+																		</ng-template>
+																	</p-select>
+																} @else {
+																	<input
+																		pInputText
+																		type="text"
+																		[value]="slot.defaultValue.value"
+																		(input)="
+																			updateSelectedMechanicSlotDefaultValue(
+																				$any($event.target).value
+																			)
+																		"
+																	/>
+																}
+															</div>
+														}
+
+														<div
+															class="admin-spell-mechanics-page__switch-list"
+														>
+															<label
+																class="admin-spell-mechanics-page__switch-row"
+															>
+																<span
+																	class="admin-spell-mechanics-page__switch-text"
+																>
+																	<span
+																		class="admin-spell-mechanics-page__switch-label"
+																	>
+																		Требовать значение
+																		<i
+																			class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																			pTooltip="Параметр должен быть заполнен, чтобы механика считалась настроенной."
+																			tooltipPosition="top"
+																		></i>
+																	</span>
+																</span>
+																<p-toggleswitch
+																	[ngModel]="slot.required"
+																	(ngModelChange)="
+																		updateSelectedMechanicSlot({
+																			required: $event
+																		})
+																	"
+																></p-toggleswitch>
+															</label>
+
+															<label
+																class="admin-spell-mechanics-page__switch-row"
+															>
+																<span
+																	class="admin-spell-mechanics-page__switch-text"
+																>
+																	<span
+																		class="admin-spell-mechanics-page__switch-label"
+																	>
+																		Настраивать в заклинании
+																		<i
+																			class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																			pTooltip="Параметр будет доступен при настройке конкретного заклинания."
+																			tooltipPosition="top"
+																		></i>
+																	</span>
+																</span>
+																<p-toggleswitch
+																	[ngModel]="slot.configuredBySpell"
+																	(ngModelChange)="
+																		updateSelectedMechanicSlot({
+																			configuredBySpell: $event
+																		})
+																	"
+																></p-toggleswitch>
+															</label>
+
+															<label
+																class="admin-spell-mechanics-page__switch-row"
+															>
+																<span
+																	class="admin-spell-mechanics-page__switch-text"
+																>
+																	<span
+																		class="admin-spell-mechanics-page__switch-label"
+																	>
+																		Разрешить замену
+																		<i
+																			class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																			pTooltip="Значение по умолчанию можно заменить при настройке заклинания."
+																			tooltipPosition="top"
+																		></i>
+																	</span>
+																</span>
+																<p-toggleswitch
+																	[ngModel]="slot.overrideAllowed"
+																	(ngModelChange)="
+																		updateSelectedMechanicSlot({
+																			overrideAllowed: $event
+																		})
+																	"
+																></p-toggleswitch>
+															</label>
+														</div>
+												</div>
+											</div>
+										} @else {
+											<div class="admin-spell-mechanics-page__empty-block">
+												Выбери параметр в таблице или добавь новый.
+											</div>
+										}
+									</aside>
+								</div>
+							</p-tabpanel>
+
+							<p-tabpanel
+								class="admin-spell-mechanics-page__tabpanel admin-spell-mechanics-page__tabpanel--parameters"
+								value="actions"
+							>
+								<div class="admin-spell-mechanics-page__parameters-layout">
+									<div class="admin-spell-mechanics-page__parameters-table">
+										<div class="admin-spell-mechanics-page__block-heading">
+											<span>Шаги сценария</span>
+											<p-button
+												label="Шаг"
+												icon="pi pi-plus"
+												size="small"
+												severity="secondary"
+												variant="outlined"
+												(onClick)="addMechanicAction()"
+											></p-button>
+										</div>
+
+										<p-treetable
+											class="admin-spell-mechanics-page__scenario-tree p-treetable-sm"
+											[value]="scenarioTreeNodes()"
+											[scrollable]="true"
+											scrollHeight="flex"
+										>
+											<ng-template #header>
+												<tr>
+													<th>Название</th>
+													<th>Тип</th>
+													<th>Активно</th>
+													<th></th>
+												</tr>
+											</ng-template>
+
+											<ng-template #body let-rowNode let-rowData="rowData">
+												@if (rowData.kind === 'branch') {
+													<tr
+														[ttRow]="rowNode"
+														class="admin-spell-mechanics-page__scenario-branch-row"
+													>
+														<td>
+															<div class="admin-spell-mechanics-page__scenario-name">
+																<p-treetable-toggler
+																	[rowNode]="rowNode"
+																></p-treetable-toggler>
+																<strong>{{ rowData.label }}</strong>
+															</div>
+														</td>
+														<td>Ветка</td>
+														<td></td>
+														<td>
+															<p-button
+																label="Шаг"
+																icon="pi pi-plus"
+																size="small"
+																text
+																(onClick)="
+																	addBranchActionAt(
+																		rowData.rootIndex,
+																		rowData.parentPath,
+																		rowData.branchName
+																	)
+																"
+															></p-button>
+														</td>
+													</tr>
+												} @else {
+													<tr
+														[ttRow]="rowNode"
+														class="admin-spell-mechanics-page__slot-table-row"
+														[class.admin-spell-mechanics-page__slot-table-row--active]="
+															isScenarioNodeSelected(rowData)
+														"
+														(click)="selectScenarioNode(rowData)"
+													>
+														<td>
+															<div class="admin-spell-mechanics-page__scenario-name">
+																<p-treetable-toggler
+																	[rowNode]="rowNode"
+																></p-treetable-toggler>
+																<span>
+																	{{ rowData.action.name || 'Без названия' }}
+																</span>
+															</div>
+														</td>
+														<td>{{ actionKindLabel(rowData.action.kind) }}</td>
+														<td>
+															<p-toggleswitch
+																[ngModel]="rowData.action.isActive"
+																(ngModelChange)="
+																	updateScenarioNodeActive(rowData, $event)
+																"
+																(click)="$event.stopPropagation()"
+															></p-toggleswitch>
+														</td>
+														<td>
+															<p-button
+																icon="pi pi-trash"
+																severity="danger"
+																text
+																rounded
+																(onClick)="deleteScenarioNode(rowData)"
+																(click)="$event.stopPropagation()"
+															></p-button>
+														</td>
+													</tr>
+												}
+											</ng-template>
+
+											<ng-template #emptymessage>
+												<tr>
+													<td colspan="4">Шаги сценария пока не добавлены.</td>
+												</tr>
+											</ng-template>
+										</p-treetable>
+									</div>
+
+									<aside
+										class="admin-spell-mechanics-page__panel admin-spell-mechanics-page__parameter-editor"
+									>
+										@if (selectedAction(); as action) {
+											<div
+												class="admin-spell-mechanics-page__panel-heading admin-spell-mechanics-page__panel-heading--split"
+											>
+												<div>
+													<h2 class="admin-spell-mechanics-page__panel-title">
+														Редактирование шага
+													</h2>
+												</div>
+												<p-tag
+													[value]="actionKindLabel(action.kind)"
+													severity="secondary"
+												></p-tag>
+											</div>
+
+											<div
+												class="admin-spell-mechanics-page__parameter-editor-content"
+											>
+												<div class="admin-spell-mechanics-page__parameter-form">
+														<div class="admin-spell-mechanics-page__form-field">
+															<label
+																class="admin-spell-mechanics-page__field-label"
+															>
+																Название
+																<i
+																	class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																	pTooltip="Название шага внутри сценария механики."
+																	tooltipPosition="top"
+																></i>
+															</label>
+															<input
+																pInputText
+																type="text"
+																[value]="action.name"
+																(input)="
+																	updateSelectedMechanicAction({
+																		name: $any($event.target).value
+																	})
+																"
+															/>
+														</div>
+
+														<div class="admin-spell-mechanics-page__form-field">
+															<label
+																class="admin-spell-mechanics-page__field-label"
+															>
+																Тип
+																<i
+																	class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																	pTooltip="Определяет базовый смысл шага и доступный редактор настроек."
+																	tooltipPosition="top"
+																></i>
+															</label>
+															<p-select
+																[options]="actionKindOptions"
+																optionLabel="label"
+																optionValue="value"
+																[ngModel]="action.kind"
+																(ngModelChange)="
+																	updateSelectedMechanicActionKind($event)
+																"
+															></p-select>
+														</div>
+
+														@if (action.kind === 'roll') {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Кто бросает
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Объект, который совершает бросок."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="targetSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="rollActorValue(action)"
+																	(ngModelChange)="updateRollActor($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Навык
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Навык или источник навыка для броска."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="skillSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="rollSkillValue(action)"
+																	(ngModelChange)="updateRollSkill($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Сохранить успехи как
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Имя, под которым количество успехов будет доступно следующим шагам сценария."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<input
+																	pInputText
+																	type="text"
+																	[value]="rollResultName(action)"
+																	(input)="
+																		updateRollResultName(
+																			$any($event.target).value
+																		)
+																	"
+																/>
+															</div>
+
+															<label
+																class="admin-spell-mechanics-page__switch-row"
+															>
+																<span
+																	class="admin-spell-mechanics-page__switch-text"
+																>
+																	<span
+																		class="admin-spell-mechanics-page__switch-label"
+																	>
+																		Опциональный бросок
+																		<i
+																			class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																			pTooltip="Шаг может быть пропущен при исполнении сценария."
+																			tooltipPosition="top"
+																		></i>
+																	</span>
+																</span>
+																<p-toggleswitch
+																	[ngModel]="rollOptional(action)"
+																	(ngModelChange)="updateRollOptional($event)"
+																></p-toggleswitch>
+															</label>
+														} @else if (action.kind === 'comparison') {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Левое значение
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Первое число для сравнения."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="amountSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="comparisonLeftValue(action)"
+																	(ngModelChange)="updateComparisonLeft($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Оператор
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Правило сравнения левого и правого значения."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="comparisonOperatorOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="comparisonOperator(action)"
+																	(ngModelChange)="
+																		updateComparisonOperator($event)
+																	"
+																></p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Правое значение
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Второе число для сравнения."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="amountSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="comparisonRightValue(action)"
+																	(ngModelChange)="updateComparisonRight($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Сохранить проверку как
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Имя, под которым итог сравнения будет доступен следующим шагам сценария."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<input
+																	pInputText
+																	type="text"
+																	[value]="comparisonResultName(action)"
+																	(input)="
+																		updateComparisonResultName(
+																			$any($event.target).value
+																		)
+																	"
+																/>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Сохранить разницу как
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Имя, под которым числовая разница будет доступна следующим шагам сценария."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<input
+																	pInputText
+																	type="text"
+																	[value]="comparisonMarginResultName(action)"
+																	(input)="
+																		updateComparisonMarginResultName(
+																			$any($event.target).value
+																		)
+																	"
+																/>
+															</div>
+														} @else if (action.kind === 'calculation') {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Сохранить значение как
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Имя, под которым результат вычисления будет доступен следующим шагам сценария."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<input
+																	pInputText
+																	type="text"
+																	[value]="calculationResultName(action)"
+																	(input)="
+																		updateCalculationResultName(
+																			$any($event.target).value
+																		)
+																	"
+																/>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Формула
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Читаемое представление графа вычисления."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<div
+																	class="admin-spell-mechanics-page__formula-preview"
+																>
+																	{{ calculationFormulaPreview(action) }}
+																</div>
+															</div>
+
+															<p-button
+																label="Открыть редактор вычисления"
+																icon="pi pi-sitemap"
+																severity="secondary"
+																variant="outlined"
+																(onClick)="openCalculationGraphEditor()"
+															></p-button>
+														} @else if (action.kind === 'branch') {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Условие
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Числовое или логическое значение, которое определяет, какая ветка сценария будет выполнена."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="amountSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="branchConditionValue(action)"
+																	(ngModelChange)="updateBranchCondition($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__branch-block"
+															>
+																<div
+																	class="admin-spell-mechanics-page__branch-heading"
+																>
+																	<strong>Если да</strong>
+																	<p-button
+																		label="Шаг"
+																		icon="pi pi-plus"
+																		size="small"
+																		severity="secondary"
+																		variant="outlined"
+																		(onClick)="addBranchAction('thenActions')"
+																	></p-button>
+																</div>
+
+																@for (
+																	branchAction of branchActions(
+																		action,
+																		'thenActions'
+																	);
+																	track branchAction.id
+																) {
+																	<div
+																		class="admin-spell-mechanics-page__branch-row"
+																	>
+																		<input
+																			pInputText
+																			type="text"
+																			[value]="branchAction.name"
+																			placeholder="Название шага"
+																			(input)="
+																				updateBranchAction(
+																					'thenActions',
+																					branchAction.id,
+																					{
+																						name: $any($event.target).value
+																					}
+																				)
+																			"
+																		/>
+																		<p-select
+																			[options]="actionKindOptions"
+																			optionLabel="label"
+																			optionValue="value"
+																			appendTo="body"
+																			[ngModel]="branchAction.kind"
+																			(ngModelChange)="
+																				updateBranchActionKind(
+																					'thenActions',
+																					branchAction.id,
+																					$event
+																				)
+																			"
+																		></p-select>
+																		<p-toggleswitch
+																			[ngModel]="branchAction.isActive"
+																			(ngModelChange)="
+																				updateBranchAction(
+																					'thenActions',
+																					branchAction.id,
+																					{ isActive: $event }
+																				)
+																			"
+																		></p-toggleswitch>
+																		<p-button
+																			icon="pi pi-trash"
+																			severity="danger"
+																			text
+																			rounded
+																			(onClick)="
+																				deleteBranchAction(
+																					'thenActions',
+																					branchAction.id
+																				)
+																			"
+																		></p-button>
+																	</div>
+																} @empty {
+																	<div
+																		class="admin-spell-mechanics-page__empty-block"
+																	>
+																		Ветка пока пустая.
+																	</div>
+																}
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__branch-block"
+															>
+																<div
+																	class="admin-spell-mechanics-page__branch-heading"
+																>
+																	<strong>Если нет</strong>
+																	<p-button
+																		label="Шаг"
+																		icon="pi pi-plus"
+																		size="small"
+																		severity="secondary"
+																		variant="outlined"
+																		(onClick)="addBranchAction('elseActions')"
+																	></p-button>
+																</div>
+
+																@for (
+																	branchAction of branchActions(
+																		action,
+																		'elseActions'
+																	);
+																	track branchAction.id
+																) {
+																	<div
+																		class="admin-spell-mechanics-page__branch-row"
+																	>
+																		<input
+																			pInputText
+																			type="text"
+																			[value]="branchAction.name"
+																			placeholder="Название шага"
+																			(input)="
+																				updateBranchAction(
+																					'elseActions',
+																					branchAction.id,
+																					{
+																						name: $any($event.target).value
+																					}
+																				)
+																			"
+																		/>
+																		<p-select
+																			[options]="actionKindOptions"
+																			optionLabel="label"
+																			optionValue="value"
+																			appendTo="body"
+																			[ngModel]="branchAction.kind"
+																			(ngModelChange)="
+																				updateBranchActionKind(
+																					'elseActions',
+																					branchAction.id,
+																					$event
+																				)
+																			"
+																		></p-select>
+																		<p-toggleswitch
+																			[ngModel]="branchAction.isActive"
+																			(ngModelChange)="
+																				updateBranchAction(
+																					'elseActions',
+																					branchAction.id,
+																					{ isActive: $event }
+																				)
+																			"
+																		></p-toggleswitch>
+																		<p-button
+																			icon="pi pi-trash"
+																			severity="danger"
+																			text
+																			rounded
+																			(onClick)="
+																				deleteBranchAction(
+																					'elseActions',
+																					branchAction.id
+																				)
+																			"
+																		></p-button>
+																	</div>
+																} @empty {
+																	<div
+																		class="admin-spell-mechanics-page__empty-block"
+																	>
+																		Ветка пока пустая.
+																	</div>
+																}
+															</div>
+														} @else if (action.kind === 'valueChange') {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Объект
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="У кого будет изменено системное значение."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="targetSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="valueChangeTargetValue(action)"
+																	(ngModelChange)="updateValueChangeTarget($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Значение
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Какое системное значение будет изменено у выбранного объекта."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="systemValueOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="valueChangeSystemValueId(action)"
+																	(ngModelChange)="updateValueChangeSystemValue($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Операция
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Как изменить выбранное системное значение."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="valueChangeOperationOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="valueChangeOperation(action)"
+																	(ngModelChange)="
+																		updateValueChangeOperation($event)
+																	"
+																></p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Величина
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Откуда взять число, на которое изменяется значение."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="amountSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="valueChangeAmountValue(action)"
+																	(ngModelChange)="updateValueChangeAmount($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															@if (usesConstantAmount(action)) {
+																<div
+																	class="admin-spell-mechanics-page__form-field"
+																>
+																	<label
+																		class="admin-spell-mechanics-page__field-label"
+																	>
+																		Число
+																		<i
+																			class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																			pTooltip="Постоянная числовая величина."
+																			tooltipPosition="top"
+																		></i>
+																	</label>
+																	<p-inputnumber
+																		[ngModel]="valueChangeConstantAmount(action)"
+																		[showButtons]="false"
+																		(ngModelChange)="
+																			updateValueChangeConstantAmount($event)
+																		"
+																	></p-inputnumber>
+																</div>
+															}
+														} @else if (
+															action.kind === 'conditionAdd' ||
+															action.kind === 'conditionRemove'
+														) {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Объект
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="На кого действует изменение состояния."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="targetSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="conditionActionTargetValue(action)"
+																	(ngModelChange)="
+																		updateConditionActionTarget($event)
+																	"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Состояние
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Какое состояние будет наложено или снято."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="conditionOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="conditionActionConditionId(action)"
+																	(ngModelChange)="
+																		updateConditionActionCondition($event)
+																	"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Источник
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Кто или что считается источником состояния."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="targetSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="conditionActionSourceValue(action)"
+																	(ngModelChange)="
+																		updateConditionActionSource($event)
+																	"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															@if (action.kind === 'conditionAdd') {
+																<div
+																	class="admin-spell-mechanics-page__form-field"
+																>
+																	<label
+																		class="admin-spell-mechanics-page__field-label"
+																	>
+																		Длительность
+																		<i
+																			class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																			pTooltip="Откуда взять числовое значение длительности."
+																			tooltipPosition="top"
+																		></i>
+																	</label>
+																	<p-select
+																		[options]="amountSourceOptionGroups()"
+																		[group]="true"
+																		optionGroupLabel="label"
+																		optionGroupChildren="items"
+																		optionLabel="name"
+																		optionValue="id"
+																		appendTo="body"
+																		[filter]="true"
+																		filterBy="name,searchText"
+																		filterPlaceHolder="Поиск"
+																		[showClear]="true"
+																		placeholder="Не выбрано"
+																		[ngModel]="conditionActionDurationValue(action)"
+																		(ngModelChange)="
+																			updateConditionActionDuration($event)
+																		"
+																	>
+																		<ng-template let-group #group>
+																			<div
+																				class="admin-spell-mechanics-page__option-group"
+																			>
+																				{{ group.label }}
+																			</div>
+																		</ng-template>
+																	</p-select>
+																</div>
+
+															}
+														} @else {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Конфигурация
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Свободные настройки действия в формате JSON-объекта."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<textarea
+																	pTextarea
+																	rows="12"
+																	spellcheck="false"
+																	[value]="action.configText"
+																	(input)="
+																		updateSelectedMechanicAction({
+																			configText: $any($event.target).value
+																		})
+																	"
+																></textarea>
+															</div>
+														}
+
+														<label
+															class="admin-spell-mechanics-page__switch-row"
+														>
+															<span
+																class="admin-spell-mechanics-page__switch-text"
+															>
+																<span
+																	class="admin-spell-mechanics-page__switch-label"
+																>
+																	Активно
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Неактивный шаг хранится в сценарии, но не должен участвовать в исполнении."
+																		tooltipPosition="top"
+																	></i>
+																</span>
+															</span>
+															<p-toggleswitch
+																[ngModel]="action.isActive"
+																(ngModelChange)="
+																	updateSelectedMechanicAction({
+																		isActive: $event
+																	})
+																"
+															></p-toggleswitch>
+														</label>
+												</div>
+											</div>
+										} @else {
+											<div class="admin-spell-mechanics-page__empty-block">
+												Выбери шаг сценария в таблице или добавь новый.
+											</div>
+										}
+									</aside>
+								</div>
+							</p-tabpanel>
+
+							<p-tabpanel
+								class="admin-spell-mechanics-page__tabpanel"
+								value="json"
+							>
+								<label class="admin-spell-mechanics-page__field">
+									<span>Схема конфигурации</span>
+									<textarea
+										pTextarea
+										rows="18"
+										spellcheck="false"
+										[value]="draft.configSchemaText"
+										(input)="
+											updateMechanicConfigSchema($any($event.target).value)
+										"
+									></textarea>
+								</label>
+							</p-tabpanel>
+						</p-tabpanels>
+					</p-tabs>
+				} @else {
+					<div class="admin-spell-mechanics-page__state">
+						Выбери категорию или механику слева.
+					</div>
+				}
+			</div>
+
+			<app-editor-actions-bar
+				[hasChanges]="hasChanges()"
+				[saving]="saving()"
+				(reset)="resetDraft()"
+				(save)="saveDraft()"
+			></app-editor-actions-bar>
+		</section>
+	</div>
+</section>
+
+@if (selectedAction(); as action) {
+	<p-dialog
+		header="Редактор вычисления"
+		[modal]="true"
+		[draggable]="false"
+		[resizable]="false"
+		[maximizable]="true"
+		[style]="{ width: 'min(96vw, 88rem)', height: '86vh' }"
+		[contentStyle]="{ height: '100%', overflow: 'hidden' }"
+		[visible]="calculationGraphEditorVisible()"
+		(visibleChange)="
+			$event
+				? openCalculationGraphEditor()
+				: closeCalculationGraphEditor()
+		"
+	>
+		@if (action.kind === 'calculation') {
+			<app-mechanic-calculation-graph-editor
+				[graph]="calculationGraph(action)"
+				[sourceGroups]="calculationSourceOptionGroups()"
+				(graphChange)="updateCalculationGraph($event)"
+			></app-mechanic-calculation-graph-editor>
+		}
+	</p-dialog>
+}

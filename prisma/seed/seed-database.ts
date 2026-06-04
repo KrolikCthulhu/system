@@ -8,6 +8,7 @@ import { seedCharacteristics } from './seed-characteristics';
 import { seedConditions } from './seed-conditions';
 import { seedDamageTypes } from './seed-damage-types';
 import { seedGameEventHandlers } from './seed-game-events';
+import { seedMagicWordLinks } from './seed-magic-word-links';
 import { seedMagicWords } from './seed-magic-words';
 import {
 	seedRollConsequences,
@@ -16,7 +17,12 @@ import {
 } from './seed-roll-consequences';
 import { seedSkillLevels } from './seed-skill-levels';
 import { seedSkillCategories, seedSkills } from './seed-skills';
-import { seedPotentialValue, seedSourceValue } from './seed-system-values';
+import { seedSpellMechanics } from './seed-spell-mechanics';
+import {
+	seedHealthValue,
+	seedPotentialValue,
+	seedSourceValue
+} from './seed-system-values';
 
 export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedSkillLevels(tx);
@@ -36,6 +42,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 		attributes,
 		consequenceValues
 	});
+	await seedHealthValue(tx);
 	await seedRollEventGraphs(tx, {
 		consequences,
 		consequenceValues,
@@ -44,12 +51,13 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedGameEventHandlers(tx, { sourceValue });
 	await seedDamageTypes(tx);
 	await seedConditions(tx);
-	await seedMagicWords(tx);
-
 	const categories = await seedSkillCategories(tx);
 	await seedSkills(tx, {
 		categories,
 		characteristics,
 		consequences
 	});
+	await seedSpellMechanics(tx);
+	await seedMagicWords(tx);
+	await seedMagicWordLinks(tx);
 }

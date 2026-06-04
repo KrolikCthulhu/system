@@ -14,6 +14,7 @@ import { MagicModule } from './magic/magic.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { RollConsequencesModule } from './roll-consequences/roll-consequences.module';
 import { SkillsModule } from './skills/skills.module';
+import { SpellMechanicsModule } from './spell-mechanics/spell-mechanics.module';
 import { ValuesModule } from './values/values.module';
 
 @Module({
@@ -46,6 +47,7 @@ import { ValuesModule } from './values/values.module';
 		MagicModule,
 		RollConsequencesModule,
 		SkillsModule,
+		SpellMechanicsModule,
 		ValuesModule
 	],
 	controllers: [],

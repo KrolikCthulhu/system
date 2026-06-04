@@ -80,6 +80,10 @@
 	color: var(--p-text-color);
 }
 
+.navigation-tree__group-title--active {
+	color: var(--p-primary-700);
+}
+
 .navigation-tree__group-icon,
 .navigation-tree__subgroup-icon {
 	width: 0.75rem;

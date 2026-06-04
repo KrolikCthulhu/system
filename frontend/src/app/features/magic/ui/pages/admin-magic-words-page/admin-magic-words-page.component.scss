@@ -264,6 +264,11 @@
 	line-height: 1.25;
 }
 
+.admin-magic-words-page__option-group {
+	font-weight: 600;
+	color: var(--p-text-muted-color);
+}
+
 .admin-magic-words-page__switch-field {
 	flex-direction: row;
 	align-items: center;

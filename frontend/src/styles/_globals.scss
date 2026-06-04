@@ -73,3 +73,12 @@ p-tablist {
 p-breadcrumb {
 	font-size: var(--text-breadcrumb-size);
 }
+
+p-select,
+p-multiselect,
+.p-select-label,
+.p-select-overlay,
+.p-multiselect-label,
+.p-multiselect-overlay {
+	font-size: var(--text-select-size);
+}

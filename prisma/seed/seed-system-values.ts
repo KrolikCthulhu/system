@@ -72,3 +72,26 @@ export async function seedPotentialValue(
 		sortOrder: 1
 	});
 }
+
+export async function seedHealthValue(tx: Prisma.TransactionClient) {
+	const existing = await tx.systemValue.findFirst({
+		where: {
+			name: 'Здоровье',
+			primaryOwnerType: SystemValueOwnerType.MANUAL,
+			primaryOwnerId: null
+		}
+	});
+
+	return ensureSystemValue(tx, {
+		id: existing?.id ?? randomUUID(),
+		name: 'Здоровье',
+		description: 'Ресурс персонажа: запас состояния, который изменяется уроном и восстановлением.',
+		primaryOwnerType: SystemValueOwnerType.MANUAL,
+		primaryOwnerId: null,
+		displaySection: 'Ресурсы персонажа',
+		calculationGraph: createCharacterInputGraph(),
+		isSystemManaged: false,
+		isActive: true,
+		sortOrder: 2
+	});
+}

@@ -1,0 +1,185 @@
+<p-fluid class="mechanic-calculation-graph-editor">
+	<div class="mechanic-calculation-graph-editor__palette">
+		@for (nodeType of nodeTypes; track nodeType.kind) {
+			<p-button
+				[label]="nodeType.label"
+				severity="secondary"
+				variant="outlined"
+				[disabled]="nodeType.kind === 'result' && graphHasResultNode()"
+				(onClick)="addGraphNode(nodeType.kind)"
+			></p-button>
+		}
+	</div>
+
+	<div class="mechanic-calculation-graph-editor__stage">
+		<p-splitter
+			class="mechanic-calculation-graph-editor__splitter"
+			panelStyleClass="mechanic-calculation-graph-editor__panel"
+			[panelSizes]="[74, 26]"
+			[minSizes]="[48, 22]"
+			[gutterSize]="1"
+		>
+			<ng-template #panel>
+				<div class="mechanic-calculation-graph-editor__canvas">
+					<vflow
+						view="auto"
+						[nodes]="graphNodes()"
+						[edges]="graphEdges()"
+						[connection]="connectionSettings"
+						(connect)="onGraphConnect($event)"
+						changesController
+						(nodesChanges.select)="onGraphSelectionChange($event)"
+						(edgesChanges.select)="onGraphEdgeSelectionChange($event)"
+						(nodeDragEnd)="onGraphDragEnd()"
+					></vflow>
+				</div>
+			</ng-template>
+
+			<ng-template #panel>
+				<div class="mechanic-calculation-graph-editor__inspector">
+					@if (selectedGraphEdge(); as selectedEdge) {
+						<div class="mechanic-calculation-graph-editor__inspector-header">
+							<div>
+								<div class="text-muted">Связь</div>
+								<strong>Линия графа</strong>
+							</div>
+
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								[text]="true"
+								[rounded]="true"
+								(onClick)="removeSelectedGraphEdge()"
+							></p-button>
+						</div>
+
+						<div class="mechanic-calculation-graph-editor__note">
+							<div class="text-muted">Откуда</div>
+							<p>{{ selectedEdge.source }} / {{ selectedEdge.sourceHandle ?? 'out' }}</p>
+						</div>
+
+						<div class="mechanic-calculation-graph-editor__note">
+							<div class="text-muted">Куда</div>
+							<p>{{ selectedEdge.target }} / {{ selectedEdge.targetHandle ?? 'in' }}</p>
+						</div>
+					} @else if (selectedGraphNodeData(); as selectedNode) {
+						<div class="mechanic-calculation-graph-editor__inspector-header">
+							<div>
+								<div class="text-muted">Узел</div>
+								<strong>{{ graphNodeTypeLabel(selectedNode.kind) }}</strong>
+							</div>
+
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								[text]="true"
+								[rounded]="true"
+								[disabled]="selectedNode.kind === 'result'"
+								(onClick)="removeSelectedGraphNode()"
+							></p-button>
+						</div>
+
+						@if (selectedNode.kind === 'source') {
+							<div class="mechanic-calculation-graph-editor__field">
+								<span class="mechanic-calculation-graph-editor__field-label">
+									Источник значения
+								</span>
+								<p-select
+									[options]="sourceGroups()"
+									[group]="true"
+									optionGroupLabel="label"
+									optionGroupChildren="items"
+									optionLabel="name"
+									optionValue="id"
+									appendTo="body"
+									[filter]="true"
+									filterBy="name,searchText"
+									filterPlaceHolder="Поиск"
+									[showClear]="true"
+									placeholder="Не выбрано"
+									[ngModel]="selectedNode.sourceId"
+									(ngModelChange)="updateSelectedSource($event)"
+								>
+									<ng-template let-group #group>
+										<div class="mechanic-calculation-graph-editor__option-group">
+											{{ group.label }}
+										</div>
+									</ng-template>
+								</p-select>
+							</div>
+						}
+
+						@if (selectedNode.kind === 'constant') {
+							<div class="mechanic-calculation-graph-editor__field">
+								<span class="mechanic-calculation-graph-editor__field-label">
+									Число
+								</span>
+								<p-inputnumber
+									[ngModel]="selectedNode.constantValue ?? 0"
+									[showButtons]="false"
+									(ngModelChange)="updateSelectedConstantValue($event)"
+								></p-inputnumber>
+							</div>
+						}
+
+						@if (selectedNode.kind === 'operation') {
+							<div class="mechanic-calculation-graph-editor__field">
+								<span class="mechanic-calculation-graph-editor__field-label">
+									Операция
+								</span>
+								<p-select
+									[options]="operationOptions"
+									optionLabel="label"
+									optionValue="value"
+									[ngModel]="selectedNode.operation"
+									(ngModelChange)="updateSelectedOperation($event)"
+								></p-select>
+							</div>
+						}
+
+						@if (selectedNode.kind === 'comparison') {
+							<div class="mechanic-calculation-graph-editor__field">
+								<span class="mechanic-calculation-graph-editor__field-label">
+									Сравнение
+								</span>
+								<p-select
+									[options]="comparisonOptions"
+									optionLabel="label"
+									optionValue="value"
+									[ngModel]="selectedNode.comparison"
+									(ngModelChange)="updateSelectedComparison($event)"
+								></p-select>
+							</div>
+
+							<div class="mechanic-calculation-graph-editor__note">
+								<p>Возвращает 1, если сравнение истинно, и 0, если ложно.</p>
+							</div>
+						}
+
+						@if (selectedNode.kind === 'condition') {
+							<div class="mechanic-calculation-graph-editor__note">
+								<p>
+									Вход «Проверка» выбирает значение: если не 0, возвращается
+									«Если да», иначе «Если нет».
+								</p>
+							</div>
+						}
+
+						<div class="mechanic-calculation-graph-editor__inspector-actions">
+							<p-button
+								label="Очистить входы"
+								severity="secondary"
+								variant="outlined"
+								(onClick)="clearSelectedGraphNodeInputs()"
+							></p-button>
+						</div>
+					} @else {
+						<div class="mechanic-calculation-graph-editor__empty">
+							Выбери узел или связь на графе.
+						</div>
+					}
+				</div>
+			</ng-template>
+		</p-splitter>
+	</div>
+</p-fluid>

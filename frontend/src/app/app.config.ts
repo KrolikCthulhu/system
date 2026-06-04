@@ -21,6 +21,7 @@ import { provideGameEventsInfrastructure } from './features/events/data/provide-
 import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
 import { provideRollConsequencesInfrastructure } from './features/roll-consequences/data/provide-roll-consequences-infrastructure';
 import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
+import { provideSpellMechanicsInfrastructure } from './features/spell-mechanics/data/provide-spell-mechanics-infrastructure';
 import { provideValuesInfrastructure } from './features/values/data/provide-values-infrastructure';
 
 const appThemePreset = definePreset(Aura, {
@@ -74,7 +75,37 @@ const appThemePreset = definePreset(Aura, {
 		},
 		select: {
 			root: {
-				paddingY: '0.5rem'
+				paddingY: '0.375rem',
+				paddingX: '0.625rem'
+			},
+			list: {
+				header: {
+					padding: '0.375rem 0.5rem 0.25rem'
+				}
+			},
+			option: {
+				padding: '0.375rem 0.625rem'
+			},
+			optionGroup: {
+				padding: '0.375rem 0.625rem 0.25rem'
+			}
+		},
+		multiselect: {
+			root: {
+				paddingY: '0.375rem',
+				paddingX: '0.625rem'
+			},
+			list: {
+				header: {
+					padding: '0.375rem 0.5rem 0.25rem'
+				}
+			},
+			option: {
+				padding: '0.375rem 0.625rem',
+				gap: '0.5rem'
+			},
+			optionGroup: {
+				padding: '0.375rem 0.625rem 0.25rem'
 			}
 		},
 		textarea: {
@@ -97,6 +128,7 @@ export const appConfig: ApplicationConfig = {
 		...provideMagicWordsInfrastructure(),
 		...provideRollConsequencesInfrastructure(),
 		...provideSkillsInfrastructure(),
+		...provideSpellMechanicsInfrastructure(),
 		...provideValuesInfrastructure(),
 		provideAppInitializer(() => inject(AuthFacade).initializeSession()),
 		provideHttpClient(withInterceptors([authInterceptor])),

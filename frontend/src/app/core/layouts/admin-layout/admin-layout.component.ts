@@ -66,6 +66,10 @@ export class AdminLayoutComponent {
 					routerLink: '/admin/rules/magic-words'
 				},
 				{
+					label: 'Механики',
+					routerLink: '/admin/rules/spell-mechanics'
+				},
+				{
 					label: 'Заклинания',
 					routerLink: '/admin/rules/spells'
 				}

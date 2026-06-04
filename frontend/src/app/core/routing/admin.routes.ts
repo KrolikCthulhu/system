@@ -114,6 +114,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminMagicWordsPageComponent)
 					},
 					{
+						path: 'spell-mechanics',
+						loadComponent: () =>
+							import(
+								'../../features/spell-mechanics/ui/pages/admin-spell-mechanics-page/admin-spell-mechanics-page.component'
+							).then(m => m.AdminSpellMechanicsPageComponent)
+					},
+					{
 						path: 'spells/formula/:actionId/:essenceId/:gestureId',
 						loadComponent: () =>
 							import(

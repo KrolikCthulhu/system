@@ -33,6 +33,36 @@ enum SpellStatus {
   READY
 }
 
+enum SpellMechanicParameterKind {
+  TARGET
+  SKILL
+  NUMBER
+  FORMULA
+  DAMAGE_TYPE
+  CONDITION
+  SYSTEM_VALUE
+  TEXT
+}
+
+enum SpellMechanicParameterDefaultMode {
+  EMPTY
+  STATIC
+  FROM_MAGIC_WORD
+}
+
+enum SpellMechanicActionKind {
+  ROLL
+  CHECK
+  COMPARISON
+  CALCULATION
+  BRANCH
+  VALUE_CHANGE
+  CONDITION_ADD
+  CONDITION_REMOVE
+  TEXT
+  CUSTOM
+}
+
 model User {
   id                      String                   @id @default(uuid()) @db.Uuid
   email                   String                   @unique
@@ -137,6 +167,8 @@ model Skill {
   rollCharacteristic    Characteristic?   @relation("SkillRollCharacteristic", fields: [rollCharacteristicId], references: [id], onDelete: SetNull)
   rollConsequenceId     String?          @map("roll_consequence_id") @db.Uuid
   rollConsequence       RollConsequence? @relation(fields: [rollConsequenceId], references: [id], onDelete: SetNull)
+  magicWordLinks         MagicWordSkillLink[]
+  spellMechanicParameterDefaults SpellMechanicParameter[]
   isActive              Boolean          @default(true) @map("is_active")
   sortOrder             Int              @default(0) @map("sort_order")
   createdAt             DateTime         @default(now()) @map("created_at")
@@ -191,6 +223,9 @@ model MagicWord {
 
   modifierGestureRestrictions MagicWordGestureRestriction[] @relation("MagicModifierRestrictions")
   gestureModifierRestrictions  MagicWordGestureRestriction[] @relation("MagicGestureRestrictions")
+  skillLinks                   MagicWordSkillLink[]
+  damageTypeLinks              MagicWordDamageTypeLink[]
+  conditionLinks               MagicWordConditionLink[]
   actionSpells                 Spell[] @relation("SpellAction")
   essenceSpells                Spell[] @relation("SpellEssence")
   gestureSpells                Spell[] @relation("SpellGesture")
@@ -224,6 +259,87 @@ model Spell {
   @@map("spells")
 }
 
+model SpellMechanicCategory {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String          @unique
+  description String?
+  isActive    Boolean         @default(true) @map("is_active")
+  sortOrder   Int             @default(0) @map("sort_order")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+  mechanics   SpellMechanic[]
+
+  @@index([isActive, sortOrder])
+  @@map("spell_mechanic_categories")
+}
+
+model SpellMechanic {
+  id           String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryId   String                 @map("category_id") @db.Uuid
+  category     SpellMechanicCategory  @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  name         String                 @unique
+  description  String?
+  configSchema Json                   @default("{}") @map("config_schema")
+  textTemplate String?                @map("text_template")
+  parameters   SpellMechanicParameter[]
+  actions      SpellMechanicAction[]
+  isActive     Boolean                @default(true) @map("is_active")
+  sortOrder    Int                    @default(0) @map("sort_order")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  updatedAt    DateTime               @updatedAt @map("updated_at")
+
+  @@index([categoryId])
+  @@index([categoryId, isActive, sortOrder])
+  @@map("spell_mechanics")
+}
+
+model SpellMechanicAction {
+  id        String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mechanicId String                 @map("mechanic_id") @db.Uuid
+  mechanic  SpellMechanic           @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+  name      String
+  kind      SpellMechanicActionKind @default(CUSTOM)
+  config    Json                    @default("{}")
+  isActive  Boolean                 @default(true) @map("is_active")
+  sortOrder Int                     @default(0) @map("sort_order")
+  createdAt DateTime                @default(now()) @map("created_at")
+  updatedAt DateTime                @updatedAt @map("updated_at")
+
+  @@index([mechanicId, sortOrder])
+  @@map("spell_mechanic_actions")
+}
+
+model SpellMechanicParameter {
+  id                  String                             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mechanicId          String                             @map("mechanic_id") @db.Uuid
+  mechanic            SpellMechanic                      @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
+  name                String
+  kind                SpellMechanicParameterKind
+  defaultMode         SpellMechanicParameterDefaultMode  @default(EMPTY) @map("default_mode")
+  staticSkillId       String?                            @map("static_skill_id") @db.Uuid
+  staticSkill         Skill?                             @relation(fields: [staticSkillId], references: [id], onDelete: SetNull)
+  staticDamageTypeId  String?                            @map("static_damage_type_id") @db.Uuid
+  staticDamageType    DamageType?                        @relation(fields: [staticDamageTypeId], references: [id], onDelete: SetNull)
+  staticConditionId   String?                            @map("static_condition_id") @db.Uuid
+  staticCondition     Condition?                         @relation(fields: [staticConditionId], references: [id], onDelete: SetNull)
+  staticSystemValueId String?                            @map("static_system_value_id") @db.Uuid
+  staticSystemValue   SystemValue?                       @relation(fields: [staticSystemValueId], references: [id], onDelete: SetNull)
+  staticTextValue     String?                            @map("static_text_value")
+  isRequired          Boolean                            @default(true) @map("is_required")
+  configuredBySpell   Boolean                            @default(true) @map("configured_by_spell")
+  overrideAllowed     Boolean                            @default(false) @map("override_allowed")
+  sortOrder           Int                                @default(0) @map("sort_order")
+  createdAt           DateTime                           @default(now()) @map("created_at")
+  updatedAt           DateTime                           @updatedAt @map("updated_at")
+
+  @@index([mechanicId, sortOrder])
+  @@index([staticSkillId])
+  @@index([staticDamageTypeId])
+  @@index([staticConditionId])
+  @@index([staticSystemValueId])
+  @@map("spell_mechanic_parameters")
+}
+
 model MagicWordGestureRestriction {
   id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   modifierId String   @map("modifier_id") @db.Uuid
@@ -238,6 +354,51 @@ model MagicWordGestureRestriction {
   @@map("magic_word_gesture_restrictions")
 }
 
+model MagicWordSkillLink {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  magicWordId String    @map("magic_word_id") @db.Uuid
+  magicWord   MagicWord @relation(fields: [magicWordId], references: [id], onDelete: Cascade)
+  skillId     String    @map("skill_id") @db.Uuid
+  skill       Skill     @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([magicWordId, skillId])
+  @@index([magicWordId])
+  @@index([skillId])
+  @@map("magic_word_skill_links")
+}
+
+model MagicWordDamageTypeLink {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  magicWordId  String     @map("magic_word_id") @db.Uuid
+  magicWord    MagicWord  @relation(fields: [magicWordId], references: [id], onDelete: Cascade)
+  damageTypeId String     @map("damage_type_id") @db.Uuid
+  damageType   DamageType @relation(fields: [damageTypeId], references: [id], onDelete: Cascade)
+  sortOrder    Int        @default(0) @map("sort_order")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([magicWordId, damageTypeId])
+  @@index([magicWordId])
+  @@index([damageTypeId])
+  @@map("magic_word_damage_type_links")
+}
+
+model MagicWordConditionLink {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  magicWordId String    @map("magic_word_id") @db.Uuid
+  magicWord   MagicWord @relation(fields: [magicWordId], references: [id], onDelete: Cascade)
+  conditionId String    @map("condition_id") @db.Uuid
+  condition   Condition @relation(fields: [conditionId], references: [id], onDelete: Cascade)
+  sortOrder   Int       @default(0) @map("sort_order")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([magicWordId, conditionId])
+  @@index([magicWordId])
+  @@index([conditionId])
+  @@map("magic_word_condition_links")
+}
+
 model DamageType {
   id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name        String   @unique
@@ -246,6 +407,9 @@ model DamageType {
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+
+  magicWordLinks MagicWordDamageTypeLink[]
+  spellMechanicParameterDefaults SpellMechanicParameter[]
 
   @@index([isActive, sortOrder])
   @@map("damage_types")
@@ -259,6 +423,9 @@ model Condition {
   sortOrder   Int      @default(0) @map("sort_order")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
+
+  magicWordLinks MagicWordConditionLink[]
+  spellMechanicParameterDefaults SpellMechanicParameter[]
 
   @@index([isActive, sortOrder])
   @@map("conditions")
@@ -327,6 +494,7 @@ model SystemValue {
   availablePoolAttributes Attribute[] @relation("AttributeAvailablePoolValue")
   characteristics Characteristic[]
   links           SystemValueLink[]
+  spellMechanicParameterDefaults SpellMechanicParameter[]
 
   @@index([primaryOwnerType, primaryOwnerId])
   @@index([isActive, sortOrder])

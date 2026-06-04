@@ -4,8 +4,11 @@
 			<button
 				type="button"
 				class="navigation-tree__group-title"
+				[class.navigation-tree__group-title--active]="
+					group.id && group.id === selectedGroupId()
+				"
 				[attr.aria-expanded]="!isGroupCollapsed(group.label)"
-				(click)="toggleGroup(group)"
+				(click)="selectOrToggleGroup(group)"
 			>
 				<i
 					class="pi pi-chevron-right navigation-tree__group-icon"
@@ -13,6 +16,7 @@
 						!isGroupCollapsed(group.label)
 					"
 					aria-hidden="true"
+					(click)="toggleGroup(group, $event)"
 				></i>
 				<span>{{ group.label }}</span>
 				<span class="navigation-tree__group-count">{{ group.count }}</span>

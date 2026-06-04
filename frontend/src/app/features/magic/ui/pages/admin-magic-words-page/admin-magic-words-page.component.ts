@@ -22,8 +22,15 @@ import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
+import { forkJoin } from 'rxjs';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
 import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
+import { CONDITIONS_REPOSITORY } from '../../../../conditions/data/conditions-repository.port';
+import { Condition } from '../../../../conditions/domain/conditions.models';
+import { DAMAGE_TYPES_REPOSITORY } from '../../../../damage-types/data/damage-types-repository.port';
+import { DamageType } from '../../../../damage-types/domain/damage-types.models';
+import { SKILLS_REPOSITORY } from '../../../../skills/data/skills-repository.port';
+import { Skill, SkillCategory } from '../../../../skills/domain/skills.models';
 import {
 	MAGIC_WORD_TYPE_OPTIONS,
 	MagicWord,
@@ -41,6 +48,19 @@ interface MagicWordDraft {
 	isActive: boolean;
 	sortOrder: number;
 	allowedGestureIds: string[];
+	skillIds: string[];
+	damageTypeIds: string[];
+	conditionIds: string[];
+}
+
+interface SelectOption {
+	id: string;
+	name: string;
+}
+
+interface SelectOptionGroup {
+	label: string;
+	items: SelectOption[];
 }
 
 @Component({
@@ -70,6 +90,9 @@ interface MagicWordDraft {
 })
 export class AdminMagicWordsPageComponent {
 	private readonly repository = inject(MAGIC_WORDS_REPOSITORY);
+	private readonly skillsRepository = inject(SKILLS_REPOSITORY);
+	private readonly damageTypesRepository = inject(DAMAGE_TYPES_REPOSITORY);
+	private readonly conditionsRepository = inject(CONDITIONS_REPOSITORY);
 	private readonly confirmationService = inject(ConfirmationService);
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly destroyRef = inject(DestroyRef);
@@ -83,6 +106,10 @@ export class AdminMagicWordsPageComponent {
 	protected readonly selectedWordId = signal<string | null>(null);
 	protected readonly searchQuery = signal('');
 	protected readonly words = signal<MagicWord[]>([]);
+	protected readonly skillCategories = signal<SkillCategory[]>([]);
+	protected readonly skills = signal<Skill[]>([]);
+	protected readonly damageTypes = signal<DamageType[]>([]);
+	protected readonly conditions = signal<Condition[]>([]);
 	protected readonly draft = signal<MagicWordDraft | null>(null);
 	protected readonly savedDraftSignature = signal('');
 	protected readonly loading = signal(true);
@@ -117,6 +144,27 @@ export class AdminMagicWordsPageComponent {
 				return orderDiff || first.name.localeCompare(second.name, 'ru');
 			})
 			.map(word => ({ id: word.id, name: word.name }))
+	);
+	protected readonly skillOptionGroups = computed<SelectOptionGroup[]>(() =>
+		createSkillOptionGroups(this.skillCategories(), this.skills())
+	);
+	protected readonly damageTypeOptions = computed(() =>
+		this.damageTypes()
+			.filter(damageType => damageType.isActive)
+			.sort((first, second) => {
+				const orderDiff = first.sortOrder - second.sortOrder;
+				return orderDiff || first.name.localeCompare(second.name, 'ru');
+			})
+			.map(damageType => ({ id: damageType.id, name: damageType.name }))
+	);
+	protected readonly conditionOptions = computed(() =>
+		this.conditions()
+			.filter(condition => condition.isActive)
+			.sort((first, second) => {
+				const orderDiff = first.sortOrder - second.sortOrder;
+				return orderDiff || first.name.localeCompare(second.name, 'ru');
+			})
+			.map(condition => ({ id: condition.id, name: condition.name }))
 	);
 	protected readonly typeCounts = computed(() => {
 		const counts = new Map<MagicWordType, number>();
@@ -215,6 +263,18 @@ export class AdminMagicWordsPageComponent {
 		this.patchDraft({ allowedGestureIds });
 	}
 
+	protected updateDraftSkills(skillIds: string[]) {
+		this.patchDraft({ skillIds });
+	}
+
+	protected updateDraftDamageTypes(damageTypeIds: string[]) {
+		this.patchDraft({ damageTypeIds });
+	}
+
+	protected updateDraftConditions(conditionIds: string[]) {
+		this.patchDraft({ conditionIds });
+	}
+
 	protected resetDraft() {
 		const word = this.selectedWord();
 
@@ -252,7 +312,10 @@ export class AdminMagicWordsPageComponent {
 			isActive: draft.isActive,
 			sortOrder: draft.sortOrder,
 			allowedGestureIds:
-				draft.type === 'MODIFIER' ? draft.allowedGestureIds : []
+				draft.type === 'MODIFIER' ? draft.allowedGestureIds : [],
+			skillIds: draft.skillIds,
+			damageTypeIds: draft.damageTypeIds,
+			conditionIds: draft.conditionIds
 		};
 		const request = draft.id
 			? this.repository.updateWord(draft.id, command)
@@ -303,12 +366,20 @@ export class AdminMagicWordsPageComponent {
 		this.loading.set(true);
 		this.errorMessage.set(null);
 
-		this.repository
-			.loadCatalog()
+		forkJoin({
+			magic: this.repository.loadCatalog(),
+			skills: this.skillsRepository.loadAdminCatalog(),
+			damageTypes: this.damageTypesRepository.loadCatalog(),
+			conditions: this.conditionsRepository.loadCatalog()
+		})
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
-				next: catalog => {
-					this.words.set(catalog.words);
+				next: ({ magic, skills, damageTypes, conditions }) => {
+					this.words.set(magic.words);
+					this.skillCategories.set(skills.categories);
+					this.skills.set(skills.skills);
+					this.damageTypes.set(damageTypes.damageTypes);
+					this.conditions.set(conditions.conditions);
 					this.loading.set(false);
 					this.selectFirstWord(this.selectedType());
 				},
@@ -350,7 +421,10 @@ export class AdminMagicWordsPageComponent {
 			description: word.description,
 			isActive: word.isActive,
 			sortOrder: word.sortOrder,
-			allowedGestureIds: [...word.allowedGestureIds]
+			allowedGestureIds: [...word.allowedGestureIds],
+			skillIds: [...word.skillIds],
+			damageTypeIds: [...word.damageTypeIds],
+			conditionIds: [...word.conditionIds]
 		};
 
 		this.selectedWordId.set(word.id);
@@ -407,8 +481,40 @@ function createEmptyDraft(type: MagicWordType): MagicWordDraft {
 		description: '',
 		isActive: true,
 		sortOrder: 0,
-		allowedGestureIds: []
+		allowedGestureIds: [],
+		skillIds: [],
+		damageTypeIds: [],
+		conditionIds: []
 	};
+}
+
+function createSkillOptionGroups(
+	categories: SkillCategory[],
+	skills: Skill[]
+): SelectOptionGroup[] {
+	const activeSkills = skills.filter(skill => skill.isActive);
+	const activeCategoryIds = new Set(
+		categories.filter(category => category.isActive).map(category => category.id)
+	);
+	const groups = categories
+		.filter(category => category.isActive)
+		.sort((first, second) => first.name.localeCompare(second.name, 'ru'))
+		.map(category => ({
+			label: category.name,
+			items: activeSkills
+				.filter(skill => skill.categoryId === category.id)
+				.sort((first, second) => first.name.localeCompare(second.name, 'ru'))
+				.map(skill => ({ id: skill.id, name: skill.name }))
+		}))
+		.filter(group => group.items.length > 0);
+	const uncategorized = activeSkills
+		.filter(skill => !activeCategoryIds.has(skill.categoryId))
+		.sort((first, second) => first.name.localeCompare(second.name, 'ru'))
+		.map(skill => ({ id: skill.id, name: skill.name }));
+
+	return uncategorized.length
+		? [...groups, { label: 'Без категории', items: uncategorized }]
+		: groups;
 }
 
 function draftSignature(draft: MagicWordDraft | null): string {

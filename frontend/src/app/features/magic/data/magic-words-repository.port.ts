@@ -22,6 +22,9 @@ export interface MagicWordsRepository {
 		isActive?: boolean;
 		sortOrder?: number;
 		allowedGestureIds?: string[];
+		skillIds?: string[];
+		damageTypeIds?: string[];
+		conditionIds?: string[];
 	}): Observable<MagicWord>;
 	updateWord(
 		id: string,
@@ -32,6 +35,9 @@ export interface MagicWordsRepository {
 			isActive?: boolean;
 			sortOrder?: number;
 			allowedGestureIds?: string[];
+			skillIds?: string[];
+			damageTypeIds?: string[];
+			conditionIds?: string[];
 		}
 	): Observable<MagicWord>;
 	deleteWord(id: string): Observable<void>;

@@ -171,6 +171,69 @@
 							></textarea>
 						</label>
 
+						<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+							<span>Связанные навыки / понимания</span>
+							<p-multiselect
+								[options]="skillOptionGroups()"
+								[group]="true"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								optionLabel="name"
+								optionValue="id"
+								appendTo="body"
+								[filter]="true"
+								filterBy="name"
+								filterPlaceHolder="Поиск навыка"
+								[showToggleAll]="false"
+								placeholder="Не выбраны"
+								display="chip"
+								[ngModel]="currentDraft.skillIds"
+								(ngModelChange)="updateDraftSkills($event)"
+							>
+								<ng-template let-group #group>
+									<div class="admin-magic-words-page__option-group">
+										{{ group.label }}
+									</div>
+								</ng-template>
+							</p-multiselect>
+						</label>
+
+						<label class="admin-magic-words-page__field">
+							<span>Типы урона</span>
+							<p-multiselect
+								[options]="damageTypeOptions()"
+								optionLabel="name"
+								optionValue="id"
+								appendTo="body"
+								[filter]="true"
+								filterBy="name"
+								filterPlaceHolder="Поиск типа урона"
+								[showToggleAll]="false"
+								placeholder="Не выбраны"
+								display="chip"
+								[ngModel]="currentDraft.damageTypeIds"
+								(ngModelChange)="updateDraftDamageTypes($event)"
+							></p-multiselect>
+						</label>
+
+						<label class="admin-magic-words-page__field">
+							<span>Состояния</span>
+							<p-multiselect
+								[options]="conditionOptions()"
+								optionLabel="name"
+								optionValue="id"
+								appendTo="body"
+								[filter]="true"
+								filterBy="name"
+								filterPlaceHolder="Поиск состояния"
+								[showToggleAll]="false"
+								placeholder="Не выбраны"
+								display="chip"
+								[ngModel]="currentDraft.conditionIds"
+								(ngModelChange)="updateDraftConditions($event)"
+							></p-multiselect>
+						</label>
+
 						@if (currentDraft.type === 'MODIFIER') {
 							<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
 								<span>Разрешённые жесты</span>
@@ -178,6 +241,11 @@
 									[options]="gestureOptions()"
 									optionLabel="name"
 									optionValue="id"
+									appendTo="body"
+									[filter]="true"
+									filterBy="name"
+									filterPlaceHolder="Поиск жеста"
+									[showToggleAll]="false"
 									placeholder="Без ограничений"
 									display="chip"
 									[ngModel]="currentDraft.allowedGestureIds"
