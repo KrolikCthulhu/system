@@ -121,6 +121,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminSpellMechanicsPageComponent)
 					},
 					{
+						path: 'progression-presets',
+						loadComponent: () =>
+							import(
+								'../../features/progression-presets/ui/pages/admin-progression-presets-page/admin-progression-presets-page.component'
+							).then(m => m.AdminProgressionPresetsPageComponent)
+					},
+					{
 						path: 'spells/formula/:actionId/:essenceId/:gestureId',
 						loadComponent: () =>
 							import(

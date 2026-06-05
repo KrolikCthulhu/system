@@ -74,9 +74,9 @@ export class RollConsequencesService {
 
 	async create(dto: CreateRollConsequenceDto) {
 		try {
-			const consequence = await this.prisma.$transaction(async tx => {
+			const consequenceId = await this.prisma.$transaction(async tx => {
 				const created = await tx.rollConsequence.create({
-					select: rollConsequenceSelect,
+					select: { id: true },
 					data: {
 						name: dto.name,
 						description: dto.description || null,
@@ -91,9 +91,10 @@ export class RollConsequencesService {
 
 				await this.syncValues(tx, created.id, dto.values ?? []);
 
-				return created;
+				return created.id;
 			});
-			const values = await this.loadValues([consequence.id]);
+			const consequence = await this.loadConsequence(consequenceId);
+			const values = await this.loadValues([consequenceId]);
 
 			return this.mapConsequence(consequence, values.get(consequence.id) ?? []);
 		} catch (error) {
@@ -105,9 +106,8 @@ export class RollConsequencesService {
 		await this.ensureExists(id);
 
 		try {
-			const consequence = await this.prisma.$transaction(async tx => {
-				const updated = await tx.rollConsequence.update({
-					select: rollConsequenceSelect,
+			await this.prisma.$transaction(async tx => {
+				await tx.rollConsequence.update({
 					where: { id },
 					data: {
 						name: dto.name,
@@ -127,9 +127,8 @@ export class RollConsequencesService {
 				if (dto.values) {
 					await this.syncValues(tx, id, dto.values);
 				}
-
-				return updated;
 			});
+			const consequence = await this.loadConsequence(id);
 			const values = await this.loadValues([id]);
 
 			return this.mapConsequence(consequence, values.get(id) ?? []);
@@ -320,6 +319,13 @@ export class RollConsequencesService {
 		if (!consequence) {
 			throw new NotFoundException('Последствие броска не найдено.');
 		}
+	}
+
+	private loadConsequence(id: string) {
+		return this.prisma.rollConsequence.findUniqueOrThrow({
+			select: rollConsequenceSelect,
+			where: { id }
+		});
 	}
 
 }

@@ -3,6 +3,7 @@ import {
 	IsBoolean,
 	IsIn,
 	IsInt,
+	IsObject,
 	IsOptional,
 	IsString,
 	IsUUID,
@@ -40,6 +41,37 @@ export class SpellMechanicParameterDefaultValueDto {
 	value!: string;
 }
 
+export class SpellMechanicTargetConfigDto {
+	@IsString()
+	name!: string;
+
+	@IsString()
+	source!: string;
+
+	@IsString()
+	relation!: string;
+
+	@IsString()
+	countMode!: string;
+
+	@IsOptional()
+	@IsString()
+	countValueMode?: string;
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	countValue?: number;
+
+	@IsOptional()
+	@IsString()
+	countFormula?: string;
+
+	@IsOptional()
+	@IsBoolean()
+	isRequired?: boolean;
+}
+
 export class SpellMechanicParameterDto {
 	@IsOptional()
 	@IsUUID()
@@ -63,6 +95,12 @@ export class SpellMechanicParameterDto {
 	@ValidateNested()
 	@Type(() => SpellMechanicParameterDefaultValueDto)
 	defaultValue!: SpellMechanicParameterDefaultValueDto;
+
+	@IsOptional()
+	@IsObject()
+	@ValidateNested()
+	@Type(() => SpellMechanicTargetConfigDto)
+	defaultTargetConfig?: SpellMechanicTargetConfigDto | null;
 
 	@IsOptional()
 	@IsInt()

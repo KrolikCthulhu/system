@@ -70,6 +70,10 @@ export class AdminLayoutComponent {
 					routerLink: '/admin/rules/spell-mechanics'
 				},
 				{
+					label: 'Прогрессии',
+					routerLink: '/admin/rules/progression-presets'
+				},
+				{
 					label: 'Заклинания',
 					routerLink: '/admin/rules/spells'
 				}

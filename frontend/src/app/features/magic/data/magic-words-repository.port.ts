@@ -3,13 +3,16 @@ import { Observable } from 'rxjs';
 import {
 	MagicSpellFormulasCatalog,
 	MagicWord,
+	MagicWordEssenceProfile,
 	MagicWordType,
 	MagicWordsCatalog
 } from '../domain/magic-word.models';
 import {
 	PersistedSpellStatus,
 	Spell,
-	SpellCatalog
+	SpellCatalog,
+	SpellMechanicBlock,
+	SpellTargetConfig
 } from '../domain/spell.models';
 
 export interface MagicWordsRepository {
@@ -25,6 +28,7 @@ export interface MagicWordsRepository {
 		skillIds?: string[];
 		damageTypeIds?: string[];
 		conditionIds?: string[];
+		essenceProfile?: MagicWordEssenceProfile;
 	}): Observable<MagicWord>;
 	updateWord(
 		id: string,
@@ -38,6 +42,7 @@ export interface MagicWordsRepository {
 			skillIds?: string[];
 			damageTypeIds?: string[];
 			conditionIds?: string[];
+			essenceProfile?: MagicWordEssenceProfile;
 		}
 	): Observable<MagicWord>;
 	deleteWord(id: string): Observable<void>;
@@ -51,6 +56,10 @@ export interface MagicWordsRepository {
 		status: PersistedSpellStatus;
 		isActive?: boolean;
 		sortOrder?: number;
+		targetConfigs?: SpellTargetConfig[];
+		mechanicBlocks?: Array<
+			Omit<SpellMechanicBlock, 'createdAt' | 'updatedAt'>
+		>;
 	}): Observable<Spell>;
 	updateSpell(
 		id: string,
@@ -60,6 +69,10 @@ export interface MagicWordsRepository {
 			status: PersistedSpellStatus;
 			isActive?: boolean;
 			sortOrder?: number;
+			targetConfigs?: SpellTargetConfig[];
+			mechanicBlocks?: Array<
+				Omit<SpellMechanicBlock, 'createdAt' | 'updatedAt'>
+			>;
 		}
 	): Observable<Spell>;
 	deleteSpell(id: string): Observable<void>;

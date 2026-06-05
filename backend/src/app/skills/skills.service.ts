@@ -140,7 +140,7 @@ export class SkillsService {
 		this.validateSkillLevels(dto.defaultLevel, dto.maxLevel);
 
 		try {
-			const skill = await this.prisma.$transaction(async tx => {
+			const skillId = await this.prisma.$transaction(async tx => {
 				const id = randomUUID();
 				const description = dto.description || null;
 
@@ -162,8 +162,7 @@ export class SkillsService {
 					}
 				});
 
-				return tx.skill.create({
-					select: skillSelect,
+				await tx.skill.create({
 					data: {
 						id,
 						name: dto.name,
@@ -177,7 +176,10 @@ export class SkillsService {
 						systemValueId: id
 					}
 				});
+
+				return id;
 			});
+			const skill = await this.loadSkill(skillId);
 
 			return this.mapSkill(skill);
 		} catch (error) {
@@ -206,9 +208,14 @@ export class SkillsService {
 		);
 
 		try {
-			const skill = await this.prisma.$transaction(async tx => {
+			await this.prisma.$transaction(async tx => {
 				const updatedSkill = await tx.skill.update({
-					select: skillSelect,
+					select: {
+						id: true,
+						name: true,
+						description: true,
+						systemValueId: true
+					},
 					where: { id },
 					data: {
 						name: dto.name,
@@ -227,18 +234,15 @@ export class SkillsService {
 					}
 				});
 
-				if (updatedSkill.systemValue) {
-					await tx.systemValue.update({
-						where: { id: updatedSkill.systemValue.id },
-						data: {
-							name: updatedSkill.name,
-							description: updatedSkill.description
-						}
-					});
-				}
-
-				return updatedSkill;
+				await tx.systemValue.update({
+					where: { id: updatedSkill.systemValueId },
+					data: {
+						name: updatedSkill.name,
+						description: updatedSkill.description
+					}
+				});
 			});
+			const skill = await this.loadSkill(id);
 
 			return this.mapSkill(skill);
 		} catch (error) {
@@ -412,6 +416,13 @@ export class SkillsService {
 		if (!skill) {
 			throw new NotFoundException('Навык не найден.');
 		}
+	}
+
+	private loadSkill(id: string) {
+		return this.prisma.skill.findUniqueOrThrow({
+			select: skillSelect,
+			where: { id }
+		});
 	}
 
 	private async ensureLevelExists(id: string) {

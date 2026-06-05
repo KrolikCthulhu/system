@@ -55,7 +55,12 @@ import {
 	SpellMechanicParameter,
 	SpellMechanicParameterDefaultValue,
 	SpellMechanicParameterDefaultValueMode,
-	SpellMechanicParameterKind
+	SpellMechanicParameterKind,
+	SpellMechanicTargetConfig,
+	SpellMechanicTargetCountMode,
+	SpellMechanicTargetCountValueMode,
+	SpellMechanicTargetRelation,
+	SpellMechanicTargetSource
 } from '../../../domain/spell-mechanics.models';
 
 type SelectionKind = 'category' | 'mechanic';
@@ -79,6 +84,16 @@ interface MechanicDraft {
 	actions: MechanicActionDraft[];
 	isActive: boolean;
 	sortOrder: number;
+}
+
+type MechanicTextTemplateSegment =
+	| { kind: 'text'; text: string }
+	| { kind: 'parameter'; parameterId: string }
+	| { kind: 'actionResult'; actionId: string; resultName: string };
+
+interface MechanicTextTemplateDocument {
+	version: 1;
+	segments: MechanicTextTemplateSegment[];
 }
 
 interface MechanicActionDraft extends Omit<SpellMechanicAction, 'config'> {
@@ -236,6 +251,34 @@ const COMPARISON_OPERATOR_OPTIONS: Array<{
 	{ label: 'Меньше', value: 'lt' }
 ];
 
+const TARGET_SOURCE_OPTIONS: Array<{ label: string; value: SpellMechanicTargetSource }> = [
+	{ label: 'Кастер', value: 'caster' },
+	{ label: 'Выбор', value: 'selected' },
+	{ label: 'Область', value: 'area' }
+];
+
+const TARGET_RELATION_OPTIONS: Array<{ label: string; value: SpellMechanicTargetRelation }> = [
+	{ label: 'Сам', value: 'self' },
+	{ label: 'Любые', value: 'any' },
+	{ label: 'Враги', value: 'enemy' },
+	{ label: 'Союзники', value: 'ally' }
+];
+
+const TARGET_COUNT_MODE_OPTIONS: Array<{ label: string; value: SpellMechanicTargetCountMode }> = [
+	{ label: 'Одна', value: 'one' },
+	{ label: 'Все', value: 'all' },
+	{ label: 'До значения', value: 'upTo' },
+	{ label: 'Ровно значение', value: 'exact' }
+];
+
+const TARGET_COUNT_VALUE_MODE_OPTIONS: Array<{
+	label: string;
+	value: SpellMechanicTargetCountValueMode;
+}> = [
+	{ label: 'Число', value: 'fixed' },
+	{ label: 'Формула', value: 'formula' }
+];
+
 interface SelectOption {
 	id: string;
 	name: string;
@@ -315,12 +358,23 @@ export class AdminSpellMechanicsPageComponent {
 	protected readonly selectedBranchAction =
 		signal<BranchActionSelection | null>(null);
 	protected readonly calculationGraphEditorVisible = signal(false);
+	protected readonly draggingTextTemplateSegmentIndex = signal<number | null>(
+		null
+	);
+	protected readonly textTemplateSegmentDropTarget = signal<{
+		index: number;
+		position: 'before' | 'after';
+	} | null>(null);
 	protected readonly slotKindOptions = SLOT_KIND_OPTIONS;
 	protected readonly actionKindOptions = ACTION_KIND_OPTIONS;
 	protected readonly valueChangeOperationOptions =
 		VALUE_CHANGE_OPERATION_OPTIONS;
 	protected readonly comparisonOperatorOptions = COMPARISON_OPERATOR_OPTIONS;
 	protected readonly defaultValueModeOptions = DEFAULT_VALUE_MODE_OPTIONS;
+	protected readonly targetSourceOptions = TARGET_SOURCE_OPTIONS;
+	protected readonly targetRelationOptions = TARGET_RELATION_OPTIONS;
+	protected readonly targetCountModeOptions = TARGET_COUNT_MODE_OPTIONS;
+	protected readonly targetCountValueModeOptions = TARGET_COUNT_VALUE_MODE_OPTIONS;
 	protected readonly savedDraftSignature = signal('');
 	protected readonly loading = signal(true);
 	protected readonly saving = signal(false);
@@ -589,6 +643,47 @@ export class AdminSpellMechanicsPageComponent {
 					.flatMap(group => group.items)
 					.map(item => [item.id, item.name] as const)
 			)
+	);
+	protected readonly textTemplateSegments = computed(() =>
+		parseTextTemplateDocument(this.mechanicDraft()?.textTemplate ?? '').segments
+	);
+	protected readonly textTemplateInsertOptionGroups = computed<
+		SelectOptionGroup[]
+	>(() => [
+		...createSingleOptionGroup(
+			'Входные параметры',
+			this.mechanicSlots()
+				.sort(compareByOrderAndName)
+				.map(parameter => ({
+					id: encodeTextTemplateInsert({
+						kind: 'parameter',
+						parameterId: parameter.id
+					}),
+					name: parameter.name || 'Параметр',
+					searchText: `${parameter.name} параметр входное значение`
+				}))
+		),
+		...createSingleOptionGroup(
+			'Результаты шагов',
+			collectMechanicActions(this.mechanicActions()).flatMap(action =>
+				findActionResultNames(action).map(resultName => ({
+					id: encodeTextTemplateInsert({
+						kind: 'actionResult',
+						actionId: action.id,
+						resultName
+					}),
+					name: `${action.name || 'Шаг'}: ${resultName}`,
+					searchText: `${action.name} ${resultName} результат шаг`
+				}))
+			)
+		)
+	]);
+	protected readonly textTemplatePreview = computed(() =>
+		formatTextTemplatePreview(
+			this.textTemplateSegments(),
+			this.mechanicSlots(),
+			collectMechanicActions(this.mechanicActions())
+		)
 	);
 
 	constructor() {
@@ -1497,6 +1592,7 @@ export class AdminSpellMechanicsPageComponent {
 			configuredBySpell: true,
 			overrideAllowed: false,
 			defaultValue: createEmptyDefaultValue(),
+			defaultTargetConfig: null,
 			sortOrder: slots.length,
 			createdAt: '',
 			updatedAt: ''
@@ -1534,7 +1630,8 @@ export class AdminSpellMechanicsPageComponent {
 	protected updateMechanicSlotKind(index: number, kind: SpellMechanicParameterKind) {
 		this.updateMechanicSlot(index, {
 			kind,
-			defaultValue: createEmptyDefaultValue()
+			defaultValue: createEmptyDefaultValue(),
+			defaultTargetConfig: null
 		});
 	}
 
@@ -1558,6 +1655,29 @@ export class AdminSpellMechanicsPageComponent {
 		}
 
 		this.updateMechanicSlotKind(index, kind);
+	}
+
+	protected toggleSelectedMechanicSlotDefaultTarget(enabled: boolean) {
+		this.updateSelectedMechanicSlot({
+			defaultTargetConfig: enabled ? createDefaultTargetConfig() : null
+		});
+	}
+
+	protected updateSelectedMechanicSlotDefaultTarget(
+		patch: Partial<SpellMechanicTargetConfig>
+	) {
+		const slot = this.selectedSlot();
+
+		if (!slot || slot.kind !== 'target' || !slot.defaultTargetConfig) {
+			return;
+		}
+
+		this.updateSelectedMechanicSlot({
+			defaultTargetConfig: {
+				...slot.defaultTargetConfig,
+				...patch
+			}
+		});
 	}
 
 	protected updateMechanicSlotDefaultValueMode(
@@ -1758,6 +1878,10 @@ export class AdminSpellMechanicsPageComponent {
 	}
 
 	protected slotDefaultValueModeLabel(slot: SpellMechanicParameter) {
+		if (slot.kind === 'target') {
+			return slot.defaultTargetConfig ? 'Шаблон цели' : 'Не задан';
+		}
+
 		if (!this.supportsDefaultValue(slot.kind)) {
 			return 'Не применяется';
 		}
@@ -1770,6 +1894,10 @@ export class AdminSpellMechanicsPageComponent {
 	}
 
 	protected slotDefaultValueDisplay(slot: SpellMechanicParameter) {
+		if (slot.kind === 'target') {
+			return slot.defaultTargetConfig?.name ?? 'Задать в заклинании';
+		}
+
 		if (!this.supportsDefaultValue(slot.kind)) {
 			return 'Не применяется';
 		}
@@ -1798,6 +1926,197 @@ export class AdminSpellMechanicsPageComponent {
 
 	protected updateMechanicTextTemplate(textTemplate: string) {
 		this.patchMechanicDraft({ textTemplate });
+	}
+
+	protected addTextTemplateTextSegment() {
+		this.updateTextTemplateSegments([
+			...this.textTemplateSegments(),
+			{ kind: 'text', text: '' }
+		]);
+	}
+
+	protected addEmptyTextTemplateInsertSegment() {
+		this.updateTextTemplateSegments([
+			...this.textTemplateSegments(),
+			{ kind: 'parameter', parameterId: '' }
+		]);
+	}
+
+	protected updateTextTemplateTextSegment(index: number, text: string) {
+		this.updateTextTemplateSegments(
+			this.textTemplateSegments().map((segment, segmentIndex) =>
+				segmentIndex === index && segment.kind === 'text'
+					? { ...segment, text }
+					: segment
+			)
+		);
+	}
+
+	protected updateTextTemplateInsertSegment(index: number, value: string | null) {
+		if (!value) {
+			return;
+		}
+
+		this.updateTextTemplateSegments(
+			this.textTemplateSegments().map((segment, segmentIndex) =>
+				segmentIndex === index && segment.kind !== 'text'
+					? decodeTextTemplateInsert(value)
+					: segment
+			)
+		);
+	}
+
+	protected textTemplateInsertValue(segment: MechanicTextTemplateSegment) {
+		if (segment.kind === 'text') {
+			return null;
+		}
+
+		return encodeTextTemplateInsert(segment);
+	}
+
+	protected moveTextTemplateSegment(index: number, direction: -1 | 1) {
+		const segments = [...this.textTemplateSegments()];
+		const nextIndex = index + direction;
+
+		if (nextIndex < 0 || nextIndex >= segments.length) {
+			return;
+		}
+
+		const current = segments[index];
+		const next = segments[nextIndex];
+
+		if (!current || !next) {
+			return;
+		}
+
+		segments[index] = next;
+		segments[nextIndex] = current;
+		this.updateTextTemplateSegments(segments);
+	}
+
+	protected deleteTextTemplateSegment(index: number) {
+		this.updateTextTemplateSegments(
+			this.textTemplateSegments().filter((_, segmentIndex) => segmentIndex !== index)
+		);
+	}
+
+	protected startTextTemplateSegmentDrag(index: number, event: DragEvent) {
+		this.draggingTextTemplateSegmentIndex.set(index);
+		event.dataTransfer?.setData('text/plain', String(index));
+
+		if (event.dataTransfer) {
+			event.dataTransfer.effectAllowed = 'move';
+		}
+	}
+
+	protected allowTextTemplateSegmentDrop(index: number, event: DragEvent) {
+		event.preventDefault();
+
+		if (event.dataTransfer) {
+			event.dataTransfer.dropEffect = 'move';
+		}
+
+		this.textTemplateSegmentDropTarget.set({
+			index,
+			position: resolveDropPosition(event)
+		});
+	}
+
+	protected dropTextTemplateSegment(index: number, event: DragEvent) {
+		event.preventDefault();
+		const sourceIndex = this.draggingTextTemplateSegmentIndex();
+		const dropTarget = this.textTemplateSegmentDropTarget();
+		const targetIndex =
+			dropTarget?.index === index
+				? dropTarget.position === 'after'
+					? index + 1
+					: index
+				: index;
+
+		if (sourceIndex === null) {
+			this.clearTextTemplateSegmentDragState();
+			return;
+		}
+
+		const segments = [...this.textTemplateSegments()];
+		const [segment] = segments.splice(sourceIndex, 1);
+
+		if (!segment) {
+			this.clearTextTemplateSegmentDragState();
+			return;
+		}
+
+		const adjustedTargetIndex =
+			sourceIndex < targetIndex ? targetIndex - 1 : targetIndex;
+
+		if (adjustedTargetIndex === sourceIndex) {
+			this.clearTextTemplateSegmentDragState();
+			return;
+		}
+
+		segments.splice(adjustedTargetIndex, 0, segment);
+		this.clearTextTemplateSegmentDragState();
+		this.updateTextTemplateSegments(segments);
+	}
+
+	protected endTextTemplateSegmentDrag() {
+		this.clearTextTemplateSegmentDragState();
+	}
+
+	protected isTextTemplateSegmentDragging(index: number) {
+		return this.draggingTextTemplateSegmentIndex() === index;
+	}
+
+	protected isTextTemplateSegmentDropTarget(
+		index: number,
+		position: 'before' | 'after'
+	) {
+		const target = this.textTemplateSegmentDropTarget();
+		return target?.index === index && target.position === position;
+	}
+
+	private clearTextTemplateSegmentDragState() {
+		this.draggingTextTemplateSegmentIndex.set(null);
+		this.textTemplateSegmentDropTarget.set(null);
+	}
+
+	protected textTemplateSegmentLabel(segment: MechanicTextTemplateSegment) {
+		if (segment.kind === 'text') {
+			return 'Текст';
+		}
+
+		if (segment.kind === 'parameter') {
+			return (
+				this.mechanicSlots().find(parameter => parameter.id === segment.parameterId)
+					?.name ?? 'Параметр не найден'
+			);
+		}
+
+		const action = collectMechanicActions(this.mechanicActions()).find(
+			item => item.id === segment.actionId
+		);
+
+		return `${action?.name ?? 'Шаг не найден'}: ${segment.resultName}`;
+	}
+
+	protected textTemplateSegmentKindLabel(segment: MechanicTextTemplateSegment) {
+		if (segment.kind === 'parameter') {
+			return 'Параметр';
+		}
+
+		if (segment.kind === 'actionResult') {
+			return 'Результат';
+		}
+
+		return 'Текст';
+	}
+
+	protected isFirstTextTemplateSegment(index: number) {
+		return index === 0;
+	}
+
+	protected isLastTextTemplateSegment(index: number) {
+		return index === this.textTemplateSegments().length - 1;
 	}
 
 	protected updateMechanicSortOrder(sortOrder: number | null) {
@@ -2051,6 +2370,12 @@ export class AdminSpellMechanicsPageComponent {
 		});
 	}
 
+	private updateTextTemplateSegments(segments: MechanicTextTemplateSegment[]) {
+		this.patchMechanicDraft({
+			textTemplate: stringifyTextTemplateDocument({ version: 1, segments })
+		});
+	}
+
 	private deleteSelectedCategory() {
 		const draft = this.categoryDraft();
 
@@ -2288,6 +2613,19 @@ function createEmptyDefaultValue(): SpellMechanicParameterDefaultValue {
 	return {
 		mode: 'empty',
 		value: ''
+	};
+}
+
+function createDefaultTargetConfig(): SpellMechanicTargetConfig {
+	return {
+		name: 'Цель',
+		source: 'selected',
+		relation: 'enemy',
+		countMode: 'one',
+		countValueMode: 'fixed',
+		countValue: 1,
+		countFormula: '',
+		isRequired: true
 	};
 }
 
@@ -2682,6 +3020,170 @@ function nestedActionToDraft(
 		createdAt: '',
 		updatedAt: ''
 	};
+}
+
+function parseTextTemplateDocument(value: string): MechanicTextTemplateDocument {
+	const trimmed = value.trim();
+
+	if (!trimmed) {
+		return { version: 1, segments: [] };
+	}
+
+	try {
+		const parsed: unknown = JSON.parse(trimmed);
+
+		if (isTextTemplateDocument(parsed)) {
+			return {
+				version: 1,
+				segments: parsed.segments
+			};
+		}
+	} catch {
+		return {
+			version: 1,
+			segments: [{ kind: 'text', text: value }]
+		};
+	}
+
+	return {
+		version: 1,
+		segments: [{ kind: 'text', text: value }]
+	};
+}
+
+function stringifyTextTemplateDocument(
+	document: MechanicTextTemplateDocument
+) {
+	return JSON.stringify(document);
+}
+
+function isTextTemplateDocument(
+	value: unknown
+): value is MechanicTextTemplateDocument {
+	if (!isRecord(value) || value['version'] !== 1 || !Array.isArray(value['segments'])) {
+		return false;
+	}
+
+	return value['segments'].every(isTextTemplateSegment);
+}
+
+function isTextTemplateSegment(
+	value: unknown
+): value is MechanicTextTemplateSegment {
+	if (!isRecord(value) || typeof value['kind'] !== 'string') {
+		return false;
+	}
+
+	if (value['kind'] === 'text') {
+		return typeof value['text'] === 'string';
+	}
+
+	if (value['kind'] === 'parameter') {
+		return typeof value['parameterId'] === 'string';
+	}
+
+	return (
+		value['kind'] === 'actionResult' &&
+		typeof value['actionId'] === 'string' &&
+		typeof value['resultName'] === 'string'
+	);
+}
+
+function formatTextTemplatePreview(
+	segments: MechanicTextTemplateSegment[],
+	parameters: SpellMechanicParameter[],
+	actions: MechanicActionDraft[]
+) {
+	return segments
+		.map(segment => {
+			if (segment.kind === 'text') {
+				return segment.text;
+			}
+
+			if (segment.kind === 'parameter') {
+				const parameter = parameters.find(item => item.id === segment.parameterId);
+				return `[${parameter?.name ?? 'Параметр не найден'}]`;
+			}
+
+			const action = actions.find(item => item.id === segment.actionId);
+			return `[${action?.name ?? 'Шаг не найден'}: ${segment.resultName}]`;
+		})
+		.join('');
+}
+
+function encodeTextTemplateInsert(
+	segment: Exclude<MechanicTextTemplateSegment, { kind: 'text' }>
+) {
+	if (segment.kind === 'parameter') {
+		return `parameter:${segment.parameterId}`;
+	}
+
+	return `actionResult:${segment.actionId}:${encodeURIComponent(segment.resultName)}`;
+}
+
+function decodeTextTemplateInsert(
+	value: string
+): Exclude<MechanicTextTemplateSegment, { kind: 'text' }> {
+	if (value.startsWith('actionResult:')) {
+		const [, actionId = '', resultName = ''] = value.split(':');
+		return {
+			kind: 'actionResult',
+			actionId,
+			resultName: decodeURIComponent(resultName)
+		};
+	}
+
+	return {
+		kind: 'parameter',
+		parameterId: value.replace(/^parameter:/, '')
+	};
+}
+
+function resolveDropPosition(event: DragEvent): 'before' | 'after' {
+	const target = event.currentTarget;
+
+	if (!(target instanceof HTMLElement)) {
+		return 'before';
+	}
+
+	const rect = target.getBoundingClientRect();
+	return event.clientY - rect.top > rect.height / 2 ? 'after' : 'before';
+}
+
+function collectMechanicActions(actions: MechanicActionDraft[]) {
+	const result: MechanicActionDraft[] = [];
+
+	for (const action of actions) {
+		result.push(action);
+
+		if (action.kind === 'branch') {
+			result.push(
+				...collectNestedMechanicActions(readBranchConfig(action))
+			);
+		}
+	}
+
+	return result;
+}
+
+function collectNestedMechanicActions(config: BranchActionConfig) {
+	const result: MechanicActionDraft[] = [];
+
+	for (const action of [
+		...(config.thenActions ?? []),
+		...(config.elseActions ?? [])
+	]) {
+		const draft = nestedActionToDraft(action);
+		result.push(draft);
+
+		if (action.kind === 'branch') {
+			result.push(
+				...collectNestedMechanicActions(parseNestedBranchActionConfig(action))
+			);
+		}
+	}
+
+	return result;
 }
 
 function createScenarioTreeNodes(

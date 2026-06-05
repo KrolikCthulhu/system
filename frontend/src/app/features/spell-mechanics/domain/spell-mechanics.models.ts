@@ -47,9 +47,26 @@ export interface SpellMechanicParameter {
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;
 	defaultValue: SpellMechanicParameterDefaultValue;
+	defaultTargetConfig: SpellMechanicTargetConfig | null;
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
+}
+
+export type SpellMechanicTargetSource = 'caster' | 'selected' | 'area';
+export type SpellMechanicTargetRelation = 'self' | 'any' | 'enemy' | 'ally';
+export type SpellMechanicTargetCountMode = 'one' | 'all' | 'upTo' | 'exact';
+export type SpellMechanicTargetCountValueMode = 'fixed' | 'formula';
+
+export interface SpellMechanicTargetConfig {
+	name: string;
+	source: SpellMechanicTargetSource;
+	relation: SpellMechanicTargetRelation;
+	countMode: SpellMechanicTargetCountMode;
+	countValueMode: SpellMechanicTargetCountValueMode;
+	countValue: number;
+	countFormula: string;
+	isRequired: boolean;
 }
 
 export type SpellMechanicParameterDefaultValueMode =

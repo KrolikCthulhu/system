@@ -129,15 +129,19 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 			create: {
 				categoryId: category.id,
 				name: seed.name,
+				description: 'description' in seed ? seed.description : null,
 				sortOrder: seed.sortOrder,
 				configSchema: seed.configSchema,
-				textTemplate: seed.textTemplate
+				textTemplate:
+					typeof seed.textTemplate === 'string' ? seed.textTemplate : null
 			},
 			update: {
 				categoryId: category.id,
+				description: 'description' in seed ? seed.description : null,
 				sortOrder: seed.sortOrder,
 				configSchema: seed.configSchema,
-				textTemplate: seed.textTemplate
+				textTemplate:
+					typeof seed.textTemplate === 'string' ? seed.textTemplate : null
 			}
 		});
 
@@ -199,6 +203,11 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 							parameter.kind === 'text')
 							? parameter.defaultValue.value
 							: null,
+					defaultTargetConfig:
+						'defaultTargetConfig' in parameter &&
+						parameter.kind === 'target'
+							? parameter.defaultTargetConfig
+							: null,
 					isRequired: parameter.required,
 					configuredBySpell: parameter.configuredBySpell,
 					overrideAllowed: parameter.overrideAllowed,
@@ -217,26 +226,33 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 			).map(parameter => [parameter.name, parameter.id])
 		);
 
+		const actionIds = new Map<string, string>();
+
+		for (const action of seed.actions) {
+			actionIds.set(action.name, randomUUID());
+		}
+
+		const context: SeedContext = {
+			parametersByName,
+			actionsByName: actionIds,
+			skillsByName,
+			damageTypesByName,
+			conditionsByName,
+			systemValuesByName
+		};
+
+		await tx.spellMechanic.update({
+			where: { id: mechanic.id },
+			data: {
+				textTemplate: resolveSeedTextTemplate(seed.textTemplate, context)
+			}
+		});
+
 		await tx.spellMechanicAction.deleteMany({
 			where: { mechanicId: mechanic.id }
 		});
 
 		if (seed.actions.length) {
-			const actionIds = new Map<string, string>();
-
-			for (const action of seed.actions) {
-				actionIds.set(action.name, randomUUID());
-			}
-
-			const context: SeedContext = {
-				parametersByName,
-				actionsByName: actionIds,
-				skillsByName,
-				damageTypesByName,
-				conditionsByName,
-				systemValuesByName
-			};
-
 			await tx.spellMechanicAction.createMany({
 				data: seed.actions.map((action, index) => ({
 					id: requireMapValue(
@@ -334,6 +350,68 @@ function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJs
 	}
 
 	return result;
+}
+
+function resolveSeedTextTemplate(value: unknown, context: SeedContext) {
+	if (typeof value === 'string') {
+		return value;
+	}
+
+	if (!isRecord(value) || !Array.isArray(value.segments)) {
+		return '';
+	}
+
+	return JSON.stringify({
+		version: 1,
+		segments: value.segments.map(segment =>
+			resolveSeedTextTemplateSegment(segment, context)
+		)
+	});
+}
+
+function resolveSeedTextTemplateSegment(
+	value: unknown,
+	context: SeedContext
+): Record<string, string> {
+	if (!isRecord(value)) {
+		throw new Error('Spell mechanic text template segment seed must be an object.');
+	}
+
+	if (value.kind === 'text') {
+		return {
+			kind: 'text',
+			text: readString(value, 'text')
+		};
+	}
+
+	if (value.kind === 'mechanicParameterByName') {
+		const parameterName = readString(value, 'parameterName');
+		return {
+			kind: 'parameter',
+			parameterId: requireMapValue(
+				context.parametersByName,
+				parameterName,
+				`Spell mechanic parameter seed not found: ${parameterName}`
+			)
+		};
+	}
+
+	if (value.kind === 'actionResultByName') {
+		const actionName = readString(value, 'actionName');
+		return {
+			kind: 'actionResult',
+			actionId: requireMapValue(
+				context.actionsByName,
+				actionName,
+				`Spell mechanic action seed not found: ${actionName}`
+			),
+			resultName: readString(value, 'resultName')
+		};
+	}
+
+	throw new Error(
+		`Unsupported spell mechanic text template segment seed kind: ${String(value.kind)}`
+	);
 }
 
 function resolveNestedSeedAction(

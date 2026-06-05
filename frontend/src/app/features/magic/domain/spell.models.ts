@@ -20,6 +20,36 @@ export interface Spell {
 	action: SpellFormulaWord;
 	essence: SpellFormulaWord;
 	gesture: SpellFormulaWord;
+	targetConfigs: SpellTargetConfig[];
+	mechanicBlocks: SpellMechanicBlock[];
+	createdAt: string;
+	updatedAt: string;
+}
+
+export type SpellTargetSource = 'caster' | 'selected' | 'area';
+export type SpellTargetRelation = 'self' | 'any' | 'enemy' | 'ally';
+export type SpellTargetCountMode = 'one' | 'all' | 'upTo' | 'exact';
+export type SpellTargetCountValueMode = 'fixed' | 'formula';
+
+export interface SpellTargetConfig {
+	id: string;
+	name: string;
+	source: SpellTargetSource;
+	relation: SpellTargetRelation;
+	countMode: SpellTargetCountMode;
+	countValueMode: SpellTargetCountValueMode;
+	countValue: number;
+	countFormula: string;
+	isRequired: boolean;
+	sortOrder: number;
+}
+
+export interface SpellMechanicBlock {
+	id: string;
+	mechanicId: string;
+	parameterValues: Record<string, unknown>;
+	isActive: boolean;
+	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
 }

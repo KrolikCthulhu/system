@@ -110,7 +110,7 @@ export class EmailVerificationService {
 	async consumeToken(id: string, userId: string) {
 		const now = new Date();
 
-		return this.prisma.$transaction(async (tx) => {
+		await this.prisma.$transaction(async tx => {
 			await tx.emailVerificationToken.update({
 				where: { id },
 				data: {
@@ -118,14 +118,16 @@ export class EmailVerificationService {
 				}
 			});
 
-			const user = await tx.user.update({
+			await tx.user.update({
 				where: { id: userId },
 				data: {
 					isEmailVerified: true
 				}
 			});
+		});
 
-			return user;
+		return this.prisma.user.findUniqueOrThrow({
+			where: { id: userId }
 		});
 	}
 }

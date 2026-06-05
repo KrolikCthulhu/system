@@ -4,6 +4,7 @@ import {
 } from '../__generated__/index.js';
 import {
 	MAGIC_MODIFIER_GESTURE_RESTRICTION_SEEDS,
+	MAGIC_WORD_ESSENCE_PROFILE_SEEDS,
 	MAGIC_WORD_SEEDS
 } from './data';
 
@@ -42,6 +43,7 @@ export async function seedMagicWords(tx: Prisma.TransactionClient) {
 	}
 
 	await seedModifierGestureRestrictions(tx);
+	await seedEssenceProfiles(tx);
 }
 
 async function seedModifierGestureRestrictions(tx: Prisma.TransactionClient) {
@@ -86,6 +88,45 @@ async function seedModifierGestureRestrictions(tx: Prisma.TransactionClient) {
 				}
 			});
 		}
+	}
+}
+
+async function seedEssenceProfiles(tx: Prisma.TransactionClient) {
+	for (const seed of MAGIC_WORD_ESSENCE_PROFILE_SEEDS) {
+		const magicWord = await tx.magicWord.findUnique({
+			select: { id: true },
+			where: {
+				type_name: {
+					type: MagicWordType.ESSENCE,
+					name: seed.name
+				}
+			}
+		});
+
+		if (!magicWord) {
+			throw new Error(`Magic essence seed not found: ${seed.name}`);
+		}
+
+		await tx.magicWordEssenceProfile.upsert({
+			where: { magicWordId: magicWord.id },
+			create: {
+				magicWordId: magicWord.id,
+				damageAffinity: seed.damageAffinity,
+				rangeAffinity: seed.rangeAffinity,
+				controlAffinity: seed.controlAffinity,
+				durationAffinity: seed.durationAffinity,
+				areaAffinity: seed.areaAffinity,
+				stabilityAffinity: seed.stabilityAffinity
+			},
+			update: {
+				damageAffinity: seed.damageAffinity,
+				rangeAffinity: seed.rangeAffinity,
+				controlAffinity: seed.controlAffinity,
+				durationAffinity: seed.durationAffinity,
+				areaAffinity: seed.areaAffinity,
+				stabilityAffinity: seed.stabilityAffinity
+			}
+		});
 	}
 }
 

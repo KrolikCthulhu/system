@@ -16,6 +16,15 @@ export interface MagicWordLinkedOptionDto {
 	name: string;
 }
 
+export interface MagicWordEssenceProfileDto {
+	damageAffinity: number;
+	rangeAffinity: number;
+	controlAffinity: number;
+	durationAffinity: number;
+	areaAffinity: number;
+	stabilityAffinity: number;
+}
+
 export interface MagicWordDto {
 	id: string;
 	type: MagicWordType;
@@ -31,6 +40,7 @@ export interface MagicWordDto {
 	damageTypes: MagicWordLinkedOptionDto[];
 	conditionIds: string[];
 	conditions: MagicWordLinkedOptionDto[];
+	essenceProfile: MagicWordEssenceProfileDto | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -61,6 +71,7 @@ export interface CreateMagicWordDto {
 	skillIds?: string[];
 	damageTypeIds?: string[];
 	conditionIds?: string[];
+	essenceProfile?: MagicWordEssenceProfileDto;
 }
 
 export interface UpdateMagicWordDto {
@@ -73,6 +84,7 @@ export interface UpdateMagicWordDto {
 	skillIds?: string[];
 	damageTypeIds?: string[];
 	conditionIds?: string[];
+	essenceProfile?: MagicWordEssenceProfileDto;
 }
 
 export type SpellStatusDto = 'DRAFT' | 'TESTING' | 'READY';
@@ -97,6 +109,31 @@ export interface SpellDto {
 	action: SpellFormulaWordDto;
 	essence: SpellFormulaWordDto;
 	gesture: SpellFormulaWordDto;
+	targetConfigs: SpellTargetConfigDto[];
+	mechanicBlocks: SpellMechanicBlockDto[];
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface SpellTargetConfigDto {
+	id: string;
+	name: string;
+	source: string;
+	relation: string;
+	countMode: string;
+	countValueMode?: string;
+	countValue?: number;
+	countFormula?: string;
+	isRequired?: boolean;
+	sortOrder?: number;
+}
+
+export interface SpellMechanicBlockDto {
+	id: string;
+	mechanicId: string;
+	parameterValues: Record<string, unknown>;
+	isActive: boolean;
+	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -130,6 +167,16 @@ export interface SaveSpellDto {
 	name: string;
 	description?: string;
 	status: SpellStatusDto;
+	isActive?: boolean;
+	sortOrder?: number;
+	targetConfigs?: SpellTargetConfigDto[];
+	mechanicBlocks?: SaveSpellMechanicBlockDto[];
+}
+
+export interface SaveSpellMechanicBlockDto {
+	id?: string;
+	mechanicId: string;
+	parameterValues?: Record<string, unknown>;
 	isActive?: boolean;
 	sortOrder?: number;
 }

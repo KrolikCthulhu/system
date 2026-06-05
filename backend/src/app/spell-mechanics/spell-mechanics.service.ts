@@ -55,6 +55,7 @@ const mechanicSelect = {
 			staticConditionId: true,
 			staticSystemValueId: true,
 			staticTextValue: true,
+			defaultTargetConfig: true,
 			isRequired: true,
 			configuredBySpell: true,
 			overrideAllowed: true,
@@ -151,10 +152,11 @@ export class SpellMechanicsService {
 		await this.ensureCategoryExists(dto.categoryId);
 
 		try {
-			const mechanic = await this.prisma.spellMechanic.create({
-				select: mechanicSelect,
+			const created = await this.prisma.spellMechanic.create({
+				select: { id: true },
 				data: this.toMechanicCreateData(dto)
 			});
+			const mechanic = await this.loadMechanic(created.id);
 
 			return this.mapMechanic(mechanic);
 		} catch (error) {
@@ -174,58 +176,8 @@ export class SpellMechanicsService {
 		try {
 			const mechanic =
 				dto.parameters === undefined && dto.actions === undefined
-					? await this.prisma.spellMechanic.update({
-							select: mechanicSelect,
-							where: { id },
-							data: this.toMechanicUpdateData(dto)
-						})
-					: await this.prisma.$transaction(async tx => {
-							await tx.spellMechanic.update({
-								where: { id },
-								data: this.toMechanicUpdateData(dto)
-							});
-
-							if (dto.parameters !== undefined) {
-								await tx.spellMechanicParameter.deleteMany({
-									where: { mechanicId: id }
-								});
-
-								if (dto.parameters.length) {
-									await tx.spellMechanicParameter.createMany({
-										data: dto.parameters.map((parameter, index) =>
-											this.toMechanicParameterCreateManyData(
-												id,
-												parameter,
-												index
-											)
-										)
-									});
-								}
-							}
-
-							if (dto.actions !== undefined) {
-								await tx.spellMechanicAction.deleteMany({
-									where: { mechanicId: id }
-								});
-
-								if (dto.actions.length) {
-									await tx.spellMechanicAction.createMany({
-										data: dto.actions.map((action, index) =>
-											this.toMechanicActionCreateManyData(
-												id,
-												action,
-												index
-											)
-										)
-									});
-								}
-							}
-
-							return tx.spellMechanic.findUniqueOrThrow({
-								select: mechanicSelect,
-								where: { id }
-							});
-						});
+					? await this.updateMechanicOnly(id, dto)
+					: await this.replaceMechanicChildren(id, dto);
 
 			return this.mapMechanic(mechanic);
 		} catch (error) {
@@ -233,6 +185,68 @@ export class SpellMechanicsService {
 				uniqueMessage: 'Механика с таким названием уже существует.'
 			});
 		}
+	}
+
+	private async updateMechanicOnly(
+		id: string,
+		dto: UpdateSpellMechanicDto
+	) {
+		await this.prisma.spellMechanic.update({
+			where: { id },
+			data: this.toMechanicUpdateData(dto)
+		});
+
+		return this.loadMechanic(id);
+	}
+
+	private async replaceMechanicChildren(
+		id: string,
+		dto: UpdateSpellMechanicDto
+	) {
+		await this.prisma.$transaction(async tx => {
+			await tx.spellMechanic.update({
+				where: { id },
+				data: this.toMechanicUpdateData(dto)
+			});
+
+			if (dto.parameters !== undefined) {
+				await tx.spellMechanicParameter.deleteMany({
+					where: { mechanicId: id }
+				});
+
+				if (dto.parameters.length) {
+					await tx.spellMechanicParameter.createMany({
+						data: dto.parameters.map((parameter, index) =>
+							this.toMechanicParameterCreateManyData(
+								id,
+								parameter,
+								index
+							)
+						)
+					});
+				}
+			}
+
+			if (dto.actions !== undefined) {
+				await tx.spellMechanicAction.deleteMany({
+					where: { mechanicId: id }
+				});
+
+				if (dto.actions.length) {
+					await tx.spellMechanicAction.createMany({
+						data: dto.actions.map((action, index) =>
+							this.toMechanicActionCreateManyData(
+								id,
+								action,
+								index
+							)
+						)
+					});
+				}
+			}
+		});
+
+		return this.loadMechanic(id);
 	}
 
 	async deleteMechanic(id: string) {
@@ -260,6 +274,13 @@ export class SpellMechanicsService {
 		if (!mechanic) {
 			throw new NotFoundException('Механика не найдена.');
 		}
+	}
+
+	private loadMechanic(id: string) {
+		return this.prisma.spellMechanic.findUniqueOrThrow({
+			select: mechanicSelect,
+			where: { id }
+		});
 	}
 
 	private toCategoryCreateData(dto: CreateSpellMechanicCategoryDto) {
@@ -351,6 +372,7 @@ export class SpellMechanicsService {
 			kind: this.toParameterKind(parameter.kind),
 			defaultMode: this.toParameterDefaultMode(parameter.defaultValue.mode),
 			...defaultRefs,
+			defaultTargetConfig: this.toParameterDefaultTargetConfig(parameter),
 			isRequired: parameter.required,
 			configuredBySpell: parameter.configuredBySpell,
 			overrideAllowed: parameter.overrideAllowed,
@@ -372,6 +394,7 @@ export class SpellMechanicsService {
 			kind: this.toParameterKind(parameter.kind),
 			defaultMode: this.toParameterDefaultMode(parameter.defaultValue.mode),
 			...defaultRefs,
+			defaultTargetConfig: this.toParameterDefaultTargetConfig(parameter),
 			isRequired: parameter.required,
 			configuredBySpell: parameter.configuredBySpell,
 			overrideAllowed: parameter.overrideAllowed,
@@ -407,6 +430,23 @@ export class SpellMechanicsService {
 					? value
 					: null
 		};
+	}
+
+	private toParameterDefaultTargetConfig(parameter: SpellMechanicParameterDto) {
+		if (parameter.kind !== 'target' || !parameter.defaultTargetConfig) {
+			return null;
+		}
+
+		return {
+			name: parameter.defaultTargetConfig.name?.trim() || 'Цель',
+			source: parameter.defaultTargetConfig.source,
+			relation: parameter.defaultTargetConfig.relation,
+			countMode: parameter.defaultTargetConfig.countMode,
+			countValueMode: parameter.defaultTargetConfig.countValueMode ?? 'fixed',
+			countValue: parameter.defaultTargetConfig.countValue ?? 1,
+			countFormula: parameter.defaultTargetConfig.countFormula?.trim() ?? '',
+			isRequired: parameter.defaultTargetConfig.isRequired ?? true
+		} satisfies Prisma.InputJsonObject;
 	}
 
 	private toMechanicActionCreateData(
@@ -575,6 +615,12 @@ export class SpellMechanicsService {
 					mode: this.fromParameterDefaultMode(parameter.defaultMode),
 					value: this.getParameterDefaultValue(parameter)
 				},
+				defaultTargetConfig:
+					parameter.defaultTargetConfig &&
+					typeof parameter.defaultTargetConfig === 'object' &&
+					!Array.isArray(parameter.defaultTargetConfig)
+						? parameter.defaultTargetConfig
+						: null,
 				sortOrder: parameter.sortOrder,
 				createdAt: parameter.createdAt.toISOString(),
 				updatedAt: parameter.updatedAt.toISOString()

@@ -5,7 +5,10 @@
 	></p-confirmdialog>
 
 	<header class="admin-spell-detail-page__header">
-		<p-breadcrumb [model]="breadcrumbs()"></p-breadcrumb>
+		<p-breadcrumb
+			class="admin-spell-detail-page__breadcrumbs"
+			[model]="breadcrumbs()"
+		></p-breadcrumb>
 	</header>
 
 	@if (loading()) {
@@ -46,64 +49,460 @@
 					</div>
 				}
 
-				<label class="admin-spell-detail-page__field">
-					<span>Формула</span>
-					<input
-						pInputText
-						type="text"
-						[value]="currentDraft.formulaName"
-						readonly
-					/>
-				</label>
+				<p-tabs
+					class="admin-spell-detail-page__tabs"
+					[value]="activeTab()"
+					(valueChange)="setActiveTab($event)"
+				>
+					<p-tablist>
+						<p-tab value="main">Основное</p-tab>
+						<p-tab value="targets">Цели</p-tab>
+						<p-tab value="mechanics">Механики</p-tab>
+					</p-tablist>
 
-				<label class="admin-spell-detail-page__field">
-					<span>Название</span>
-					<input
-						pInputText
-						type="text"
-						[value]="currentDraft.name"
-						(input)="updateDraftName($any($event.target).value)"
-					/>
-				</label>
+					<p-tabpanels class="admin-spell-detail-page__tabpanels">
+						<p-tabpanel value="main" class="admin-spell-detail-page__tabpanel">
+							<div class="admin-spell-detail-page__form-grid">
+								<label class="admin-spell-detail-page__field">
+									<span>Формула</span>
+									<input
+										pInputText
+										type="text"
+										[value]="currentDraft.formulaName"
+										readonly
+									/>
+								</label>
 
-				<label class="admin-spell-detail-page__field">
-					<span>Статус</span>
-					<p-select
-						[options]="statusOptions"
-						optionLabel="label"
-						optionValue="value"
-						[ngModel]="currentDraft.status"
-						(ngModelChange)="updateDraftStatus($event)"
-					></p-select>
-				</label>
+								<label class="admin-spell-detail-page__field">
+									<span>Название</span>
+									<input
+										pInputText
+										type="text"
+										[value]="currentDraft.name"
+										(input)="updateDraftName($any($event.target).value)"
+									/>
+								</label>
 
-				<label class="admin-spell-detail-page__switch-field">
-					<span>Активно</span>
-					<p-toggleswitch
-						[disabled]="!canManageActivity(currentDraft.status)"
-						[ngModel]="currentDraft.isActive"
-						(ngModelChange)="updateDraftActive($event)"
-					></p-toggleswitch>
-				</label>
+								<label class="admin-spell-detail-page__field">
+									<span>Статус</span>
+									<p-select
+										[options]="statusOptions"
+										optionLabel="label"
+										optionValue="value"
+										[ngModel]="currentDraft.status"
+										(ngModelChange)="updateDraftStatus($event)"
+									></p-select>
+								</label>
 
-				<label class="admin-spell-detail-page__field">
-					<span>Порядок отображения</span>
-					<p-inputnumber
-						[ngModel]="currentDraft.sortOrder"
-						[min]="0"
-						(ngModelChange)="updateDraftSortOrder($event)"
-					></p-inputnumber>
-				</label>
+								<label class="admin-spell-detail-page__switch-field">
+									<span>Активно</span>
+									<p-toggleswitch
+										[disabled]="!canManageActivity(currentDraft.status)"
+										[ngModel]="currentDraft.isActive"
+										(ngModelChange)="updateDraftActive($event)"
+									></p-toggleswitch>
+								</label>
 
-				<label class="admin-spell-detail-page__field admin-spell-detail-page__field--wide">
-					<span>Описание</span>
-					<textarea
-						pTextarea
-						rows="8"
-						[value]="currentDraft.description"
-						(input)="updateDraftDescription($any($event.target).value)"
-					></textarea>
-				</label>
+								<label class="admin-spell-detail-page__field">
+									<span>Порядок отображения</span>
+									<p-inputnumber
+										[ngModel]="currentDraft.sortOrder"
+										[min]="0"
+										(ngModelChange)="updateDraftSortOrder($event)"
+									></p-inputnumber>
+								</label>
+
+								<label
+									class="admin-spell-detail-page__field admin-spell-detail-page__field--wide"
+								>
+									<span>Описание</span>
+									<textarea
+										pTextarea
+										rows="8"
+										[value]="currentDraft.description"
+										(input)="updateDraftDescription($any($event.target).value)"
+									></textarea>
+								</label>
+							</div>
+						</p-tabpanel>
+
+						<p-tabpanel
+							value="targets"
+							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--targets"
+						>
+							<div class="admin-spell-detail-page__targets-layout">
+								<aside class="admin-spell-detail-page__targets-sidebar">
+									<div class="admin-spell-detail-page__targets-sidebar-head">
+										<h3>Цели</h3>
+										<p-button
+											label="Цель"
+											icon="pi pi-plus"
+											size="small"
+											severity="secondary"
+											variant="outlined"
+											(onClick)="addTargetConfig()"
+										></p-button>
+									</div>
+
+									<div class="admin-spell-detail-page__targets-list">
+										@for (
+											target of currentDraft.targetConfigs;
+											track target.id;
+											let targetIndex = $index
+										) {
+											<div
+												class="admin-spell-detail-page__targets-list-item"
+												[class.admin-spell-detail-page__targets-list-item--active]="
+													selectedTargetConfigIndex() === targetIndex
+												"
+												(click)="selectTargetConfig(targetIndex)"
+											>
+												<button
+													type="button"
+													class="admin-spell-detail-page__targets-list-button"
+												>
+													<span>{{ target.name }}</span>
+													<small>{{ targetConfigPreview(target) }}</small>
+												</button>
+
+												<div class="admin-spell-detail-page__targets-order">
+													<p-button
+														icon="pi pi-arrow-up"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="isFirstTargetConfig(targetIndex)"
+														(onClick)="moveTargetConfig(targetIndex, -1)"
+													></p-button>
+													<p-button
+														icon="pi pi-arrow-down"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="isLastTargetConfig(targetIndex)"
+														(onClick)="moveTargetConfig(targetIndex, 1)"
+													></p-button>
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-spell-detail-page__empty-block">
+												Цели пока не добавлены.
+											</div>
+										}
+									</div>
+								</aside>
+
+								<section class="admin-spell-detail-page__targets-editor">
+									@if (selectedTargetConfig(); as target) {
+										<div class="admin-spell-detail-page__target-editor-head">
+											<h3>Редактирование цели</h3>
+											<p-button
+												icon="pi pi-trash"
+												severity="danger"
+												text
+												rounded
+												(onClick)="deleteSelectedTargetConfig()"
+											></p-button>
+										</div>
+
+										<div class="admin-spell-detail-page__target-form-grid">
+											<label class="admin-spell-detail-page__field">
+												<span>Название</span>
+												<input
+													pInputText
+													type="text"
+													[value]="target.name"
+													(input)="
+														updateSelectedTargetConfig({
+															name: $any($event.target).value
+														})
+													"
+												/>
+											</label>
+
+											<label class="admin-spell-detail-page__field">
+												<span>Источник</span>
+												<p-select
+													[options]="targetSourceOptions"
+													optionLabel="label"
+													optionValue="value"
+													[ngModel]="target.source"
+													(ngModelChange)="
+														updateSelectedTargetConfig({ source: $event })
+													"
+												></p-select>
+											</label>
+
+											<label class="admin-spell-detail-page__field">
+												<span>Отношение</span>
+												<p-select
+													[options]="targetRelationOptions"
+													optionLabel="label"
+													optionValue="value"
+													[ngModel]="target.relation"
+													(ngModelChange)="
+														updateSelectedTargetConfig({ relation: $event })
+													"
+												></p-select>
+											</label>
+
+											<label class="admin-spell-detail-page__field">
+												<span>Количество</span>
+												<p-select
+													[options]="targetCountModeOptions"
+													optionLabel="label"
+													optionValue="value"
+													[ngModel]="target.countMode"
+													(ngModelChange)="
+														updateSelectedTargetConfig({ countMode: $event })
+													"
+												></p-select>
+											</label>
+
+											@if (
+												target.countMode === 'upTo' ||
+												target.countMode === 'exact'
+											) {
+												<label class="admin-spell-detail-page__field">
+													<span>Источник количества</span>
+													<p-select
+														[options]="targetCountValueModeOptions"
+														optionLabel="label"
+														optionValue="value"
+														[ngModel]="target.countValueMode"
+														(ngModelChange)="
+															updateSelectedTargetConfig({
+																countValueMode: $event
+															})
+														"
+													></p-select>
+												</label>
+
+												@if (target.countValueMode === 'fixed') {
+													<label class="admin-spell-detail-page__field">
+														<span>Значение</span>
+														<p-inputnumber
+															[ngModel]="target.countValue"
+															[min]="0"
+															(ngModelChange)="
+																updateSelectedTargetConfig({
+																	countValue: $event ?? 0
+																})
+															"
+														></p-inputnumber>
+													</label>
+												} @else {
+													<label class="admin-spell-detail-page__field">
+														<span>Формула количества</span>
+														<input
+															pInputText
+															type="text"
+															[value]="target.countFormula"
+															(input)="
+																updateSelectedTargetConfig({
+																	countFormula: $any($event.target).value
+																})
+															"
+														/>
+													</label>
+												}
+											}
+
+											<label class="admin-spell-detail-page__switch-field">
+												<span>Обязательная цель</span>
+												<p-toggleswitch
+													[ngModel]="target.isRequired"
+													(ngModelChange)="
+														updateSelectedTargetConfig({ isRequired: $event })
+													"
+												></p-toggleswitch>
+											</label>
+										</div>
+									} @else {
+										<div class="admin-spell-detail-page__empty-block">
+											Выбери цель слева или добавь новую.
+										</div>
+									}
+								</section>
+							</div>
+						</p-tabpanel>
+
+						<p-tabpanel
+							value="mechanics"
+							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--mechanics"
+						>
+							<div class="admin-spell-detail-page__mechanics-layout">
+								<aside class="admin-spell-detail-page__mechanics-sidebar">
+									<div class="admin-spell-detail-page__mechanics-sidebar-head">
+										<h3>Механики</h3>
+										<p-button
+											label="Механика"
+											icon="pi pi-plus"
+											size="small"
+											severity="secondary"
+											variant="outlined"
+											(onClick)="addMechanicBlock()"
+										></p-button>
+									</div>
+
+									<div class="admin-spell-detail-page__mechanics-list">
+										@for (
+											block of currentDraft.mechanicBlocks;
+											track block.id;
+											let blockIndex = $index
+										) {
+											<div
+												class="admin-spell-detail-page__mechanics-list-item"
+												[class.admin-spell-detail-page__mechanics-list-item--active]="
+													selectedMechanicBlockIndex() === blockIndex
+												"
+												(click)="selectMechanicBlock(blockIndex)"
+											>
+												<button
+													type="button"
+													class="admin-spell-detail-page__mechanics-list-button"
+												>
+													<span>
+														{{
+															mechanicBlockMechanic(block)?.name ||
+																'Механика не найдена'
+														}}
+													</span>
+													<small>{{ mechanicBlockTextPreview(block) }}</small>
+												</button>
+
+												<div class="admin-spell-detail-page__mechanics-order">
+													<p-button
+														icon="pi pi-arrow-up"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="isFirstMechanicBlock(blockIndex)"
+														(onClick)="moveMechanicBlock(blockIndex, -1)"
+													></p-button>
+													<p-button
+														icon="pi pi-arrow-down"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="isLastMechanicBlock(blockIndex)"
+														(onClick)="moveMechanicBlock(blockIndex, 1)"
+													></p-button>
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-spell-detail-page__empty-block">
+												Механики пока не добавлены.
+											</div>
+										}
+									</div>
+								</aside>
+
+								<section class="admin-spell-detail-page__mechanics-editor">
+									@if (selectedMechanicBlock(); as block) {
+										<div class="admin-spell-detail-page__mechanic-editor-head">
+											<label class="admin-spell-detail-page__field">
+												<span>Механика</span>
+												<p-select
+													[options]="mechanicOptions()"
+													optionLabel="label"
+													optionValue="value"
+													[ngModel]="block.mechanicId"
+													(ngModelChange)="
+														updateSelectedMechanicBlockMechanic($event)
+													"
+												></p-select>
+											</label>
+
+											<label class="admin-spell-detail-page__inline-switch">
+												<span>Активно</span>
+												<p-toggleswitch
+													[ngModel]="block.isActive"
+													(ngModelChange)="
+														updateSelectedMechanicBlockActive($event)
+													"
+												></p-toggleswitch>
+											</label>
+
+											<p-button
+												icon="pi pi-trash"
+												severity="danger"
+												text
+												rounded
+												(onClick)="deleteSelectedMechanicBlock()"
+											></p-button>
+										</div>
+
+										<div class="admin-spell-detail-page__mechanic-preview">
+											{{ mechanicBlockTextPreview(block) }}
+										</div>
+
+										@if (mechanicBlockParameters(block).length) {
+											<div class="admin-spell-detail-page__mechanic-parameters">
+												@for (
+													parameter of mechanicBlockParameters(block);
+													track parameter.id
+												) {
+													<label class="admin-spell-detail-page__field">
+														<span>
+															{{ parameter.name }}
+															<small>{{ parameterKindLabel(parameter.kind) }}</small>
+														</span>
+														@if (usesParameterSelect(parameter.kind)) {
+															<p-select
+																[options]="parameterOptions(parameter)"
+																[group]="true"
+																optionGroupLabel="label"
+																optionGroupChildren="items"
+																optionLabel="name"
+																optionValue="id"
+																appendTo="body"
+																[filter]="true"
+																filterBy="name,searchText"
+																filterPlaceHolder="Поиск"
+																[showClear]="true"
+																placeholder="Не выбрано"
+																[ngModel]="parameterValue(block, parameter.id) || null"
+																(ngModelChange)="
+																	updateSelectedMechanicBlockParameter(
+																		parameter.id,
+																		$event
+																	)
+																"
+															>
+																<ng-template let-group #group>
+																	<div class="admin-spell-detail-page__option-group">
+																		{{ group.label }}
+																	</div>
+																</ng-template>
+															</p-select>
+														} @else {
+															<input
+																pInputText
+																type="text"
+																[value]="parameterValue(block, parameter.id)"
+																(input)="
+																	updateSelectedMechanicBlockParameter(
+																		parameter.id,
+																		$any($event.target).value
+																	)
+																"
+															/>
+														}
+													</label>
+												}
+											</div>
+										}
+									} @else {
+										<div class="admin-spell-detail-page__empty-block">
+											Выбери механику слева или добавь новую.
+										</div>
+									}
+								</section>
+							</div>
+						</p-tabpanel>
+					</p-tabpanels>
+				</p-tabs>
 			</div>
 
 			<app-editor-actions-bar

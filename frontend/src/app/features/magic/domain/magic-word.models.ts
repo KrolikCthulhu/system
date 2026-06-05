@@ -16,6 +16,15 @@ export interface MagicWordLinkedOption {
 	name: string;
 }
 
+export interface MagicWordEssenceProfile {
+	damageAffinity: number;
+	rangeAffinity: number;
+	controlAffinity: number;
+	durationAffinity: number;
+	areaAffinity: number;
+	stabilityAffinity: number;
+}
+
 export interface MagicWord {
 	id: string;
 	type: MagicWordType;
@@ -31,6 +40,7 @@ export interface MagicWord {
 	damageTypes: MagicWordLinkedOption[];
 	conditionIds: string[];
 	conditions: MagicWordLinkedOption[];
+	essenceProfile: MagicWordEssenceProfile | null;
 	createdAt: string;
 	updatedAt: string;
 }

@@ -305,6 +305,153 @@ export const MAGIC_MODIFIER_GESTURE_RESTRICTION_SEEDS = [
 	}
 ] as const;
 
+export const MAGIC_WORD_ESSENCE_PROFILE_SEEDS = [
+	{
+		name: 'Огонь',
+		damageAffinity: 0.9,
+		rangeAffinity: 0.6,
+		controlAffinity: 0.35,
+		durationAffinity: 0.35,
+		areaAffinity: 0.55,
+		stabilityAffinity: 0.4
+	},
+	{
+		name: 'Вода',
+		damageAffinity: 0.45,
+		rangeAffinity: 0.55,
+		controlAffinity: 0.8,
+		durationAffinity: 0.7,
+		areaAffinity: 0.6,
+		stabilityAffinity: 0.65
+	},
+	{
+		name: 'Земля',
+		damageAffinity: 0.85,
+		rangeAffinity: 0.3,
+		controlAffinity: 0.45,
+		durationAffinity: 0.75,
+		areaAffinity: 0.45,
+		stabilityAffinity: 0.9
+	},
+	{
+		name: 'Воздух',
+		damageAffinity: 0.35,
+		rangeAffinity: 0.9,
+		controlAffinity: 0.7,
+		durationAffinity: 0.45,
+		areaAffinity: 0.8,
+		stabilityAffinity: 0.35
+	},
+	{
+		name: 'Смерть',
+		damageAffinity: 0.8,
+		rangeAffinity: 0.5,
+		controlAffinity: 0.55,
+		durationAffinity: 0.75,
+		areaAffinity: 0.45,
+		stabilityAffinity: 0.6
+	},
+	{
+		name: 'Жизнь',
+		damageAffinity: 0.25,
+		rangeAffinity: 0.45,
+		controlAffinity: 0.75,
+		durationAffinity: 0.8,
+		areaAffinity: 0.55,
+		stabilityAffinity: 0.8
+	},
+	{
+		name: 'Свет',
+		damageAffinity: 0.6,
+		rangeAffinity: 0.8,
+		controlAffinity: 0.55,
+		durationAffinity: 0.45,
+		areaAffinity: 0.65,
+		stabilityAffinity: 0.55
+	},
+	{
+		name: 'Тьма',
+		damageAffinity: 0.55,
+		rangeAffinity: 0.55,
+		controlAffinity: 0.75,
+		durationAffinity: 0.8,
+		areaAffinity: 0.7,
+		stabilityAffinity: 0.45
+	},
+	{
+		name: 'Тень',
+		damageAffinity: 0.4,
+		rangeAffinity: 0.75,
+		controlAffinity: 0.85,
+		durationAffinity: 0.65,
+		areaAffinity: 0.5,
+		stabilityAffinity: 0.35
+	},
+	{
+		name: 'Разум',
+		damageAffinity: 0.45,
+		rangeAffinity: 0.65,
+		controlAffinity: 0.95,
+		durationAffinity: 0.7,
+		areaAffinity: 0.4,
+		stabilityAffinity: 0.55
+	},
+	{
+		name: 'Кровь',
+		damageAffinity: 0.7,
+		rangeAffinity: 0.35,
+		controlAffinity: 0.8,
+		durationAffinity: 0.75,
+		areaAffinity: 0.3,
+		stabilityAffinity: 0.7
+	},
+	{
+		name: 'Яд',
+		damageAffinity: 0.65,
+		rangeAffinity: 0.45,
+		controlAffinity: 0.6,
+		durationAffinity: 0.9,
+		areaAffinity: 0.55,
+		stabilityAffinity: 0.55
+	},
+	{
+		name: 'Гром',
+		damageAffinity: 0.8,
+		rangeAffinity: 0.75,
+		controlAffinity: 0.3,
+		durationAffinity: 0.25,
+		areaAffinity: 0.7,
+		stabilityAffinity: 0.25
+	},
+	{
+		name: 'Туман',
+		damageAffinity: 0.25,
+		rangeAffinity: 0.65,
+		controlAffinity: 0.85,
+		durationAffinity: 0.8,
+		areaAffinity: 0.85,
+		stabilityAffinity: 0.45
+	},
+	{
+		name: 'Барьер',
+		damageAffinity: 0.2,
+		rangeAffinity: 0.45,
+		controlAffinity: 0.65,
+		durationAffinity: 0.85,
+		areaAffinity: 0.65,
+		stabilityAffinity: 0.95
+	},
+	{
+		name: 'Разложение',
+		damageAffinity: 0.75,
+		rangeAffinity: 0.4,
+		controlAffinity: 0.55,
+		durationAffinity: 0.85,
+		areaAffinity: 0.55,
+		stabilityAffinity: 0.35
+	}
+] as const;
+
 export const MAGIC_WORD_LINK_SEEDS = [
 	{
 		magicWordName: 'Огонь',
@@ -428,6 +575,58 @@ export const CONDITION_SEEDS = [
 	{ name: 'Обездвиживание', sortOrder: 7 }
 ] as const;
 
+export const PROGRESSION_PRESET_SEEDS = [
+	{
+		name: 'Линейная',
+		description: 'Равномерный рост на каждом шаге входного значения.',
+		kind: 'LINEAR',
+		config: { base: 0, step: 1, roundingMode: 'round' },
+		sortOrder: 0
+	},
+	{
+		name: 'Ступенчатая',
+		description: 'Значение растёт дискретными ступенями через заданный интервал.',
+		kind: 'STEP',
+		config: { base: 0, step: 1, interval: 2, roundingMode: 'floor' },
+		sortOrder: 1
+	},
+	{
+		name: 'Квадратичная',
+		description: 'Медленный старт с заметным усилением на высоких значениях.',
+		kind: 'QUADRATIC',
+		config: { base: 0, multiplier: 1, roundingMode: 'round' },
+		sortOrder: 2
+	},
+	{
+		name: 'Корневая',
+		description: 'Быстрый старт с постепенным замедлением роста.',
+		kind: 'SQUARE_ROOT',
+		config: { base: 0, multiplier: 2, roundingMode: 'round' },
+		sortOrder: 3
+	},
+	{
+		name: 'Логарифмическая',
+		description: 'Сильно замедляющийся рост для значений с жёстким контролем масштаба.',
+		kind: 'LOGARITHMIC',
+		config: { base: 0, multiplier: 3, roundingMode: 'round' },
+		sortOrder: 4
+	},
+	{
+		name: 'Насыщение',
+		description: 'Быстрый рост в начале с приближением к верхней границе.',
+		kind: 'SATURATION',
+		config: { min: 0, max: 10, speed: 0.35, roundingMode: 'round' },
+		sortOrder: 5
+	},
+	{
+		name: 'Процентная',
+		description: 'Масштабирование базового значения на процент от входного значения.',
+		kind: 'PERCENT',
+		config: { base: 10, percent: 0.1, roundingMode: 'round' },
+		sortOrder: 6
+	}
+] as const;
+
 export const SPELL_MECHANIC_CATEGORY_SEEDS = [
 	{ name: 'Урон', sortOrder: 0 },
 	{ name: 'Состояния', sortOrder: 1 }
@@ -437,6 +636,8 @@ export const SPELL_MECHANIC_SEEDS = [
 	{
 		categoryName: 'Урон',
 		name: 'Атака заклинанием',
+		description:
+			'Эта механика описывает заклинание, которым кастер пытается попасть по цели. Сначала кастер бросает кубы на атаку заклинанием. После этого цель может попытаться защититься и бросить кубы на защиту. Затем сравниваются успехи: если у кастера успехов больше, атака попала; если успехов столько же или меньше, атака не попала. Если атака попала, лишние успехи кастера становятся базовым уроном. Например, если у кастера 4 успеха, а у цели 2 успеха защиты, разница равна 2. К этой разнице добавляется дополнительный урон, указанный в заклинании. Получившееся число вычитается из здоровья цели. Тип урона берётся из настройки заклинания или из связанной сущности магического слова.',
 		sortOrder: 0,
 		configSchema: {},
 		parameters: [
@@ -446,7 +647,17 @@ export const SPELL_MECHANIC_SEEDS = [
 				required: true,
 				configuredBySpell: true,
 				overrideAllowed: false,
-				defaultValue: { mode: 'empty', value: '' }
+				defaultValue: { mode: 'empty', value: '' },
+				defaultTargetConfig: {
+					name: 'Цель атаки',
+					source: 'selected',
+					relation: 'enemy',
+					countMode: 'one',
+					countValueMode: 'fixed',
+					countValue: 1,
+					countFormula: '',
+					isRequired: true
+				}
 			},
 			{
 				name: 'Навык атаки',
@@ -463,6 +674,14 @@ export const SPELL_MECHANIC_SEEDS = [
 				configuredBySpell: false,
 				overrideAllowed: true,
 				defaultValue: { mode: 'static', value: 'Уклонение' }
+			},
+			{
+				name: 'Дальность',
+				kind: 'number',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: true,
+				defaultValue: { mode: 'empty', value: '' }
 			},
 			{
 				name: 'Дополнительный урон',
@@ -629,8 +848,38 @@ export const SPELL_MECHANIC_SEEDS = [
 				}
 			}
 		],
-		textTemplate:
-			'Атакуйте цель в пределах дистанции. Цель защищается выбранным навыком. При успехе цель получает урон: незащищённые успехи + дополнительный урон.'
+		textTemplate: {
+			segments: [
+				{
+					kind: 'text',
+					text: 'Совершите атаку заклинанием по цели в пределах '
+				},
+				{
+					kind: 'mechanicParameterByName',
+					parameterName: 'Дальность'
+				},
+				{
+					kind: 'text',
+					text: '. Цель может защититься. При попадании цель получает урон типа '
+				},
+				{
+					kind: 'mechanicParameterByName',
+					parameterName: 'Тип урона'
+				},
+				{
+					kind: 'text',
+					text: ', равный разнице между успехами атаки и защиты + '
+				},
+				{
+					kind: 'mechanicParameterByName',
+					parameterName: 'Дополнительный урон'
+				},
+				{
+					kind: 'text',
+					text: '.'
+				}
+			]
+		}
 	},
 	{
 		categoryName: 'Состояния',

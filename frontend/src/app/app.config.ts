@@ -19,6 +19,7 @@ import { provideConditionsInfrastructure } from './features/conditions/data/prov
 import { provideDamageTypesInfrastructure } from './features/damage-types/data/provide-damage-types-infrastructure';
 import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
 import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
+import { provideProgressionPresetsInfrastructure } from './features/progression-presets/data/provide-progression-presets-infrastructure';
 import { provideRollConsequencesInfrastructure } from './features/roll-consequences/data/provide-roll-consequences-infrastructure';
 import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
 import { provideSpellMechanicsInfrastructure } from './features/spell-mechanics/data/provide-spell-mechanics-infrastructure';
@@ -126,6 +127,7 @@ export const appConfig: ApplicationConfig = {
 		...provideDamageTypesInfrastructure(),
 		...provideGameEventsInfrastructure(),
 		...provideMagicWordsInfrastructure(),
+		...provideProgressionPresetsInfrastructure(),
 		...provideRollConsequencesInfrastructure(),
 		...provideSkillsInfrastructure(),
 		...provideSpellMechanicsInfrastructure(),

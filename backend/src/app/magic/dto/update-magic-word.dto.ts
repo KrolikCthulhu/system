@@ -4,12 +4,48 @@ import {
 	IsBoolean,
 	IsEnum,
 	IsInt,
+	IsNumber,
 	IsOptional,
 	IsString,
 	IsUUID,
-	Min
+	Max,
+	Min,
+	ValidateNested
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { MagicWordType } from '@prisma/generated';
+
+export class MagicWordEssenceProfileUpdateDto {
+	@IsNumber()
+	@Min(0)
+	@Max(1)
+	damageAffinity!: number;
+
+	@IsNumber()
+	@Min(0)
+	@Max(1)
+	rangeAffinity!: number;
+
+	@IsNumber()
+	@Min(0)
+	@Max(1)
+	controlAffinity!: number;
+
+	@IsNumber()
+	@Min(0)
+	@Max(1)
+	durationAffinity!: number;
+
+	@IsNumber()
+	@Min(0)
+	@Max(1)
+	areaAffinity!: number;
+
+	@IsNumber()
+	@Min(0)
+	@Max(1)
+	stabilityAffinity!: number;
+}
 
 export class UpdateMagicWordDto {
 	@IsOptional()
@@ -56,4 +92,9 @@ export class UpdateMagicWordDto {
 	@ArrayUnique()
 	@IsUUID('4', { each: true })
 	conditionIds?: string[];
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => MagicWordEssenceProfileUpdateDto)
+	essenceProfile?: MagicWordEssenceProfileUpdateDto;
 }

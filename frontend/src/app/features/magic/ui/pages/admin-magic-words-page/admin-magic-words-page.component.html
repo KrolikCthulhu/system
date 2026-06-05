@@ -234,6 +234,53 @@
 							></p-multiselect>
 						</label>
 
+						@if (currentDraft.type === 'ESSENCE') {
+							<section class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+								<span>Профиль сущности</span>
+								<div class="admin-magic-words-page__affinity-grid">
+									@for (profileField of essenceProfileFields; track profileField.field) {
+										<label class="admin-magic-words-page__affinity-field">
+											<span class="admin-magic-words-page__affinity-label">
+												<span class="admin-magic-words-page__affinity-name">
+													<span>{{ profileField.label }}</span>
+													<i
+														class="pi pi-question-circle admin-magic-words-page__hint-icon"
+														[pTooltip]="profileField.tooltip"
+														tooltipPosition="top"
+													></i>
+												</span>
+												<strong>
+													{{
+														essenceProfilePercent(
+															currentDraft.essenceProfile,
+															profileField.field
+														)
+													}}%
+												</strong>
+											</span>
+											<p-slider
+												[min]="0"
+												[max]="100"
+												[step]="1"
+												[ngModel]="
+													essenceProfilePercent(
+														currentDraft.essenceProfile,
+														profileField.field
+													)
+												"
+												(ngModelChange)="
+													updateEssenceProfileValue(profileField.field, $event)
+												"
+											></p-slider>
+										</label>
+									}
+								</div>
+								<small>
+									Профиль задаёт вес сущности для будущих формул заклинаний.
+								</small>
+							</section>
+						}
+
 						@if (currentDraft.type === 'MODIFIER') {
 							<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
 								<span>Разрешённые жесты</span>

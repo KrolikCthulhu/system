@@ -112,8 +112,11 @@ export class SessionService {
 		currentSessionId: string,
 		nextSession: CreateSessionInput
 	) {
-		return this.prisma.$transaction(async (tx) => {
+		const createdSessionId = await this.prisma.$transaction(async tx => {
 			const createdSession = await tx.authSession.create({
+				select: {
+					id: true
+				},
 				data: {
 					id: nextSession.id,
 					userId: nextSession.userId,
@@ -135,6 +138,10 @@ export class SessionService {
 			});
 
 			return createdSession;
+		});
+
+		return this.prisma.authSession.findUniqueOrThrow({
+			where: { id: createdSessionId.id }
 		});
 	}
 }

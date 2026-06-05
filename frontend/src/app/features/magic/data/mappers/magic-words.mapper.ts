@@ -5,7 +5,12 @@ import {
 } from '../../domain/magic-word.models';
 import {
 	Spell,
-	SpellCatalog
+	SpellCatalog,
+	SpellTargetConfig,
+	SpellTargetCountMode,
+	SpellTargetCountValueMode,
+	SpellTargetRelation,
+	SpellTargetSource
 } from '../../domain/spell.models';
 import {
 	MagicSpellFormulaDto,
@@ -13,7 +18,8 @@ import {
 	MagicWordDto,
 	MagicWordsResponseDto,
 	SpellCatalogResponseDto,
-	SpellDto
+	SpellDto,
+	SpellTargetConfigDto
 } from '../dto/magic-words.dto';
 
 export function mapMagicWordsResponseDto(
@@ -70,6 +76,16 @@ export function mapMagicWordDto(dto: MagicWordDto): MagicWord {
 		damageTypes: dto.damageTypes ?? [],
 		conditionIds: dto.conditionIds ?? [],
 		conditions: dto.conditions ?? [],
+		essenceProfile: dto.essenceProfile
+			? {
+					damageAffinity: dto.essenceProfile.damageAffinity,
+					rangeAffinity: dto.essenceProfile.rangeAffinity,
+					controlAffinity: dto.essenceProfile.controlAffinity,
+					durationAffinity: dto.essenceProfile.durationAffinity,
+					areaAffinity: dto.essenceProfile.areaAffinity,
+					stabilityAffinity: dto.essenceProfile.stabilityAffinity
+			  }
+			: null,
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
 	};
@@ -100,7 +116,52 @@ export function mapSpellDto(dto: SpellDto): Spell {
 		action: dto.action,
 		essence: dto.essence,
 		gesture: dto.gesture,
+		targetConfigs: (dto.targetConfigs ?? []).map(mapSpellTargetConfigDto),
+		mechanicBlocks: (dto.mechanicBlocks ?? []).map(block => ({
+			id: block.id,
+			mechanicId: block.mechanicId,
+			parameterValues: block.parameterValues ?? {},
+			isActive: block.isActive,
+			sortOrder: block.sortOrder,
+			createdAt: block.createdAt,
+			updatedAt: block.updatedAt
+		})),
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
 	};
+}
+
+function mapSpellTargetConfigDto(dto: SpellTargetConfigDto): SpellTargetConfig {
+	return {
+		id: dto.id,
+		name: dto.name,
+		source: isSpellTargetSource(dto.source) ? dto.source : 'selected',
+		relation: isSpellTargetRelation(dto.relation) ? dto.relation : 'any',
+		countMode: isSpellTargetCountMode(dto.countMode) ? dto.countMode : 'one',
+		countValueMode: isSpellTargetCountValueMode(dto.countValueMode)
+			? dto.countValueMode
+			: 'fixed',
+		countValue: dto.countValue ?? 1,
+		countFormula: dto.countFormula ?? '',
+		isRequired: dto.isRequired ?? true,
+		sortOrder: dto.sortOrder ?? 0
+	};
+}
+
+function isSpellTargetSource(value: string): value is SpellTargetSource {
+	return value === 'caster' || value === 'selected' || value === 'area';
+}
+
+function isSpellTargetRelation(value: string): value is SpellTargetRelation {
+	return value === 'self' || value === 'any' || value === 'enemy' || value === 'ally';
+}
+
+function isSpellTargetCountMode(value: string): value is SpellTargetCountMode {
+	return value === 'one' || value === 'all' || value === 'upTo' || value === 'exact';
+}
+
+function isSpellTargetCountValueMode(
+	value: string | undefined
+): value is SpellTargetCountValueMode {
+	return value === 'fixed' || value === 'formula';
 }

@@ -12,7 +12,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { CreateMagicWordDto } from './dto/create-magic-word.dto';
 import { UpdateMagicWordDto } from './dto/update-magic-word.dto';
-import { SaveSpellDto } from './dto/save-spell.dto';
+import {
+	SaveSpellDto,
+	SaveSpellMechanicBlockDto
+} from './dto/save-spell.dto';
 
 const magicWordSelect = {
 	id: true,
@@ -75,6 +78,16 @@ const magicWordSelect = {
 				}
 			}
 		}
+	},
+	essenceProfile: {
+		select: {
+			damageAffinity: true,
+			rangeAffinity: true,
+			controlAffinity: true,
+			durationAffinity: true,
+			areaAffinity: true,
+			stabilityAffinity: true
+		}
 	}
 } satisfies Prisma.MagicWordSelect;
 
@@ -89,6 +102,7 @@ const spellSelect = {
 	gestureId: true,
 	name: true,
 	description: true,
+	targetConfigs: true,
 	status: true,
 	isActive: true,
 	sortOrder: true,
@@ -96,7 +110,19 @@ const spellSelect = {
 	updatedAt: true,
 	action: { select: { id: true, name: true, sortOrder: true } },
 	essence: { select: { id: true, name: true, sortOrder: true } },
-	gesture: { select: { id: true, name: true, sortOrder: true } }
+	gesture: { select: { id: true, name: true, sortOrder: true } },
+	mechanicBlocks: {
+		select: {
+			id: true,
+			mechanicId: true,
+			parameterValues: true,
+			isActive: true,
+			sortOrder: true,
+			createdAt: true,
+			updatedAt: true
+		},
+		orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }]
+	}
 } satisfies Prisma.SpellSelect;
 
 type SpellRecord = Prisma.SpellGetPayload<{ select: typeof spellSelect }>;
@@ -192,18 +218,33 @@ export class MagicService {
 		await this.assertSpellFormula(dto.actionId, dto.essenceId, dto.gestureId);
 
 		try {
-			const spell = await this.prisma.spell.create({
+			const spellId = await this.prisma.$transaction(async tx => {
+				const created = await tx.spell.create({
+					select: { id: true },
+					data: {
+						actionId: dto.actionId,
+						essenceId: dto.essenceId,
+						gestureId: dto.gestureId,
+						name: dto.name.trim(),
+						description: dto.description?.trim() || null,
+						targetConfigs: toJsonArray(dto.targetConfigs),
+						status: dto.status,
+						isActive: normalizeSpellActive(dto.status, dto.isActive),
+						sortOrder: dto.sortOrder ?? 0
+					}
+				});
+
+				await this.syncSpellMechanicBlocks(
+					tx,
+					created.id,
+					dto.mechanicBlocks ?? []
+				);
+
+				return created.id;
+			});
+			const spell = await this.prisma.spell.findUniqueOrThrow({
 				select: spellSelect,
-				data: {
-					actionId: dto.actionId,
-					essenceId: dto.essenceId,
-					gestureId: dto.gestureId,
-					name: dto.name.trim(),
-					description: dto.description?.trim() || null,
-					status: dto.status,
-					isActive: normalizeSpellActive(dto.status, dto.isActive),
-					sortOrder: dto.sortOrder ?? 0
-				}
+				where: { id: spellId }
 			});
 
 			return this.mapSpell(spell);
@@ -225,16 +266,30 @@ export class MagicService {
 		}
 
 		try {
-			const spell = await this.prisma.spell.update({
-				select: spellSelect,
-				where: { id },
-				data: {
-					name: dto.name.trim(),
-					description: dto.description?.trim() || null,
-					status: dto.status,
-					isActive: normalizeSpellActive(dto.status, dto.isActive, existing),
-					sortOrder: dto.sortOrder ?? 0
+			await this.prisma.$transaction(async tx => {
+				await tx.spell.update({
+					select: { id: true },
+					where: { id },
+					data: {
+						name: dto.name.trim(),
+						description: dto.description?.trim() || null,
+						targetConfigs:
+							dto.targetConfigs === undefined
+								? undefined
+								: toJsonArray(dto.targetConfigs),
+						status: dto.status,
+						isActive: normalizeSpellActive(dto.status, dto.isActive, existing),
+						sortOrder: dto.sortOrder ?? 0
+					}
+				});
+
+				if (dto.mechanicBlocks !== undefined) {
+					await this.syncSpellMechanicBlocks(tx, id, dto.mechanicBlocks);
 				}
+			});
+			const spell = await this.prisma.spell.findUniqueOrThrow({
+				select: spellSelect,
+				where: { id }
 			});
 
 			return this.mapSpell(spell);
@@ -269,9 +324,9 @@ export class MagicService {
 		]);
 
 		try {
-			const word = await this.prisma.$transaction(async tx => {
+			const wordId = await this.prisma.$transaction(async tx => {
 				const created = await tx.magicWord.create({
-					select: magicWordSelect,
+					select: { id: true },
 					data: {
 						type: dto.type,
 						name: dto.name.trim(),
@@ -292,11 +347,18 @@ export class MagicService {
 					damageTypeIds,
 					conditionIds
 				});
+				await this.syncEssenceProfile(
+					tx,
+					created.id,
+					dto.type,
+					dto.essenceProfile
+				);
 
-				return tx.magicWord.findUniqueOrThrow({
-					select: magicWordSelect,
-					where: { id: created.id }
-				});
+				return created.id;
+			});
+			const word = await this.prisma.magicWord.findUniqueOrThrow({
+				select: magicWordSelect,
+				where: { id: wordId }
 			});
 
 			return this.mapWord(word);
@@ -334,7 +396,7 @@ export class MagicService {
 		]);
 
 		try {
-			const word = await this.prisma.$transaction(async tx => {
+			await this.prisma.$transaction(async tx => {
 				await tx.magicWord.update({
 					where: { id },
 					data: {
@@ -368,11 +430,18 @@ export class MagicService {
 						conditionIds: dto.conditionIds
 					});
 				}
-
-				return tx.magicWord.findUniqueOrThrow({
-					select: magicWordSelect,
-					where: { id }
-				});
+				if (dto.type !== undefined || dto.essenceProfile !== undefined) {
+					await this.syncEssenceProfile(
+						tx,
+						id,
+						nextType,
+						dto.essenceProfile
+					);
+				}
+			});
+			const word = await this.prisma.magicWord.findUniqueOrThrow({
+				select: magicWordSelect,
+				where: { id }
 			});
 
 			return this.mapWord(word);
@@ -545,6 +614,87 @@ export class MagicService {
 		}
 	}
 
+	private async syncEssenceProfile(
+		tx: Prisma.TransactionClient,
+		magicWordId: string,
+		type: MagicWordType,
+		profile:
+			| {
+					damageAffinity: number;
+					rangeAffinity: number;
+					controlAffinity: number;
+					durationAffinity: number;
+					areaAffinity: number;
+					stabilityAffinity: number;
+			  }
+			| undefined
+	) {
+		if (type !== MagicWordType.ESSENCE) {
+			await tx.magicWordEssenceProfile.deleteMany({ where: { magicWordId } });
+			return;
+		}
+
+		const data = normalizeEssenceProfile(profile);
+
+		await tx.magicWordEssenceProfile.upsert({
+			where: { magicWordId },
+			create: {
+				magicWordId,
+				...data
+			},
+			update: data
+		});
+	}
+
+	private async syncSpellMechanicBlocks(
+		tx: Prisma.TransactionClient,
+		spellId: string,
+		blocks: SaveSpellMechanicBlockDto[]
+	) {
+		await this.assertSpellMechanicIds(
+			tx,
+			blocks.map(block => block.mechanicId)
+		);
+
+		await tx.spellMechanicBlock.deleteMany({ where: { spellId } });
+
+		if (!blocks.length) {
+			return;
+		}
+
+		await tx.spellMechanicBlock.createMany({
+			data: blocks.map((block, index) => ({
+				spellId,
+				mechanicId: block.mechanicId,
+				parameterValues: toJsonObject(block.parameterValues),
+				isActive: block.isActive ?? true,
+				sortOrder: block.sortOrder ?? index
+			}))
+		});
+	}
+
+	private async assertSpellMechanicIds(
+		tx: Prisma.TransactionClient,
+		mechanicIds: string[]
+	) {
+		const uniqueIds = [...new Set(mechanicIds)];
+
+		if (!uniqueIds.length) {
+			return;
+		}
+
+		const mechanics = await tx.spellMechanic.findMany({
+			select: { id: true },
+			where: { id: { in: uniqueIds } }
+		});
+
+		if (mechanics.length !== uniqueIds.length) {
+			throw new BadRequestException(
+				'Все блоки заклинания должны ссылаться на существующие механики.'
+			);
+		}
+	}
+
 	private mapWord(word: MagicWordRecord) {
 		const allowedGestures = word.modifierGestureRestrictions
 			.map(restriction => restriction.gesture)
@@ -599,6 +749,16 @@ export class MagicService {
 				id: condition.id,
 				name: condition.name
 			})),
+			essenceProfile: word.essenceProfile
+				? {
+						damageAffinity: Number(word.essenceProfile.damageAffinity),
+						rangeAffinity: Number(word.essenceProfile.rangeAffinity),
+						controlAffinity: Number(word.essenceProfile.controlAffinity),
+						durationAffinity: Number(word.essenceProfile.durationAffinity),
+						areaAffinity: Number(word.essenceProfile.areaAffinity),
+						stabilityAffinity: Number(word.essenceProfile.stabilityAffinity)
+				  }
+				: null,
 			createdAt: word.createdAt.toISOString(),
 			updatedAt: word.updatedAt.toISOString()
 		};
@@ -644,6 +804,9 @@ export class MagicService {
 			gestureId: spell.gestureId,
 			name: spell.name,
 			description: spell.description ?? '',
+			targetConfigs: Array.isArray(spell.targetConfigs)
+				? spell.targetConfigs
+				: [],
 			status: spell.status,
 			isActive: spell.isActive,
 			sortOrder: spell.sortOrder,
@@ -651,10 +814,65 @@ export class MagicService {
 			action: { id: spell.action.id, name: spell.action.name },
 			essence: { id: spell.essence.id, name: spell.essence.name },
 			gesture: { id: spell.gesture.id, name: spell.gesture.name },
+			mechanicBlocks: spell.mechanicBlocks.map(block => ({
+				id: block.id,
+				mechanicId: block.mechanicId,
+				parameterValues: block.parameterValues,
+				isActive: block.isActive,
+				sortOrder: block.sortOrder,
+				createdAt: block.createdAt.toISOString(),
+				updatedAt: block.updatedAt.toISOString()
+			})),
 			createdAt: spell.createdAt.toISOString(),
 			updatedAt: spell.updatedAt.toISOString()
 		};
 	}
+}
+
+function toJsonObject(value: Record<string, unknown> | undefined) {
+	if (!value || Array.isArray(value)) {
+		return {};
+	}
+
+	return value as Prisma.InputJsonObject;
+}
+
+function toJsonArray(value: unknown[] | undefined) {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value as Prisma.InputJsonArray;
+}
+
+function normalizeEssenceProfile(
+	profile:
+		| {
+				damageAffinity: number;
+				rangeAffinity: number;
+				controlAffinity: number;
+				durationAffinity: number;
+				areaAffinity: number;
+				stabilityAffinity: number;
+		  }
+		| undefined
+) {
+	return {
+		damageAffinity: clampAffinity(profile?.damageAffinity ?? 0.5),
+		rangeAffinity: clampAffinity(profile?.rangeAffinity ?? 0.5),
+		controlAffinity: clampAffinity(profile?.controlAffinity ?? 0.5),
+		durationAffinity: clampAffinity(profile?.durationAffinity ?? 0.5),
+		areaAffinity: clampAffinity(profile?.areaAffinity ?? 0.5),
+		stabilityAffinity: clampAffinity(profile?.stabilityAffinity ?? 0.5)
+	};
+}
+
+function clampAffinity(value: number) {
+	if (!Number.isFinite(value)) {
+		return 0.5;
+	}
+
+	return Math.min(1, Math.max(0, value));
 }
 
 function formulaKey(actionId: string, essenceId: string, gestureId: string) {

@@ -232,19 +232,142 @@
 										></textarea>
 									</label>
 
-									<label
-										class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide"
+									<section
+										class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide admin-spell-mechanics-page__template-editor"
 									>
-										<span>Шаблон текста</span>
-										<textarea
-											pTextarea
-											rows="4"
-											[value]="draft.textTemplate"
-											(input)="
-												updateMechanicTextTemplate($any($event.target).value)
-											"
-										></textarea>
-									</label>
+										<div class="admin-spell-mechanics-page__template-header">
+											<div>
+												<span>Шаблон текста</span>
+												<p class="admin-spell-mechanics-page__field-help">
+													Текст механики для вставки в заклинание.
+												</p>
+											</div>
+											<div class="admin-spell-mechanics-page__template-actions">
+												<p-button
+													label="Текст"
+													icon="pi pi-plus"
+													size="small"
+													severity="secondary"
+													variant="outlined"
+													(onClick)="addTextTemplateTextSegment()"
+												></p-button>
+												<p-button
+													label="Значение"
+													icon="pi pi-plus"
+													size="small"
+													severity="secondary"
+													variant="outlined"
+													(onClick)="addEmptyTextTemplateInsertSegment()"
+												></p-button>
+											</div>
+										</div>
+
+										<div class="admin-spell-mechanics-page__template-preview">
+											{{ textTemplatePreview() || 'Шаблон текста пока пуст.' }}
+										</div>
+
+										<div class="admin-spell-mechanics-page__template-segments">
+											@for (
+												segment of textTemplateSegments();
+												track segment.kind + ':' + $index
+											) {
+												<div
+													class="admin-spell-mechanics-page__template-segment"
+													[class.admin-spell-mechanics-page__template-segment--dragging]="
+														isTextTemplateSegmentDragging($index)
+													"
+													[class.admin-spell-mechanics-page__template-segment--drop-before]="
+														isTextTemplateSegmentDropTarget($index, 'before')
+													"
+													[class.admin-spell-mechanics-page__template-segment--drop-after]="
+														isTextTemplateSegmentDropTarget($index, 'after')
+													"
+													(dragover)="allowTextTemplateSegmentDrop($index, $event)"
+													(drop)="dropTextTemplateSegment($index, $event)"
+												>
+													<button
+														type="button"
+														class="admin-spell-mechanics-page__template-drag-handle"
+														draggable="true"
+														(dragstart)="
+															startTextTemplateSegmentDrag($index, $event)
+														"
+														(dragend)="endTextTemplateSegmentDrag()"
+													>
+														<span
+															class="admin-spell-mechanics-page__template-drag-dots"
+															aria-hidden="true"
+														></span>
+													</button>
+													<div
+														class="admin-spell-mechanics-page__template-segment-main"
+													>
+														@if (segment.kind === 'text') {
+															<textarea
+																pTextarea
+																rows="2"
+																[value]="segment.text"
+																(input)="
+																	updateTextTemplateTextSegment(
+																		$index,
+																		$any($event.target).value
+																	)
+																"
+															></textarea>
+														} @else {
+															<div
+																class="admin-spell-mechanics-page__template-token"
+															>
+																<p-tag
+																	[value]="textTemplateSegmentKindLabel(segment)"
+																	severity="secondary"
+																></p-tag>
+																<p-select
+																	[options]="textTemplateInsertOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	placeholder="Выбери значение"
+																	[ngModel]="textTemplateInsertValue(segment)"
+																	(ngModelChange)="
+																		updateTextTemplateInsertSegment($index, $event)
+																	"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+														}
+													</div>
+
+													<div class="admin-spell-mechanics-page__template-row-actions">
+														<p-button
+															icon="pi pi-trash"
+															severity="danger"
+															text
+															rounded
+															(onClick)="deleteTextTemplateSegment($index)"
+														></p-button>
+													</div>
+												</div>
+											} @empty {
+												<div class="admin-spell-mechanics-page__empty-block">
+													Добавь текстовый сегмент или вставку значения.
+												</div>
+											}
+										</div>
+									</section>
 								</div>
 							</p-tabpanel>
 
@@ -510,6 +633,230 @@
 																	/>
 																}
 															</div>
+														}
+
+														@if (slot.kind === 'target') {
+															<div
+																class="admin-spell-mechanics-page__switch-list"
+															>
+																<label
+																	class="admin-spell-mechanics-page__switch-row"
+																>
+																	<span
+																		class="admin-spell-mechanics-page__switch-text"
+																	>
+																		<span
+																			class="admin-spell-mechanics-page__switch-label"
+																		>
+																			Цель по умолчанию
+																			<i
+																				class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																				pTooltip="Создаёт цель в заклинании автоматически при добавлении этой механики. Если выключено, цель нужно выбрать в заклинании вручную."
+																				tooltipPosition="top"
+																			></i>
+																		</span>
+																	</span>
+																	<p-toggleswitch
+																		[ngModel]="!!slot.defaultTargetConfig"
+																		(ngModelChange)="
+																			toggleSelectedMechanicSlotDefaultTarget(
+																				$event
+																			)
+																		"
+																	></p-toggleswitch>
+																</label>
+															</div>
+
+															@if (slot.defaultTargetConfig; as targetDefault) {
+																<div
+																	class="admin-spell-mechanics-page__target-default-form"
+																>
+																	<div
+																		class="admin-spell-mechanics-page__form-field"
+																	>
+																		<label
+																			class="admin-spell-mechanics-page__field-label"
+																		>
+																			Название цели
+																		</label>
+																		<input
+																			pInputText
+																			type="text"
+																			[value]="targetDefault.name"
+																			(input)="
+																				updateSelectedMechanicSlotDefaultTarget({
+																					name: $any($event.target).value
+																				})
+																			"
+																		/>
+																	</div>
+
+																	<div
+																		class="admin-spell-mechanics-page__form-field"
+																	>
+																		<label
+																			class="admin-spell-mechanics-page__field-label"
+																		>
+																			Источник
+																		</label>
+																		<p-select
+																			[options]="targetSourceOptions"
+																			optionLabel="label"
+																			optionValue="value"
+																			[ngModel]="targetDefault.source"
+																			(ngModelChange)="
+																				updateSelectedMechanicSlotDefaultTarget({
+																					source: $event
+																				})
+																			"
+																		></p-select>
+																	</div>
+
+																	<div
+																		class="admin-spell-mechanics-page__form-field"
+																	>
+																		<label
+																			class="admin-spell-mechanics-page__field-label"
+																		>
+																			Отношение
+																		</label>
+																		<p-select
+																			[options]="targetRelationOptions"
+																			optionLabel="label"
+																			optionValue="value"
+																			[ngModel]="targetDefault.relation"
+																			(ngModelChange)="
+																				updateSelectedMechanicSlotDefaultTarget({
+																					relation: $event
+																				})
+																			"
+																		></p-select>
+																	</div>
+
+																	<div
+																		class="admin-spell-mechanics-page__form-field"
+																	>
+																		<label
+																			class="admin-spell-mechanics-page__field-label"
+																		>
+																			Количество
+																		</label>
+																		<p-select
+																			[options]="targetCountModeOptions"
+																			optionLabel="label"
+																			optionValue="value"
+																			[ngModel]="targetDefault.countMode"
+																			(ngModelChange)="
+																				updateSelectedMechanicSlotDefaultTarget({
+																					countMode: $event
+																				})
+																			"
+																		></p-select>
+																	</div>
+
+																	@if (
+																		targetDefault.countMode === 'upTo' ||
+																		targetDefault.countMode === 'exact'
+																	) {
+																		<div
+																			class="admin-spell-mechanics-page__form-field"
+																		>
+																			<label
+																				class="admin-spell-mechanics-page__field-label"
+																			>
+																				Источник количества
+																			</label>
+																			<p-select
+																				[options]="
+																					targetCountValueModeOptions
+																				"
+																				optionLabel="label"
+																				optionValue="value"
+																				[ngModel]="
+																					targetDefault.countValueMode
+																				"
+																				(ngModelChange)="
+																					updateSelectedMechanicSlotDefaultTarget({
+																						countValueMode: $event
+																					})
+																				"
+																			></p-select>
+																		</div>
+
+																		@if (
+																			targetDefault.countValueMode ===
+																			'fixed'
+																		) {
+																			<div
+																				class="admin-spell-mechanics-page__form-field"
+																			>
+																				<label
+																					class="admin-spell-mechanics-page__field-label"
+																				>
+																					Значение
+																				</label>
+																				<p-inputnumber
+																					[ngModel]="
+																						targetDefault.countValue
+																					"
+																					[min]="0"
+																					(ngModelChange)="
+																						updateSelectedMechanicSlotDefaultTarget({
+																							countValue: $event ?? 0
+																						})
+																					"
+																				></p-inputnumber>
+																			</div>
+																		} @else {
+																			<div
+																				class="admin-spell-mechanics-page__form-field"
+																			>
+																				<label
+																					class="admin-spell-mechanics-page__field-label"
+																				>
+																					Формула количества
+																				</label>
+																				<input
+																					pInputText
+																					type="text"
+																					[value]="
+																						targetDefault.countFormula
+																					"
+																					(input)="
+																						updateSelectedMechanicSlotDefaultTarget({
+																							countFormula:
+																								$any($event.target)
+																									.value
+																						})
+																					"
+																				/>
+																			</div>
+																		}
+																	}
+
+																	<label
+																		class="admin-spell-mechanics-page__switch-row"
+																	>
+																		<span
+																			class="admin-spell-mechanics-page__switch-text"
+																		>
+																			<span
+																				class="admin-spell-mechanics-page__switch-label"
+																			>
+																				Обязательная цель
+																			</span>
+																		</span>
+																		<p-toggleswitch
+																			[ngModel]="targetDefault.isRequired"
+																			(ngModelChange)="
+																				updateSelectedMechanicSlotDefaultTarget({
+																					isRequired: $event
+																				})
+																			"
+																		></p-toggleswitch>
+																	</label>
+																</div>
+															}
 														}
 
 														<div

@@ -5,20 +5,31 @@
 }
 
 .admin-spell-detail-page {
-	display: grid;
-	grid-template-rows: auto minmax(0, 1fr);
+	display: flex;
+	flex-direction: column;
 	height: 100%;
 	min-height: 0;
 	overflow: hidden;
 }
 
 .admin-spell-detail-page__header {
-	padding-bottom: 1rem;
+	display: flex;
+	flex: 0 0 auto;
+	margin: 0;
+	padding: 0;
+}
+
+.admin-spell-detail-page__breadcrumbs {
+	display: block;
+	width: 100%;
+	margin: 0;
 }
 
 .admin-spell-detail-page__editor {
 	display: grid;
 	grid-template-rows: auto minmax(0, 1fr) auto;
+	flex: 1 1 auto;
+	margin-top: 1rem;
 	min-height: 0;
 	border-top: 1px solid var(--p-content-border-color);
 	background: var(--p-content-background);
@@ -53,13 +64,57 @@
 }
 
 .admin-spell-detail-page__editor-body {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+	padding: 0 0.75rem 0.75rem;
+}
+
+.admin-spell-detail-page__tabs {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.admin-spell-detail-page__tabpanels {
+	height: 100%;
+	min-height: 0;
+	padding: 0;
+}
+
+.admin-spell-detail-page__tabs > p-tabpanels {
+	height: 100%;
+	min-height: 0;
+	padding: 0;
+}
+
+.admin-spell-detail-page__tabs > p-tabpanels > p-tabpanel,
+.admin-spell-detail-page__tabpanel {
+	height: 100%;
+	min-height: 0;
+	padding: 0;
+}
+
+.admin-spell-detail-page__tabpanel.p-tabpanel-active {
+	display: flex;
+	flex-direction: column;
+}
+
+.admin-spell-detail-page__tabpanel:not(.p-tabpanel-active) {
+	display: none;
+}
+
+.admin-spell-detail-page__form-grid {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
 	align-content: start;
 	gap: 0.75rem;
+	height: 100%;
 	min-height: 0;
 	overflow-y: auto;
-	padding: 0.75rem;
+	padding-top: 0.75rem;
 }
 
 .admin-spell-detail-page__field,
@@ -85,6 +140,13 @@
 	grid-column: 1 / -1;
 }
 
+.admin-spell-detail-page__field small {
+	margin-left: 0.375rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.75rem;
+	font-weight: 400;
+}
+
 .admin-spell-detail-page__switch-field {
 	flex-direction: row;
 	align-items: center;
@@ -104,4 +166,236 @@
 .admin-spell-detail-page__state--error,
 .admin-spell-detail-page__form-error {
 	color: var(--p-red-500);
+}
+
+.admin-spell-detail-page__mechanics {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding-bottom: 0.75rem;
+}
+
+.admin-spell-detail-page__section-heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.admin-spell-detail-page__section-heading h3 {
+	margin: 0;
+	color: var(--p-text-color);
+	font-size: var(--text-heading-3-size);
+	line-height: 1.2;
+}
+
+.admin-spell-detail-page__section-heading p {
+	margin: 0.25rem 0 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	line-height: 1.25;
+}
+
+.admin-spell-detail-page__mechanic-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__mechanic-block {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 0.375rem;
+}
+
+.admin-spell-detail-page__mechanic-block-head {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	align-items: end;
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__inline-switch {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-height: 2.375rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.admin-spell-detail-page__mechanic-preview {
+	padding: 0.5625rem 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 0.375rem;
+	background: var(--p-surface-50);
+	color: var(--p-text-color);
+	font-size: 0.875rem;
+	line-height: 1.35;
+	overflow-wrap: anywhere;
+}
+
+.admin-spell-detail-page__mechanic-parameters {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__option-group {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.admin-spell-detail-page__empty-block {
+	padding: 1rem;
+	border: 1px dashed var(--p-content-border-color);
+	border-radius: 0.375rem;
+	color: var(--p-text-muted-color);
+	text-align: center;
+}
+
+.admin-spell-detail-page__tabpanel--mechanics,
+.admin-spell-detail-page__tabpanel--targets {
+	overflow: hidden;
+}
+
+.admin-spell-detail-page__mechanics-layout,
+.admin-spell-detail-page__targets-layout {
+	display: grid;
+	grid-template-columns: 20rem minmax(0, 1fr);
+	height: 100%;
+	min-height: 0;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-detail-page__mechanics-sidebar,
+.admin-spell-detail-page__targets-sidebar {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr);
+	min-height: 0;
+	border-right: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-detail-page__mechanics-sidebar-head,
+.admin-spell-detail-page__targets-sidebar-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+	padding: 0.75rem;
+}
+
+.admin-spell-detail-page__mechanics-sidebar-head h3,
+.admin-spell-detail-page__targets-sidebar-head h3,
+.admin-spell-detail-page__target-editor-head h3 {
+	margin: 0;
+	color: var(--p-text-color);
+	font-size: var(--text-heading-3-size);
+	line-height: 1.2;
+}
+
+.admin-spell-detail-page__mechanics-list,
+.admin-spell-detail-page__targets-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0 0.75rem 0.75rem;
+}
+
+.admin-spell-detail-page__mechanics-list-item,
+.admin-spell-detail-page__targets-list-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.375rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 0.375rem;
+	background: var(--p-content-background);
+}
+
+.admin-spell-detail-page__mechanics-list-item--active,
+.admin-spell-detail-page__targets-list-item--active {
+	border-color: var(--p-primary-color);
+	background: var(--p-surface-50);
+}
+
+.admin-spell-detail-page__mechanics-list-button,
+.admin-spell-detail-page__targets-list-button {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	padding: 0.5rem 0.625rem;
+	border: 0;
+	background: transparent;
+	color: var(--p-text-color);
+	font: inherit;
+	line-height: 1.25;
+	text-align: left;
+	cursor: pointer;
+}
+
+.admin-spell-detail-page__mechanics-list-button span,
+.admin-spell-detail-page__mechanics-list-button small,
+.admin-spell-detail-page__targets-list-button span,
+.admin-spell-detail-page__targets-list-button small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-spell-detail-page__mechanics-list-button span,
+.admin-spell-detail-page__targets-list-button span {
+	font-weight: 600;
+}
+
+.admin-spell-detail-page__mechanics-list-button small,
+.admin-spell-detail-page__targets-list-button small {
+	color: var(--p-text-muted-color);
+	font-size: 0.75rem;
+}
+
+.admin-spell-detail-page__mechanics-order,
+.admin-spell-detail-page__targets-order {
+	display: flex;
+	align-items: center;
+	gap: 0.125rem;
+	padding-right: 0.25rem;
+}
+
+.admin-spell-detail-page__mechanics-editor,
+.admin-spell-detail-page__targets-editor {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	min-width: 0;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0.75rem;
+}
+
+.admin-spell-detail-page__mechanic-editor-head {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	align-items: end;
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__target-editor-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.admin-spell-detail-page__target-form-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
 }

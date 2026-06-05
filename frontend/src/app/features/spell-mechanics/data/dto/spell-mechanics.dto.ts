@@ -52,9 +52,21 @@ export interface SpellMechanicParameterDto {
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;
 	defaultValue: SpellMechanicParameterDefaultValueDto;
+	defaultTargetConfig: SpellMechanicTargetConfigDto | null;
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface SpellMechanicTargetConfigDto {
+	name: string;
+	source: string;
+	relation: string;
+	countMode: string;
+	countValueMode?: string;
+	countValue?: number;
+	countFormula?: string;
+	isRequired?: boolean;
 }
 
 export type SpellMechanicActionKindDto =
@@ -132,6 +144,7 @@ export interface SpellMechanicParameterCommandDto {
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;
 	defaultValue: SpellMechanicParameterDefaultValueDto;
+	defaultTargetConfig?: SpellMechanicTargetConfigDto | null;
 	sortOrder?: number;
 }
 

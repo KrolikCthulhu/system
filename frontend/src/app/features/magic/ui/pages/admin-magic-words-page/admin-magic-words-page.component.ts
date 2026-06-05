@@ -19,9 +19,11 @@ import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { MultiSelect } from 'primeng/multiselect';
 import { Select } from 'primeng/select';
+import { Slider } from 'primeng/slider';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
+import { Tooltip } from 'primeng/tooltip';
 import { forkJoin } from 'rxjs';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
 import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
@@ -34,6 +36,7 @@ import { Skill, SkillCategory } from '../../../../skills/domain/skills.models';
 import {
 	MAGIC_WORD_TYPE_OPTIONS,
 	MagicWord,
+	MagicWordEssenceProfile,
 	MagicWordType,
 	magicWordTypeLabel,
 	magicWordTypePluralLabel
@@ -51,7 +54,10 @@ interface MagicWordDraft {
 	skillIds: string[];
 	damageTypeIds: string[];
 	conditionIds: string[];
+	essenceProfile: MagicWordEssenceProfile;
 }
+
+type EssenceProfileField = keyof MagicWordEssenceProfile;
 
 interface SelectOption {
 	id: string;
@@ -78,9 +84,11 @@ interface SelectOptionGroup {
 		InputText,
 		MultiSelect,
 		Select,
+		Slider,
 		Tag,
 		Textarea,
 		ToggleSwitch,
+		Tooltip,
 		EditorActionsBarComponent
 	],
 	templateUrl: './admin-magic-words-page.component.html',
@@ -102,6 +110,42 @@ export class AdminMagicWordsPageComponent {
 		{ label: 'Слова магии' }
 	];
 	protected readonly typeOptions = MAGIC_WORD_TYPE_OPTIONS;
+	protected readonly essenceProfileFields: Array<{
+		field: EssenceProfileField;
+		label: string;
+		tooltip: string;
+	}> = [
+		{
+			field: 'damageAffinity',
+			label: 'Урон',
+			tooltip: 'Насколько сущность усиливает числовые формулы урона.'
+		},
+		{
+			field: 'rangeAffinity',
+			label: 'Дальность',
+			tooltip: 'Насколько сущность подходит для формул расстояния и дальности действия.'
+		},
+		{
+			field: 'controlAffinity',
+			label: 'Контроль',
+			tooltip: 'Насколько сущность подходит для точного управления, выбора целей и сложных воздействий.'
+		},
+		{
+			field: 'durationAffinity',
+			label: 'Длительность',
+			tooltip: 'Насколько сущность поддерживает продолжительные эффекты.'
+		},
+		{
+			field: 'areaAffinity',
+			label: 'Область',
+			tooltip: 'Насколько сущность подходит для расширения эффекта на область.'
+		},
+		{
+			field: 'stabilityAffinity',
+			label: 'Стабильность',
+			tooltip: 'Насколько сущность подходит для устойчивых, защищённых и предсказуемых эффектов.'
+		}
+	];
 	protected readonly selectedType = signal<MagicWordType>('ACTION');
 	protected readonly selectedWordId = signal<string | null>(null);
 	protected readonly searchQuery = signal('');
@@ -275,6 +319,31 @@ export class AdminMagicWordsPageComponent {
 		this.patchDraft({ conditionIds });
 	}
 
+	protected updateEssenceProfileValue(
+		field: EssenceProfileField,
+		percentValue: number | null
+	) {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		this.patchDraft({
+			essenceProfile: {
+				...draft.essenceProfile,
+				[field]: normalizePercent(percentValue)
+			}
+		});
+	}
+
+	protected essenceProfilePercent(
+		profile: MagicWordEssenceProfile,
+		field: EssenceProfileField
+	) {
+		return Math.round(profile[field] * 100);
+	}
+
 	protected resetDraft() {
 		const word = this.selectedWord();
 
@@ -315,7 +384,9 @@ export class AdminMagicWordsPageComponent {
 				draft.type === 'MODIFIER' ? draft.allowedGestureIds : [],
 			skillIds: draft.skillIds,
 			damageTypeIds: draft.damageTypeIds,
-			conditionIds: draft.conditionIds
+			conditionIds: draft.conditionIds,
+			essenceProfile:
+				draft.type === 'ESSENCE' ? draft.essenceProfile : undefined
 		};
 		const request = draft.id
 			? this.repository.updateWord(draft.id, command)
@@ -424,7 +495,10 @@ export class AdminMagicWordsPageComponent {
 			allowedGestureIds: [...word.allowedGestureIds],
 			skillIds: [...word.skillIds],
 			damageTypeIds: [...word.damageTypeIds],
-			conditionIds: [...word.conditionIds]
+			conditionIds: [...word.conditionIds],
+			essenceProfile: word.essenceProfile
+				? { ...word.essenceProfile }
+				: createDefaultEssenceProfile()
 		};
 
 		this.selectedWordId.set(word.id);
@@ -484,7 +558,8 @@ function createEmptyDraft(type: MagicWordType): MagicWordDraft {
 		allowedGestureIds: [],
 		skillIds: [],
 		damageTypeIds: [],
-		conditionIds: []
+		conditionIds: [],
+		essenceProfile: createDefaultEssenceProfile()
 	};
 }
 
@@ -519,4 +594,23 @@ function createSkillOptionGroups(
 
 function draftSignature(draft: MagicWordDraft | null): string {
 	return JSON.stringify(draft ?? null);
+}
+
+function createDefaultEssenceProfile(): MagicWordEssenceProfile {
+	return {
+		damageAffinity: 0.5,
+		rangeAffinity: 0.5,
+		controlAffinity: 0.5,
+		durationAffinity: 0.5,
+		areaAffinity: 0.5,
+		stabilityAffinity: 0.5
+	};
+}
+
+function normalizePercent(value: number | null) {
+	if (typeof value !== 'number' || !Number.isFinite(value)) {
+		return 0;
+	}
+
+	return Math.min(1, Math.max(0, Math.round(value) / 100));
 }
