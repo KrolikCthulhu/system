@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Prisma, SystemValueOwnerType } from '../__generated__/index.js';
 import { createCharacterInputGraph } from '../../backend/src/app/shared/system-value-graph.factory';
-import { createPotentialGraph } from './graphs';
+import { createPotentialGraph, createSumGraph } from './graphs';
 import {
 	ensureSystemValue,
 	findRequiredByName,
@@ -93,5 +93,58 @@ export async function seedHealthValue(tx: Prisma.TransactionClient) {
 		isSystemManaged: false,
 		isActive: true,
 		sortOrder: 2
+	});
+}
+
+export async function seedSpellcasterLevelValue(tx: Prisma.TransactionClient) {
+	const understandingSkills = await tx.skill.findMany({
+		where: {
+			name: {
+				in: [
+					'Понимание Сущности',
+					'Понимание Сознания',
+					'Понимание Формы',
+					'Понимание Потока',
+					'Понимание Порядка'
+				]
+			}
+		}
+	});
+	const understandingSkillNames = [
+		'Понимание Сущности',
+		'Понимание Сознания',
+		'Понимание Формы',
+		'Понимание Потока',
+		'Понимание Порядка'
+	];
+	const understandingValueIds = understandingSkillNames.map(name => {
+		const skill = findRequiredByName(
+			understandingSkills,
+			name,
+			'магический навык'
+		);
+
+		return skill.systemValueId;
+	});
+	const existing = await tx.systemValue.findFirst({
+		where: {
+			name: 'Уровень Заклинателя',
+			primaryOwnerType: SystemValueOwnerType.MANUAL,
+			primaryOwnerId: null
+		}
+	});
+
+	return ensureSystemValue(tx, {
+		id: existing?.id ?? randomUUID(),
+		name: 'Уровень Заклинателя',
+		description:
+			'Магическое значение: сумма всех Пониманий персонажа.',
+		primaryOwnerType: SystemValueOwnerType.MANUAL,
+		primaryOwnerId: null,
+		displaySection: 'Магия',
+		calculationGraph: createSumGraph(understandingValueIds),
+		isSystemManaged: false,
+		isActive: true,
+		sortOrder: 0
 	});
 }

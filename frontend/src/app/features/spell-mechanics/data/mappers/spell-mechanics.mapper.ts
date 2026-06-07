@@ -58,6 +58,7 @@ function mapSpellMechanicParameterDto(
 		mechanicId: dto.mechanicId,
 		name: dto.name,
 		kind: dto.kind,
+		numericRole: dto.numericRole ?? 'custom',
 		required: dto.required,
 		configuredBySpell: dto.configuredBySpell,
 		overrideAllowed: dto.overrideAllowed,
@@ -84,6 +85,7 @@ function mapTargetConfigDto(
 			: 'fixed',
 		countValue: dto.countValue ?? 1,
 		countFormula: dto.countFormula ?? '',
+		targetCountParameterId: dto.targetCountParameterId ?? '',
 		isRequired: dto.isRequired ?? true
 	};
 }
@@ -103,7 +105,7 @@ function isTargetCountMode(value: string): value is SpellMechanicTargetCountMode
 function isTargetCountValueMode(
 	value: string | undefined
 ): value is SpellMechanicTargetCountValueMode {
-	return value === 'fixed' || value === 'formula';
+	return value === 'fixed' || value === 'formula' || value === 'parameter';
 }
 
 function mapSpellMechanicActionDto(

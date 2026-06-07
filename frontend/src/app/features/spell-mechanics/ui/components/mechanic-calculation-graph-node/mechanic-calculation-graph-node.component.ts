@@ -278,7 +278,11 @@ export class MechanicCalculationGraphNodeComponent extends CustomNodeComponent<M
 
 	protected readonly usesBinaryHandles = computed(() => {
 		const operation = this.data()?.operation;
-		return operation === 'subtract' || operation === 'divide';
+		return (
+			operation === 'subtract' ||
+			operation === 'divide' ||
+			operation === 'power'
+		);
 	});
 
 	protected readonly nodeIconClass = computed(() => {
@@ -319,6 +323,14 @@ function operationIconClass(operation: MechanicCalculationOperation): string {
 			return 'pi pi-minus';
 		case 'divide':
 			return 'pi pi-slash';
+		case 'power':
+		case 'sqrt':
+		case 'log':
+		case 'exp':
+		case 'floor':
+		case 'round':
+		case 'ceil':
+			return 'pi pi-hashtag';
 	}
 }
 
@@ -338,6 +350,20 @@ function operationLabel(operation: MechanicCalculationOperation): string {
 			return 'Вычесть';
 		case 'divide':
 			return 'Разделить';
+		case 'power':
+			return 'Степень';
+		case 'sqrt':
+			return 'Корень';
+		case 'log':
+			return 'Логарифм';
+		case 'exp':
+			return 'Экспонента';
+		case 'floor':
+			return 'Округлить вниз';
+		case 'round':
+			return 'Округлить';
+		case 'ceil':
+			return 'Округлить вверх';
 	}
 }
 

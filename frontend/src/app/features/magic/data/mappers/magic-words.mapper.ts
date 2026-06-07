@@ -143,6 +143,7 @@ function mapSpellTargetConfigDto(dto: SpellTargetConfigDto): SpellTargetConfig {
 			: 'fixed',
 		countValue: dto.countValue ?? 1,
 		countFormula: dto.countFormula ?? '',
+		targetCountParameterId: dto.targetCountParameterId ?? '',
 		isRequired: dto.isRequired ?? true,
 		sortOrder: dto.sortOrder ?? 0
 	};
@@ -163,5 +164,5 @@ function isSpellTargetCountMode(value: string): value is SpellTargetCountMode {
 function isSpellTargetCountValueMode(
 	value: string | undefined
 ): value is SpellTargetCountValueMode {
-	return value === 'fixed' || value === 'formula';
+	return value === 'fixed' || value === 'formula' || value === 'parameter';
 }

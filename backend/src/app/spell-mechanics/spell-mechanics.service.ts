@@ -3,7 +3,8 @@ import {
 	Prisma,
 	SpellMechanicActionKind,
 	SpellMechanicParameterDefaultMode,
-	SpellMechanicParameterKind
+	SpellMechanicParameterKind,
+	SpellMechanicNumericRole
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
@@ -16,7 +17,8 @@ import {
 import {
 	SpellMechanicParameterDefaultModeDto,
 	SpellMechanicParameterDto,
-	SpellMechanicParameterKindDto
+	SpellMechanicParameterKindDto,
+	SpellMechanicNumericRoleDto
 } from './dto/spell-mechanic-parameter.dto';
 import { UpdateSpellMechanicCategoryDto } from './dto/update-spell-mechanic-category.dto';
 import { UpdateSpellMechanicDto } from './dto/update-spell-mechanic.dto';
@@ -49,6 +51,7 @@ const mechanicSelect = {
 			mechanicId: true,
 			name: true,
 			kind: true,
+			numericRole: true,
 			defaultMode: true,
 			staticSkillId: true,
 			staticDamageTypeId: true,
@@ -370,6 +373,7 @@ export class SpellMechanicsService {
 			id: parameter.id,
 			name: parameter.name.trim() || 'Параметр',
 			kind: this.toParameterKind(parameter.kind),
+			numericRole: this.toNumericRole(parameter.numericRole, parameter.kind),
 			defaultMode: this.toParameterDefaultMode(parameter.defaultValue.mode),
 			...defaultRefs,
 			defaultTargetConfig: this.toParameterDefaultTargetConfig(parameter),
@@ -392,6 +396,7 @@ export class SpellMechanicsService {
 			mechanicId,
 			name: parameter.name.trim() || 'Параметр',
 			kind: this.toParameterKind(parameter.kind),
+			numericRole: this.toNumericRole(parameter.numericRole, parameter.kind),
 			defaultMode: this.toParameterDefaultMode(parameter.defaultValue.mode),
 			...defaultRefs,
 			defaultTargetConfig: this.toParameterDefaultTargetConfig(parameter),
@@ -445,6 +450,8 @@ export class SpellMechanicsService {
 			countValueMode: parameter.defaultTargetConfig.countValueMode ?? 'fixed',
 			countValue: parameter.defaultTargetConfig.countValue ?? 1,
 			countFormula: parameter.defaultTargetConfig.countFormula?.trim() ?? '',
+			targetCountParameterId:
+				parameter.defaultTargetConfig.targetCountParameterId?.trim() ?? '',
 			isRequired: parameter.defaultTargetConfig.isRequired ?? true
 		} satisfies Prisma.InputJsonObject;
 	}
@@ -546,6 +553,26 @@ export class SpellMechanicsService {
 		return modes[mode];
 	}
 
+	private toNumericRole(
+		role: SpellMechanicNumericRoleDto | undefined,
+		kind: SpellMechanicParameterKindDto
+	) {
+		if (kind !== 'number' && kind !== 'formula') {
+			return SpellMechanicNumericRole.CUSTOM;
+		}
+
+		const roles = {
+			damage: 'DAMAGE',
+			range: 'RANGE',
+			duration: 'DURATION',
+			area: 'AREA',
+			targetCount: 'TARGET_COUNT',
+			custom: 'CUSTOM'
+		} satisfies Record<SpellMechanicNumericRoleDto, SpellMechanicNumericRole>;
+
+		return roles[role ?? 'custom'];
+	}
+
 	private fromParameterKind(
 		kind: SpellMechanicParameterKind
 	): SpellMechanicParameterKindDto {
@@ -564,6 +591,19 @@ export class SpellMechanicsService {
 		>;
 
 		return kinds[kind];
+	}
+
+	private fromNumericRole(role: SpellMechanicNumericRole): SpellMechanicNumericRoleDto {
+		const roles = {
+			DAMAGE: 'damage',
+			RANGE: 'range',
+			DURATION: 'duration',
+			AREA: 'area',
+			TARGET_COUNT: 'targetCount',
+			CUSTOM: 'custom'
+		} satisfies Record<SpellMechanicNumericRole, SpellMechanicNumericRoleDto>;
+
+		return roles[role];
 	}
 
 	private fromParameterDefaultMode(
@@ -608,6 +648,7 @@ export class SpellMechanicsService {
 				mechanicId: parameter.mechanicId,
 				name: parameter.name,
 				kind: this.fromParameterKind(parameter.kind),
+				numericRole: this.fromNumericRole(parameter.numericRole),
 				required: parameter.isRequired,
 				configuredBySpell: parameter.configuredBySpell,
 				overrideAllowed: parameter.overrideAllowed,

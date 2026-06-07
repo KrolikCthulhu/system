@@ -29,7 +29,7 @@ export interface Spell {
 export type SpellTargetSource = 'caster' | 'selected' | 'area';
 export type SpellTargetRelation = 'self' | 'any' | 'enemy' | 'ally';
 export type SpellTargetCountMode = 'one' | 'all' | 'upTo' | 'exact';
-export type SpellTargetCountValueMode = 'fixed' | 'formula';
+export type SpellTargetCountValueMode = 'fixed' | 'formula' | 'parameter';
 
 export interface SpellTargetConfig {
 	id: string;
@@ -40,6 +40,7 @@ export interface SpellTargetConfig {
 	countValueMode: SpellTargetCountValueMode;
 	countValue: number;
 	countFormula: string;
+	targetCountParameterId: string;
 	isRequired: boolean;
 	sortOrder: number;
 }

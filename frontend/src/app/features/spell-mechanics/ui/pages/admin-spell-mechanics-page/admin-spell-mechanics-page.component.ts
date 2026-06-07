@@ -31,6 +31,7 @@ import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes
 import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import { NavigationTreeComponent } from '../../../../../shared/ui/navigation-tree/navigation-tree.component';
 import { NavigationTreeGroup } from '../../../../../shared/ui/navigation-tree/navigation-tree.models';
+import { SpellTargetConfigEditorComponent } from '../../../../../shared/ui/spell-target-config-editor/spell-target-config-editor.component';
 import { CONDITIONS_REPOSITORY } from '../../../../conditions/data/conditions-repository.port';
 import { Condition } from '../../../../conditions/domain/conditions.models';
 import { DAMAGE_TYPES_REPOSITORY } from '../../../../damage-types/data/damage-types-repository.port';
@@ -56,11 +57,8 @@ import {
 	SpellMechanicParameterDefaultValue,
 	SpellMechanicParameterDefaultValueMode,
 	SpellMechanicParameterKind,
-	SpellMechanicTargetConfig,
-	SpellMechanicTargetCountMode,
-	SpellMechanicTargetCountValueMode,
-	SpellMechanicTargetRelation,
-	SpellMechanicTargetSource
+	SpellMechanicNumericRole,
+	SpellMechanicTargetConfig
 } from '../../../domain/spell-mechanics.models';
 
 type SelectionKind = 'category' | 'mechanic';
@@ -215,6 +213,18 @@ const DEFAULT_VALUE_MODE_OPTIONS: Array<{
 	{ label: 'Из сущности', value: 'fromMagicWord' }
 ];
 
+const NUMERIC_ROLE_OPTIONS: Array<{
+	label: string;
+	value: SpellMechanicNumericRole;
+}> = [
+	{ label: 'Урон', value: 'damage' },
+	{ label: 'Дальность', value: 'range' },
+	{ label: 'Длительность', value: 'duration' },
+	{ label: 'Область', value: 'area' },
+	{ label: 'Количество целей', value: 'targetCount' },
+	{ label: 'Свое', value: 'custom' }
+];
+
 const ACTION_KIND_OPTIONS: Array<{
 	label: string;
 	value: SpellMechanicActionKind;
@@ -249,34 +259,6 @@ const COMPARISON_OPERATOR_OPTIONS: Array<{
 	{ label: 'Равно', value: 'eq' },
 	{ label: 'Меньше или равно', value: 'lte' },
 	{ label: 'Меньше', value: 'lt' }
-];
-
-const TARGET_SOURCE_OPTIONS: Array<{ label: string; value: SpellMechanicTargetSource }> = [
-	{ label: 'Кастер', value: 'caster' },
-	{ label: 'Выбор', value: 'selected' },
-	{ label: 'Область', value: 'area' }
-];
-
-const TARGET_RELATION_OPTIONS: Array<{ label: string; value: SpellMechanicTargetRelation }> = [
-	{ label: 'Сам', value: 'self' },
-	{ label: 'Любые', value: 'any' },
-	{ label: 'Враги', value: 'enemy' },
-	{ label: 'Союзники', value: 'ally' }
-];
-
-const TARGET_COUNT_MODE_OPTIONS: Array<{ label: string; value: SpellMechanicTargetCountMode }> = [
-	{ label: 'Одна', value: 'one' },
-	{ label: 'Все', value: 'all' },
-	{ label: 'До значения', value: 'upTo' },
-	{ label: 'Ровно значение', value: 'exact' }
-];
-
-const TARGET_COUNT_VALUE_MODE_OPTIONS: Array<{
-	label: string;
-	value: SpellMechanicTargetCountValueMode;
-}> = [
-	{ label: 'Число', value: 'fixed' },
-	{ label: 'Формула', value: 'formula' }
 ];
 
 interface SelectOption {
@@ -318,7 +300,8 @@ interface SelectOptionGroup {
 		TreeTableModule,
 		EditorActionsBarComponent,
 		MechanicCalculationGraphEditorComponent,
-		NavigationTreeComponent
+		NavigationTreeComponent,
+		SpellTargetConfigEditorComponent
 	],
 	templateUrl: './admin-spell-mechanics-page.component.html',
 	styleUrl: './admin-spell-mechanics-page.component.scss',
@@ -371,10 +354,7 @@ export class AdminSpellMechanicsPageComponent {
 		VALUE_CHANGE_OPERATION_OPTIONS;
 	protected readonly comparisonOperatorOptions = COMPARISON_OPERATOR_OPTIONS;
 	protected readonly defaultValueModeOptions = DEFAULT_VALUE_MODE_OPTIONS;
-	protected readonly targetSourceOptions = TARGET_SOURCE_OPTIONS;
-	protected readonly targetRelationOptions = TARGET_RELATION_OPTIONS;
-	protected readonly targetCountModeOptions = TARGET_COUNT_MODE_OPTIONS;
-	protected readonly targetCountValueModeOptions = TARGET_COUNT_VALUE_MODE_OPTIONS;
+	protected readonly numericRoleOptions = NUMERIC_ROLE_OPTIONS;
 	protected readonly savedDraftSignature = signal('');
 	protected readonly loading = signal(true);
 	protected readonly saving = signal(false);
@@ -1588,6 +1568,7 @@ export class AdminSpellMechanicsPageComponent {
 			mechanicId: draft.id ?? '',
 			name: '',
 			kind: 'target',
+			numericRole: 'custom',
 			required: true,
 			configuredBySpell: true,
 			overrideAllowed: false,
@@ -1630,6 +1611,7 @@ export class AdminSpellMechanicsPageComponent {
 	protected updateMechanicSlotKind(index: number, kind: SpellMechanicParameterKind) {
 		this.updateMechanicSlot(index, {
 			kind,
+			numericRole: 'custom',
 			defaultValue: createEmptyDefaultValue(),
 			defaultTargetConfig: null
 		});
@@ -1835,6 +1817,33 @@ export class AdminSpellMechanicsPageComponent {
 		return (
 			SLOT_KIND_OPTIONS.find(option => option.value === kind)?.label ?? kind
 		);
+	}
+
+	protected slotNumericRoleLabel(slot: SpellMechanicParameter) {
+		if (!supportsNumericRole(slot.kind)) {
+			return 'Не применяется';
+		}
+
+		return (
+			NUMERIC_ROLE_OPTIONS.find(option => option.value === slot.numericRole)
+				?.label ?? 'Свое'
+		);
+	}
+
+	protected targetCountParameterOptions(currentSlotId: string) {
+		return this
+			.mechanicSlots()
+			.filter(
+				slot =>
+					slot.id !== currentSlotId &&
+					supportsNumericRole(slot.kind) &&
+					slot.numericRole === 'targetCount'
+			)
+			.sort((first, second) => first.sortOrder - second.sortOrder)
+			.map(slot => ({
+				label: slot.name || 'Параметр количества',
+				value: slot.id
+			}));
 	}
 
 	protected actionKindLabel(kind: SpellMechanicActionKind) {
@@ -2625,6 +2634,7 @@ function createDefaultTargetConfig(): SpellMechanicTargetConfig {
 		countValueMode: 'fixed',
 		countValue: 1,
 		countFormula: '',
+		targetCountParameterId: '',
 		isRequired: true
 	};
 }
@@ -3573,6 +3583,10 @@ function isDefaultValueModeAllowedForKind(
 	}
 
 	return true;
+}
+
+function supportsNumericRole(kind: SpellMechanicParameterKind) {
+	return kind === 'number' || kind === 'formula';
 }
 
 function upsertById<T extends { id: string }>(items: T[], item: T) {

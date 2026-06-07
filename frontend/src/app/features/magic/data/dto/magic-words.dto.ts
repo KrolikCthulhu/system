@@ -124,6 +124,7 @@ export interface SpellTargetConfigDto {
 	countValueMode?: string;
 	countValue?: number;
 	countFormula?: string;
+	targetCountParameterId?: string;
 	isRequired?: boolean;
 	sortOrder?: number;
 }

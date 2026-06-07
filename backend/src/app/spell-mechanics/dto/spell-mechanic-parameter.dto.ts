@@ -28,10 +28,21 @@ export const spellMechanicParameterDefaultModes = [
 	'fromMagicWord'
 ] as const;
 
+export const spellMechanicNumericRoles = [
+	'damage',
+	'range',
+	'duration',
+	'area',
+	'targetCount',
+	'custom'
+] as const;
+
 export type SpellMechanicParameterKindDto =
 	(typeof spellMechanicParameterKinds)[number];
 export type SpellMechanicParameterDefaultModeDto =
 	(typeof spellMechanicParameterDefaultModes)[number];
+export type SpellMechanicNumericRoleDto =
+	(typeof spellMechanicNumericRoles)[number];
 
 export class SpellMechanicParameterDefaultValueDto {
 	@IsIn(spellMechanicParameterDefaultModes)
@@ -68,6 +79,10 @@ export class SpellMechanicTargetConfigDto {
 	countFormula?: string;
 
 	@IsOptional()
+	@IsString()
+	targetCountParameterId?: string;
+
+	@IsOptional()
 	@IsBoolean()
 	isRequired?: boolean;
 }
@@ -82,6 +97,10 @@ export class SpellMechanicParameterDto {
 
 	@IsIn(spellMechanicParameterKinds)
 	kind!: SpellMechanicParameterKindDto;
+
+	@IsOptional()
+	@IsIn(spellMechanicNumericRoles)
+	numericRole?: SpellMechanicNumericRoleDto;
 
 	@IsBoolean()
 	required!: boolean;

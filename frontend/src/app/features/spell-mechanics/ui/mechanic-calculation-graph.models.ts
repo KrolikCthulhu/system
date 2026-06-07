@@ -17,7 +17,14 @@ export type MechanicCalculationOperation =
 	| 'max'
 	| 'multiply'
 	| 'subtract'
-	| 'divide';
+	| 'divide'
+	| 'power'
+	| 'sqrt'
+	| 'log'
+	| 'exp'
+	| 'floor'
+	| 'round'
+	| 'ceil';
 
 export type MechanicCalculationComparison =
 	| 'eq'

@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
 	Prisma,
 	SpellMechanicActionKind,
+	SpellMechanicNumericRole,
 	SpellMechanicParameterDefaultMode,
 	SpellMechanicParameterKind
 } from '../__generated__/index.js';
@@ -24,6 +25,14 @@ type SpellMechanicParameterSeedDefaultMode =
 	| 'empty'
 	| 'static'
 	| 'fromMagicWord';
+
+type SpellMechanicNumericRoleSeed =
+	| 'damage'
+	| 'range'
+	| 'duration'
+	| 'area'
+	| 'targetCount'
+	| 'custom';
 
 type SpellMechanicActionSeedKind =
 	| 'roll'
@@ -155,6 +164,10 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 					mechanicId: mechanic.id,
 					name: parameter.name,
 					kind: toParameterKind(parameter.kind),
+					numericRole: toNumericRole(
+						'numericRole' in parameter ? parameter.numericRole : undefined,
+						parameter.kind
+					),
 					defaultMode: toParameterDefaultMode(parameter.defaultValue.mode),
 					staticSkillId:
 						parameter.defaultValue.mode === 'static' &&
@@ -513,6 +526,26 @@ function toParameterDefaultMode(mode: SpellMechanicParameterSeedDefaultMode) {
 	>;
 
 	return modes[mode];
+}
+
+function toNumericRole(
+	role: SpellMechanicNumericRoleSeed | undefined,
+	kind: SpellMechanicParameterSeedKind
+) {
+	if (kind !== 'number' && kind !== 'formula') {
+		return SpellMechanicNumericRole.CUSTOM;
+	}
+
+	const roles = {
+		damage: 'DAMAGE',
+		range: 'RANGE',
+		duration: 'DURATION',
+		area: 'AREA',
+		targetCount: 'TARGET_COUNT',
+		custom: 'CUSTOM'
+	} satisfies Record<SpellMechanicNumericRoleSeed, SpellMechanicNumericRole>;
+
+	return roles[role ?? 'custom'];
 }
 
 function toActionKind(kind: SpellMechanicActionSeedKind) {

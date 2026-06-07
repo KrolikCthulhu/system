@@ -59,7 +59,14 @@ const OPERATION_OPTIONS = [
 	{ label: 'Максимум', value: 'max' as MechanicCalculationOperation },
 	{ label: 'Умножить', value: 'multiply' as MechanicCalculationOperation },
 	{ label: 'Вычесть', value: 'subtract' as MechanicCalculationOperation },
-	{ label: 'Разделить', value: 'divide' as MechanicCalculationOperation }
+	{ label: 'Разделить', value: 'divide' as MechanicCalculationOperation },
+	{ label: 'Степень', value: 'power' as MechanicCalculationOperation },
+	{ label: 'Корень', value: 'sqrt' as MechanicCalculationOperation },
+	{ label: 'Логарифм', value: 'log' as MechanicCalculationOperation },
+	{ label: 'Экспонента', value: 'exp' as MechanicCalculationOperation },
+	{ label: 'Округлить вниз', value: 'floor' as MechanicCalculationOperation },
+	{ label: 'Округлить', value: 'round' as MechanicCalculationOperation },
+	{ label: 'Округлить вверх', value: 'ceil' as MechanicCalculationOperation }
 ];
 
 const COMPARISON_OPTIONS = [
@@ -406,9 +413,18 @@ export class MechanicCalculationGraphEditorComponent {
 
 		if (
 			targetData.kind === 'operation' &&
-			(targetData.operation === 'subtract' || targetData.operation === 'divide')
+			(targetData.operation === 'subtract' ||
+				targetData.operation === 'divide' ||
+				targetData.operation === 'power')
 		) {
 			return this.isTargetHandleAvailable(targetNode.id, connection, 'a');
+		}
+
+		if (
+			targetData.kind === 'operation' &&
+			isUnaryOperation(targetData.operation)
+		) {
+			return this.isTargetHandleAvailable(targetNode.id, connection, 'in');
 		}
 
 		if (targetData.kind === 'comparison') {
@@ -466,4 +482,17 @@ export class MechanicCalculationGraphEditorComponent {
 			target.tagName === 'SELECT'
 		);
 	}
+}
+
+function isUnaryOperation(
+	operation: MechanicCalculationOperation | undefined
+): boolean {
+	return (
+		operation === 'sqrt' ||
+		operation === 'log' ||
+		operation === 'exp' ||
+		operation === 'floor' ||
+		operation === 'round' ||
+		operation === 'ceil'
+	);
 }

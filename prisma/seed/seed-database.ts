@@ -22,7 +22,8 @@ import { seedSpellMechanics } from './seed-spell-mechanics';
 import {
 	seedHealthValue,
 	seedPotentialValue,
-	seedSourceValue
+	seedSourceValue,
+	seedSpellcasterLevelValue
 } from './seed-system-values';
 
 export async function seedDatabase(tx: Prisma.TransactionClient) {
@@ -59,6 +60,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 		characteristics,
 		consequences
 	});
+	await seedSpellcasterLevelValue(tx);
 	await seedSpellMechanics(tx);
 	await seedMagicWords(tx);
 	await seedMagicWordLinks(tx);

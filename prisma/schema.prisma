@@ -50,6 +50,15 @@ enum SpellMechanicParameterDefaultMode {
   FROM_MAGIC_WORD
 }
 
+enum SpellMechanicNumericRole {
+  DAMAGE
+  RANGE
+  DURATION
+  AREA
+  TARGET_COUNT
+  CUSTOM
+}
+
 enum SpellMechanicActionKind {
   ROLL
   CHECK
@@ -363,6 +372,7 @@ model SpellMechanicParameter {
   mechanic            SpellMechanic                      @relation(fields: [mechanicId], references: [id], onDelete: Cascade)
   name                String
   kind                SpellMechanicParameterKind
+  numericRole         SpellMechanicNumericRole           @default(CUSTOM) @map("numeric_role")
   defaultMode         SpellMechanicParameterDefaultMode  @default(EMPTY) @map("default_mode")
   staticSkillId       String?                            @map("static_skill_id") @db.Uuid
   staticSkill         Skill?                             @relation(fields: [staticSkillId], references: [id], onDelete: SetNull)

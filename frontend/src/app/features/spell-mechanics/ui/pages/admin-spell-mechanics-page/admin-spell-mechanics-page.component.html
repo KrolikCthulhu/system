@@ -400,6 +400,7 @@
 												<tr>
 													<th>Название</th>
 													<th>Тип</th>
+													<th>Назначение</th>
 													<th>Источник</th>
 													<th>Значение</th>
 													<th>Обяз.</th>
@@ -419,6 +420,7 @@
 												>
 													<td>{{ slot.name || 'Без названия' }}</td>
 													<td>{{ slotKindLabel(slot.kind) }}</td>
+													<td>{{ slotNumericRoleLabel(slot) }}</td>
 													<td>{{ slotDefaultValueModeLabel(slot) }}</td>
 													<td>{{ slotDefaultValueDisplay(slot) }}</td>
 													<td>
@@ -469,7 +471,7 @@
 
 											<ng-template #emptymessage>
 												<tr>
-													<td colspan="8">Параметры пока не добавлены.</td>
+													<td colspan="9">Параметры пока не добавлены.</td>
 												</tr>
 											</ng-template>
 										</p-table>
@@ -541,6 +543,36 @@
 																"
 															></p-select>
 														</div>
+
+														@if (
+															slot.kind === 'number' || slot.kind === 'formula'
+														) {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Назначение
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Смысл параметра для авто-формул, текста, будущего runtime и балансировки."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="numericRoleOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="slot.numericRole"
+																	(ngModelChange)="
+																		updateSelectedMechanicSlot({
+																			numericRole: $event
+																		})
+																	"
+																></p-select>
+															</div>
+														}
 
 														@if (supportsDefaultValue(slot.kind)) {
 															<div
@@ -668,194 +700,17 @@
 															</div>
 
 															@if (slot.defaultTargetConfig; as targetDefault) {
-																<div
-																	class="admin-spell-mechanics-page__target-default-form"
-																>
-																	<div
-																		class="admin-spell-mechanics-page__form-field"
-																	>
-																		<label
-																			class="admin-spell-mechanics-page__field-label"
-																		>
-																			Название цели
-																		</label>
-																		<input
-																			pInputText
-																			type="text"
-																			[value]="targetDefault.name"
-																			(input)="
-																				updateSelectedMechanicSlotDefaultTarget({
-																					name: $any($event.target).value
-																				})
-																			"
-																		/>
-																	</div>
-
-																	<div
-																		class="admin-spell-mechanics-page__form-field"
-																	>
-																		<label
-																			class="admin-spell-mechanics-page__field-label"
-																		>
-																			Источник
-																		</label>
-																		<p-select
-																			[options]="targetSourceOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="targetDefault.source"
-																			(ngModelChange)="
-																				updateSelectedMechanicSlotDefaultTarget({
-																					source: $event
-																				})
-																			"
-																		></p-select>
-																	</div>
-
-																	<div
-																		class="admin-spell-mechanics-page__form-field"
-																	>
-																		<label
-																			class="admin-spell-mechanics-page__field-label"
-																		>
-																			Отношение
-																		</label>
-																		<p-select
-																			[options]="targetRelationOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="targetDefault.relation"
-																			(ngModelChange)="
-																				updateSelectedMechanicSlotDefaultTarget({
-																					relation: $event
-																				})
-																			"
-																		></p-select>
-																	</div>
-
-																	<div
-																		class="admin-spell-mechanics-page__form-field"
-																	>
-																		<label
-																			class="admin-spell-mechanics-page__field-label"
-																		>
-																			Количество
-																		</label>
-																		<p-select
-																			[options]="targetCountModeOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="targetDefault.countMode"
-																			(ngModelChange)="
-																				updateSelectedMechanicSlotDefaultTarget({
-																					countMode: $event
-																				})
-																			"
-																		></p-select>
-																	</div>
-
-																	@if (
-																		targetDefault.countMode === 'upTo' ||
-																		targetDefault.countMode === 'exact'
-																	) {
-																		<div
-																			class="admin-spell-mechanics-page__form-field"
-																		>
-																			<label
-																				class="admin-spell-mechanics-page__field-label"
-																			>
-																				Источник количества
-																			</label>
-																			<p-select
-																				[options]="
-																					targetCountValueModeOptions
-																				"
-																				optionLabel="label"
-																				optionValue="value"
-																				[ngModel]="
-																					targetDefault.countValueMode
-																				"
-																				(ngModelChange)="
-																					updateSelectedMechanicSlotDefaultTarget({
-																						countValueMode: $event
-																					})
-																				"
-																			></p-select>
-																		</div>
-
-																		@if (
-																			targetDefault.countValueMode ===
-																			'fixed'
-																		) {
-																			<div
-																				class="admin-spell-mechanics-page__form-field"
-																			>
-																				<label
-																					class="admin-spell-mechanics-page__field-label"
-																				>
-																					Значение
-																				</label>
-																				<p-inputnumber
-																					[ngModel]="
-																						targetDefault.countValue
-																					"
-																					[min]="0"
-																					(ngModelChange)="
-																						updateSelectedMechanicSlotDefaultTarget({
-																							countValue: $event ?? 0
-																						})
-																					"
-																				></p-inputnumber>
-																			</div>
-																		} @else {
-																			<div
-																				class="admin-spell-mechanics-page__form-field"
-																			>
-																				<label
-																					class="admin-spell-mechanics-page__field-label"
-																				>
-																					Формула количества
-																				</label>
-																				<input
-																					pInputText
-																					type="text"
-																					[value]="
-																						targetDefault.countFormula
-																					"
-																					(input)="
-																						updateSelectedMechanicSlotDefaultTarget({
-																							countFormula:
-																								$any($event.target)
-																									.value
-																						})
-																					"
-																				/>
-																			</div>
-																		}
-																	}
-
-																	<label
-																		class="admin-spell-mechanics-page__switch-row"
-																	>
-																		<span
-																			class="admin-spell-mechanics-page__switch-text"
-																		>
-																			<span
-																				class="admin-spell-mechanics-page__switch-label"
-																			>
-																				Обязательная цель
-																			</span>
-																		</span>
-																		<p-toggleswitch
-																			[ngModel]="targetDefault.isRequired"
-																			(ngModelChange)="
-																				updateSelectedMechanicSlotDefaultTarget({
-																					isRequired: $event
-																				})
-																			"
-																		></p-toggleswitch>
-																	</label>
-																</div>
+																<app-spell-target-config-editor
+																	[value]="targetDefault"
+																	[countParameterOptions]="
+																		targetCountParameterOptions(slot.id)
+																	"
+																	(valueChange)="
+																		updateSelectedMechanicSlotDefaultTarget(
+																			$event
+																		)
+																	"
+																></app-spell-target-config-editor>
 															}
 														}
 

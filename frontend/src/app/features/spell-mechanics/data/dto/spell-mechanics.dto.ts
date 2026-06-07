@@ -38,6 +38,14 @@ export type SpellMechanicParameterDefaultValueModeDto =
 	| 'static'
 	| 'fromMagicWord';
 
+export type SpellMechanicNumericRoleDto =
+	| 'damage'
+	| 'range'
+	| 'duration'
+	| 'area'
+	| 'targetCount'
+	| 'custom';
+
 export interface SpellMechanicParameterDefaultValueDto {
 	mode: SpellMechanicParameterDefaultValueModeDto;
 	value: string;
@@ -48,6 +56,7 @@ export interface SpellMechanicParameterDto {
 	mechanicId: string;
 	name: string;
 	kind: SpellMechanicParameterKindDto;
+	numericRole: SpellMechanicNumericRoleDto;
 	required: boolean;
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;
@@ -66,6 +75,7 @@ export interface SpellMechanicTargetConfigDto {
 	countValueMode?: string;
 	countValue?: number;
 	countFormula?: string;
+	targetCountParameterId?: string;
 	isRequired?: boolean;
 }
 
@@ -140,6 +150,7 @@ export interface SpellMechanicParameterCommandDto {
 	id?: string;
 	name: string;
 	kind: SpellMechanicParameterKindDto;
+	numericRole?: SpellMechanicNumericRoleDto;
 	required: boolean;
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;

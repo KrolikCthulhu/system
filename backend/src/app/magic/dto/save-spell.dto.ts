@@ -65,6 +65,10 @@ export class SaveSpellTargetConfigDto {
 	countFormula?: string;
 
 	@IsOptional()
+	@IsString()
+	targetCountParameterId?: string;
+
+	@IsOptional()
 	@IsBoolean()
 	isRequired?: boolean;
 

@@ -153,10 +153,15 @@ function formatOperationFormula(
 	sourceNames: ReadonlyMap<string, string>,
 	visited: Set<string>
 ) {
-	if (operation === 'subtract' || operation === 'divide') {
+	if (operation === 'subtract' || operation === 'divide' || operation === 'power') {
 		const left = formatIncomingFormula(nodeId, 'a', graph, sourceNames, visited);
 		const right = formatIncomingFormula(nodeId, 'b', graph, sourceNames, visited);
 		return `(${left} ${operationSymbol(operation)} ${right})`;
+	}
+
+	if (isUnaryOperation(operation)) {
+		const value = formatIncomingFormula(nodeId, 'in', graph, sourceNames, visited);
+		return `${operationLabel(operation)}(${value})`;
 	}
 
 	const values = graph.edges
@@ -184,9 +189,17 @@ function operationSymbol(operation: MechanicCalculationOperation) {
 			return '-';
 		case 'divide':
 			return '/';
+		case 'power':
+			return '^';
 		case 'average':
 		case 'min':
 		case 'max':
+		case 'sqrt':
+		case 'log':
+		case 'exp':
+		case 'floor':
+		case 'round':
+		case 'ceil':
 			return '';
 	}
 }
@@ -207,7 +220,32 @@ function operationLabel(operation: MechanicCalculationOperation) {
 			return 'разность';
 		case 'divide':
 			return 'деление';
+		case 'power':
+			return 'степень';
+		case 'sqrt':
+			return 'sqrt';
+		case 'log':
+			return 'log';
+		case 'exp':
+			return 'exp';
+		case 'floor':
+			return 'floor';
+		case 'round':
+			return 'round';
+		case 'ceil':
+			return 'ceil';
 	}
+}
+
+function isUnaryOperation(operation: MechanicCalculationOperation): boolean {
+	return (
+		operation === 'sqrt' ||
+		operation === 'log' ||
+		operation === 'exp' ||
+		operation === 'floor' ||
+		operation === 'round' ||
+		operation === 'ceil'
+	);
 }
 
 function comparisonSymbol(comparison: MechanicCalculationComparison) {

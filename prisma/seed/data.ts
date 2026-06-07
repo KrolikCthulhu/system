@@ -678,6 +678,7 @@ export const SPELL_MECHANIC_SEEDS = [
 			{
 				name: 'Дальность',
 				kind: 'number',
+				numericRole: 'range',
 				required: true,
 				configuredBySpell: true,
 				overrideAllowed: true,
@@ -686,6 +687,7 @@ export const SPELL_MECHANIC_SEEDS = [
 			{
 				name: 'Дополнительный урон',
 				kind: 'number',
+				numericRole: 'damage',
 				required: false,
 				configuredBySpell: true,
 				overrideAllowed: true,
