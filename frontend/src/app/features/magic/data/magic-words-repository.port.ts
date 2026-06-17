@@ -12,6 +12,8 @@ import {
 	Spell,
 	SpellCatalog,
 	SpellMechanicBlock,
+	SpellRuntimePreview,
+	SpellRuntimePreviewRequest,
 	SpellTargetConfig
 } from '../domain/spell.models';
 
@@ -76,6 +78,10 @@ export interface MagicWordsRepository {
 		}
 	): Observable<Spell>;
 	deleteSpell(id: string): Observable<void>;
+	executeSpellRuntimePreview(
+		id: string,
+		command: SpellRuntimePreviewRequest
+	): Observable<SpellRuntimePreview>;
 }
 
 export const MAGIC_WORDS_REPOSITORY =

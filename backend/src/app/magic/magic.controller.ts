@@ -14,14 +14,19 @@ import { AuthenticatedUser } from '../auth/auth.types';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateMagicWordDto } from './dto/create-magic-word.dto';
+import { ExecuteSpellRuntimePreviewDto } from './dto/execute-spell-runtime-preview.dto';
 import { UpdateMagicWordDto } from './dto/update-magic-word.dto';
 import { SaveSpellDto } from './dto/save-spell.dto';
 import { MagicService } from './magic.service';
+import { SpellRuntimePreviewService } from './spell-runtime-preview.service';
 
 @Controller('admin/magic')
 @UseGuards(JwtAuthGuard)
 export class MagicController {
-	constructor(private readonly magicService: MagicService) {}
+	constructor(
+		private readonly magicService: MagicService,
+		private readonly spellRuntimePreview: SpellRuntimePreviewService
+	) {}
 
 	@Get('words')
 	async getWords(@CurrentUser() user: AuthenticatedUser) {
@@ -76,6 +81,16 @@ export class MagicController {
 	) {
 		this.assertAdmin(user);
 		await this.magicService.deleteSpell(id);
+	}
+
+	@Post('spells/:id/runtime-preview')
+	async executeSpellRuntimePreview(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: ExecuteSpellRuntimePreviewDto
+	) {
+		this.assertAdmin(user);
+		return this.spellRuntimePreview.executePreview(id, dto);
 	}
 
 	@Patch('words/:id')

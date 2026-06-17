@@ -874,6 +874,37 @@
 															></p-button>
 														</td>
 													</tr>
+												} @else if (rowData.kind === 'effectScaleItem') {
+													<tr
+														[ttRow]="rowNode"
+														class="admin-spell-mechanics-page__scenario-branch-row"
+													>
+														<td>
+															<div class="admin-spell-mechanics-page__scenario-name">
+																<p-treetable-toggler
+																	[rowNode]="rowNode"
+																></p-treetable-toggler>
+																<strong>{{ rowData.label }}</strong>
+															</div>
+														</td>
+														<td>Пункт шкалы</td>
+														<td></td>
+														<td>
+															<p-button
+																label="Шаг"
+																icon="pi pi-plus"
+																size="small"
+																text
+																(onClick)="
+																	addEffectScaleItemActionAt(
+																		rowData.rootIndex,
+																		rowData.parentPath,
+																		rowData.itemId
+																	)
+																"
+															></p-button>
+														</td>
+													</tr>
 												} @else {
 													<tr
 														[ttRow]="rowNode"
@@ -1535,6 +1566,204 @@
 																		class="admin-spell-mechanics-page__empty-block"
 																	>
 																		Ветка пока пустая.
+																	</div>
+																}
+															</div>
+														} @else if (action.kind === 'effectScale') {
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Источник результата
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Число, по которому открываются пункты шкалы."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="amountSourceOptionGroups()"
+																	[group]="true"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	optionLabel="name"
+																	optionValue="id"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="effectScaleSourceValue(action)"
+																	(ngModelChange)="updateEffectScaleSource($event)"
+																>
+																	<ng-template let-group #group>
+																		<div
+																			class="admin-spell-mechanics-page__option-group"
+																		>
+																			{{ group.label }}
+																		</div>
+																	</ng-template>
+																</p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Режим применения
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Определяет, какие доступные пункты шкалы будут применены."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<p-select
+																	[options]="effectScaleModeOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="effectScaleMode(action)"
+																	(ngModelChange)="updateEffectScaleMode($event)"
+																></p-select>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__form-field"
+															>
+																<label
+																	class="admin-spell-mechanics-page__field-label"
+																>
+																	Сохранить выбор как
+																	<i
+																		class="pi pi-question-circle admin-spell-mechanics-page__hint-icon"
+																		pTooltip="Имя результата, под которым выбранный пункт будет доступен следующим шагам."
+																		tooltipPosition="top"
+																	></i>
+																</label>
+																<input
+																	pInputText
+																	type="text"
+																	[value]="effectScaleResultName(action)"
+																	(input)="
+																		updateEffectScaleResultName(
+																			$any($event.target).value
+																		)
+																	"
+																/>
+															</div>
+
+															<div
+																class="admin-spell-mechanics-page__branch-block admin-spell-mechanics-page__form-field--wide"
+															>
+																<div
+																	class="admin-spell-mechanics-page__branch-heading"
+																>
+																	<strong>Пункты шкалы</strong>
+																	<p-button
+																		label="Пункт"
+																		icon="pi pi-plus"
+																		size="small"
+																		severity="secondary"
+																		variant="outlined"
+																		(onClick)="addEffectScaleItem()"
+																	></p-button>
+																</div>
+
+																@for (
+																	item of effectScaleItems(action);
+																	track item.id
+																) {
+																	<div
+																		class="admin-spell-mechanics-page__effect-scale-item"
+																	>
+																		<div
+																			class="admin-spell-mechanics-page__effect-scale-row"
+																		>
+																			<label
+																				class="admin-spell-mechanics-page__field"
+																			>
+																				<span>Порог</span>
+																				<p-inputnumber
+																					[ngModel]="item.threshold"
+																					[showButtons]="false"
+																					[min]="0"
+																					(ngModelChange)="
+																						updateEffectScaleItem(item.id, {
+																							threshold: $event ?? 0
+																						})
+																					"
+																				></p-inputnumber>
+																			</label>
+																			<label
+																				class="admin-spell-mechanics-page__field"
+																			>
+																				<span>Название</span>
+																				<input
+																					pInputText
+																					type="text"
+																					[value]="item.name"
+																					(input)="
+																						updateEffectScaleItem(item.id, {
+																							name: $any($event.target).value
+																						})
+																					"
+																				/>
+																			</label>
+																			<div
+																				class="admin-spell-mechanics-page__effect-scale-actions"
+																			>
+																				<p-button
+																					label="Шаг"
+																					icon="pi pi-plus"
+																					size="small"
+																					severity="secondary"
+																					variant="outlined"
+																					(onClick)="
+																						addEffectScaleItemAction(item.id)
+																					"
+																				></p-button>
+																				<p-button
+																					icon="pi pi-trash"
+																					severity="danger"
+																					text
+																					rounded
+																					(onClick)="
+																						deleteEffectScaleItem(item.id)
+																					"
+																				></p-button>
+																			</div>
+																		</div>
+																		<label
+																			class="admin-spell-mechanics-page__field"
+																		>
+																			<span>Описание</span>
+																			<textarea
+																				pTextarea
+																				rows="2"
+																				[value]="item.description"
+																				(input)="
+																					updateEffectScaleItem(item.id, {
+																						description:
+																							$any($event.target).value
+																					})
+																				"
+																			></textarea>
+																		</label>
+																		<small
+																			class="admin-spell-mechanics-page__field-help"
+																		>
+																			Вложенных шагов: {{ item.actions.length }}
+																		</small>
+																	</div>
+																} @empty {
+																	<div
+																		class="admin-spell-mechanics-page__empty-block"
+																	>
+																		Пункты шкалы пока не добавлены.
 																	</div>
 																}
 															</div>

@@ -100,6 +100,7 @@ export type SpellMechanicActionKind =
 	| 'comparison'
 	| 'calculation'
 	| 'branch'
+	| 'effectScale'
 	| 'valueChange'
 	| 'conditionAdd'
 	| 'conditionRemove'

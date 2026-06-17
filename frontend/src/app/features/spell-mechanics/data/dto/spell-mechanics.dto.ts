@@ -85,6 +85,7 @@ export type SpellMechanicActionKindDto =
 	| 'comparison'
 	| 'calculation'
 	| 'branch'
+	| 'effectScale'
 	| 'valueChange'
 	| 'conditionAdd'
 	| 'conditionRemove'

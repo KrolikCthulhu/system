@@ -8,7 +8,12 @@ import {
 	MagicWord,
 	MagicWordsCatalog
 } from '../domain/magic-word.models';
-import { Spell, SpellCatalog } from '../domain/spell.models';
+import {
+	Spell,
+	SpellCatalog,
+	SpellRuntimePreview,
+	SpellRuntimePreviewRequest
+} from '../domain/spell.models';
 import {
 	CreateMagicWordDto,
 	MagicSpellFormulasResponseDto,
@@ -17,6 +22,7 @@ import {
 	SaveSpellDto,
 	SpellCatalogResponseDto,
 	SpellDto,
+	SpellRuntimePreviewDto,
 	UpdateMagicWordDto
 } from './dto/magic-words.dto';
 import { MagicWordsRepository } from './magic-words-repository.port';
@@ -25,7 +31,8 @@ import {
 	mapMagicWordDto,
 	mapMagicWordsResponseDto,
 	mapSpellCatalogResponseDto,
-	mapSpellDto
+	mapSpellDto,
+	mapSpellRuntimePreviewDto
 } from './mappers/magic-words.mapper';
 
 @Injectable({ providedIn: 'root' })
@@ -125,5 +132,21 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 				withCredentials: true
 			})
 			.pipe(catchError(handleApiError));
+	}
+
+	executeSpellRuntimePreview(
+		id: string,
+		command: SpellRuntimePreviewRequest
+	): Observable<SpellRuntimePreview> {
+		return this.http
+			.post<SpellRuntimePreviewDto>(
+				`${this.baseUrl}/admin/magic/spells/${id}/runtime-preview`,
+				command,
+				{ withCredentials: true }
+			)
+			.pipe(
+				map(mapSpellRuntimePreviewDto),
+				catchError(handleApiError)
+			);
 	}
 }

@@ -438,6 +438,27 @@
 	width: 100%;
 }
 
+.admin-spell-mechanics-page__effect-scale-item {
+	display: grid;
+	gap: 0.5rem;
+	padding: 0.625rem 0;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-mechanics-page__effect-scale-row {
+	display: grid;
+	grid-template-columns: minmax(5rem, 0.2fr) minmax(0, 1fr) auto;
+	align-items: end;
+	gap: 0.5rem;
+}
+
+.admin-spell-mechanics-page__effect-scale-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.25rem;
+}
+
 .admin-spell-mechanics-page__scenario-tree {
 	min-height: 0;
 }

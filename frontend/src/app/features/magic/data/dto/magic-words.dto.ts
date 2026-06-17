@@ -181,3 +181,77 @@ export interface SaveSpellMechanicBlockDto {
 	isActive?: boolean;
 	sortOrder?: number;
 }
+
+export interface SpellRuntimePreviewRequestDto {
+	inputValues?: Record<string, number>;
+	rollResults?: Record<string, number>;
+	choiceResults?: Record<string, string>;
+}
+
+export interface SpellRuntimePreviewDto {
+	spell: {
+		id: string;
+		name: string;
+		formulaName: string;
+	};
+	status: 'WAITING_FOR_ROLLS' | 'WAITING_FOR_CHOICE' | 'COMPLETED';
+	pendingRolls: SpellRuntimePendingRollDto[];
+	pendingChoices: SpellRuntimePendingChoiceDto[];
+	effects: SpellRuntimeEffectDto[];
+	actionResults: Record<string, Record<string, unknown>>;
+	trace: SpellRuntimeTraceEntryDto[];
+	logs: string[];
+}
+
+export interface SpellRuntimePendingRollDto {
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	resultName: string;
+	actor: unknown;
+	skill: unknown;
+	optional: boolean;
+}
+
+export interface SpellRuntimePendingChoiceDto {
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	resultName: string;
+	sourceValue: number;
+	options: Array<{
+		id: string;
+		threshold: number;
+		name: string;
+		description: string;
+	}>;
+}
+
+export interface SpellRuntimeEffectDto {
+	kind: 'valueChange' | 'conditionAdd' | 'conditionRemove' | 'text';
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	target?: unknown;
+	systemValueId?: string | null;
+	systemValueName?: string | null;
+	operation?: string;
+	amount?: number;
+	conditionId?: string | null;
+	duration?: number | null;
+	text?: string;
+}
+
+export interface SpellRuntimeTraceEntryDto {
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	actionKind: string;
+	status: 'executed' | 'pending';
+	message: string;
+	results: Record<string, unknown>;
+}

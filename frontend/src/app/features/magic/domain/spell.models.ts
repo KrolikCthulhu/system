@@ -55,6 +55,85 @@ export interface SpellMechanicBlock {
 	updatedAt: string;
 }
 
+export interface SpellRuntimePreviewRequest {
+	inputValues?: Record<string, number>;
+	rollResults?: Record<string, number>;
+	choiceResults?: Record<string, string>;
+}
+
+export type SpellRuntimePreviewStatus =
+	| 'WAITING_FOR_ROLLS'
+	| 'WAITING_FOR_CHOICE'
+	| 'COMPLETED';
+
+export interface SpellRuntimePreview {
+	spell: {
+		id: string;
+		name: string;
+		formulaName: string;
+	};
+	status: SpellRuntimePreviewStatus;
+	pendingRolls: SpellRuntimePendingRoll[];
+	pendingChoices: SpellRuntimePendingChoice[];
+	effects: SpellRuntimeEffect[];
+	actionResults: Record<string, Record<string, unknown>>;
+	trace: SpellRuntimeTraceEntry[];
+	logs: string[];
+}
+
+export interface SpellRuntimePendingRoll {
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	resultName: string;
+	actor: unknown;
+	skill: unknown;
+	optional: boolean;
+}
+
+export interface SpellRuntimePendingChoice {
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	resultName: string;
+	sourceValue: number;
+	options: Array<{
+		id: string;
+		threshold: number;
+		name: string;
+		description: string;
+	}>;
+}
+
+export interface SpellRuntimeEffect {
+	kind: 'valueChange' | 'conditionAdd' | 'conditionRemove' | 'text';
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	target?: unknown;
+	systemValueId?: string | null;
+	systemValueName?: string | null;
+	operation?: string;
+	amount?: number;
+	conditionId?: string | null;
+	duration?: number | null;
+	text?: string;
+}
+
+export interface SpellRuntimeTraceEntry {
+	blockId: string;
+	blockName: string;
+	actionId: string;
+	actionName: string;
+	actionKind: string;
+	status: 'executed' | 'pending';
+	message: string;
+	results: Record<string, unknown>;
+}
+
 export interface SpellFormulaCandidate {
 	key: string;
 	action: SpellFormulaWord;

@@ -15,6 +15,7 @@ export const spellMechanicActionKinds = [
 	'comparison',
 	'calculation',
 	'branch',
+	'effectScale',
 	'valueChange',
 	'conditionAdd',
 	'conditionRemove',

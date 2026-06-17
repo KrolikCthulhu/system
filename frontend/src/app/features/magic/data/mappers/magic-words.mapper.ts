@@ -6,6 +6,7 @@ import {
 import {
 	Spell,
 	SpellCatalog,
+	SpellRuntimePreview,
 	SpellTargetConfig,
 	SpellTargetCountMode,
 	SpellTargetCountValueMode,
@@ -19,6 +20,7 @@ import {
 	MagicWordsResponseDto,
 	SpellCatalogResponseDto,
 	SpellDto,
+	SpellRuntimePreviewDto,
 	SpellTargetConfigDto
 } from '../dto/magic-words.dto';
 
@@ -128,6 +130,21 @@ export function mapSpellDto(dto: SpellDto): Spell {
 		})),
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
+	};
+}
+
+export function mapSpellRuntimePreviewDto(
+	dto: SpellRuntimePreviewDto
+): SpellRuntimePreview {
+	return {
+		spell: dto.spell,
+		status: dto.status,
+		pendingRolls: dto.pendingRolls,
+		pendingChoices: dto.pendingChoices ?? [],
+		effects: dto.effects,
+		actionResults: dto.actionResults,
+		trace: dto.trace,
+		logs: dto.logs
 	};
 }
 

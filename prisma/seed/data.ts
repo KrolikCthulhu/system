@@ -629,8 +629,63 @@ export const PROGRESSION_PRESET_SEEDS = [
 
 export const SPELL_MECHANIC_CATEGORY_SEEDS = [
 	{ name: 'Урон', sortOrder: 0 },
-	{ name: 'Состояния', sortOrder: 1 }
+	{ name: 'Состояния', sortOrder: 1 },
+	{ name: 'Эффекты', sortOrder: 2 }
 ] as const;
+
+const SPELL_MECHANIC_SEED_IDS = {
+	spellAttack: {
+		parameters: {
+			target: '11111111-1111-4111-8111-000000000001',
+			attackSkill: '11111111-1111-4111-8111-000000000002',
+			defenseSkill: '11111111-1111-4111-8111-000000000003',
+			range: '11111111-1111-4111-8111-000000000004',
+			extraDamage: '11111111-1111-4111-8111-000000000005',
+			damageType: '11111111-1111-4111-8111-000000000006'
+		},
+		actions: {
+			casterRoll: '22222222-2222-4222-8222-000000000001',
+			defenseRoll: '22222222-2222-4222-8222-000000000002',
+			compareSuccesses: '22222222-2222-4222-8222-000000000003',
+			successBranch: '22222222-2222-4222-8222-000000000004',
+			calculateDamage: '22222222-2222-4222-8222-000000000005',
+			applyDamage: '22222222-2222-4222-8222-000000000006'
+		}
+	},
+	applyCondition: {
+		parameters: {
+			target: '11111111-1111-4111-8111-000000000101',
+			condition: '11111111-1111-4111-8111-000000000102'
+		},
+		actions: {
+			applyCondition: '22222222-2222-4222-8222-000000000101'
+		}
+	},
+	removeCondition: {
+		parameters: {
+			target: '11111111-1111-4111-8111-000000000201',
+			condition: '11111111-1111-4111-8111-000000000202'
+		},
+		actions: {
+			removeCondition: '22222222-2222-4222-8222-000000000201'
+		}
+	},
+	effectScale: {
+		parameters: {
+			target: '11111111-1111-4111-8111-000000000301',
+			checkSkill: '11111111-1111-4111-8111-000000000302'
+		},
+		actions: {
+			checkRoll: '22222222-2222-4222-8222-000000000301',
+			scale: '22222222-2222-4222-8222-000000000302',
+			scaleText0: '22222222-2222-4222-8222-000000000303',
+			scaleText1: '22222222-2222-4222-8222-000000000304',
+			scaleText2: '22222222-2222-4222-8222-000000000305',
+			scaleText3: '22222222-2222-4222-8222-000000000306',
+			scaleText4: '22222222-2222-4222-8222-000000000307'
+		}
+	}
+} as const;
 
 export const SPELL_MECHANIC_SEEDS = [
 	{
@@ -642,6 +697,7 @@ export const SPELL_MECHANIC_SEEDS = [
 		configSchema: {},
 		parameters: [
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.target,
 				name: 'Цель',
 				kind: 'target',
 				required: true,
@@ -660,6 +716,7 @@ export const SPELL_MECHANIC_SEEDS = [
 				}
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.attackSkill,
 				name: 'Навык атаки',
 				kind: 'skill',
 				required: true,
@@ -668,6 +725,7 @@ export const SPELL_MECHANIC_SEEDS = [
 				defaultValue: { mode: 'fromMagicWord', value: '' }
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.defenseSkill,
 				name: 'Навык защиты',
 				kind: 'skill',
 				required: true,
@@ -676,6 +734,7 @@ export const SPELL_MECHANIC_SEEDS = [
 				defaultValue: { mode: 'static', value: 'Уклонение' }
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.range,
 				name: 'Дальность',
 				kind: 'number',
 				numericRole: 'range',
@@ -685,6 +744,7 @@ export const SPELL_MECHANIC_SEEDS = [
 				defaultValue: { mode: 'empty', value: '' }
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.extraDamage,
 				name: 'Дополнительный урон',
 				kind: 'number',
 				numericRole: 'damage',
@@ -694,6 +754,7 @@ export const SPELL_MECHANIC_SEEDS = [
 				defaultValue: { mode: 'static', value: '0' }
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.damageType,
 				name: 'Тип урона',
 				kind: 'damageType',
 				required: true,
@@ -704,45 +765,48 @@ export const SPELL_MECHANIC_SEEDS = [
 		],
 		actions: [
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.casterRoll,
 				name: 'Бросок кастера',
 				kind: 'roll',
 				config: {
 					actor: { kind: 'caster' },
 					skill: {
-						kind: 'mechanicParameterByName',
-						parameterName: 'Навык атаки'
+						kind: 'mechanicParameter',
+						parameterId: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.attackSkill
 					},
 					resultName: 'Успехи кастера'
 				}
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.defenseRoll,
 				name: 'Бросок защиты',
 				kind: 'roll',
 				config: {
 					actor: {
-						kind: 'mechanicParameterByName',
-						parameterName: 'Цель'
+						kind: 'mechanicParameter',
+						parameterId: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.target
 					},
 					skill: {
-						kind: 'mechanicParameterByName',
-						parameterName: 'Навык защиты'
+						kind: 'mechanicParameter',
+						parameterId: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.defenseSkill
 					},
 					optional: true,
 					resultName: 'Успехи защиты'
 				}
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.compareSuccesses,
 				name: 'Сравнить успехи',
 				kind: 'comparison',
 				config: {
 					left: {
-						kind: 'actionResultByName',
-						actionName: 'Бросок кастера',
+						kind: 'actionResult',
+						actionId: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.casterRoll,
 						resultName: 'Успехи кастера'
 					},
 					right: {
-						kind: 'actionResultByName',
-						actionName: 'Бросок защиты',
+						kind: 'actionResult',
+						actionId: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.defenseRoll,
 						resultName: 'Успехи защиты'
 					},
 					operator: 'gt',
@@ -751,16 +815,19 @@ export const SPELL_MECHANIC_SEEDS = [
 				}
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.successBranch,
 				name: 'Если атака успешна',
 				kind: 'branch',
 				config: {
 					condition: {
-						kind: 'actionResultByName',
-						actionName: 'Сравнить успехи',
+						kind: 'actionResult',
+						actionId:
+							SPELL_MECHANIC_SEED_IDS.spellAttack.actions.compareSuccesses,
 						resultName: 'Атака успешна'
 					},
 					thenActions: [
 						{
+							id: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.calculateDamage,
 							name: 'Расчёт урона',
 							kind: 'calculation',
 							config: {
@@ -773,8 +840,10 @@ export const SPELL_MECHANIC_SEEDS = [
 											x: 120,
 											y: 120,
 											sourceId: {
-												kind: 'actionResultByName',
-												actionName: 'Сравнить успехи',
+												kind: 'actionResult',
+												actionId:
+													SPELL_MECHANIC_SEED_IDS.spellAttack.actions
+														.compareSuccesses,
 												resultName: 'Незащищённые успехи'
 											}
 										},
@@ -784,8 +853,10 @@ export const SPELL_MECHANIC_SEEDS = [
 											x: 120,
 											y: 260,
 											sourceId: {
-												kind: 'mechanicParameterByName',
-												parameterName: 'Дополнительный урон'
+												kind: 'mechanicParameter',
+												parameterId:
+													SPELL_MECHANIC_SEED_IDS.spellAttack.parameters
+														.extraDamage
 											}
 										},
 										{
@@ -829,18 +900,22 @@ export const SPELL_MECHANIC_SEEDS = [
 							}
 						},
 						{
+							id: SPELL_MECHANIC_SEED_IDS.spellAttack.actions.applyDamage,
 							name: 'Нанести урон',
 							kind: 'valueChange',
 							config: {
 								target: {
-									kind: 'mechanicParameterByName',
-									parameterName: 'Цель'
+									kind: 'mechanicParameter',
+									parameterId:
+										SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.target
 								},
 								systemValueName: 'Здоровье',
 								operation: 'decrease',
 								amount: {
-									kind: 'actionResultByName',
-									actionName: 'Расчёт урона',
+									kind: 'actionResult',
+									actionId:
+										SPELL_MECHANIC_SEED_IDS.spellAttack.actions
+											.calculateDamage,
 									resultName: 'Количество урона'
 								}
 							}
@@ -857,24 +932,26 @@ export const SPELL_MECHANIC_SEEDS = [
 					text: 'Совершите атаку заклинанием по цели в пределах '
 				},
 				{
-					kind: 'mechanicParameterByName',
-					parameterName: 'Дальность'
+					kind: 'parameter',
+					parameterId: SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.range
 				},
 				{
 					kind: 'text',
 					text: '. Цель может защититься. При попадании цель получает урон типа '
 				},
 				{
-					kind: 'mechanicParameterByName',
-					parameterName: 'Тип урона'
+					kind: 'parameter',
+					parameterId:
+						SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.damageType
 				},
 				{
 					kind: 'text',
 					text: ', равный разнице между успехами атаки и защиты + '
 				},
 				{
-					kind: 'mechanicParameterByName',
-					parameterName: 'Дополнительный урон'
+					kind: 'parameter',
+					parameterId:
+						SPELL_MECHANIC_SEED_IDS.spellAttack.parameters.extraDamage
 				},
 				{
 					kind: 'text',
@@ -890,6 +967,7 @@ export const SPELL_MECHANIC_SEEDS = [
 		configSchema: {},
 		parameters: [
 			{
+				id: SPELL_MECHANIC_SEED_IDS.applyCondition.parameters.target,
 				name: 'Цель',
 				kind: 'target',
 				required: true,
@@ -898,6 +976,7 @@ export const SPELL_MECHANIC_SEEDS = [
 				defaultValue: { mode: 'empty', value: '' }
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.applyCondition.parameters.condition,
 				name: 'Состояние',
 				kind: 'condition',
 				required: true,
@@ -908,11 +987,19 @@ export const SPELL_MECHANIC_SEEDS = [
 		],
 		actions: [
 			{
+				id: SPELL_MECHANIC_SEED_IDS.applyCondition.actions.applyCondition,
 				name: 'Наложить состояние',
 				kind: 'conditionAdd',
 				config: {
-					targetParameter: 'Цель',
-					conditionParameter: 'Состояние'
+					target: {
+						kind: 'mechanicParameter',
+						parameterId: SPELL_MECHANIC_SEED_IDS.applyCondition.parameters.target
+					},
+					condition: {
+						kind: 'mechanicParameter',
+						parameterId:
+							SPELL_MECHANIC_SEED_IDS.applyCondition.parameters.condition
+					}
 				}
 			}
 		],
@@ -925,6 +1012,7 @@ export const SPELL_MECHANIC_SEEDS = [
 		configSchema: {},
 		parameters: [
 			{
+				id: SPELL_MECHANIC_SEED_IDS.removeCondition.parameters.target,
 				name: 'Цель',
 				kind: 'target',
 				required: true,
@@ -933,6 +1021,7 @@ export const SPELL_MECHANIC_SEEDS = [
 				defaultValue: { mode: 'empty', value: '' }
 			},
 			{
+				id: SPELL_MECHANIC_SEED_IDS.removeCondition.parameters.condition,
 				name: 'Состояние',
 				kind: 'condition',
 				required: true,
@@ -943,15 +1032,180 @@ export const SPELL_MECHANIC_SEEDS = [
 		],
 		actions: [
 			{
+				id: SPELL_MECHANIC_SEED_IDS.removeCondition.actions.removeCondition,
 				name: 'Снять состояние',
 				kind: 'conditionRemove',
 				config: {
-					targetParameter: 'Цель',
-					conditionParameter: 'Состояние'
+					target: {
+						kind: 'mechanicParameter',
+						parameterId: SPELL_MECHANIC_SEED_IDS.removeCondition.parameters.target
+					},
+					condition: {
+						kind: 'mechanicParameter',
+						parameterId:
+							SPELL_MECHANIC_SEED_IDS.removeCondition.parameters.condition
+					}
 				}
 			}
 		],
 		textTemplate: 'Снимает выбранное состояние с цели.'
+	},
+	{
+		categoryName: 'Эффекты',
+		name: 'Шкала эффекта',
+		description:
+			'Эта механика позволяет привязать результат проверки к таблице эффектов. Кастер делает бросок выбранным навыком, после чего система смотрит, какие пункты шкалы доступны по количеству успехов. В зависимости от режима можно автоматически выбрать лучший доступный пункт, выполнить все доступные пункты, потребовать точное совпадение или дать администратору/игроку выбрать один из доступных вариантов. Каждый пункт шкалы может содержать собственные вложенные действия.',
+		sortOrder: 0,
+		configSchema: {},
+		parameters: [
+			{
+				id: SPELL_MECHANIC_SEED_IDS.effectScale.parameters.target,
+				name: 'Цель',
+				kind: 'target',
+				required: false,
+				configuredBySpell: true,
+				overrideAllowed: false,
+				defaultValue: { mode: 'empty', value: '' }
+			},
+			{
+				id: SPELL_MECHANIC_SEED_IDS.effectScale.parameters.checkSkill,
+				name: 'Навык проверки',
+				kind: 'skill',
+				required: true,
+				configuredBySpell: true,
+				overrideAllowed: true,
+				defaultValue: { mode: 'fromMagicWord', value: '' }
+			}
+		],
+		actions: [
+			{
+				id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.checkRoll,
+				name: 'Проверка эффекта',
+				kind: 'roll',
+				config: {
+					actor: { kind: 'caster' },
+					skill: {
+						kind: 'mechanicParameter',
+						parameterId:
+							SPELL_MECHANIC_SEED_IDS.effectScale.parameters.checkSkill
+					},
+					resultName: 'Успехи проверки'
+				}
+			},
+			{
+				id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scale,
+				name: 'Шкала эффекта',
+				kind: 'effectScale',
+				config: {
+					source: {
+						kind: 'actionResult',
+						actionId: SPELL_MECHANIC_SEED_IDS.effectScale.actions.checkRoll,
+						resultName: 'Успехи проверки'
+					},
+					mode: 'choice',
+					resultName: 'Выбранный эффект',
+					items: [
+						{
+							id: 'effect-scale-item-0',
+							threshold: 0,
+							name: 'Слабый эффект',
+							description: 'Минимальный результат без значимого усиления.',
+							actions: [
+								{
+									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText0,
+									name: 'Описание слабого эффекта',
+									kind: 'text',
+									config: {
+										text: 'Срабатывает слабый эффект.'
+									}
+								}
+							]
+						},
+						{
+							id: 'effect-scale-item-1',
+							threshold: 1,
+							name: 'Лёгкий эффект',
+							description: 'Базовый результат при одном успехе.',
+							actions: [
+								{
+									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText1,
+									name: 'Описание лёгкого эффекта',
+									kind: 'text',
+									config: {
+										text: 'Срабатывает лёгкий эффект.'
+									}
+								}
+							]
+						},
+						{
+							id: 'effect-scale-item-2',
+							threshold: 2,
+							name: 'Средний эффект',
+							description: 'Усиленный результат при двух успехах.',
+							actions: [
+								{
+									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText2,
+									name: 'Описание среднего эффекта',
+									kind: 'text',
+									config: {
+										text: 'Срабатывает средний эффект.'
+									}
+								}
+							]
+						},
+						{
+							id: 'effect-scale-item-3',
+							threshold: 3,
+							name: 'Сильный эффект',
+							description: 'Сильный результат при трёх успехах.',
+							actions: [
+								{
+									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText3,
+									name: 'Описание сильного эффекта',
+									kind: 'text',
+									config: {
+										text: 'Срабатывает сильный эффект.'
+									}
+								}
+							]
+						},
+						{
+							id: 'effect-scale-item-4',
+							threshold: 4,
+							name: 'Предельный эффект',
+							description: 'Максимальный результат при четырёх и более успехах.',
+							actions: [
+								{
+									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText4,
+									name: 'Описание предельного эффекта',
+									kind: 'text',
+									config: {
+										text: 'Срабатывает предельный эффект.'
+									}
+								}
+							]
+						}
+					]
+				}
+			}
+		],
+		textTemplate: {
+			segments: [
+				{
+					kind: 'text',
+					text: 'Совершите проверку навыком '
+				},
+				{
+					kind: 'parameter',
+					parameterId:
+						SPELL_MECHANIC_SEED_IDS.effectScale.parameters.checkSkill
+				},
+				{
+					kind: 'text',
+					text: '. По количеству успехов выберите доступный пункт шкалы эффекта.'
+				}
+			]
+		}
 	}
 ] as const;
 

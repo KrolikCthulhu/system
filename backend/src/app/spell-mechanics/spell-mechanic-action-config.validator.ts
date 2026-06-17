@@ -18,6 +18,7 @@ type SourceKind =
 
 const comparisonOperators = ['gt', 'gte', 'eq', 'lte', 'lt'] as const;
 const valueChangeOperations = ['increase', 'decrease', 'set'] as const;
+const effectScaleModes = ['best', 'choice', 'all', 'exact'] as const;
 
 export function validateSpellMechanicActionConfig(
 	action: SpellMechanicActionDto,
@@ -48,6 +49,12 @@ export function validateSpellMechanicActionConfig(
 			validateNestedActions(config, 'thenActions', path);
 			validateNestedActions(config, 'elseActions', path);
 			return toInputJsonObject(config);
+		case 'effectScale':
+			validateOptionalSource(config, 'source', ['mechanicParameter', 'actionResult', 'constant'], path);
+			validateOptionalEnum(config, 'mode', effectScaleModes, path);
+			validateOptionalString(config, 'resultName', path);
+			validateEffectScaleItems(config, path);
+			return toInputJsonObject(config);
 		case 'valueChange':
 			validateOptionalSource(config, 'target', ['mechanicParameter', 'caster', 'spellTarget', 'actionResult'], path);
 			validateOptionalUuidString(config, 'systemValueId', path);
@@ -76,7 +83,7 @@ function validateConditionConfig(config: JsonObject, path: string) {
 
 function validateNestedActions(
 	config: JsonObject,
-	field: 'thenActions' | 'elseActions',
+	field: 'thenActions' | 'elseActions' | 'actions',
 	path: string
 ) {
 	const value = config[field];
@@ -112,6 +119,44 @@ function validateNestedActions(
 			},
 			`${path} / ${field}[${index}]`
 		);
+	});
+}
+
+function validateEffectScaleItems(config: JsonObject, path: string) {
+	const items = config['items'];
+
+	if (items === undefined) {
+		return;
+	}
+
+	if (!Array.isArray(items)) {
+		throw invalidConfig(path, 'items должен быть массивом пунктов шкалы.');
+	}
+
+	items.forEach((item, index) => {
+		if (!isRecord(item)) {
+			throw invalidConfig(path, `items[${index}] должен быть объектом.`);
+		}
+
+		if (typeof item['id'] !== 'string') {
+			throw invalidConfig(path, `items[${index}].id должен быть строкой.`);
+		}
+
+		if (typeof item['threshold'] !== 'number') {
+			throw invalidConfig(path, `items[${index}].threshold должен быть числом.`);
+		}
+
+		if (typeof item['name'] !== 'string') {
+			throw invalidConfig(path, `items[${index}].name должен быть строкой.`);
+		}
+
+		if (item['description'] !== undefined && typeof item['description'] !== 'string') {
+			throw invalidConfig(path, `items[${index}].description должен быть строкой.`);
+		}
+
+		const nestedPath = `${path} / items[${index}]`;
+		const nestedConfig: JsonObject = { actions: item['actions'] };
+		validateNestedActions(nestedConfig, 'actions', nestedPath);
 	});
 }
 
@@ -237,6 +282,7 @@ function isActionKind(value: unknown): value is SpellMechanicActionKindDto {
 		value === 'comparison' ||
 		value === 'calculation' ||
 		value === 'branch' ||
+		value === 'effectScale' ||
 		value === 'valueChange' ||
 		value === 'conditionAdd' ||
 		value === 'conditionRemove' ||

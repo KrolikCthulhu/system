@@ -121,6 +121,7 @@ type ActionSkillSource =
 
 type ValueChangeOperation = 'increase' | 'decrease' | 'set';
 type ComparisonOperator = 'gt' | 'gte' | 'eq' | 'lte' | 'lt';
+type EffectScaleMode = 'best' | 'choice' | 'all' | 'exact';
 
 interface RollActionConfig extends Record<string, unknown> {
 	actor?: ActionTargetSource;
@@ -144,10 +145,17 @@ interface CalculationActionConfig extends Record<string, unknown> {
 
 type BranchName = 'thenActions' | 'elseActions';
 
-interface BranchActionPathSegment {
-	branchName: BranchName;
-	actionId: string;
-}
+type BranchActionPathSegment =
+	| {
+			container: 'branch';
+			branchName: BranchName;
+			actionId: string;
+	  }
+	| {
+			container: 'effectScaleItem';
+			itemId: string;
+			actionId: string;
+	  };
 
 interface BranchActionSelection {
 	rootIndex: number;
@@ -158,6 +166,21 @@ interface BranchActionConfig extends Record<string, unknown> {
 	condition?: ActionAmountSource;
 	thenActions?: NestedMechanicActionDraft[];
 	elseActions?: NestedMechanicActionDraft[];
+}
+
+interface EffectScaleItemConfig {
+	id: string;
+	threshold: number;
+	name: string;
+	description: string;
+	actions: NestedMechanicActionDraft[];
+}
+
+interface EffectScaleActionConfig extends Record<string, unknown> {
+	source?: ActionAmountSource;
+	mode?: EffectScaleMode;
+	resultName?: string;
+	items?: EffectScaleItemConfig[];
 }
 
 type ScenarioTreeNodeData =
@@ -174,6 +197,13 @@ type ScenarioTreeNodeData =
 			rootIndex: number;
 			parentPath: BranchActionPathSegment[];
 			branchName: BranchName;
+	  }
+	| {
+			kind: 'effectScaleItem';
+			label: string;
+			rootIndex: number;
+			parentPath: BranchActionPathSegment[];
+			itemId: string;
 	  };
 
 interface ValueChangeActionConfig extends Record<string, unknown> {
@@ -234,6 +264,7 @@ const ACTION_KIND_OPTIONS: Array<{
 	{ label: 'Сравнение', value: 'comparison' },
 	{ label: 'Вычисление', value: 'calculation' },
 	{ label: 'Если', value: 'branch' },
+	{ label: 'Шкала эффекта', value: 'effectScale' },
 	{ label: 'Изменение значения', value: 'valueChange' },
 	{ label: 'Наложение состояния', value: 'conditionAdd' },
 	{ label: 'Снятие состояния', value: 'conditionRemove' },
@@ -259,6 +290,16 @@ const COMPARISON_OPERATOR_OPTIONS: Array<{
 	{ label: 'Равно', value: 'eq' },
 	{ label: 'Меньше или равно', value: 'lte' },
 	{ label: 'Меньше', value: 'lt' }
+];
+
+const EFFECT_SCALE_MODE_OPTIONS: Array<{
+	label: string;
+	value: EffectScaleMode;
+}> = [
+	{ label: 'Лучший доступный', value: 'best' },
+	{ label: 'Выбор доступного', value: 'choice' },
+	{ label: 'Все доступные', value: 'all' },
+	{ label: 'Точное совпадение', value: 'exact' }
 ];
 
 interface SelectOption {
@@ -353,6 +394,7 @@ export class AdminSpellMechanicsPageComponent {
 	protected readonly valueChangeOperationOptions =
 		VALUE_CHANGE_OPERATION_OPTIONS;
 	protected readonly comparisonOperatorOptions = COMPARISON_OPERATOR_OPTIONS;
+	protected readonly effectScaleModeOptions = EFFECT_SCALE_MODE_OPTIONS;
 	protected readonly defaultValueModeOptions = DEFAULT_VALUE_MODE_OPTIONS;
 	protected readonly numericRoleOptions = NUMERIC_ROLE_OPTIONS;
 	protected readonly savedDraftSignature = signal('');
@@ -936,16 +978,18 @@ export class AdminSpellMechanicsPageComponent {
 						})
 					: kind === 'calculation'
 						? stringifyConfigSchema({ resultName: 'Значение', graph: null })
-						: kind === 'branch'
+					: kind === 'branch'
 							? stringifyConfigSchema({
 									thenActions: [],
 									elseActions: []
 								})
-				: kind === 'valueChange'
-					? stringifyConfigSchema({ operation: 'decrease' })
-					: kind === 'conditionAdd' || kind === 'conditionRemove'
-						? stringifyConfigSchema({})
-					: stringifyConfigSchema({});
+						: kind === 'effectScale'
+							? stringifyConfigSchema(defaultActionConfig(kind))
+							: kind === 'valueChange'
+								? stringifyConfigSchema({ operation: 'decrease' })
+								: kind === 'conditionAdd' || kind === 'conditionRemove'
+									? stringifyConfigSchema({})
+									: stringifyConfigSchema({});
 
 		this.updateSelectedMechanicAction({ kind, configText });
 	}
@@ -1187,7 +1231,10 @@ export class AdminSpellMechanicsPageComponent {
 		const config = readBranchConfig(parentAction);
 		const actions = config[branchName] ?? [];
 		const nextAction = createNestedMechanicAction(actions.length);
-		const nextPath = [...parentPath, { branchName, actionId: nextAction.id }];
+		const nextPath: BranchActionPathSegment[] = [
+			...parentPath,
+			{ container: 'branch', branchName, actionId: nextAction.id }
+		];
 
 		this.updateBranchActionsAt(rootIndex, parentPath, branchName, [
 			...actions,
@@ -1256,6 +1303,172 @@ export class AdminSpellMechanicsPageComponent {
 		});
 	}
 
+	protected updateSelectedEffectScaleActionConfig(
+		patch: Partial<EffectScaleActionConfig>
+	) {
+		const action = this.selectedAction();
+
+		if (!action) {
+			return;
+		}
+
+		this.updateSelectedMechanicAction({
+			configText: stringifyConfigSchema({
+				...parseActionConfig(action),
+				...patch
+			})
+		});
+	}
+
+	protected effectScaleSourceValue(action: MechanicActionDraft) {
+		const config = parseEffectScaleActionConfig(action);
+		return config.source ? encodeSourceValue(config.source) : null;
+	}
+
+	protected updateEffectScaleSource(value: string | null) {
+		this.updateSelectedEffectScaleActionConfig({
+			source: value ? decodeAmountSourceValue(value) : undefined
+		});
+	}
+
+	protected effectScaleMode(action: MechanicActionDraft) {
+		return parseEffectScaleActionConfig(action).mode ?? 'best';
+	}
+
+	protected updateEffectScaleMode(mode: EffectScaleMode) {
+		this.updateSelectedEffectScaleActionConfig({ mode });
+	}
+
+	protected effectScaleResultName(action: MechanicActionDraft) {
+		return parseEffectScaleActionConfig(action).resultName ?? 'Эффект';
+	}
+
+	protected updateEffectScaleResultName(resultName: string) {
+		this.updateSelectedEffectScaleActionConfig({ resultName });
+	}
+
+	protected effectScaleItems(action: MechanicActionDraft) {
+		return parseEffectScaleActionConfig(action).items ?? [];
+	}
+
+	protected addEffectScaleItem() {
+		const action = this.selectedAction();
+
+		if (!action) {
+			return;
+		}
+
+		const items = this.effectScaleItems(action);
+		this.updateSelectedEffectScaleActionConfig({
+			items: [
+				...items,
+				{
+					id: crypto.randomUUID(),
+					threshold: items.length,
+					name: '',
+					description: '',
+					actions: []
+				}
+			]
+		});
+	}
+
+	protected updateEffectScaleItem(
+		itemId: string,
+		patch: Partial<EffectScaleItemConfig>
+	) {
+		const action = this.selectedAction();
+
+		if (!action) {
+			return;
+		}
+
+		this.updateSelectedEffectScaleActionConfig({
+			items: this.effectScaleItems(action).map(item =>
+				item.id === itemId ? { ...item, ...patch } : item
+			)
+		});
+	}
+
+	protected deleteEffectScaleItem(itemId: string) {
+		const action = this.selectedAction();
+
+		if (!action) {
+			return;
+		}
+
+		this.updateSelectedEffectScaleActionConfig({
+			items: this.effectScaleItems(action).filter(item => item.id !== itemId)
+		});
+	}
+
+	protected addEffectScaleItemAction(itemId: string) {
+		const action = this.selectedAction();
+
+		if (!action) {
+			return;
+		}
+
+		const items = this.effectScaleItems(action);
+		const item = items.find(scaleItem => scaleItem.id === itemId);
+
+		if (!item) {
+			return;
+		}
+
+		this.updateSelectedEffectScaleActionConfig({
+			items: items.map(scaleItem =>
+				scaleItem.id === itemId
+					? {
+							...scaleItem,
+							actions: [
+								...scaleItem.actions,
+								createNestedMechanicAction(scaleItem.actions.length)
+							]
+						}
+					: scaleItem
+			)
+		});
+	}
+
+	protected addEffectScaleItemActionAt(
+		rootIndex: number,
+		parentPath: BranchActionPathSegment[],
+		itemId: string
+	) {
+		const rootAction = this.mechanicActions()[rootIndex];
+		const parentAction = parentPath.length
+			? findNestedActionByPath(rootAction, parentPath)
+			: rootAction;
+
+		if (!rootAction || !parentAction) {
+			return;
+		}
+
+		const items = readEffectScaleConfig(parentAction).items ?? [];
+		const item = items.find(scaleItem => scaleItem.id === itemId);
+
+		if (!item) {
+			return;
+		}
+
+		const nextAction = createNestedMechanicAction(item.actions.length);
+		const nextPath: BranchActionPathSegment[] = [
+			...parentPath,
+			{ container: 'effectScaleItem', itemId, actionId: nextAction.id }
+		];
+
+		this.updateEffectScaleItemActionsAt(rootIndex, parentPath, itemId, [
+			...item.actions,
+			nextAction
+		]);
+		this.selectedActionIndex.set(rootIndex);
+		this.selectedBranchAction.set({
+			rootIndex,
+			path: nextPath
+		});
+	}
+
 	private updateNestedActionAt(
 		rootIndex: number,
 		path: BranchActionPathSegment[],
@@ -1318,16 +1531,27 @@ export class AdminSpellMechanicsPageComponent {
 			return;
 		}
 
-		const config = readBranchConfig(parentAction);
-		const actions = config[target.branchName] ?? [];
-		this.updateBranchActionsAt(
-			rootIndex,
-			parentPath,
-			target.branchName,
-			actions
-				.filter(item => item.id !== target.actionId)
-				.map((item, index) => ({ ...item, sortOrder: index }))
-		);
+		const actions = readNestedActionsByPathSegment(parentAction, target);
+
+		if (target.container === 'branch') {
+			this.updateBranchActionsAt(
+				rootIndex,
+				parentPath,
+				target.branchName,
+				actions
+					.filter(item => item.id !== target.actionId)
+					.map((item, index) => ({ ...item, sortOrder: index }))
+			);
+		} else {
+			this.updateEffectScaleItemActionsAt(
+				rootIndex,
+				parentPath,
+				target.itemId,
+				actions
+					.filter(item => item.id !== target.actionId)
+					.map((item, index) => ({ ...item, sortOrder: index }))
+			);
+		}
 
 		const selected = this.selectedBranchAction();
 		if (selected?.rootIndex === rootIndex && isPathPrefix(path, selected.path)) {
@@ -1368,6 +1592,53 @@ export class AdminSpellMechanicsPageComponent {
 					[branchName]: actions
 				}
 			})
+		);
+
+		this.updateMechanicAction(rootIndex, {
+			configText: nextRootAction.configText
+		});
+	}
+
+	private updateEffectScaleItemActionsAt(
+		rootIndex: number,
+		parentPath: BranchActionPathSegment[],
+		itemId: string,
+		actions: NestedMechanicActionDraft[]
+	) {
+		const rootAction = this.mechanicActions()[rootIndex];
+
+		if (!rootAction) {
+			return;
+		}
+
+		if (!parentPath.length) {
+			const config = parseEffectScaleActionConfig(rootAction);
+			this.updateMechanicAction(rootIndex, {
+				configText: stringifyConfigSchema({
+					...parseActionConfig(rootAction),
+					items: (config.items ?? []).map(item =>
+						item.id === itemId ? { ...item, actions } : item
+					)
+				})
+			});
+			return;
+		}
+
+		const nextRootAction = updateNestedActionByPath(
+			rootAction,
+			parentPath,
+			parentAction => {
+				const config = parseNestedEffectScaleActionConfig(parentAction);
+				return {
+					...parentAction,
+					config: {
+						...parentAction.config,
+						items: (config.items ?? []).map(item =>
+							item.id === itemId ? { ...item, actions } : item
+						)
+					}
+				};
+			}
 		);
 
 		this.updateMechanicAction(rootIndex, {
@@ -2816,6 +3087,22 @@ function parseBranchActionConfig(action: MechanicActionDraft): BranchActionConfi
 	};
 }
 
+function parseEffectScaleActionConfig(
+	action: MechanicActionDraft
+): EffectScaleActionConfig {
+	const config = parseActionConfig(action);
+	return {
+		...config,
+		source: isActionAmountSource(config['source']) ? config['source'] : undefined,
+		mode: isEffectScaleMode(config['mode']) ? config['mode'] : 'best',
+		resultName:
+			typeof config['resultName'] === 'string'
+				? config['resultName']
+				: 'Эффект',
+		items: parseEffectScaleItems(config['items'])
+	};
+}
+
 function parseValueChangeActionConfig(
 	action: MechanicActionDraft
 ): ValueChangeActionConfig {
@@ -3016,6 +3303,34 @@ function parseNestedAction(
 	};
 }
 
+function parseEffectScaleItems(value: unknown): EffectScaleItemConfig[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.map((item, index) => parseEffectScaleItem(item, index))
+		.filter((item): item is EffectScaleItemConfig => item !== null);
+}
+
+function parseEffectScaleItem(
+	value: unknown,
+	index: number
+): EffectScaleItemConfig | null {
+	if (!isRecord(value)) {
+		return null;
+	}
+
+	return {
+		id: typeof value['id'] === 'string' ? value['id'] : crypto.randomUUID(),
+		threshold: typeof value['threshold'] === 'number' ? value['threshold'] : index,
+		name: typeof value['name'] === 'string' ? value['name'] : '',
+		description:
+			typeof value['description'] === 'string' ? value['description'] : '',
+		actions: parseNestedActions(value['actions'])
+	};
+}
+
 function nestedActionToDraft(
 	action: NestedMechanicActionDraft
 ): MechanicActionDraft {
@@ -3170,6 +3485,12 @@ function collectMechanicActions(actions: MechanicActionDraft[]) {
 			result.push(
 				...collectNestedMechanicActions(readBranchConfig(action))
 			);
+		} else if (action.kind === 'effectScale') {
+			result.push(
+				...collectEffectScaleNestedMechanicActions(
+					readEffectScaleConfig(action)
+				)
+			);
 		}
 	}
 
@@ -3189,6 +3510,35 @@ function collectNestedMechanicActions(config: BranchActionConfig) {
 		if (action.kind === 'branch') {
 			result.push(
 				...collectNestedMechanicActions(parseNestedBranchActionConfig(action))
+			);
+		} else if (action.kind === 'effectScale') {
+			result.push(
+				...collectEffectScaleNestedMechanicActions(
+					parseNestedEffectScaleActionConfig(action)
+				)
+			);
+		}
+	}
+
+	return result;
+}
+
+function collectEffectScaleNestedMechanicActions(config: EffectScaleActionConfig) {
+	const result: MechanicActionDraft[] = [];
+
+	for (const action of (config.items ?? []).flatMap(item => item.actions)) {
+		const draft = nestedActionToDraft(action);
+		result.push(draft);
+
+		if (action.kind === 'branch') {
+			result.push(
+				...collectNestedMechanicActions(parseNestedBranchActionConfig(action))
+			);
+		} else if (action.kind === 'effectScale') {
+			result.push(
+				...collectEffectScaleNestedMechanicActions(
+					parseNestedEffectScaleActionConfig(action)
+				)
 			);
 		}
 	}
@@ -3212,11 +3562,13 @@ function createActionTreeNode(
 	const children =
 		action.kind === 'branch'
 			? createBranchTreeNodes(action, rootIndex, path)
-			: [];
+			: action.kind === 'effectScale'
+				? createEffectScaleTreeNodes(action, rootIndex, path)
+				: [];
 
 	return {
 		key: path.length
-			? `${rootIndex}:${path.map(segment => `${segment.branchName}:${segment.actionId}`).join(':')}`
+			? `${rootIndex}:${path.map(formatPathSegmentKey).join(':')}`
 			: action.id,
 		expanded: true,
 		data: {
@@ -3228,6 +3580,44 @@ function createActionTreeNode(
 		},
 		children,
 		leaf: children.length === 0
+	};
+}
+
+function createEffectScaleTreeNodes(
+	action: MechanicActionDraft | NestedMechanicActionDraft,
+	rootIndex: number,
+	parentPath: BranchActionPathSegment[]
+): Array<TreeNode<ScenarioTreeNodeData>> {
+	const config = readEffectScaleConfig(action);
+
+	return (config.items ?? []).map(item =>
+		createEffectScaleItemTreeNode(action.id, rootIndex, parentPath, item)
+	);
+}
+
+function createEffectScaleItemTreeNode(
+	parentActionId: string,
+	rootIndex: number,
+	parentPath: BranchActionPathSegment[],
+	item: EffectScaleItemConfig
+): TreeNode<ScenarioTreeNodeData> {
+	return {
+		key: `${parentActionId}:effectScaleItem:${item.id}`,
+		expanded: true,
+		data: {
+			kind: 'effectScaleItem',
+			label: `${item.threshold}+ ${item.name || 'Вариант эффекта'}`,
+			rootIndex,
+			parentPath,
+			itemId: item.id
+		},
+		children: item.actions.map(action =>
+			createActionTreeNode(action, rootIndex, [
+				...parentPath,
+				{ container: 'effectScaleItem', itemId: item.id, actionId: action.id }
+			])
+		),
+		leaf: false
 	};
 }
 
@@ -3276,7 +3666,7 @@ function createBranchTreeNode(
 		children: (actions ?? []).map(action =>
 			createActionTreeNode(action, rootIndex, [
 				...parentPath,
-				{ branchName, actionId: action.id }
+				{ container: 'branch', branchName, actionId: action.id }
 			])
 		),
 		leaf: false
@@ -3289,6 +3679,14 @@ function readBranchConfig(
 	return 'configText' in action
 		? parseBranchActionConfig(action)
 		: parseNestedBranchActionConfig(action);
+}
+
+function readEffectScaleConfig(
+	action: MechanicActionDraft | NestedMechanicActionDraft
+): EffectScaleActionConfig {
+	return 'configText' in action
+		? parseEffectScaleActionConfig(action)
+		: parseNestedEffectScaleActionConfig(action);
 }
 
 function parseNestedBranchActionConfig(
@@ -3304,6 +3702,25 @@ function parseNestedBranchActionConfig(
 	};
 }
 
+function parseNestedEffectScaleActionConfig(
+	action: NestedMechanicActionDraft
+): EffectScaleActionConfig {
+	return {
+		...action.config,
+		source: isActionAmountSource(action.config['source'])
+			? action.config['source']
+			: undefined,
+		mode: isEffectScaleMode(action.config['mode'])
+			? action.config['mode']
+			: 'best',
+		resultName:
+			typeof action.config['resultName'] === 'string'
+				? action.config['resultName']
+				: 'Эффект',
+		items: parseEffectScaleItems(action.config['items'])
+	};
+}
+
 function findNestedActionByPath(
 	rootAction: MechanicActionDraft,
 	path: BranchActionPathSegment[]
@@ -3312,8 +3729,7 @@ function findNestedActionByPath(
 	let nested: NestedMechanicActionDraft | null = null;
 
 	for (const segment of path) {
-		const actions: NestedMechanicActionDraft[] =
-			readBranchConfig(current)[segment.branchName] ?? [];
+		const actions = readNestedActionsByPathSegment(current, segment);
 		nested =
 			actions.find(
 				(action: NestedMechanicActionDraft) =>
@@ -3358,7 +3774,7 @@ function updateNestedActionInConfig(
 		return config;
 	}
 
-	const actions = parseNestedActions(config[segment.branchName]);
+	const actions = parseNestedActions(readRawNestedActions(config, segment));
 	const nextActions = actions.map(action => {
 		if (action.id !== segment.actionId) {
 			return action;
@@ -3376,7 +3792,7 @@ function updateNestedActionInConfig(
 
 	return {
 		...config,
-		[segment.branchName]: nextActions
+		...writeNestedActionsToConfig(config, segment, nextActions)
 	};
 }
 
@@ -3388,8 +3804,7 @@ function collectPreviousNestedActions(
 	let current: MechanicActionDraft | NestedMechanicActionDraft = rootAction;
 
 	for (const segment of path) {
-		const actions: NestedMechanicActionDraft[] =
-			readBranchConfig(current)[segment.branchName] ?? [];
+		const actions = readNestedActionsByPathSegment(current, segment);
 		const index = actions.findIndex(
 			(action: NestedMechanicActionDraft) =>
 				action.id === segment.actionId
@@ -3414,7 +3829,8 @@ function areBranchActionPathsEqual(
 		first.length === second.length &&
 		first.every(
 			(segment, index) =>
-				segment.branchName === second[index]?.branchName &&
+				formatPathSegmentKey(segment) ===
+					(second[index] ? formatPathSegmentKey(second[index]) : '') &&
 				segment.actionId === second[index]?.actionId
 		)
 	);
@@ -3426,9 +3842,58 @@ function isPathPrefix(
 ) {
 	return prefix.every(
 		(segment, index) =>
-			segment.branchName === path[index]?.branchName &&
+			formatPathSegmentKey(segment) ===
+				(path[index] ? formatPathSegmentKey(path[index]) : '') &&
 			segment.actionId === path[index]?.actionId
 	);
+}
+
+function readNestedActionsByPathSegment(
+	action: MechanicActionDraft | NestedMechanicActionDraft,
+	segment: BranchActionPathSegment
+) {
+	if (segment.container === 'branch') {
+		return readBranchConfig(action)[segment.branchName] ?? [];
+	}
+
+	return (
+		readEffectScaleConfig(action).items?.find(item => item.id === segment.itemId)
+			?.actions ?? []
+	);
+}
+
+function readRawNestedActions(
+	config: SpellMechanicConfigSchema,
+	segment: BranchActionPathSegment
+) {
+	if (segment.container === 'branch') {
+		return config[segment.branchName];
+	}
+
+	const items = parseEffectScaleItems(config['items']);
+	return items.find(item => item.id === segment.itemId)?.actions ?? [];
+}
+
+function writeNestedActionsToConfig(
+	config: SpellMechanicConfigSchema,
+	segment: BranchActionPathSegment,
+	actions: NestedMechanicActionDraft[]
+): SpellMechanicConfigSchema {
+	if (segment.container === 'branch') {
+		return { [segment.branchName]: actions };
+	}
+
+	return {
+		items: parseEffectScaleItems(config['items']).map(item =>
+			item.id === segment.itemId ? { ...item, actions } : item
+		)
+	};
+}
+
+function formatPathSegmentKey(segment: BranchActionPathSegment) {
+	return segment.container === 'branch'
+		? `branch:${segment.branchName}:${segment.actionId}`
+		: `effectScaleItem:${segment.itemId}:${segment.actionId}`;
 }
 
 function createNestedMechanicAction(
@@ -3465,6 +3930,14 @@ function defaultActionConfig(
 
 	if (kind === 'branch') {
 		return { thenActions: [], elseActions: [] };
+	}
+
+	if (kind === 'effectScale') {
+		return {
+			mode: 'best',
+			resultName: 'Эффект',
+			items: []
+		};
 	}
 
 	if (kind === 'valueChange') {
@@ -3562,6 +4035,10 @@ function isValueChangeOperation(
 
 function isComparisonOperator(value: unknown): value is ComparisonOperator {
 	return COMPARISON_OPERATOR_OPTIONS.some(option => option.value === value);
+}
+
+function isEffectScaleMode(value: unknown): value is EffectScaleMode {
+	return EFFECT_SCALE_MODE_OPTIONS.some(option => option.value === value);
 }
 
 function isDefaultValueMode(

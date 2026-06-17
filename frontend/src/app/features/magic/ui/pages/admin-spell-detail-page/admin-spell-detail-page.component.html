@@ -26,6 +26,15 @@
 				</div>
 
 				<div class="admin-spell-detail-page__editor-actions">
+					<p-button
+						label="Проверить"
+						icon="pi pi-play"
+						size="small"
+						severity="secondary"
+						variant="outlined"
+						[disabled]="!currentDraft.id || hasChanges()"
+						(onClick)="runRuntimePreview()"
+					></p-button>
 					<p-tag
 						[value]="statusLabel(currentDraft.status)"
 						[severity]="statusSeverity(currentDraft.status)"
@@ -58,6 +67,7 @@
 						<p-tab value="main">Основное</p-tab>
 						<p-tab value="targets">Цели</p-tab>
 						<p-tab value="mechanics">Механики</p-tab>
+						<p-tab value="problems">Проблемы</p-tab>
 					</p-tablist>
 
 					<p-tabpanels class="admin-spell-detail-page__tabpanels">
@@ -247,6 +257,9 @@
 												[class.admin-spell-detail-page__mechanics-list-item--active]="
 													selectedMechanicBlockIndex() === blockIndex
 												"
+												[class.admin-spell-detail-page__mechanics-list-item--invalid]="
+													mechanicReadinessStatus(block).issues.length
+												"
 												(click)="selectMechanicBlock(blockIndex)"
 											>
 												<button
@@ -350,11 +363,17 @@
 																></p-tag>
 															</div>
 
-															@if (supportsProgression(parameter)) {
-																<p-select
+														</div>
+
+														@if (supportsProgression(parameter)) {
+															<div class="admin-spell-detail-page__numeric-mode">
+																<span>Режим значения</span>
+																<p-selectbutton
 																	[options]="parameterValueModeOptions"
 																	optionLabel="label"
 																	optionValue="value"
+																	size="small"
+																	[allowEmpty]="false"
 																	[ngModel]="
 																		parameterValueMode(block, parameter.id)
 																	"
@@ -364,9 +383,9 @@
 																			$event
 																		)
 																	"
-																></p-select>
-															}
-														</div>
+																></p-selectbutton>
+															</div>
+														}
 
 														@if (
 															supportsProgression(parameter) &&
@@ -533,7 +552,7 @@
 															) {
 																<div class="admin-spell-detail-page__auto-editor">
 																	<label class="admin-spell-detail-page__field">
-																		<span>Характер</span>
+																		<span>Поведение</span>
 																		<p-select
 																			[options]="autoValueCharacterOptions"
 																			optionLabel="label"
@@ -549,7 +568,7 @@
 																	</label>
 
 																	<label class="admin-spell-detail-page__field">
-																		<span>Масштаб</span>
+																		<span>Размер значения</span>
 																		<p-select
 																			[options]="autoValueScaleOptions"
 																			optionLabel="label"
@@ -581,7 +600,7 @@
 																	</label>
 
 																	<label class="admin-spell-detail-page__field">
-																		<span>Режим источников</span>
+																		<span>Режим влияний</span>
 																		<p-select
 																			[options]="autoValueSourceModeOptions"
 																			optionLabel="label"
@@ -598,24 +617,52 @@
 
 																	<div class="admin-spell-detail-page__auto-sources">
 																		<div class="admin-spell-detail-page__auto-sources-head">
-																			<strong>Настройка источников</strong>
-																			@if (autoValue.sourceMode === 'advanced') {
-																				<p-button
-																					label="Источник"
-																					icon="pi pi-plus"
-																					severity="secondary"
-																					variant="outlined"
-																					(onClick)="
-																						addSelectedAutoSource(parameter.id)
+																			<strong>Влияния</strong>
+																			<div
+																				class="admin-spell-detail-page__auto-sources-actions"
+																			>
+																				<p-select
+																					[options]="autoPresetOptions(parameter)"
+																					[group]="true"
+																					optionGroupLabel="label"
+																					optionGroupChildren="items"
+																					optionLabel="label"
+																					optionValue="value"
+																					styleClass="admin-spell-detail-page__auto-preset-select"
+																					[panelStyle]="autoPresetPanelStyle"
+																					[ngModel]="null"
+																					placeholder="Выбрать схему"
+																					(ngModelChange)="
+																						applySelectedAutoPreset(
+																							block,
+																							parameter,
+																							$event
+																						)
 																					"
-																				></p-button>
-																			}
+																				></p-select>
+
+																				@if (autoValue.sourceMode === 'advanced') {
+																					<p-button
+																						label="Влияние"
+																						icon="pi pi-plus"
+																						severity="secondary"
+																						variant="outlined"
+																						(onClick)="
+																							addSelectedAutoSource(
+																								parameter.id
+																							)
+																						"
+																					></p-button>
+																				}
+																			</div>
 																		</div>
 
 																		@for (source of autoValue.sources; track source.id) {
 																			<div class="admin-spell-detail-page__auto-source-row">
-																				<label class="admin-spell-detail-page__field">
-																					<span>Тип источника</span>
+																				<label
+																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind"
+																				>
+																					<span>Что влияет</span>
 																					<p-select
 																						[options]="autoValueSourceKindOptions"
 																						optionLabel="label"
@@ -638,7 +685,9 @@
 																				</label>
 
 																				@if (shouldShowAutoSourceKey(source)) {
-																					<label class="admin-spell-detail-page__field">
+																					<label
+																						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
+																					>
 																						<span>{{ autoSourceKeyLabel(source) }}</span>
 																						<p-select
 																							[options]="
@@ -658,9 +707,22 @@
 																							"
 																						></p-select>
 																					</label>
+																				} @else {
+																					<div
+																						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
+																					>
+																						<span>Значение</span>
+																						<div
+																							class="admin-spell-detail-page__auto-source-static"
+																						>
+																							x
+																						</div>
+																					</div>
 																				}
 
-																				<label class="admin-spell-detail-page__field">
+																				<label
+																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target"
+																				>
 																					<span>Влияет на</span>
 																					<p-select
 																						[options]="autoValueSourceTargetOptions"
@@ -680,7 +742,9 @@
 																					></p-select>
 																				</label>
 
-																				<label class="admin-spell-detail-page__field">
+																				<label
+																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve"
+																				>
 																					<span>Кривая</span>
 																					<p-select
 																						[options]="autoValueSourceCurveOptions"
@@ -697,7 +761,9 @@
 																					></p-select>
 																				</label>
 
-																				<label class="admin-spell-detail-page__field">
+																				<label
+																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight"
+																				>
 																					<span>Вес</span>
 																					<p-inputnumber
 																						[ngModel]="source.weight"
@@ -714,18 +780,26 @@
 																				</label>
 
 																				@if (canDeleteAutoSource(autoValue)) {
-																					<p-button
-																						icon="pi pi-trash"
-																						severity="danger"
-																						text
-																						rounded
-																						(onClick)="
-																							deleteSelectedAutoSource(
-																								parameter.id,
-																								source.id
-																							)
-																						"
-																					></p-button>
+																					<div
+																						class="admin-spell-detail-page__auto-source-cell--action"
+																					>
+																						<p-button
+																							icon="pi pi-trash"
+																							severity="danger"
+																							text
+																							rounded
+																							(onClick)="
+																								deleteSelectedAutoSource(
+																									parameter.id,
+																									source.id
+																								)
+																							"
+																						></p-button>
+																					</div>
+																				} @else {
+																					<div
+																						class="admin-spell-detail-page__auto-source-cell--action"
+																					></div>
 																				}
 																			</div>
 																		}
@@ -803,33 +877,84 @@
 															</div>
 														} @else {
 															@if (parameter.kind === 'target') {
-																<label class="admin-spell-detail-page__field">
-																	<span>Шаблон цели</span>
-																	<p-select
-																		[options]="
-																			targetTemplateOptionsForParameter(
-																				parameter
-																			)
-																		"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="
-																			mechanicTargetTemplate(
-																				block,
-																				parameter
-																			)
-																		"
-																		(ngModelChange)="
-																			updateMechanicTargetTemplate(
-																				block,
-																				parameter,
-																				$event
-																			)
-																		"
-																	></p-select>
-																</label>
+																<div class="admin-spell-detail-page__target-parameter">
+																	<div
+																		class="admin-spell-detail-page__target-parameter-grid"
+																	>
+																		<label class="admin-spell-detail-page__field">
+																			<span>Режим цели</span>
+																			<p-select
+																				[options]="
+																					targetTemplateOptionGroupsForParameter(
+																						parameter
+																					)
+																				"
+																				[group]="true"
+																				optionGroupLabel="label"
+																				optionGroupChildren="items"
+																				optionLabel="label"
+																				optionValue="value"
+																				[ngModel]="
+																					mechanicTargetTemplate(
+																						block,
+																						parameter
+																					)
+																				"
+																				(ngModelChange)="
+																					updateMechanicTargetTemplate(
+																						block,
+																						parameter,
+																						$event
+																					)
+																				"
+																			></p-select>
+																		</label>
+
+																		<div class="admin-spell-detail-page__target-preview">
+																			<span>Цель</span>
+																			<strong>
+																				{{
+																					mechanicTargetPreview(
+																						block,
+																						parameter
+																					)
+																				}}
+																			</strong>
+																			<small>
+																				{{
+																					mechanicTargetRuntimeSummary(
+																						block,
+																						parameter
+																					)
+																				}}
+																			</small>
+																		</div>
+																	</div>
+
+																	@if (
+																		parameter.defaultTargetConfig &&
+																		mechanicTargetTemplate(block, parameter) ===
+																			'mechanicDefault'
+																	) {
+																		<div
+																			class="admin-spell-detail-page__target-default-note"
+																		>
+																			<span>Дефолт механики</span>
+																			<strong>
+																				{{
+																					targetConfigText(
+																						parameter.defaultTargetConfig
+																					)
+																				}}
+																			</strong>
+																		</div>
+																	}
+																</div>
 															} @else {
 																<label class="admin-spell-detail-page__field">
+																	@if (supportsProgression(parameter)) {
+																		<span>Значение</span>
+																	}
 																	@if (usesParameterSelect(parameter.kind)) {
 																		<p-select
 																			[options]="parameterOptions(parameter)"
@@ -891,7 +1016,7 @@
 																!mechanicTargetConfig(block, parameter.id)
 															) {
 																<div class="admin-spell-detail-page__empty-block">
-																	Выбери шаблон цели, чтобы создать настройку.
+																	Требуется настройка цели.
 																</div>
 															}
 
@@ -964,6 +1089,51 @@
 								</section>
 							</div>
 						</p-tabpanel>
+
+						<p-tabpanel
+							value="problems"
+							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--problems"
+						>
+							<div class="admin-spell-detail-page__problems-panel">
+								<div class="admin-spell-detail-page__problems-head">
+									<h3>Проблемы</h3>
+									<span>{{ mechanicProblems().length }}</span>
+								</div>
+
+								@if (mechanicProblems().length) {
+									<div class="admin-spell-detail-page__problems-table">
+										<div
+											class="admin-spell-detail-page__problems-row admin-spell-detail-page__problems-row--head"
+										>
+											<span>Механика</span>
+											<span>Проблема</span>
+											<span>Действие</span>
+										</div>
+
+										@for (
+											problem of mechanicProblems();
+											track problem.blockIndex + problem.issue
+										) {
+											<div class="admin-spell-detail-page__problems-row">
+												<strong>{{ problem.mechanicName }}</strong>
+												<span>{{ problem.issue }}</span>
+												<p-button
+													label="Перейти"
+													size="small"
+													severity="secondary"
+													variant="outlined"
+													(onClick)="selectMechanicProblem(problem)"
+												></p-button>
+											</div>
+										}
+									</div>
+								} @else {
+									<div class="admin-spell-detail-page__empty-block">
+										Проблем нет.
+									</div>
+								}
+							</div>
+						</p-tabpanel>
 					</p-tabpanels>
 				</p-tabs>
 			</div>
@@ -977,6 +1147,79 @@
 		</section>
 	}
 </section>
+
+<p-dialog
+	header="Добавление механики"
+	[modal]="true"
+	[draggable]="false"
+	[resizable]="false"
+	[style]="{ width: 'min(96vw, 42rem)' }"
+	[visible]="addMechanicWizardVisible()"
+	(visibleChange)="setAddMechanicWizardVisible($event)"
+>
+	<div class="admin-spell-detail-page__mechanic-wizard">
+		<label class="admin-spell-detail-page__field">
+			<span>Механика</span>
+			<p-select
+				[options]="mechanicOptions()"
+				optionLabel="label"
+				optionValue="value"
+				[ngModel]="selectedWizardMechanicId()"
+				(ngModelChange)="updateWizardMechanic($event)"
+			></p-select>
+		</label>
+
+		@if (selectedWizardMechanic(); as mechanic) {
+			<div class="admin-spell-detail-page__mechanic-wizard-summary">
+				<strong>{{ mechanic.name }}</strong>
+				@if (mechanic.description) {
+					<span>{{ mechanic.description }}</span>
+				}
+			</div>
+
+			@if (wizardRequiredParameters(mechanic).length) {
+				<div class="admin-spell-detail-page__mechanic-wizard-parameters">
+					<div class="admin-spell-detail-page__mechanic-wizard-section-title">
+						Обязательные параметры
+					</div>
+
+					@for (parameter of wizardRequiredParameters(mechanic); track parameter.id) {
+						<div class="admin-spell-detail-page__mechanic-wizard-parameter">
+							<div>
+								<strong>{{ parameter.name }}</strong>
+								<span>{{ wizardParameterDefaultLabel(parameter) }}</span>
+							</div>
+
+							<p-tag
+								[value]="wizardParameterReady(parameter) ? 'Заполнится' : 'Нужно настроить'"
+								[severity]="wizardParameterReady(parameter) ? 'success' : 'warn'"
+							></p-tag>
+						</div>
+					}
+				</div>
+			}
+		} @else {
+			<div class="admin-spell-detail-page__empty-block">
+				Нет доступных активных механик.
+			</div>
+		}
+
+		<div class="admin-spell-detail-page__mechanic-wizard-actions">
+			<p-button
+				label="Отмена"
+				severity="secondary"
+				variant="outlined"
+				(onClick)="setAddMechanicWizardVisible(false)"
+			></p-button>
+			<p-button
+				label="Добавить"
+				icon="pi pi-plus"
+				[disabled]="!selectedWizardMechanic()"
+				(onClick)="confirmAddMechanicBlock()"
+			></p-button>
+		</div>
+	</div>
+</p-dialog>
 
 <p-dialog
 	header="Редактор формулы параметра"
@@ -997,3 +1240,221 @@
 		></app-mechanic-calculation-graph-editor>
 	}
 </p-dialog>
+
+<p-drawer
+	header="Превью выполнения"
+	position="right"
+	[modal]="true"
+	[style]="{ width: 'min(96vw, 42rem)' }"
+	[visible]="runtimePreviewVisible()"
+	(visibleChange)="setRuntimePreviewVisible($event)"
+>
+	<div class="admin-spell-detail-page__runtime-preview">
+		@if (runtimePreviewError()) {
+			<div class="admin-spell-detail-page__form-error">
+				{{ runtimePreviewError() }}
+			</div>
+		}
+
+		@if (runtimePreview(); as preview) {
+			<div class="admin-spell-detail-page__runtime-toolbar">
+				<div class="admin-spell-detail-page__runtime-title">
+					<span>Статус выполнения</span>
+					<p-tag
+						[value]="runtimePreviewStatusLabel(preview.status)"
+						[severity]="preview.status === 'COMPLETED' ? 'success' : 'warn'"
+					></p-tag>
+				</div>
+
+				<p-button
+					label="Заново"
+					icon="pi pi-refresh"
+					size="small"
+					severity="secondary"
+					variant="outlined"
+					[loading]="runtimePreviewLoading()"
+					(onClick)="runRuntimePreview()"
+				></p-button>
+			</div>
+
+			@if (preview.pendingRolls.length) {
+				<section class="admin-spell-detail-page__runtime-section">
+					<div class="admin-spell-detail-page__runtime-section-head">
+						<h3>Броски</h3>
+						<span>{{ preview.pendingRolls.length }}</span>
+					</div>
+
+					@for (roll of preview.pendingRolls; track runtimeRollKey(roll)) {
+						@let rollDraft = runtimeRollDraft(roll);
+
+						<div class="admin-spell-detail-page__runtime-roll">
+							<div class="admin-spell-detail-page__runtime-roll-head">
+								<div>
+									<strong>{{ roll.actionName }}</strong>
+									<span>{{ roll.blockName }}</span>
+								</div>
+								<p-tag
+									[value]="roll.optional ? 'Опционально' : 'Обязательно'"
+									[severity]="roll.optional ? 'info' : 'warn'"
+								></p-tag>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-meta">
+								<div>
+									<span>Актор</span>
+									<strong>{{ runtimeValueLabel(roll.actor) }}</strong>
+								</div>
+								<div>
+									<span>Навык</span>
+									<strong>{{ runtimeValueLabel(roll.skill) }}</strong>
+								</div>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-roll-controls">
+								<label class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-dice-count">
+									<span>Кубы</span>
+									<p-inputnumber
+										[ngModel]="rollDraft.diceCount"
+										[min]="0"
+										[showButtons]="true"
+										[style]="{ width: '5.5rem' }"
+										[inputStyle]="{ width: '3rem' }"
+										(ngModelChange)="updateRuntimeRollDiceCount(roll, $event)"
+									></p-inputnumber>
+								</label>
+
+								<label class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-level">
+									<span>Уровень навыка</span>
+									<p-select
+										[options]="skillLevelOptions()"
+										optionLabel="label"
+										optionValue="value"
+										[ngModel]="rollDraft.skillLevel"
+										(ngModelChange)="updateRuntimeRollSkillLevel(roll, $event)"
+									></p-select>
+								</label>
+
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-roll-submit">
+								<p-button
+									label="Бросить"
+									icon="pi pi-bolt"
+									size="small"
+									[loading]="runtimePreviewLoading()"
+									(onClick)="rollRuntimePendingRoll(roll)"
+								></p-button>
+							</div>
+
+							@if (rollDraft.dice.length) {
+								<div class="admin-spell-detail-page__runtime-roll-result">
+									<div class="admin-spell-detail-page__runtime-dice">
+										@for (die of rollDraft.dice; track $index) {
+											<span>{{ die }}</span>
+										}
+									</div>
+									<div class="admin-spell-detail-page__runtime-result">
+										<span>Успехи</span>
+										<strong>{{ rollDraft.successes }}</strong>
+									</div>
+								</div>
+							}
+						</div>
+					}
+				</section>
+			}
+
+			@if (preview.pendingChoices.length) {
+				<section class="admin-spell-detail-page__runtime-section">
+					<div class="admin-spell-detail-page__runtime-section-head">
+						<h3>Выбор эффекта</h3>
+						<span>{{ preview.pendingChoices.length }}</span>
+					</div>
+
+					@for (choice of preview.pendingChoices; track runtimeChoiceKey(choice)) {
+						<div class="admin-spell-detail-page__runtime-roll">
+							<div class="admin-spell-detail-page__runtime-roll-head">
+								<div>
+									<strong>{{ choice.actionName }}</strong>
+									<span>{{ choice.blockName }}</span>
+								</div>
+								<p-tag
+									value="Требуется выбор"
+									severity="warn"
+								></p-tag>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-meta">
+								<div>
+									<span>Результат</span>
+									<strong>{{ choice.sourceValue }}</strong>
+								</div>
+								<div>
+									<span>Сохранить как</span>
+									<strong>{{ choice.resultName }}</strong>
+								</div>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-choice-options">
+								@for (option of choice.options; track option.id) {
+									<button
+										type="button"
+										class="admin-spell-detail-page__runtime-choice-option"
+										(click)="chooseRuntimePendingChoice(choice, option.id)"
+									>
+										<strong>{{ option.threshold }}+ {{ option.name }}</strong>
+										@if (option.description) {
+											<span>{{ option.description }}</span>
+										}
+									</button>
+								}
+							</div>
+						</div>
+					}
+				</section>
+			}
+
+			@if (preview.effects.length) {
+				<section class="admin-spell-detail-page__runtime-section">
+					<div class="admin-spell-detail-page__runtime-section-head">
+						<h3>Эффекты</h3>
+						<span>{{ preview.effects.length }}</span>
+					</div>
+
+					@for (effect of preview.effects; track effect.actionId + effect.kind) {
+						<div class="admin-spell-detail-page__runtime-row">
+							<strong>{{ runtimeEffectTitle(effect) }}</strong>
+							<span>{{ runtimeEffectText(effect) }}</span>
+						</div>
+					}
+				</section>
+			}
+
+			@if (preview.trace.length) {
+				<section class="admin-spell-detail-page__runtime-section">
+					<div class="admin-spell-detail-page__runtime-section-head">
+						<h3>Ход выполнения</h3>
+						<span>{{ preview.trace.length }}</span>
+					</div>
+
+					@for (trace of preview.trace; track trace.actionId + trace.message) {
+						<div class="admin-spell-detail-page__runtime-row">
+							<div class="admin-spell-detail-page__runtime-row-head">
+								<strong>{{ trace.actionName }}</strong>
+								<p-tag
+									[value]="trace.status === 'pending' ? 'Ожидает' : 'Готово'"
+									[severity]="runtimeTraceSeverity(trace)"
+								></p-tag>
+							</div>
+							<span>{{ trace.message }}</span>
+						</div>
+					}
+				</section>
+			}
+		} @else if (!runtimePreviewLoading() && !runtimePreviewError()) {
+			<div class="admin-spell-detail-page__empty-block">
+				Запусти проверку, чтобы увидеть выполнение заклинания.
+			</div>
+		}
+	</div>
+</p-drawer>

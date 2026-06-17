@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import {
 	Prisma,
 	SpellMechanicActionKind,
@@ -40,6 +39,7 @@ type SpellMechanicActionSeedKind =
 	| 'comparison'
 	| 'calculation'
 	| 'branch'
+	| 'effectScale'
 	| 'valueChange'
 	| 'conditionAdd'
 	| 'conditionRemove'
@@ -47,8 +47,8 @@ type SpellMechanicActionSeedKind =
 	| 'custom';
 
 type SeedContext = {
-	parametersByName: Map<string, string>;
-	actionsByName: Map<string, string>;
+	parametersById: Map<string, string>;
+	actionsById: Map<string, string>;
 	skillsByName: Map<string, string>;
 	damageTypesByName: Map<string, string>;
 	conditionsByName: Map<string, string>;
@@ -161,6 +161,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 		if (seed.parameters.length) {
 			await tx.spellMechanicParameter.createMany({
 				data: seed.parameters.map((parameter, index) => ({
+					id: parameter.id,
 					mechanicId: mechanic.id,
 					name: parameter.name,
 					kind: toParameterKind(parameter.kind),
@@ -230,24 +231,24 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 			});
 		}
 
-		const parametersByName = new Map(
+		const parametersById = new Map(
 			(
 				await tx.spellMechanicParameter.findMany({
-					select: { id: true, name: true },
+					select: { id: true },
 					where: { mechanicId: mechanic.id }
 				})
-			).map(parameter => [parameter.name, parameter.id])
+			).map(parameter => [parameter.id, parameter.id])
 		);
 
-		const actionIds = new Map<string, string>();
+		const actionsById = new Map<string, string>();
 
 		for (const action of seed.actions) {
-			actionIds.set(action.name, randomUUID());
+			actionsById.set(action.id, action.id);
 		}
 
 		const context: SeedContext = {
-			parametersByName,
-			actionsByName: actionIds,
+			parametersById,
+			actionsById,
 			skillsByName,
 			damageTypesByName,
 			conditionsByName,
@@ -268,11 +269,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 		if (seed.actions.length) {
 			await tx.spellMechanicAction.createMany({
 				data: seed.actions.map((action, index) => ({
-					id: requireMapValue(
-						actionIds,
-						action.name,
-						`Spell mechanic action seed not found: ${action.name}`
-					),
+					id: action.id,
 					mechanicId: mechanic.id,
 					name: action.name,
 					kind: toActionKind(action.kind),
@@ -295,27 +292,27 @@ function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJs
 		return value as Prisma.InputJsonValue;
 	}
 
-	if (value.kind === 'mechanicParameterByName') {
-		const parameterName = readString(value, 'parameterName');
+	if (value.kind === 'mechanicParameter') {
+		const parameterId = readString(value, 'parameterId');
 		return {
 			kind: 'mechanicParameter',
 			parameterId: requireMapValue(
-				context.parametersByName,
-				parameterName,
-				`Spell mechanic parameter seed not found: ${parameterName}`
+				context.parametersById,
+				parameterId,
+				`Spell mechanic parameter seed not found: ${parameterId}`
 			)
 		};
 	}
 
-	if (value.kind === 'actionResultByName') {
-		const actionName = readString(value, 'actionName');
+	if (value.kind === 'actionResult') {
+		const actionId = readString(value, 'actionId');
 		const resultName = readString(value, 'resultName');
 		return {
 			kind: 'actionResult',
 			actionId: requireMapValue(
-				context.actionsByName,
-				actionName,
-				`Spell mechanic action seed not found: ${actionName}`
+				context.actionsById,
+				actionId,
+				`Spell mechanic action seed not found: ${actionId}`
 			),
 			resultName
 		};
@@ -323,7 +320,7 @@ function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJs
 
 	const nestedContext = {
 		...context,
-		actionsByName: new Map(context.actionsByName)
+		actionsById: new Map(context.actionsById)
 	};
 	const result: Record<string, Prisma.InputJsonValue> = {};
 
@@ -343,13 +340,13 @@ function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJs
 			continue;
 		}
 
-		if (key === 'thenActions' || key === 'elseActions') {
+		if (key === 'thenActions' || key === 'elseActions' || key === 'actions') {
 			const actions = Array.isArray(item) ? item : [];
 
 			for (const action of actions) {
 				if (isRecord(action)) {
-					const actionName = readString(action, 'name');
-					nestedContext.actionsByName.set(actionName, randomUUID());
+					const actionId = readString(action, 'id');
+					nestedContext.actionsById.set(actionId, actionId);
 				}
 			}
 
@@ -397,26 +394,26 @@ function resolveSeedTextTemplateSegment(
 		};
 	}
 
-	if (value.kind === 'mechanicParameterByName') {
-		const parameterName = readString(value, 'parameterName');
+	if (value.kind === 'parameter') {
+		const parameterId = readString(value, 'parameterId');
 		return {
 			kind: 'parameter',
 			parameterId: requireMapValue(
-				context.parametersByName,
-				parameterName,
-				`Spell mechanic parameter seed not found: ${parameterName}`
+				context.parametersById,
+				parameterId,
+				`Spell mechanic parameter seed not found: ${parameterId}`
 			)
 		};
 	}
 
-	if (value.kind === 'actionResultByName') {
-		const actionName = readString(value, 'actionName');
+	if (value.kind === 'actionResult') {
+		const actionId = readString(value, 'actionId');
 		return {
 			kind: 'actionResult',
 			actionId: requireMapValue(
-				context.actionsByName,
-				actionName,
-				`Spell mechanic action seed not found: ${actionName}`
+				context.actionsById,
+				actionId,
+				`Spell mechanic action seed not found: ${actionId}`
 			),
 			resultName: readString(value, 'resultName')
 		};
@@ -438,10 +435,11 @@ function resolveNestedSeedAction(
 
 	const name = readString(value, 'name');
 	const kind = readString(value, 'kind');
+	const seedId = readString(value, 'id');
 	const id = requireMapValue(
-		context.actionsByName,
-		name,
-		`Nested spell mechanic action seed not found: ${name}`
+		context.actionsById,
+		seedId,
+		`Nested spell mechanic action seed not found: ${seedId}`
 	);
 
 	return {
@@ -555,6 +553,7 @@ function toActionKind(kind: SpellMechanicActionSeedKind) {
 		comparison: 'COMPARISON',
 		calculation: 'CALCULATION',
 		branch: 'BRANCH',
+		effectScale: 'EFFECT_SCALE',
 		valueChange: 'VALUE_CHANGE',
 		conditionAdd: 'CONDITION_ADD',
 		conditionRemove: 'CONDITION_REMOVE',
