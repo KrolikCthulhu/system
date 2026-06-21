@@ -4,6 +4,7 @@
 	"license": "MIT",
 	"scripts": {
 		"seed:db": "prisma db seed",
+		"seed:e2e": "ts-node -P prisma/tsconfig.seed.json prisma/seed-e2e.ts",
 		"dev:frontend": "nx serve frontend",
 		"dev:backend": "nx serve backend",
 		"dev": "nx run-many --target=serve --projects=frontend,backend"

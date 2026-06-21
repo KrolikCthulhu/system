@@ -17,6 +17,8 @@ import { RollConsequencesModule } from './roll-consequences/roll-consequences.mo
 import { SkillsModule } from './skills/skills.module';
 import { SpellMechanicsModule } from './spell-mechanics/spell-mechanics.module';
 import { ValuesModule } from './values/values.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
 	imports: [
@@ -52,8 +54,9 @@ import { ValuesModule } from './values/values.module';
 		SpellMechanicsModule,
 		ValuesModule
 	],
-	controllers: [],
+	controllers: [AppController],
 	providers: [
+		AppService,
 		{
 			provide: APP_GUARD,
 			useClass: ThrottlerGuard

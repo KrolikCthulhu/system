@@ -8,6 +8,7 @@
 	},
 	"include": [
 		"seed.ts",
+		"seed-e2e.ts",
 		"seed/**/*.ts",
 		"../backend/src/app/shared/**/*.ts"
 	]
