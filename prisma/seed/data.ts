@@ -677,12 +677,7 @@ const SPELL_MECHANIC_SEED_IDS = {
 		},
 		actions: {
 			checkRoll: '22222222-2222-4222-8222-000000000301',
-			scale: '22222222-2222-4222-8222-000000000302',
-			scaleText0: '22222222-2222-4222-8222-000000000303',
-			scaleText1: '22222222-2222-4222-8222-000000000304',
-			scaleText2: '22222222-2222-4222-8222-000000000305',
-			scaleText3: '22222222-2222-4222-8222-000000000306',
-			scaleText4: '22222222-2222-4222-8222-000000000307'
+			scale: '22222222-2222-4222-8222-000000000302'
 		}
 	}
 } as const;
@@ -1054,7 +1049,7 @@ export const SPELL_MECHANIC_SEEDS = [
 		categoryName: 'Эффекты',
 		name: 'Шкала эффекта',
 		description:
-			'Эта механика позволяет привязать результат проверки к таблице эффектов. Кастер делает бросок выбранным навыком, после чего система смотрит, какие пункты шкалы доступны по количеству успехов. В зависимости от режима можно автоматически выбрать лучший доступный пункт, выполнить все доступные пункты, потребовать точное совпадение или дать администратору/игроку выбрать один из доступных вариантов. Каждый пункт шкалы может содержать собственные вложенные действия.',
+			'Эта механика позволяет привязать результат проверки к таблице эффектов. Кастер делает бросок выбранным навыком, после чего система смотрит, какие пункты шкалы доступны по количеству успехов. В зависимости от режима можно автоматически выбрать лучший доступный пункт, выполнить все доступные пункты, потребовать точное совпадение или дать администратору/игроку выбрать один из доступных вариантов. Конкретные пункты шкалы и их эффекты настраиваются в заклинании.',
 		sortOrder: 0,
 		configSchema: {},
 		parameters: [
@@ -1104,86 +1099,44 @@ export const SPELL_MECHANIC_SEEDS = [
 					},
 					mode: 'choice',
 					resultName: 'Выбранный эффект',
+					isSpellConfigured: true,
+					allowCustomItems: true,
 					items: [
 						{
 							id: 'effect-scale-item-0',
 							threshold: 0,
-							name: 'Слабый эффект',
-							description: 'Минимальный результат без значимого усиления.',
-							actions: [
-								{
-									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText0,
-									name: 'Описание слабого эффекта',
-									kind: 'text',
-									config: {
-										text: 'Срабатывает слабый эффект.'
-									}
-								}
-							]
+							name: '0 успехов',
+							description: '',
+							actions: []
 						},
 						{
 							id: 'effect-scale-item-1',
 							threshold: 1,
-							name: 'Лёгкий эффект',
-							description: 'Базовый результат при одном успехе.',
-							actions: [
-								{
-									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText1,
-									name: 'Описание лёгкого эффекта',
-									kind: 'text',
-									config: {
-										text: 'Срабатывает лёгкий эффект.'
-									}
-								}
-							]
+							name: '1 успех',
+							description: '',
+							actions: []
 						},
 						{
 							id: 'effect-scale-item-2',
 							threshold: 2,
-							name: 'Средний эффект',
-							description: 'Усиленный результат при двух успехах.',
-							actions: [
-								{
-									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText2,
-									name: 'Описание среднего эффекта',
-									kind: 'text',
-									config: {
-										text: 'Срабатывает средний эффект.'
-									}
-								}
-							]
+							name: '2 успеха',
+							description: '',
+							actions: []
 						},
 						{
 							id: 'effect-scale-item-3',
 							threshold: 3,
-							name: 'Сильный эффект',
-							description: 'Сильный результат при трёх успехах.',
-							actions: [
-								{
-									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText3,
-									name: 'Описание сильного эффекта',
-									kind: 'text',
-									config: {
-										text: 'Срабатывает сильный эффект.'
-									}
-								}
-							]
+							name: '3 успеха',
+							description: '',
+							actions: []
 						},
 						{
 							id: 'effect-scale-item-4',
 							threshold: 4,
-							name: 'Предельный эффект',
-							description: 'Максимальный результат при четырёх и более успехах.',
-							actions: [
-								{
-									id: SPELL_MECHANIC_SEED_IDS.effectScale.actions.scaleText4,
-									name: 'Описание предельного эффекта',
-									kind: 'text',
-									config: {
-										text: 'Срабатывает предельный эффект.'
-									}
-								}
-							]
+							name: '4+ успеха',
+							description: '',
+							isOpenEnded: true,
+							actions: []
 						}
 					]
 				}

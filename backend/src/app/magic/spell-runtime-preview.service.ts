@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Prisma, SpellMechanicActionKind } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { ExecuteSpellRuntimePreviewDto } from './dto/execute-spell-runtime-preview.dto';
@@ -17,6 +18,7 @@ interface RuntimeSource {
 }
 
 interface RuntimeTraceEntry {
+	id: string;
 	blockId: string;
 	blockName: string;
 	actionId: string;
@@ -25,6 +27,7 @@ interface RuntimeTraceEntry {
 	status: 'executed' | 'pending';
 	message: string;
 	results: RuntimeActionResultMap;
+	children: RuntimeTraceEntry[];
 }
 
 interface RuntimePendingRoll {
@@ -73,8 +76,10 @@ interface RuntimeContext {
 	inputValues: Record<string, number>;
 	rollResults: Record<string, number>;
 	choiceResults: Record<string, string>;
+	mechanicsById: Map<string, RuntimeMechanic>;
 	resultsByActionId: Map<string, RuntimeActionResultMap>;
 	trace: RuntimeTraceEntry[];
+	traceParentStack: RuntimeTraceEntry[];
 	pendingRolls: RuntimePendingRoll[];
 	pendingChoices: RuntimePendingChoice[];
 	effects: RuntimeEffect[];
@@ -116,6 +121,7 @@ const runtimeSpellSelect = {
 		select: {
 			id: true,
 			parameterValues: true,
+			config: true,
 			isActive: true,
 			sortOrder: true,
 			mechanic: {
@@ -175,12 +181,19 @@ export class SpellRuntimePreviewService {
 			throw new NotFoundException('Заклинание не найдено.');
 		}
 
+		const mechanics = await this.prisma.spellMechanic.findMany({
+			select: runtimeSpellSelect.mechanicBlocks.select.mechanic.select,
+			where: { isActive: true }
+		});
+
 		const context: RuntimeContext = {
 			inputValues: normalizeNumberRecord(dto.inputValues ?? {}, 'inputValues'),
 			rollResults: normalizeNumberRecord(dto.rollResults ?? {}, 'rollResults'),
 			choiceResults: normalizeStringRecord(dto.choiceResults ?? {}, 'choiceResults'),
+			mechanicsById: new Map(mechanics.map(mechanic => [mechanic.id, mechanic])),
 			resultsByActionId: new Map(),
 			trace: [],
+			traceParentStack: [],
 			pendingRolls: [],
 			pendingChoices: [],
 			effects: [],
@@ -395,11 +408,18 @@ export class SpellRuntimePreviewService {
 		action: RuntimeAction,
 		context: RuntimeContext
 	) {
-		const config = toRecord(action.config);
-		const sourceValue = toNumber(this.resolveSource(spell, block, config['source'], context));
-		const mode = stringValue(config['mode']) ?? 'best';
-		const resultName = stringValue(config['resultName']) ?? 'Эффект';
-		const items = normalizeEffectScaleItems(config['items']);
+		const blockConfig = toRecord(block.config);
+		const effectiveConfig = toRecord(blockConfig['effectScale']);
+
+		if (!Object.keys(effectiveConfig).length) {
+			throw new BadRequestException(
+				`В блоке "${block.mechanic.name}" не настроена шкала эффекта.`
+			);
+		}
+		const sourceValue = toNumber(this.resolveSource(spell, block, effectiveConfig['source'], context));
+		const mode = stringValue(effectiveConfig['mode']) ?? 'best';
+		const resultName = stringValue(effectiveConfig['resultName']) ?? 'Эффект';
+		const items = normalizeEffectScaleItems(effectiveConfig['items'], context.mechanicsById);
 		const availableItems = items
 			.filter(item =>
 				mode === 'exact'
@@ -437,21 +457,68 @@ export class SpellRuntimePreviewService {
 		};
 
 		this.storeActionResults(action, results, context);
-		this.pushTrace(block, action, context, {
+		const scaleTrace = this.pushTrace(block, action, context, {
 			status: 'executed',
 			message: `Выбрано пунктов шкалы: ${selectedItems.map(item => item.name).join(', ')}.`,
 			results
 		});
 
 		for (const item of selectedItems) {
-			for (const nestedAction of item.actions) {
-				if (context.halted) {
-					break;
-				}
+			this.withTraceParent(context, scaleTrace, () => {
+				const itemTrace = this.pushTrace(block, action, context, {
+					status: 'executed',
+					message: `Выбран пункт: ${item.name}.`,
+					results: { [resultName]: effectScaleItemResult(item) }
+				});
 
-				this.executeAction(spell, block, nestedAction, context);
+				this.withTraceParent(context, itemTrace, () => {
+					for (const nestedBlock of item.mechanicBlocks) {
+						if (context.halted) {
+							break;
+						}
+
+						this.executeBlock(spell, nestedBlock, context);
+					}
+
+					for (const nestedAction of item.actions) {
+						if (context.halted) {
+							break;
+						}
+
+						this.executeAction(spell, block, nestedAction, context);
+					}
+				});
+			});
+
+			if (context.halted) {
+				break;
 			}
 		}
+	}
+
+	private withTraceParent(
+		context: RuntimeContext,
+		parent: RuntimeTraceEntry,
+		callback: () => void
+	) {
+		context.traceParentStack.push(parent);
+
+		try {
+			callback();
+		} finally {
+			const removed = context.traceParentStack.pop();
+
+			if (removed !== parent) {
+				context.traceParentStack.length = Math.max(
+					0,
+					context.traceParentStack.indexOf(parent)
+				);
+			}
+		}
+	}
+
+	private currentTraceParent(context: RuntimeContext) {
+		return context.traceParentStack[context.traceParentStack.length - 1] ?? null;
 	}
 
 	private resolveEffectScaleChoice(
@@ -752,6 +819,7 @@ export class SpellRuntimePreviewService {
 		const emptyBlock = {
 			id: '',
 			parameterValues: {},
+			config: {},
 			isActive: true,
 			sortOrder: 0,
 			mechanic: {
@@ -887,7 +955,8 @@ export class SpellRuntimePreviewService {
 		context: RuntimeContext,
 		entry: Pick<RuntimeTraceEntry, 'status' | 'message' | 'results'>
 	) {
-		context.trace.push({
+		const traceEntry: RuntimeTraceEntry = {
+			id: randomUUID(),
 			blockId: block.id,
 			blockName: block.mechanic.name,
 			actionId: action.id,
@@ -895,8 +964,18 @@ export class SpellRuntimePreviewService {
 			actionKind: action.kind,
 			status: entry.status,
 			message: entry.message,
-			results: entry.results
-		});
+			results: entry.results,
+			children: []
+		};
+		const parent = this.currentTraceParent(context);
+
+		if (parent) {
+			parent.children.push(traceEntry);
+		} else {
+			context.trace.push(traceEntry);
+		}
+
+		return traceEntry;
 	}
 }
 
@@ -925,6 +1004,7 @@ interface RuntimeEffectScaleItem {
 	threshold: number;
 	name: string;
 	description: string;
+	mechanicBlocks: RuntimeBlock[];
 	actions: RuntimeAction[];
 }
 
@@ -956,7 +1036,10 @@ function normalizeStringRecord(value: Record<string, unknown>, field: string) {
 	return normalized;
 }
 
-function normalizeEffectScaleItems(value: unknown): RuntimeEffectScaleItem[] {
+function normalizeEffectScaleItems(
+	value: unknown,
+	mechanicsById: Map<string, RuntimeMechanic>
+): RuntimeEffectScaleItem[] {
 	if (!Array.isArray(value)) {
 		return [];
 	}
@@ -969,9 +1052,48 @@ function normalizeEffectScaleItems(value: unknown): RuntimeEffectScaleItem[] {
 				typeof item['threshold'] === 'number' ? item['threshold'] : index,
 			name: stringValue(item['name']) || `Пункт ${index + 1}`,
 			description: stringValue(item['description']) ?? '',
+			mechanicBlocks: normalizeNestedMechanicBlocks(
+				item['mechanicBlocks'],
+				mechanicsById
+			),
 			actions: normalizeNestedActions(item['actions'])
 		}))
 		.sort((left, right) => left.threshold - right.threshold);
+}
+
+function normalizeNestedMechanicBlocks(
+	value: unknown,
+	mechanicsById: Map<string, RuntimeMechanic>
+): RuntimeBlock[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.filter(isRecord)
+		.map((item, index) => {
+			const mechanicId = stringValue(item['mechanicId']) ?? '';
+			const mechanic = mechanicsById.get(mechanicId);
+
+			if (!mechanic) {
+				return null;
+			}
+
+			return {
+				id: stringValue(item['id']) || `nested-mechanic-${index}`,
+				parameterValues: isRecord(item['parameterValues'])
+					? (item['parameterValues'] as Prisma.JsonObject)
+					: {},
+				config: isRecord(item['config'])
+					? (item['config'] as Prisma.JsonObject)
+					: {},
+				isActive: typeof item['isActive'] === 'boolean' ? item['isActive'] : true,
+				sortOrder: typeof item['sortOrder'] === 'number' ? item['sortOrder'] : index,
+				mechanic
+			} as unknown as RuntimeBlock;
+		})
+		.filter((item): item is RuntimeBlock => item !== null && item.isActive)
+		.sort((left, right) => left.sortOrder - right.sortOrder);
 }
 
 function effectScaleItemResult(item: RuntimeEffectScaleItem): JsonObject {

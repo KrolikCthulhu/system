@@ -2624,9 +2624,18 @@ export class AdminSpellMechanicsPageComponent {
 			textTemplate: draft.textTemplate.trim(),
 			isActive: draft.isActive,
 			sortOrder: draft.sortOrder,
-			parameters: draft.parameters.map(
-				({ mechanicId, createdAt, updatedAt, ...parameter }) => parameter
-			),
+			parameters: draft.parameters.map(parameter => ({
+				id: parameter.id,
+				name: parameter.name,
+				kind: parameter.kind,
+				numericRole: parameter.numericRole,
+				required: parameter.required,
+				configuredBySpell: parameter.configuredBySpell,
+				overrideAllowed: parameter.overrideAllowed,
+				defaultValue: parameter.defaultValue,
+				defaultTargetConfig: parameter.defaultTargetConfig,
+				sortOrder: parameter.sortOrder
+			})),
 			actions: actions.filter(action => action !== null)
 		};
 		const request = draft.id
@@ -4039,12 +4048,6 @@ function isComparisonOperator(value: unknown): value is ComparisonOperator {
 
 function isEffectScaleMode(value: unknown): value is EffectScaleMode {
 	return EFFECT_SCALE_MODE_OPTIONS.some(option => option.value === value);
-}
-
-function isDefaultValueMode(
-	value: unknown
-): value is SpellMechanicParameterDefaultValueMode {
-	return DEFAULT_VALUE_MODE_OPTIONS.some(option => option.value === value);
 }
 
 function isDefaultValueModeAllowedForKind(

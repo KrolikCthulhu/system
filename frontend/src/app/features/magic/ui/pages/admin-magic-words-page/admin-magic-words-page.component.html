@@ -122,7 +122,7 @@
 					}
 
 					<div class="admin-magic-words-page__form-grid">
-						<label class="admin-magic-words-page__field">
+						<span class="admin-magic-words-page__field">
 							<span>Тип</span>
 							<p-select
 								[options]="typeOptions"
@@ -131,9 +131,9 @@
 								[ngModel]="currentDraft.type"
 								(ngModelChange)="updateDraftType($event)"
 							></p-select>
-						</label>
+						</span>
 
-						<label class="admin-magic-words-page__field">
+						<span class="admin-magic-words-page__field">
 							<span>Название</span>
 							<input
 								pInputText
@@ -141,9 +141,9 @@
 								[value]="currentDraft.name"
 								(input)="updateDraftName($any($event.target).value)"
 							/>
-						</label>
+						</span>
 
-						<label class="admin-magic-words-page__field">
+						<span class="admin-magic-words-page__field">
 							<span>Порядок отображения</span>
 							<p-inputnumber
 								[ngModel]="currentDraft.sortOrder"
@@ -151,17 +151,17 @@
 								[min]="0"
 								(ngModelChange)="updateDraftSortOrder($event)"
 							></p-inputnumber>
-						</label>
+						</span>
 
-						<label class="admin-magic-words-page__switch-field">
+						<span class="admin-magic-words-page__switch-field">
 							<span>Активно</span>
 							<p-toggleswitch
 								[ngModel]="currentDraft.isActive"
 								(ngModelChange)="updateDraftActive($event)"
 							></p-toggleswitch>
-						</label>
+						</span>
 
-						<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+						<span class="admin-magic-words-page__field admin-magic-words-page__field--wide">
 							<span>Описание</span>
 							<textarea
 								pTextarea
@@ -169,9 +169,9 @@
 								[value]="currentDraft.description"
 								(input)="updateDraftDescription($any($event.target).value)"
 							></textarea>
-						</label>
+						</span>
 
-						<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+						<span class="admin-magic-words-page__field admin-magic-words-page__field--wide">
 							<span>Связанные навыки / понимания</span>
 							<p-multiselect
 								[options]="skillOptionGroups()"
@@ -196,9 +196,9 @@
 									</div>
 								</ng-template>
 							</p-multiselect>
-						</label>
+						</span>
 
-						<label class="admin-magic-words-page__field">
+						<span class="admin-magic-words-page__field">
 							<span>Типы урона</span>
 							<p-multiselect
 								[options]="damageTypeOptions()"
@@ -214,9 +214,9 @@
 								[ngModel]="currentDraft.damageTypeIds"
 								(ngModelChange)="updateDraftDamageTypes($event)"
 							></p-multiselect>
-						</label>
+						</span>
 
-						<label class="admin-magic-words-page__field">
+						<span class="admin-magic-words-page__field">
 							<span>Состояния</span>
 							<p-multiselect
 								[options]="conditionOptions()"
@@ -232,14 +232,14 @@
 								[ngModel]="currentDraft.conditionIds"
 								(ngModelChange)="updateDraftConditions($event)"
 							></p-multiselect>
-						</label>
+						</span>
 
 						@if (currentDraft.type === 'ESSENCE') {
 							<section class="admin-magic-words-page__field admin-magic-words-page__field--wide">
 								<span>Профиль сущности</span>
 								<div class="admin-magic-words-page__affinity-grid">
 									@for (profileField of essenceProfileFields; track profileField.field) {
-										<label class="admin-magic-words-page__affinity-field">
+										<span class="admin-magic-words-page__affinity-field">
 											<span class="admin-magic-words-page__affinity-label">
 												<span class="admin-magic-words-page__affinity-name">
 													<span>{{ profileField.label }}</span>
@@ -272,7 +272,7 @@
 													updateEssenceProfileValue(profileField.field, $event)
 												"
 											></p-slider>
-										</label>
+										</span>
 									}
 								</div>
 								<small>
@@ -282,7 +282,7 @@
 						}
 
 						@if (currentDraft.type === 'MODIFIER') {
-							<label class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+							<span class="admin-magic-words-page__field admin-magic-words-page__field--wide">
 								<span>Разрешённые жесты</span>
 								<p-multiselect
 									[options]="gestureOptions()"
@@ -302,7 +302,7 @@
 									Если ничего не выбрано, модификатор не ограничен конкретными
 									жестами.
 								</small>
-							</label>
+							</span>
 						}
 					</div>
 				</div>
@@ -310,8 +310,8 @@
 				<app-editor-actions-bar
 					[hasChanges]="hasChanges()"
 					[saving]="saving()"
-					(reset)="resetDraft()"
-					(save)="saveDraft()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
 				></app-editor-actions-bar>
 			</section>
 		} @else {

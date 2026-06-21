@@ -10,7 +10,6 @@ import {
 	SpellMechanicParameter,
 	SpellMechanicParameterKind
 } from '../../../../spell-mechanics/domain/spell-mechanics.models';
-import { formatMechanicCalculationFormula } from '../../../../spell-mechanics/ui/mechanic-calculation-graph.formula';
 import {
 	MechanicCalculationGraphState,
 	MechanicCalculationOperation

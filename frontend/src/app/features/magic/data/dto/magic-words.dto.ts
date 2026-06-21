@@ -1,4 +1,5 @@
 import { MagicWordType } from '../../domain/magic-word.models';
+import { SpellMechanicBlockConfig } from '../../domain/spell.models';
 
 export interface MagicWordGestureOptionDto {
 	id: string;
@@ -133,6 +134,7 @@ export interface SpellMechanicBlockDto {
 	id: string;
 	mechanicId: string;
 	parameterValues: Record<string, unknown>;
+	config: SpellMechanicBlockConfig;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
@@ -178,6 +180,7 @@ export interface SaveSpellMechanicBlockDto {
 	id?: string;
 	mechanicId: string;
 	parameterValues?: Record<string, unknown>;
+	config?: SpellMechanicBlockConfig;
 	isActive?: boolean;
 	sortOrder?: number;
 }
@@ -246,6 +249,7 @@ export interface SpellRuntimeEffectDto {
 }
 
 export interface SpellRuntimeTraceEntryDto {
+	id: string;
 	blockId: string;
 	blockName: string;
 	actionId: string;
@@ -254,4 +258,5 @@ export interface SpellRuntimeTraceEntryDto {
 	status: 'executed' | 'pending';
 	message: string;
 	results: Record<string, unknown>;
+	children: SpellRuntimeTraceEntryDto[];
 }

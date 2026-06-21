@@ -116,6 +116,7 @@ const spellSelect = {
 			id: true,
 			mechanicId: true,
 			parameterValues: true,
+			config: true,
 			isActive: true,
 			sortOrder: true,
 			createdAt: true,
@@ -667,6 +668,7 @@ export class MagicService {
 				spellId,
 				mechanicId: block.mechanicId,
 				parameterValues: toJsonObject(block.parameterValues),
+				config: toJsonObject(block.config),
 				isActive: block.isActive ?? true,
 				sortOrder: block.sortOrder ?? index
 			}))
@@ -818,6 +820,7 @@ export class MagicService {
 				id: block.id,
 				mechanicId: block.mechanicId,
 				parameterValues: block.parameterValues,
+				config: block.config,
 				isActive: block.isActive,
 				sortOrder: block.sortOrder,
 				createdAt: block.createdAt.toISOString(),

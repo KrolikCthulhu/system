@@ -124,4 +124,4 @@ export type SpellMechanicActionCommand = Omit<
 	'mechanicId' | 'createdAt' | 'updatedAt'
 >;
 
-export interface SpellMechanicConfigSchema extends Record<string, unknown> {}
+export type SpellMechanicConfigSchema = Record<string, unknown>;

@@ -357,6 +357,7 @@ model SpellMechanicBlock {
   mechanicId      String        @map("mechanic_id") @db.Uuid
   mechanic        SpellMechanic @relation(fields: [mechanicId], references: [id], onDelete: Restrict)
   parameterValues Json          @default("{}") @map("parameter_values")
+  config          Json          @default("{}")
   isActive        Boolean       @default(true) @map("is_active")
   sortOrder       Int           @default(0) @map("sort_order")
   createdAt       DateTime      @default(now()) @map("created_at")

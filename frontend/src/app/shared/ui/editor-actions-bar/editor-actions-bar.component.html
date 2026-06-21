@@ -4,12 +4,12 @@
 		severity="secondary"
 		variant="outlined"
 		[disabled]="isResetDisabled"
-		(onClick)="reset.emit()"
+		(onClick)="resetClick.emit()"
 	></p-button>
 	<p-button
 		[label]="saveLabel()"
 		[loading]="saving()"
 		[disabled]="isSaveDisabled"
-		(onClick)="save.emit()"
+		(onClick)="saveClick.emit()"
 	></p-button>
 </div>

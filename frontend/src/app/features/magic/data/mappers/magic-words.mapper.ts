@@ -123,6 +123,7 @@ export function mapSpellDto(dto: SpellDto): Spell {
 			id: block.id,
 			mechanicId: block.mechanicId,
 			parameterValues: block.parameterValues ?? {},
+			config: block.config ?? {},
 			isActive: block.isActive,
 			sortOrder: block.sortOrder,
 			createdAt: block.createdAt,

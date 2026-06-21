@@ -923,6 +923,11 @@
 	border-bottom: 1px solid var(--p-content-border-color);
 }
 
+.admin-spell-detail-page__runtime-row--nested {
+	padding-left: 0.75rem;
+	border-left: 1px solid var(--p-content-border-color);
+}
+
 .admin-spell-detail-page__runtime-row:last-child {
 	border-bottom: 0;
 }

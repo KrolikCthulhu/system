@@ -43,16 +43,15 @@ import { SystemValue } from '../../../../values/domain/values.models';
 import { SPELL_MECHANICS_REPOSITORY } from '../../../../spell-mechanics/data/spell-mechanics-repository.port';
 import { MechanicCalculationGraphEditorComponent } from '../../../../spell-mechanics/ui/components/mechanic-calculation-graph-editor/mechanic-calculation-graph-editor.component';
 import { formatMechanicCalculationFormula } from '../../../../spell-mechanics/ui/mechanic-calculation-graph.formula';
+import { SpellEffectScaleEditorComponent } from './spell-effect-scale-editor.component';
 import {
 	MechanicCalculationGraphState,
-	MechanicCalculationOperation,
 	MechanicCalculationSourceGroup
 } from '../../../../spell-mechanics/ui/mechanic-calculation-graph.models';
 import {
 	SpellMechanic,
 	SpellMechanicParameter,
-	SpellMechanicParameterKind,
-	SpellMechanicNumericRole
+	SpellMechanicParameterKind
 } from '../../../../spell-mechanics/domain/spell-mechanics.models';
 import { MAGIC_WORDS_REPOSITORY } from '../../../data/magic-words-repository.port';
 import { MagicWord } from '../../../domain/magic-word.models';
@@ -62,7 +61,11 @@ import {
 	Spell,
 	SpellCatalog,
 	SpellFormulaCandidate,
-	SpellMechanicBlock,
+	SpellMechanicBlockConfig,
+	SpellEffectScaleConfig,
+	SpellEffectScaleItemConfig,
+	SpellEffectScaleMode,
+	SpellNestedMechanicBlockConfig,
 	SpellRuntimePendingChoice,
 	SpellRuntimePendingRoll,
 	SpellRuntimePreview,
@@ -106,7 +109,6 @@ import {
 	AUTO_VALUE_SOURCE_TARGET_OPTIONS,
 	AutoValueSourceKind,
 	AutoValueSourceMode,
-	ConfigField,
 	ESSENCE_PROFILE_SOURCE_OPTIONS,
 	NumericParameterPreview,
 	PROGRESSION_SOURCE_KIND_OPTIONS,
@@ -117,7 +119,6 @@ import {
 	SpellFormulaParameterValue,
 	SpellParameterValue,
 	SpellProgressionParameterValue,
-	SpellStaticParameterValue,
 	autoParameterFormulaLabel,
 	autoParameterSourceLabels,
 	buildFormulaLabel,
@@ -176,6 +177,7 @@ interface SpellMechanicBlockDraft {
 	id: string;
 	mechanicId: string;
 	parameterValues: Record<string, SpellParameterValue>;
+	config: SpellMechanicBlockConfig;
 	isActive: boolean;
 	sortOrder: number;
 }
@@ -191,6 +193,10 @@ interface RuntimeRollDraft {
 	skillLevel: number;
 	dice: number[];
 	successes: number | null;
+}
+
+interface RuntimeTraceRow extends SpellRuntimeTraceEntry {
+	depth: number;
 }
 
 interface MechanicReadinessStatus {
@@ -230,6 +236,13 @@ const PARAMETER_VALUE_MODE_OPTIONS: Array<{
 	{ label: 'Формула', value: 'formula' }
 ];
 
+const EFFECT_SCALE_MODE_OPTIONS: Array<{ label: string; value: SpellEffectScaleMode }> = [
+	{ label: 'Лучший доступный', value: 'best' },
+	{ label: 'Выбор доступного', value: 'choice' },
+	{ label: 'Все доступные', value: 'all' },
+	{ label: 'Точное совпадение', value: 'exact' }
+];
+
 @Component({
 	selector: 'app-admin-spell-detail-page',
 	standalone: true,
@@ -255,7 +268,8 @@ const PARAMETER_VALUE_MODE_OPTIONS: Array<{
 		ToggleSwitch,
 		EditorActionsBarComponent,
 		SpellTargetConfigEditorComponent,
-		MechanicCalculationGraphEditorComponent
+		MechanicCalculationGraphEditorComponent,
+		SpellEffectScaleEditorComponent
 	],
 	templateUrl: './admin-spell-detail-page.component.html',
 	styleUrl: './admin-spell-detail-page.component.scss',
@@ -358,6 +372,7 @@ export class AdminSpellDetailPageComponent {
 	protected readonly targetCountValueModeOptions = TARGET_COUNT_VALUE_MODE_OPTIONS;
 	protected readonly targetTemplateOptions = TARGET_TEMPLATE_OPTIONS;
 	protected readonly parameterValueModeOptions = PARAMETER_VALUE_MODE_OPTIONS;
+	protected readonly effectScaleModeOptions = EFFECT_SCALE_MODE_OPTIONS;
 	protected readonly progressionSourceKindOptions = PROGRESSION_SOURCE_KIND_OPTIONS;
 	protected readonly essenceProfileSourceOptions = ESSENCE_PROFILE_SOURCE_OPTIONS;
 	protected readonly roundingModeOptions = ROUNDING_MODE_OPTIONS;
@@ -370,6 +385,23 @@ export class AdminSpellDetailPageComponent {
 	protected readonly autoValueSourceCurveOptions = AUTO_VALUE_SOURCE_CURVE_OPTIONS;
 	protected readonly autoValueEssenceInfluenceOptions =
 		AUTO_VALUE_ESSENCE_INFLUENCE_OPTIONS;
+	protected readonly effectScaleMechanicParameters = (
+		block: SpellNestedMechanicBlockConfig
+	) => this.mechanicBlockParameters(block as SpellMechanicBlockDraft);
+	protected readonly effectScaleUsesParameterSelect = (
+		kind: SpellMechanicParameterKind
+	) => this.usesParameterSelect(kind);
+	protected readonly effectScaleParameterOptions = (
+		parameter: SpellMechanicParameter
+	) => this.parameterOptions(parameter);
+	protected readonly effectScaleParameterValue = (
+		block: SpellNestedMechanicBlockConfig,
+		parameterId: string
+	) => this.parameterValue(block as SpellMechanicBlockDraft, parameterId);
+	protected readonly effectScaleStaticParameterValue = (
+		block: SpellNestedMechanicBlockConfig,
+		parameterId: string
+	) => this.staticParameterValue(block as SpellMechanicBlockDraft, parameterId);
 	protected readonly autoPresetPanelStyle = {
 		width: '12rem',
 		maxWidth: '12rem',
@@ -1259,6 +1291,196 @@ export class AdminSpellDetailPageComponent {
 		return this.mechanicBlockMechanic(block)?.parameters ?? [];
 	}
 
+	protected isEffectScaleBlock(block: SpellMechanicBlockDraft) {
+		return this.mechanicBlockMechanic(block)?.actions.some(
+			action => action.kind === 'effectScale'
+		) ?? false;
+	}
+
+	protected effectScaleConfig(block: SpellMechanicBlockDraft): SpellEffectScaleConfig {
+		return readSpellEffectScaleConfig(
+			block.config['effectScale']
+		);
+	}
+
+	protected updateEffectScaleConfig(
+		block: SpellMechanicBlockDraft,
+		patch: Partial<SpellEffectScaleConfig>
+	) {
+		const index = this.draft()?.mechanicBlocks.findIndex(item => item.id === block.id);
+
+		if (index === undefined || index < 0) {
+			return;
+		}
+
+		const currentBlock = this.draft()?.mechanicBlocks[index];
+
+		if (!currentBlock) {
+			return;
+		}
+
+		this.updateMechanicBlock(index, {
+			...currentBlock,
+			config: {
+				...currentBlock.config,
+				effectScale: {
+					...this.effectScaleConfig(currentBlock),
+					...patch
+				}
+			}
+		});
+	}
+
+	protected updateEffectScaleItem(
+		block: SpellMechanicBlockDraft,
+		itemId: string,
+		patch: Partial<SpellEffectScaleItemConfig>
+	) {
+		const config = this.effectScaleConfig(block);
+
+		this.updateEffectScaleConfig(block, {
+			items: config.items.map(item =>
+				item.id === itemId ? { ...item, ...patch } : item
+			)
+		});
+	}
+
+	protected addEffectScaleItem(block: SpellMechanicBlockDraft) {
+		const config = this.effectScaleConfig(block);
+		const maxThreshold = config.items.reduce(
+			(max, item) => Math.max(max, item.threshold),
+			-1
+		);
+		const threshold = maxThreshold + 1;
+
+		this.updateEffectScaleConfig(block, {
+			items: [
+				...config.items,
+				{
+					id: crypto.randomUUID(),
+					threshold,
+					name: `${threshold}+ успехов`,
+					description: '',
+					isOpenEnded: true,
+					mechanicBlocks: []
+				}
+			]
+		});
+	}
+
+	protected deleteEffectScaleItem(block: SpellMechanicBlockDraft, itemId: string) {
+		const config = this.effectScaleConfig(block);
+		this.updateEffectScaleConfig(block, {
+			items: config.items.filter(item => item.id !== itemId)
+		});
+	}
+
+	protected addEffectScaleNestedMechanic(
+		block: SpellMechanicBlockDraft,
+		itemId: string
+	) {
+		const mechanic = this.spellMechanics()
+			.filter(item => item.isActive)
+			.sort(compareByOrderAndName)[0];
+
+		if (!mechanic) {
+			return;
+		}
+
+		const config = this.effectScaleConfig(block);
+		const item = config.items.find(value => value.id === itemId);
+
+		if (!item) {
+			return;
+		}
+
+		this.updateEffectScaleItem(block, itemId, {
+			mechanicBlocks: [
+				...item.mechanicBlocks,
+				createMechanicBlockDraft(
+					mechanic,
+					item.mechanicBlocks.length,
+					this.essenceMagicWord(),
+					{}
+				)
+			]
+		});
+	}
+
+	protected updateEffectScaleNestedMechanic(
+		block: SpellMechanicBlockDraft,
+		itemId: string,
+		nestedBlockId: string,
+		mechanicId: string
+	) {
+		const mechanic = this.findMechanic(mechanicId);
+		const item = this.effectScaleConfig(block).items.find(value => value.id === itemId);
+
+		if (!mechanic || !item) {
+			return;
+		}
+
+		this.updateEffectScaleItem(block, itemId, {
+			mechanicBlocks: item.mechanicBlocks.map((nestedBlock, index) =>
+				nestedBlock.id === nestedBlockId
+					? createMechanicBlockDraft(
+							mechanic,
+							index,
+							this.essenceMagicWord(),
+							{},
+							nestedBlock.id
+					  )
+					: nestedBlock
+			)
+		});
+	}
+
+	protected updateEffectScaleNestedParameter(
+		block: SpellMechanicBlockDraft,
+		itemId: string,
+		nestedBlockId: string,
+		parameterId: string,
+		value: SpellParameterValue | null
+	) {
+		const item = this.effectScaleConfig(block).items.find(data => data.id === itemId);
+
+		if (!item) {
+			return;
+		}
+
+		this.updateEffectScaleItem(block, itemId, {
+			mechanicBlocks: item.mechanicBlocks.map(nestedBlock =>
+				nestedBlock.id === nestedBlockId
+					? {
+							...nestedBlock,
+							parameterValues: {
+								...nestedBlock.parameterValues,
+								[parameterId]: value ?? ''
+							}
+					  }
+					: nestedBlock
+			)
+		});
+	}
+
+	protected deleteEffectScaleNestedMechanic(
+		block: SpellMechanicBlockDraft,
+		itemId: string,
+		nestedBlockId: string
+	) {
+		const item = this.effectScaleConfig(block).items.find(data => data.id === itemId);
+
+		if (!item) {
+			return;
+		}
+
+		this.updateEffectScaleItem(block, itemId, {
+			mechanicBlocks: item.mechanicBlocks
+				.filter(nestedBlock => nestedBlock.id !== nestedBlockId)
+				.map((nestedBlock, index) => ({ ...nestedBlock, sortOrder: index }))
+		});
+	}
+
 	protected mechanicBlockTextPreview(block: SpellMechanicBlockDraft) {
 		const mechanic = this.mechanicBlockMechanic(block);
 
@@ -1299,12 +1521,52 @@ export class AdminSpellDetailPageComponent {
 			.filter(parameter => parameter.required)
 			.filter(parameter => !this.isMechanicParameterConfigured(block, parameter))
 			.map(parameter => mechanicParameterMissingLabel(parameter));
+		const effectScaleIssues = this.isEffectScaleBlock(block)
+			? this.effectScaleReadinessIssues(block)
+			: [];
 
 		return {
-			label: issues.length ? issues[0] : 'Готово',
-			severity: issues.length ? 'warn' : 'success',
-			issues
+			label: issues.length || effectScaleIssues.length
+				? [...issues, ...effectScaleIssues][0]
+				: 'Готово',
+			severity: issues.length || effectScaleIssues.length ? 'warn' : 'success',
+			issues: [...issues, ...effectScaleIssues]
 		};
+	}
+
+	protected effectScaleReadinessIssues(block: SpellMechanicBlockDraft) {
+		const config = this.effectScaleConfig(block);
+		const issues: string[] = [];
+
+		if (!config.items.length) {
+			issues.push('Не заполнена таблица эффектов');
+		}
+
+		for (const item of config.items) {
+			if (!item.name.trim()) {
+				issues.push(`Не назван пункт шкалы ${item.threshold}`);
+			}
+
+			for (const nestedBlock of item.mechanicBlocks) {
+				const nestedDraft = nestedBlock as SpellMechanicBlockDraft;
+				const nestedMechanic = this.mechanicBlockMechanic(nestedDraft);
+
+				if (!nestedMechanic) {
+					issues.push(`${item.name}: вложенная механика не найдена`);
+					continue;
+				}
+
+				for (const parameter of nestedMechanic.parameters.filter(
+					value => value.required
+				)) {
+					if (!isConfiguredParameterValue(parameter, nestedDraft.parameterValues[parameter.id], this.draft())) {
+						issues.push(`${item.name}: ${mechanicParameterMissingLabel(parameter)}`);
+					}
+				}
+			}
+		}
+
+		return issues;
 	}
 
 	protected wizardRequiredParameters(mechanic: SpellMechanic) {
@@ -1799,6 +2061,7 @@ export class AdminSpellDetailPageComponent {
 				id: block.id,
 				mechanicId: block.mechanicId,
 				parameterValues: block.parameterValues,
+				config: block.config,
 				isActive: block.isActive,
 				sortOrder: index
 			})),
@@ -2060,6 +2323,10 @@ export class AdminSpellDetailPageComponent {
 		return trace.status === 'pending' ? 'warn' : 'success';
 	}
 
+	protected runtimeTraceRows(trace: SpellRuntimeTraceEntry[]) {
+		return flattenRuntimeTrace(trace);
+	}
+
 	private ensureRuntimeRollDrafts(rolls: SpellRuntimePendingRoll[]) {
 		this.runtimeRollDrafts.update(drafts => {
 			const nextDrafts = { ...drafts };
@@ -2204,6 +2471,7 @@ export class AdminSpellDetailPageComponent {
 						block.parameterValues,
 						this.findMechanic(block.mechanicId)?.parameters ?? []
 					),
+					config: isRecord(block.config) ? block.config : {},
 					isActive: block.isActive,
 					sortOrder: block.sortOrder
 				}))
@@ -2398,8 +2666,21 @@ function createMechanicBlockDraft(
 				defaultParameterValue(parameter, essence, targetIdsByParameterId)
 			])
 		),
+		config: createMechanicBlockConfig(mechanic),
 		isActive: true,
 		sortOrder
+	};
+}
+
+function createMechanicBlockConfig(mechanic: SpellMechanic): Record<string, unknown> {
+	const effectScaleAction = mechanic.actions.find(action => action.kind === 'effectScale');
+
+	if (!effectScaleAction) {
+		return {};
+	}
+
+	return {
+		effectScale: readSpellEffectScaleConfig(effectScaleAction.config)
 	};
 }
 
@@ -2620,6 +2901,70 @@ function normalizeParameterValue(
 	return String(value ?? '');
 }
 
+function readSpellEffectScaleConfig(value: unknown): SpellEffectScaleConfig {
+	const config = toRecord(value);
+	const mode = isEffectScaleMode(config['mode']) ? config['mode'] : 'choice';
+	const resultName =
+		typeof config['resultName'] === 'string' && config['resultName'].trim()
+			? config['resultName']
+			: 'Выбранный эффект';
+
+	return {
+		mode,
+		resultName,
+		items: readSpellEffectScaleItems(config['items'])
+	};
+}
+
+function readSpellEffectScaleItems(value: unknown): SpellEffectScaleItemConfig[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.filter(isRecord).map((item, index) => ({
+		id: typeof item['id'] === 'string' && item['id'] ? item['id'] : crypto.randomUUID(),
+		threshold:
+			typeof item['threshold'] === 'number' && Number.isFinite(item['threshold'])
+				? item['threshold']
+				: index,
+		name:
+			typeof item['name'] === 'string' && item['name'].trim()
+				? item['name']
+				: `${index} успехов`,
+		description: typeof item['description'] === 'string' ? item['description'] : '',
+		isOpenEnded: item['isOpenEnded'] === true,
+		mechanicBlocks: readNestedSpellMechanicBlocks(item['mechanicBlocks'])
+	}));
+}
+
+function readNestedSpellMechanicBlocks(value: unknown): SpellMechanicBlockDraft[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.filter(isRecord).map((item, index) => ({
+		id: typeof item['id'] === 'string' && item['id'] ? item['id'] : crypto.randomUUID(),
+		mechanicId: typeof item['mechanicId'] === 'string' ? item['mechanicId'] : '',
+		parameterValues: isRecord(item['parameterValues'])
+			? normalizeParameterValues(item['parameterValues'], [])
+			: {},
+		config: isRecord(item['config']) ? item['config'] : {},
+		isActive: typeof item['isActive'] === 'boolean' ? item['isActive'] : true,
+		sortOrder:
+			typeof item['sortOrder'] === 'number' && Number.isFinite(item['sortOrder'])
+				? item['sortOrder']
+				: index
+	}));
+}
+
+function isEffectScaleMode(value: unknown): value is SpellEffectScaleMode {
+	return value === 'best' || value === 'choice' || value === 'all' || value === 'exact';
+}
+
+function toRecord(value: unknown): Record<string, unknown> {
+	return isRecord(value) ? value : {};
+}
+
 function createSkillOptionGroups(
 	categories: SkillCategory[],
 	skills: Skill[]
@@ -2681,6 +3026,16 @@ function createRuntimeRollDraft(skillLevel: number): RuntimeRollDraft {
 		dice: [],
 		successes: null
 	};
+}
+
+function flattenRuntimeTrace(
+	trace: SpellRuntimeTraceEntry[],
+	depth = 0
+): RuntimeTraceRow[] {
+	return trace.flatMap(entry => [
+		{ ...entry, depth },
+		...flattenRuntimeTrace(entry.children, depth + 1)
+	]);
 }
 
 function randomD6() {

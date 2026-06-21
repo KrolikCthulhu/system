@@ -121,7 +121,7 @@
 
 				@if (selectedKind() === 'category' && categoryDraft(); as draft) {
 					<div class="admin-spell-mechanics-page__form-grid">
-						<label class="admin-spell-mechanics-page__field">
+						<span class="admin-spell-mechanics-page__field">
 							<span>Название</span>
 							<input
 								pInputText
@@ -129,9 +129,9 @@
 								[value]="draft.name"
 								(input)="updateCategoryName($any($event.target).value)"
 							/>
-						</label>
+						</span>
 
-						<label class="admin-spell-mechanics-page__field">
+						<span class="admin-spell-mechanics-page__field">
 							<span>Порядок отображения</span>
 							<p-inputnumber
 								[ngModel]="draft.sortOrder"
@@ -139,17 +139,17 @@
 								[min]="0"
 								(ngModelChange)="updateCategorySortOrder($event)"
 							></p-inputnumber>
-						</label>
+						</span>
 
-						<label class="admin-spell-mechanics-page__switch-field">
+						<span class="admin-spell-mechanics-page__switch-field">
 							<span>Активно</span>
 							<p-toggleswitch
 								[ngModel]="draft.isActive"
 								(ngModelChange)="updateCategoryActive($event)"
 							></p-toggleswitch>
-						</label>
+						</span>
 
-						<label
+						<span
 							class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide"
 						>
 							<span>Описание</span>
@@ -159,7 +159,7 @@
 								[value]="draft.description"
 								(input)="updateCategoryDescription($any($event.target).value)"
 							></textarea>
-						</label>
+						</span>
 					</div>
 				} @else if (
 					selectedKind() === 'mechanic' && mechanicDraft();
@@ -179,7 +179,7 @@
 								value="general"
 							>
 								<div class="admin-spell-mechanics-page__form-grid">
-									<label class="admin-spell-mechanics-page__field">
+									<span class="admin-spell-mechanics-page__field">
 										<span>Категория</span>
 										<p-select
 											[options]="categoryOptions()"
@@ -188,9 +188,9 @@
 											[ngModel]="draft.categoryId"
 											(ngModelChange)="updateMechanicCategory($event)"
 										></p-select>
-									</label>
+									</span>
 
-									<label class="admin-spell-mechanics-page__field">
+									<span class="admin-spell-mechanics-page__field">
 										<span>Название</span>
 										<input
 											pInputText
@@ -198,9 +198,9 @@
 											[value]="draft.name"
 											(input)="updateMechanicName($any($event.target).value)"
 										/>
-									</label>
+									</span>
 
-									<label class="admin-spell-mechanics-page__field">
+									<span class="admin-spell-mechanics-page__field">
 										<span>Порядок отображения</span>
 										<p-inputnumber
 											[ngModel]="draft.sortOrder"
@@ -208,17 +208,17 @@
 											[min]="0"
 											(ngModelChange)="updateMechanicSortOrder($event)"
 										></p-inputnumber>
-									</label>
+									</span>
 
-									<label class="admin-spell-mechanics-page__switch-field">
+									<span class="admin-spell-mechanics-page__switch-field">
 										<span>Активно</span>
 										<p-toggleswitch
 											[ngModel]="draft.isActive"
 											(ngModelChange)="updateMechanicActive($event)"
 										></p-toggleswitch>
-									</label>
+									</span>
 
-									<label
+									<span
 										class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide"
 									>
 										<span>Описание</span>
@@ -230,7 +230,7 @@
 												updateMechanicDescription($any($event.target).value)
 											"
 										></textarea>
-									</label>
+									</span>
 
 									<section
 										class="admin-spell-mechanics-page__field admin-spell-mechanics-page__field--wide admin-spell-mechanics-page__template-editor"
@@ -500,7 +500,7 @@
 											>
 												<div class="admin-spell-mechanics-page__parameter-form">
 														<div class="admin-spell-mechanics-page__form-field">
-															<label
+															<span
 																class="admin-spell-mechanics-page__field-label"
 															>
 																Название
@@ -509,7 +509,7 @@
 																	pTooltip="Название, по которому параметр будет отображаться в редакторе механики и в настройках заклинания."
 																	tooltipPosition="top"
 																></i>
-															</label>
+															</span>
 															<input
 																pInputText
 																type="text"
@@ -523,7 +523,7 @@
 														</div>
 
 														<div class="admin-spell-mechanics-page__form-field">
-															<label
+															<span
 																class="admin-spell-mechanics-page__field-label"
 															>
 																Тип
@@ -532,7 +532,7 @@
 																	pTooltip="Определяет, какие данные хранит параметр и какой редактор значения будет доступен."
 																	tooltipPosition="top"
 																></i>
-															</label>
+															</span>
 															<p-select
 																[options]="slotKindOptions"
 																optionLabel="label"
@@ -550,7 +550,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Назначение
@@ -559,7 +559,7 @@
 																		pTooltip="Смысл параметра для авто-формул, текста, будущего runtime и балансировки."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="numericRoleOptions"
 																	optionLabel="label"
@@ -578,7 +578,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Источник
@@ -587,7 +587,7 @@
 																		pTooltip="Задает, откуда механика возьмет значение до ручной настройки в заклинании."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="
 																		slotDefaultValueModeOptions(slot.kind)
@@ -611,7 +611,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	{{ slotDefaultValueLabel(slot.kind) }}
@@ -620,7 +620,7 @@
 																		pTooltip="Базовое значение, которое используется механикой, если параметр не задан иначе."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																@if (usesDefaultValueSelect(slot.kind)) {
 																	<p-select
 																		[options]="
@@ -671,7 +671,7 @@
 															<div
 																class="admin-spell-mechanics-page__switch-list"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__switch-row"
 																>
 																	<span
@@ -696,7 +696,7 @@
 																			)
 																		"
 																	></p-toggleswitch>
-																</label>
+																</span>
 															</div>
 
 															@if (slot.defaultTargetConfig; as targetDefault) {
@@ -717,7 +717,7 @@
 														<div
 															class="admin-spell-mechanics-page__switch-list"
 														>
-															<label
+															<span
 																class="admin-spell-mechanics-page__switch-row"
 															>
 																<span
@@ -742,9 +742,9 @@
 																		})
 																	"
 																></p-toggleswitch>
-															</label>
+															</span>
 
-															<label
+															<span
 																class="admin-spell-mechanics-page__switch-row"
 															>
 																<span
@@ -769,9 +769,9 @@
 																		})
 																	"
 																></p-toggleswitch>
-															</label>
+															</span>
 
-															<label
+															<span
 																class="admin-spell-mechanics-page__switch-row"
 															>
 																<span
@@ -796,7 +796,7 @@
 																		})
 																	"
 																></p-toggleswitch>
-															</label>
+															</span>
 														</div>
 												</div>
 											</div>
@@ -979,7 +979,7 @@
 											>
 												<div class="admin-spell-mechanics-page__parameter-form">
 														<div class="admin-spell-mechanics-page__form-field">
-															<label
+															<span
 																class="admin-spell-mechanics-page__field-label"
 															>
 																Название
@@ -988,7 +988,7 @@
 																	pTooltip="Название шага внутри сценария механики."
 																	tooltipPosition="top"
 																></i>
-															</label>
+															</span>
 															<input
 																pInputText
 																type="text"
@@ -1002,7 +1002,7 @@
 														</div>
 
 														<div class="admin-spell-mechanics-page__form-field">
-															<label
+															<span
 																class="admin-spell-mechanics-page__field-label"
 															>
 																Тип
@@ -1011,7 +1011,7 @@
 																	pTooltip="Определяет базовый смысл шага и доступный редактор настроек."
 																	tooltipPosition="top"
 																></i>
-															</label>
+															</span>
 															<p-select
 																[options]="actionKindOptions"
 																optionLabel="label"
@@ -1027,7 +1027,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Кто бросает
@@ -1036,7 +1036,7 @@
 																		pTooltip="Объект, который совершает бросок."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="targetSourceOptionGroups()"
 																	[group]="true"
@@ -1066,7 +1066,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Навык
@@ -1075,7 +1075,7 @@
 																		pTooltip="Навык или источник навыка для броска."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="skillSourceOptionGroups()"
 																	[group]="true"
@@ -1105,7 +1105,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Сохранить успехи как
@@ -1114,7 +1114,7 @@
 																		pTooltip="Имя, под которым количество успехов будет доступно следующим шагам сценария."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<input
 																	pInputText
 																	type="text"
@@ -1127,7 +1127,7 @@
 																/>
 															</div>
 
-															<label
+															<span
 																class="admin-spell-mechanics-page__switch-row"
 															>
 																<span
@@ -1148,12 +1148,12 @@
 																	[ngModel]="rollOptional(action)"
 																	(ngModelChange)="updateRollOptional($event)"
 																></p-toggleswitch>
-															</label>
+															</span>
 														} @else if (action.kind === 'comparison') {
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Левое значение
@@ -1162,7 +1162,7 @@
 																		pTooltip="Первое число для сравнения."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="amountSourceOptionGroups()"
 																	[group]="true"
@@ -1192,7 +1192,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Оператор
@@ -1201,7 +1201,7 @@
 																		pTooltip="Правило сравнения левого и правого значения."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="comparisonOperatorOptions"
 																	optionLabel="label"
@@ -1216,7 +1216,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Правое значение
@@ -1225,7 +1225,7 @@
 																		pTooltip="Второе число для сравнения."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="amountSourceOptionGroups()"
 																	[group]="true"
@@ -1255,7 +1255,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Сохранить проверку как
@@ -1264,7 +1264,7 @@
 																		pTooltip="Имя, под которым итог сравнения будет доступен следующим шагам сценария."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<input
 																	pInputText
 																	type="text"
@@ -1280,7 +1280,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Сохранить разницу как
@@ -1289,7 +1289,7 @@
 																		pTooltip="Имя, под которым числовая разница будет доступна следующим шагам сценария."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<input
 																	pInputText
 																	type="text"
@@ -1305,7 +1305,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Сохранить значение как
@@ -1314,7 +1314,7 @@
 																		pTooltip="Имя, под которым результат вычисления будет доступен следующим шагам сценария."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<input
 																	pInputText
 																	type="text"
@@ -1330,7 +1330,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Формула
@@ -1339,7 +1339,7 @@
 																		pTooltip="Читаемое представление графа вычисления."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<div
 																	class="admin-spell-mechanics-page__formula-preview"
 																>
@@ -1358,7 +1358,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Условие
@@ -1367,7 +1367,7 @@
 																		pTooltip="Числовое или логическое значение, которое определяет, какая ветка сценария будет выполнена."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="amountSourceOptionGroups()"
 																	[group]="true"
@@ -1573,7 +1573,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Источник результата
@@ -1582,7 +1582,7 @@
 																		pTooltip="Число, по которому открываются пункты шкалы."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="amountSourceOptionGroups()"
 																	[group]="true"
@@ -1612,7 +1612,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Режим применения
@@ -1621,7 +1621,7 @@
 																		pTooltip="Определяет, какие доступные пункты шкалы будут применены."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="effectScaleModeOptions"
 																	optionLabel="label"
@@ -1634,7 +1634,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Сохранить выбор как
@@ -1643,7 +1643,7 @@
 																		pTooltip="Имя результата, под которым выбранный пункт будет доступен следующим шагам."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<input
 																	pInputText
 																	type="text"
@@ -1683,7 +1683,7 @@
 																		<div
 																			class="admin-spell-mechanics-page__effect-scale-row"
 																		>
-																			<label
+																			<span
 																				class="admin-spell-mechanics-page__field"
 																			>
 																				<span>Порог</span>
@@ -1697,8 +1697,8 @@
 																						})
 																					"
 																				></p-inputnumber>
-																			</label>
-																			<label
+																			</span>
+																			<span
 																				class="admin-spell-mechanics-page__field"
 																			>
 																				<span>Название</span>
@@ -1712,7 +1712,7 @@
 																						})
 																					"
 																				/>
-																			</label>
+																			</span>
 																			<div
 																				class="admin-spell-mechanics-page__effect-scale-actions"
 																			>
@@ -1737,7 +1737,7 @@
 																				></p-button>
 																			</div>
 																		</div>
-																		<label
+																		<span
 																			class="admin-spell-mechanics-page__field"
 																		>
 																			<span>Описание</span>
@@ -1752,7 +1752,7 @@
 																					})
 																				"
 																			></textarea>
-																		</label>
+																		</span>
 																		<small
 																			class="admin-spell-mechanics-page__field-help"
 																		>
@@ -1771,7 +1771,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Объект
@@ -1780,7 +1780,7 @@
 																		pTooltip="У кого будет изменено системное значение."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="targetSourceOptionGroups()"
 																	[group]="true"
@@ -1810,7 +1810,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Значение
@@ -1819,7 +1819,7 @@
 																		pTooltip="Какое системное значение будет изменено у выбранного объекта."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="systemValueOptionGroups()"
 																	[group]="true"
@@ -1849,7 +1849,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Операция
@@ -1858,7 +1858,7 @@
 																		pTooltip="Как изменить выбранное системное значение."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="valueChangeOperationOptions"
 																	optionLabel="label"
@@ -1873,7 +1873,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Величина
@@ -1882,7 +1882,7 @@
 																		pTooltip="Откуда взять число, на которое изменяется значение."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="amountSourceOptionGroups()"
 																	[group]="true"
@@ -1913,7 +1913,7 @@
 																<div
 																	class="admin-spell-mechanics-page__form-field"
 																>
-																	<label
+																	<span
 																		class="admin-spell-mechanics-page__field-label"
 																	>
 																		Число
@@ -1922,7 +1922,7 @@
 																			pTooltip="Постоянная числовая величина."
 																			tooltipPosition="top"
 																		></i>
-																	</label>
+																	</span>
 																	<p-inputnumber
 																		[ngModel]="valueChangeConstantAmount(action)"
 																		[showButtons]="false"
@@ -1939,7 +1939,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Объект
@@ -1948,7 +1948,7 @@
 																		pTooltip="На кого действует изменение состояния."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="targetSourceOptionGroups()"
 																	[group]="true"
@@ -1980,7 +1980,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Состояние
@@ -1989,7 +1989,7 @@
 																		pTooltip="Какое состояние будет наложено или снято."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="conditionOptionGroups()"
 																	[group]="true"
@@ -2021,7 +2021,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Источник
@@ -2030,7 +2030,7 @@
 																		pTooltip="Кто или что считается источником состояния."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<p-select
 																	[options]="targetSourceOptionGroups()"
 																	[group]="true"
@@ -2063,7 +2063,7 @@
 																<div
 																	class="admin-spell-mechanics-page__form-field"
 																>
-																	<label
+																	<span
 																		class="admin-spell-mechanics-page__field-label"
 																	>
 																		Длительность
@@ -2072,7 +2072,7 @@
 																			pTooltip="Откуда взять числовое значение длительности."
 																			tooltipPosition="top"
 																		></i>
-																	</label>
+																	</span>
 																	<p-select
 																		[options]="amountSourceOptionGroups()"
 																		[group]="true"
@@ -2106,7 +2106,7 @@
 															<div
 																class="admin-spell-mechanics-page__form-field"
 															>
-																<label
+																<span
 																	class="admin-spell-mechanics-page__field-label"
 																>
 																	Конфигурация
@@ -2115,7 +2115,7 @@
 																		pTooltip="Свободные настройки действия в формате JSON-объекта."
 																		tooltipPosition="top"
 																	></i>
-																</label>
+																</span>
 																<textarea
 																	pTextarea
 																	rows="12"
@@ -2130,7 +2130,7 @@
 															</div>
 														}
 
-														<label
+														<span
 															class="admin-spell-mechanics-page__switch-row"
 														>
 															<span
@@ -2155,7 +2155,7 @@
 																	})
 																"
 															></p-toggleswitch>
-														</label>
+														</span>
 												</div>
 											</div>
 										} @else {
@@ -2171,7 +2171,7 @@
 								class="admin-spell-mechanics-page__tabpanel"
 								value="json"
 							>
-								<label class="admin-spell-mechanics-page__field">
+								<span class="admin-spell-mechanics-page__field">
 									<span>Схема конфигурации</span>
 									<textarea
 										pTextarea
@@ -2182,7 +2182,7 @@
 											updateMechanicConfigSchema($any($event.target).value)
 										"
 									></textarea>
-								</label>
+								</span>
 							</p-tabpanel>
 						</p-tabpanels>
 					</p-tabs>
@@ -2196,8 +2196,8 @@
 			<app-editor-actions-bar
 				[hasChanges]="hasChanges()"
 				[saving]="saving()"
-				(reset)="resetDraft()"
-				(save)="saveDraft()"
+				(resetClick)="resetDraft()"
+				(saveClick)="saveDraft()"
 			></app-editor-actions-bar>
 		</section>
 	</div>

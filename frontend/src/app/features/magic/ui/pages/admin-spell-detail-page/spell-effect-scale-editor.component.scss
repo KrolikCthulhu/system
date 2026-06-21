@@ -1,0 +1,203 @@
+.spell-effect-scale-editor {
+	margin: 0 0.75rem 0.75rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.spell-effect-scale-editor__head,
+.spell-effect-scale-editor__nested-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 0.75rem;
+	align-items: center;
+}
+
+.spell-effect-scale-editor__head {
+	margin-bottom: 0.75rem;
+}
+
+.spell-effect-scale-editor__head h3 {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	margin: 0;
+	font-size: 1rem;
+}
+
+.spell-effect-scale-editor__hint {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+}
+
+.spell-effect-scale-editor__settings,
+.spell-effect-scale-editor__item-main,
+.spell-effect-scale-editor__nested-main,
+.spell-effect-scale-editor__nested-params {
+	display: grid;
+	gap: 0.75rem;
+}
+
+.spell-effect-scale-editor__settings {
+	grid-template-columns: minmax(12rem, 16rem) minmax(14rem, 1fr);
+	margin-bottom: 0.75rem;
+}
+
+.spell-effect-scale-editor__layout {
+	display: grid;
+	grid-template-columns: minmax(12rem, 17rem) minmax(0, 1fr);
+	gap: 0.875rem;
+	padding-top: 0.75rem;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.spell-effect-scale-editor__scale-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	min-width: 0;
+}
+
+.spell-effect-scale-editor__scale-item {
+	display: grid;
+	grid-template-columns: auto minmax(0, 1fr);
+	gap: 0.625rem;
+	align-items: end;
+	width: 100%;
+	padding: 0.5rem 0.625rem;
+	border: 1px solid transparent;
+	border-radius: 0.375rem;
+	background: transparent;
+	color: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.spell-effect-scale-editor__scale-item:hover,
+.spell-effect-scale-editor__scale-item--active {
+	background: var(--p-surface-50);
+}
+
+.spell-effect-scale-editor__scale-item--active {
+	border-color: var(--p-content-border-color);
+}
+
+.spell-effect-scale-editor__scale-threshold {
+	min-width: 2rem;
+	color: var(--p-text-muted-color);
+	font-weight: 600;
+}
+
+.spell-effect-scale-editor__scale-content {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	min-width: 0;
+}
+
+.spell-effect-scale-editor__scale-content strong,
+.spell-effect-scale-editor__scale-content small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.spell-effect-scale-editor__scale-content small {
+	color: var(--p-text-muted-color);
+	font-size: 0.75rem;
+}
+
+.spell-effect-scale-editor__details {
+	min-width: 0;
+}
+
+.spell-effect-scale-editor__details-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	margin-bottom: 0.75rem;
+}
+
+.spell-effect-scale-editor__item-main {
+	grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr);
+	align-items: end;
+}
+
+.spell-effect-scale-editor__field--wide {
+	grid-column: 1 / -1;
+}
+
+.spell-effect-scale-editor__nested-head {
+	margin-top: 0.75rem;
+}
+
+.spell-effect-scale-editor__nested {
+	margin-top: 0.5rem;
+	padding: 0.625rem 0;
+	border-top: 1px solid var(--p-content-border-color);
+	background: transparent;
+}
+
+.spell-effect-scale-editor__nested-main {
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: end;
+}
+
+.spell-effect-scale-editor__nested-params {
+	grid-template-columns: repeat(2, minmax(12rem, 1fr));
+	margin-top: 0.75rem;
+}
+
+.spell-effect-scale-editor__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.spell-effect-scale-editor__field > input,
+.spell-effect-scale-editor__field > textarea,
+.spell-effect-scale-editor__field > p-inputnumber,
+.spell-effect-scale-editor__field > p-select {
+	width: 100%;
+}
+
+.spell-effect-scale-editor__inline-switch {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	grid-column: 1 / -1;
+	justify-content: flex-start;
+	min-height: 2.375rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.spell-effect-scale-editor__option-group {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}
+
+.spell-effect-scale-editor__empty {
+	padding: 0.625rem;
+	color: var(--p-text-muted-color);
+	background: var(--p-surface-50);
+	border-radius: 0.375rem;
+	text-align: center;
+}
+
+@media (max-width: 900px) {
+	.spell-effect-scale-editor__layout,
+	.spell-effect-scale-editor__settings,
+	.spell-effect-scale-editor__item-main,
+	.spell-effect-scale-editor__nested-params {
+		grid-template-columns: 1fr;
+	}
+
+	.spell-effect-scale-editor__inline-switch {
+		justify-content: space-between;
+	}
+}

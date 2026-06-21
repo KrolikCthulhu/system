@@ -100,7 +100,7 @@
 					}
 
 					<div class="admin-progression-presets-page__form-grid">
-						<label class="admin-progression-presets-page__field">
+						<span class="admin-progression-presets-page__field">
 							<span>Название</span>
 							<input
 								pInputText
@@ -108,9 +108,9 @@
 								[value]="currentDraft.name"
 								(input)="updateDraftName($any($event.target).value)"
 							/>
-						</label>
+						</span>
 
-						<label class="admin-progression-presets-page__field">
+						<span class="admin-progression-presets-page__field">
 							<span>Тип прогрессии</span>
 							<p-select
 								[ngModel]="currentDraft.kind"
@@ -119,9 +119,9 @@
 								optionValue="value"
 								(ngModelChange)="updateDraftKind($event)"
 							></p-select>
-						</label>
+						</span>
 
-						<label class="admin-progression-presets-page__field">
+						<span class="admin-progression-presets-page__field">
 							<span>Порядок отображения</span>
 							<p-inputnumber
 								[ngModel]="currentDraft.sortOrder"
@@ -129,17 +129,17 @@
 								[min]="0"
 								(ngModelChange)="updateDraftSortOrder($event)"
 							></p-inputnumber>
-						</label>
+						</span>
 
-						<label class="admin-progression-presets-page__switch-field">
+						<span class="admin-progression-presets-page__switch-field">
 							<span>Активно</span>
 							<p-toggleswitch
 								[ngModel]="currentDraft.isActive"
 								(ngModelChange)="updateDraftActive($event)"
 							></p-toggleswitch>
-						</label>
+						</span>
 
-						<label class="admin-progression-presets-page__field admin-progression-presets-page__field--wide">
+						<span class="admin-progression-presets-page__field admin-progression-presets-page__field--wide">
 							<span>Описание</span>
 							<textarea
 								pTextarea
@@ -147,13 +147,13 @@
 								[value]="currentDraft.description"
 								(input)="updateDraftDescription($any($event.target).value)"
 							></textarea>
-						</label>
+						</span>
 					</div>
 
 					<section class="admin-progression-presets-page__block">
 						<h3>Настройки формулы</h3>
 						<div class="admin-progression-presets-page__config-grid">
-							<label class="admin-progression-presets-page__field">
+							<span class="admin-progression-presets-page__field">
 								<span>Округление</span>
 								<p-select
 									[ngModel]="currentDraft.config['roundingMode']"
@@ -162,10 +162,10 @@
 									optionValue="value"
 									(ngModelChange)="updateDraftRoundingMode($event)"
 								></p-select>
-							</label>
+							</span>
 
 							@for (field of configFields(); track field.key) {
-								<label class="admin-progression-presets-page__field">
+								<span class="admin-progression-presets-page__field">
 									<span>{{ field.label }}</span>
 									<p-inputnumber
 										[ngModel]="$any(currentDraft.config[field.key])"
@@ -176,7 +176,7 @@
 										[maxFractionDigits]="4"
 										(ngModelChange)="updateDraftConfigValue(field.key, $event)"
 									></p-inputnumber>
-								</label>
+								</span>
 							}
 						</div>
 					</section>
@@ -200,8 +200,8 @@
 				<app-editor-actions-bar
 					[hasChanges]="hasChanges()"
 					[saving]="saving()"
-					(reset)="resetDraft()"
-					(save)="saveDraft()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
 				></app-editor-actions-bar>
 			</section>
 		} @else {

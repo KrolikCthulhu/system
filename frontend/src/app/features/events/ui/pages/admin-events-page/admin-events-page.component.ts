@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConfirmationService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
-import { Button } from 'primeng/button';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
@@ -36,7 +35,6 @@ interface EventHandlerGroup {
 		CommonModule,
 		FormsModule,
 		Breadcrumb,
-		Button,
 		ConfirmDialog,
 		IconField,
 		InputIcon,

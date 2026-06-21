@@ -26,6 +26,10 @@ export class SaveSpellMechanicBlockDto {
 	parameterValues?: Record<string, unknown>;
 
 	@IsOptional()
+	@IsObject()
+	config?: Record<string, unknown>;
+
+	@IsOptional()
 	@IsBoolean()
 	isActive?: boolean;
 

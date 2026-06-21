@@ -1,0 +1,231 @@
+<section class="spell-effect-scale-editor">
+	<div class="spell-effect-scale-editor__head">
+		<div>
+			<h3>
+				Таблица эффектов
+				<i
+					class="pi pi-question-circle spell-effect-scale-editor__hint"
+					pTooltip="Добавь строки шкалы и укажи, с какого результата проверки доступен каждый эффект."
+					tooltipPosition="top"
+				></i>
+			</h3>
+		</div>
+
+		<p-button
+			label="Строка"
+			icon="pi pi-plus"
+			severity="secondary"
+			variant="outlined"
+			(onClick)="addItem()"
+		></p-button>
+	</div>
+
+	<div class="spell-effect-scale-editor__settings">
+		<span class="spell-effect-scale-editor__field">
+			<span>Режим применения</span>
+			<p-select
+				[options]="modeOptions()"
+				optionLabel="label"
+				optionValue="value"
+				[ngModel]="config().mode"
+				(ngModelChange)="updateConfig({ mode: $event })"
+			></p-select>
+		</span>
+
+		<span class="spell-effect-scale-editor__field">
+			<span>Сохранить результат как</span>
+			<input
+				pInputText
+				type="text"
+				[value]="config().resultName"
+				(input)="updateConfig({ resultName: $any($event.target).value })"
+			/>
+		</span>
+	</div>
+
+	<div class="spell-effect-scale-editor__layout">
+		<div class="spell-effect-scale-editor__scale-list">
+			@for (item of config().items; track item.id) {
+				<button
+					type="button"
+					class="spell-effect-scale-editor__scale-item"
+					[class.spell-effect-scale-editor__scale-item--active]="
+						selectedItem().id === item.id
+					"
+					(click)="selectItem(item.id)"
+				>
+					<span class="spell-effect-scale-editor__scale-threshold">
+						{{ itemThresholdLabel(item) }}
+					</span>
+					<span class="spell-effect-scale-editor__scale-content">
+						<strong>{{ itemTitle(item) }}</strong>
+						<small>{{ item.mechanicBlocks.length }} механик</small>
+					</span>
+				</button>
+			} @empty {
+				<div class="spell-effect-scale-editor__empty">Строки шкалы пока не добавлены.</div>
+			}
+		</div>
+
+		@if (selectedItem(); as item) {
+			<div class="spell-effect-scale-editor__details">
+				<div class="spell-effect-scale-editor__details-head">
+					<strong>Ступень {{ itemThresholdLabel(item) }}</strong>
+					<p-button
+						icon="pi pi-trash"
+						severity="danger"
+						text
+						rounded
+						(onClick)="deleteItem(item.id)"
+					></p-button>
+				</div>
+
+				<div class="spell-effect-scale-editor__item-main">
+					<span class="spell-effect-scale-editor__field">
+						<span>Успехов от</span>
+						<p-inputnumber
+							fluid
+							[ngModel]="item.threshold"
+							[min]="0"
+							(ngModelChange)="updateItem(item.id, { threshold: $event ?? 0 })"
+						></p-inputnumber>
+					</span>
+
+					<span class="spell-effect-scale-editor__field">
+						<span>Название</span>
+						<input
+							pInputText
+							type="text"
+							[value]="item.name"
+							(input)="updateItem(item.id, { name: $any($event.target).value })"
+						/>
+					</span>
+
+					<span class="spell-effect-scale-editor__inline-switch">
+						<span>Верхняя строка</span>
+						<p-toggleswitch
+							[ngModel]="item.isOpenEnded"
+							(ngModelChange)="updateItem(item.id, { isOpenEnded: $event })"
+						></p-toggleswitch>
+					</span>
+
+					<span class="spell-effect-scale-editor__field spell-effect-scale-editor__field--wide">
+						<span>Описание</span>
+						<textarea
+							pTextarea
+							rows="3"
+							[value]="item.description"
+							(input)="updateItem(item.id, { description: $any($event.target).value })"
+						></textarea>
+					</span>
+				</div>
+
+				<div class="spell-effect-scale-editor__nested-head">
+					<strong>Механики эффекта</strong>
+					<p-button
+						label="Механика"
+						icon="pi pi-plus"
+						size="small"
+						severity="secondary"
+						variant="outlined"
+						(onClick)="nestedMechanicAdd.emit({ itemId: item.id })"
+					></p-button>
+				</div>
+
+				@for (nestedBlock of item.mechanicBlocks; track nestedBlock.id) {
+					<div class="spell-effect-scale-editor__nested">
+						<div class="spell-effect-scale-editor__nested-main">
+							<span class="spell-effect-scale-editor__field">
+								<span>Механика</span>
+								<p-select
+									[options]="mechanicOptions()"
+									optionLabel="label"
+									optionValue="value"
+									[ngModel]="nestedBlock.mechanicId"
+									(ngModelChange)="
+										nestedMechanicChange.emit({
+											itemId: item.id,
+											nestedBlockId: nestedBlock.id,
+											mechanicId: $event
+										})
+									"
+								></p-select>
+							</span>
+
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(onClick)="
+									nestedMechanicDelete.emit({
+										itemId: item.id,
+										nestedBlockId: nestedBlock.id
+									})
+								"
+							></p-button>
+						</div>
+
+						@if (mechanicParameters()(nestedBlock).length) {
+							<div class="spell-effect-scale-editor__nested-params">
+								@for (parameter of mechanicParameters()(nestedBlock); track parameter.id) {
+									<span class="spell-effect-scale-editor__field">
+										<span>{{ parameter.name }}</span>
+										@if (usesParameterSelect()(parameter.kind)) {
+											<p-select
+												[options]="parameterOptions()(parameter)"
+												[group]="true"
+												optionGroupLabel="label"
+												optionGroupChildren="items"
+												optionLabel="name"
+												optionValue="id"
+												appendTo="body"
+												[filter]="true"
+												filterBy="name,searchText"
+												[showClear]="true"
+												placeholder="Не выбрано"
+												[ngModel]="parameterValue()(nestedBlock, parameter.id) || null"
+												(ngModelChange)="
+													nestedParameterChange.emit({
+														itemId: item.id,
+														nestedBlockId: nestedBlock.id,
+														parameterId: parameter.id,
+														value: $event
+													})
+												"
+											>
+												<ng-template let-group #group>
+													<div class="spell-effect-scale-editor__option-group">
+														{{ group.label }}
+													</div>
+												</ng-template>
+											</p-select>
+										} @else {
+											<input
+												pInputText
+												type="text"
+												[value]="staticParameterValue()(nestedBlock, parameter.id)"
+												(input)="
+													nestedParameterChange.emit({
+														itemId: item.id,
+														nestedBlockId: nestedBlock.id,
+														parameterId: parameter.id,
+														value: $any($event.target).value
+													})
+												"
+											/>
+										}
+									</span>
+								}
+							</div>
+						}
+					</div>
+				} @empty {
+					<div class="spell-effect-scale-editor__empty">
+						В этой ступени пока нет механик.
+					</div>
+				}
+			</div>
+		}
+	</div>
+</section>

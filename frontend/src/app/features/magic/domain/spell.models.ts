@@ -49,10 +49,41 @@ export interface SpellMechanicBlock {
 	id: string;
 	mechanicId: string;
 	parameterValues: Record<string, unknown>;
+	config: SpellMechanicBlockConfig;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface SpellMechanicBlockConfig {
+	effectScale?: SpellEffectScaleConfig;
+}
+
+export type SpellEffectScaleMode = 'best' | 'choice' | 'all' | 'exact';
+
+export interface SpellEffectScaleConfig {
+	mode: SpellEffectScaleMode;
+	resultName: string;
+	items: SpellEffectScaleItemConfig[];
+}
+
+export interface SpellEffectScaleItemConfig {
+	id: string;
+	threshold: number;
+	name: string;
+	description: string;
+	isOpenEnded: boolean;
+	mechanicBlocks: SpellNestedMechanicBlockConfig[];
+}
+
+export interface SpellNestedMechanicBlockConfig {
+	id: string;
+	mechanicId: string;
+	parameterValues: Record<string, unknown>;
+	config: SpellMechanicBlockConfig;
+	isActive: boolean;
+	sortOrder: number;
 }
 
 export interface SpellRuntimePreviewRequest {
@@ -124,6 +155,7 @@ export interface SpellRuntimeEffect {
 }
 
 export interface SpellRuntimeTraceEntry {
+	id: string;
 	blockId: string;
 	blockName: string;
 	actionId: string;
@@ -132,6 +164,7 @@ export interface SpellRuntimeTraceEntry {
 	status: 'executed' | 'pending';
 	message: string;
 	results: Record<string, unknown>;
+	children: SpellRuntimeTraceEntry[];
 }
 
 export interface SpellFormulaCandidate {

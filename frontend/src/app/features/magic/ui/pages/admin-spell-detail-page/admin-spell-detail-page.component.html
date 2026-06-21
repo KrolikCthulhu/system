@@ -73,7 +73,7 @@
 					<p-tabpanels class="admin-spell-detail-page__tabpanels">
 						<p-tabpanel value="main" class="admin-spell-detail-page__tabpanel">
 							<div class="admin-spell-detail-page__form-grid">
-								<label class="admin-spell-detail-page__field">
+								<span class="admin-spell-detail-page__field">
 									<span>Формула</span>
 									<input
 										pInputText
@@ -81,9 +81,9 @@
 										[value]="currentDraft.formulaName"
 										readonly
 									/>
-								</label>
+								</span>
 
-								<label class="admin-spell-detail-page__field">
+								<span class="admin-spell-detail-page__field">
 									<span>Название</span>
 									<input
 										pInputText
@@ -91,9 +91,9 @@
 										[value]="currentDraft.name"
 										(input)="updateDraftName($any($event.target).value)"
 									/>
-								</label>
+								</span>
 
-								<label class="admin-spell-detail-page__field">
+								<span class="admin-spell-detail-page__field">
 									<span>Статус</span>
 									<p-select
 										[options]="statusOptions"
@@ -102,27 +102,27 @@
 										[ngModel]="currentDraft.status"
 										(ngModelChange)="updateDraftStatus($event)"
 									></p-select>
-								</label>
+								</span>
 
-								<label class="admin-spell-detail-page__switch-field">
+								<span class="admin-spell-detail-page__switch-field">
 									<span>Активно</span>
 									<p-toggleswitch
 										[disabled]="!canManageActivity(currentDraft.status)"
 										[ngModel]="currentDraft.isActive"
 										(ngModelChange)="updateDraftActive($event)"
 									></p-toggleswitch>
-								</label>
+								</span>
 
-								<label class="admin-spell-detail-page__field">
+								<span class="admin-spell-detail-page__field">
 									<span>Порядок отображения</span>
 									<p-inputnumber
 										[ngModel]="currentDraft.sortOrder"
 										[min]="0"
 										(ngModelChange)="updateDraftSortOrder($event)"
 									></p-inputnumber>
-								</label>
+								</span>
 
-								<label
+								<span
 									class="admin-spell-detail-page__field admin-spell-detail-page__field--wide"
 								>
 									<span>Описание</span>
@@ -132,7 +132,7 @@
 										[value]="currentDraft.description"
 										(input)="updateDraftDescription($any($event.target).value)"
 									></textarea>
-								</label>
+								</span>
 							</div>
 						</p-tabpanel>
 
@@ -165,11 +165,11 @@
 												[class.admin-spell-detail-page__targets-list-item--active]="
 													selectedTargetConfigIndex() === targetIndex
 												"
-												(click)="selectTargetConfig(targetIndex)"
 											>
 												<button
 													type="button"
 													class="admin-spell-detail-page__targets-list-button"
+													(click)="selectTargetConfig(targetIndex)"
 												>
 													<span>{{ target.name }}</span>
 													<small>{{ targetConfigPreview(target) }}</small>
@@ -260,11 +260,11 @@
 												[class.admin-spell-detail-page__mechanics-list-item--invalid]="
 													mechanicReadinessStatus(block).issues.length
 												"
-												(click)="selectMechanicBlock(blockIndex)"
 											>
 												<button
 													type="button"
 													class="admin-spell-detail-page__mechanics-list-button"
+													(click)="selectMechanicBlock(blockIndex)"
 												>
 													<span>
 														{{
@@ -305,7 +305,7 @@
 								<section class="admin-spell-detail-page__mechanics-editor">
 									@if (selectedMechanicBlock(); as block) {
 										<div class="admin-spell-detail-page__mechanic-editor-head">
-											<label class="admin-spell-detail-page__field">
+											<span class="admin-spell-detail-page__field">
 												<span>Механика</span>
 												<p-select
 													[options]="mechanicOptions()"
@@ -316,9 +316,9 @@
 														updateSelectedMechanicBlockMechanic($event)
 													"
 												></p-select>
-											</label>
+											</span>
 
-											<label class="admin-spell-detail-page__inline-switch">
+											<span class="admin-spell-detail-page__inline-switch">
 												<span>Активно</span>
 												<p-toggleswitch
 													[ngModel]="block.isActive"
@@ -326,7 +326,7 @@
 														updateSelectedMechanicBlockActive($event)
 													"
 												></p-toggleswitch>
-											</label>
+											</span>
 
 											<p-button
 												icon="pi pi-trash"
@@ -402,7 +402,7 @@
 																<div
 																	class="admin-spell-detail-page__progression-config"
 																>
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>От чего зависит</span>
 																		<p-select
 																			[options]="progressionSourceKindOptions"
@@ -419,14 +419,14 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
 																	@if (
 																		shouldShowProgressionSourceKey(
 																			progressionValue
 																		)
 																	) {
-																		<label class="admin-spell-detail-page__field">
+																		<span class="admin-spell-detail-page__field">
 																			<span>
 																				{{
 																					progressionSourceKeyLabel(
@@ -453,10 +453,10 @@
 																					)
 																				"
 																			></p-select>
-																		</label>
+																		</span>
 																	}
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Пресет</span>
 																		<p-select
 																			[options]="progressionPresetOptions()"
@@ -474,7 +474,7 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
 																	@for (
 																		field of progressionConfigFields(
@@ -482,7 +482,7 @@
 																		);
 																		track field.key
 																	) {
-																		<label class="admin-spell-detail-page__field">
+																		<span class="admin-spell-detail-page__field">
 																			<span>{{ field.label }}</span>
 																			<p-inputnumber
 																				[ngModel]="
@@ -502,10 +502,10 @@
 																					)
 																				"
 																			></p-inputnumber>
-																		</label>
+																		</span>
 																	}
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Округление</span>
 																		<p-select
 																			[options]="roundingModeOptions"
@@ -525,7 +525,7 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
 																	<p-button
 																		label="Открыть в редакторе формулы"
@@ -551,7 +551,7 @@
 																as autoValue
 															) {
 																<div class="admin-spell-detail-page__auto-editor">
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Поведение</span>
 																		<p-select
 																			[options]="autoValueCharacterOptions"
@@ -565,9 +565,9 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Размер значения</span>
 																		<p-select
 																			[options]="autoValueScaleOptions"
@@ -581,9 +581,9 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Рост</span>
 																		<p-select
 																			[options]="autoValueGrowthOptions"
@@ -597,9 +597,9 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Режим влияний</span>
 																		<p-select
 																			[options]="autoValueSourceModeOptions"
@@ -613,7 +613,7 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
 																	<div class="admin-spell-detail-page__auto-sources">
 																		<div class="admin-spell-detail-page__auto-sources-head">
@@ -659,7 +659,7 @@
 
 																		@for (source of autoValue.sources; track source.id) {
 																			<div class="admin-spell-detail-page__auto-source-row">
-																				<label
+																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind"
 																				>
 																					<span>Что влияет</span>
@@ -682,10 +682,10 @@
 																							)
 																						"
 																					></p-select>
-																				</label>
+																				</span>
 
 																				@if (shouldShowAutoSourceKey(source)) {
-																					<label
+																					<span
 																						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
 																					>
 																						<span>{{ autoSourceKeyLabel(source) }}</span>
@@ -706,7 +706,7 @@
 																								)
 																							"
 																						></p-select>
-																					</label>
+																					</span>
 																				} @else {
 																					<div
 																						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
@@ -720,7 +720,7 @@
 																					</div>
 																				}
 
-																				<label
+																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target"
 																				>
 																					<span>Влияет на</span>
@@ -740,9 +740,9 @@
 																							)
 																						"
 																					></p-select>
-																				</label>
+																				</span>
 
-																				<label
+																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve"
 																				>
 																					<span>Кривая</span>
@@ -759,9 +759,9 @@
 																							)
 																						"
 																					></p-select>
-																				</label>
+																				</span>
 
-																				<label
+																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight"
 																				>
 																					<span>Вес</span>
@@ -777,7 +777,7 @@
 																							)
 																						"
 																					></p-inputnumber>
-																				</label>
+																				</span>
 
 																				@if (canDeleteAutoSource(autoValue)) {
 																					<div
@@ -805,7 +805,7 @@
 																		}
 																	</div>
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Влияние сущности</span>
 																		<p-select
 																			[options]="autoValueEssenceInfluenceOptions"
@@ -819,9 +819,9 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Профиль сущности</span>
 																		<p-select
 																			[options]="essenceProfileSourceOptions"
@@ -838,9 +838,9 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 
-																	<label class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field">
 																		<span>Округление</span>
 																		<p-select
 																			[options]="roundingModeOptions"
@@ -854,7 +854,7 @@
 																				)
 																			"
 																		></p-select>
-																	</label>
+																	</span>
 																</div>
 															}
 														} @else if (
@@ -881,7 +881,7 @@
 																	<div
 																		class="admin-spell-detail-page__target-parameter-grid"
 																	>
-																		<label class="admin-spell-detail-page__field">
+																		<span class="admin-spell-detail-page__field">
 																			<span>Режим цели</span>
 																			<p-select
 																				[options]="
@@ -908,7 +908,7 @@
 																					)
 																				"
 																			></p-select>
-																		</label>
+																		</span>
 
 																		<div class="admin-spell-detail-page__target-preview">
 																			<span>Цель</span>
@@ -951,7 +951,7 @@
 																	}
 																</div>
 															} @else {
-																<label class="admin-spell-detail-page__field">
+																<span class="admin-spell-detail-page__field">
 																	@if (supportsProgression(parameter)) {
 																		<span>Значение</span>
 																	}
@@ -1008,7 +1008,7 @@
 																			"
 																		/>
 																	}
-																</label>
+																</span>
 															}
 
 															@if (
@@ -1081,6 +1081,49 @@
 												}
 											</div>
 										}
+
+										@if (isEffectScaleBlock(block)) {
+											@if (effectScaleConfig(block); as scaleConfig) {
+												<app-spell-effect-scale-editor
+													[config]="scaleConfig"
+													[mechanicOptions]="mechanicOptions()"
+													[modeOptions]="effectScaleModeOptions"
+													[mechanicParameters]="effectScaleMechanicParameters"
+													[usesParameterSelect]="effectScaleUsesParameterSelect"
+													[parameterOptions]="effectScaleParameterOptions"
+													[parameterValue]="effectScaleParameterValue"
+													[staticParameterValue]="effectScaleStaticParameterValue"
+													(configChange)="updateEffectScaleConfig(block, $event)"
+													(nestedMechanicAdd)="
+														addEffectScaleNestedMechanic(block, $event.itemId)
+													"
+													(nestedMechanicChange)="
+														updateEffectScaleNestedMechanic(
+															block,
+															$event.itemId,
+															$event.nestedBlockId,
+															$event.mechanicId
+														)
+													"
+													(nestedMechanicDelete)="
+														deleteEffectScaleNestedMechanic(
+															block,
+															$event.itemId,
+															$event.nestedBlockId
+														)
+													"
+													(nestedParameterChange)="
+														updateEffectScaleNestedParameter(
+															block,
+															$event.itemId,
+															$event.nestedBlockId,
+															$event.parameterId,
+															$any($event.value)
+														)
+													"
+												></app-spell-effect-scale-editor>
+											}
+										}
 									} @else {
 										<div class="admin-spell-detail-page__empty-block">
 											Выбери механику слева или добавь новую.
@@ -1141,8 +1184,8 @@
 			<app-editor-actions-bar
 				[hasChanges]="hasChanges()"
 				[saving]="saving()"
-				(reset)="resetDraft()"
-				(save)="saveDraft()"
+				(resetClick)="resetDraft()"
+				(saveClick)="saveDraft()"
 			></app-editor-actions-bar>
 		</section>
 	}
@@ -1158,7 +1201,7 @@
 	(visibleChange)="setAddMechanicWizardVisible($event)"
 >
 	<div class="admin-spell-detail-page__mechanic-wizard">
-		<label class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field">
 			<span>Механика</span>
 			<p-select
 				[options]="mechanicOptions()"
@@ -1167,7 +1210,7 @@
 				[ngModel]="selectedWizardMechanicId()"
 				(ngModelChange)="updateWizardMechanic($event)"
 			></p-select>
-		</label>
+		</span>
 
 		@if (selectedWizardMechanic(); as mechanic) {
 			<div class="admin-spell-detail-page__mechanic-wizard-summary">
@@ -1311,7 +1354,7 @@
 							</div>
 
 							<div class="admin-spell-detail-page__runtime-roll-controls">
-								<label class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-dice-count">
+								<span class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-dice-count">
 									<span>Кубы</span>
 									<p-inputnumber
 										[ngModel]="rollDraft.diceCount"
@@ -1321,9 +1364,9 @@
 										[inputStyle]="{ width: '3rem' }"
 										(ngModelChange)="updateRuntimeRollDiceCount(roll, $event)"
 									></p-inputnumber>
-								</label>
+								</span>
 
-								<label class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-level">
+								<span class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-level">
 									<span>Уровень навыка</span>
 									<p-select
 										[options]="skillLevelOptions()"
@@ -1332,7 +1375,7 @@
 										[ngModel]="rollDraft.skillLevel"
 										(ngModelChange)="updateRuntimeRollSkillLevel(roll, $event)"
 									></p-select>
-								</label>
+								</span>
 
 							</div>
 
@@ -1430,26 +1473,32 @@
 				</section>
 			}
 
-			@if (preview.trace.length) {
-				<section class="admin-spell-detail-page__runtime-section">
-					<div class="admin-spell-detail-page__runtime-section-head">
-						<h3>Ход выполнения</h3>
-						<span>{{ preview.trace.length }}</span>
-					</div>
-
-					@for (trace of preview.trace; track trace.actionId + trace.message) {
-						<div class="admin-spell-detail-page__runtime-row">
-							<div class="admin-spell-detail-page__runtime-row-head">
-								<strong>{{ trace.actionName }}</strong>
-								<p-tag
-									[value]="trace.status === 'pending' ? 'Ожидает' : 'Готово'"
-									[severity]="runtimeTraceSeverity(trace)"
-								></p-tag>
-							</div>
-							<span>{{ trace.message }}</span>
+			@if (runtimeTraceRows(preview.trace); as traceRows) {
+				@if (traceRows.length) {
+					<section class="admin-spell-detail-page__runtime-section">
+						<div class="admin-spell-detail-page__runtime-section-head">
+							<h3>Ход выполнения</h3>
+							<span>{{ traceRows.length }}</span>
 						</div>
-					}
-				</section>
+
+						@for (trace of traceRows; track trace.id) {
+							<div
+								class="admin-spell-detail-page__runtime-row"
+								[class.admin-spell-detail-page__runtime-row--nested]="trace.depth > 0"
+								[style.margin-left.rem]="trace.depth"
+							>
+								<div class="admin-spell-detail-page__runtime-row-head">
+									<strong>{{ trace.actionName }}</strong>
+									<p-tag
+										[value]="trace.status === 'pending' ? 'Ожидает' : 'Готово'"
+										[severity]="runtimeTraceSeverity(trace)"
+									></p-tag>
+								</div>
+								<span>{{ trace.message }}</span>
+							</div>
+						}
+					</section>
+				}
 			}
 		} @else if (!runtimePreviewLoading() && !runtimePreviewError()) {
 			<div class="admin-spell-detail-page__empty-block">

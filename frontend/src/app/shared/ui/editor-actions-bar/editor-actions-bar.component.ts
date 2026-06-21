@@ -18,8 +18,8 @@ export class EditorActionsBarComponent {
 	readonly resetDisabled = input<boolean | null>(null);
 	readonly saveDisabled = input<boolean | null>(null);
 
-	readonly reset = output<void>();
-	readonly save = output<void>();
+	readonly resetClick = output<void>();
+	readonly saveClick = output<void>();
 
 	protected get isResetDisabled() {
 		const explicit = this.resetDisabled();
