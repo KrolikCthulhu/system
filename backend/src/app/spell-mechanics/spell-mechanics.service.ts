@@ -8,6 +8,7 @@ import {
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateSpellMechanicCategoryDto } from './dto/create-spell-mechanic-category.dto';
 import { CreateSpellMechanicDto } from './dto/create-spell-mechanic.dto';
 import {
@@ -26,6 +27,7 @@ import { validateSpellMechanicActionConfig } from './spell-mechanic-action-confi
 
 const categorySelect = {
 	id: true,
+	slug: true,
 	name: true,
 	description: true,
 	isActive: true,
@@ -37,6 +39,7 @@ const categorySelect = {
 const mechanicSelect = {
 	id: true,
 	categoryId: true,
+	slug: true,
 	name: true,
 	description: true,
 	configSchema: true,
@@ -49,6 +52,7 @@ const mechanicSelect = {
 		select: {
 			id: true,
 			mechanicId: true,
+			slug: true,
 			name: true,
 			kind: true,
 			numericRole: true,
@@ -288,6 +292,7 @@ export class SpellMechanicsService {
 
 	private toCategoryCreateData(dto: CreateSpellMechanicCategoryDto) {
 		return {
+			slug: createSlug(dto.name),
 			name: dto.name.trim(),
 			description: this.toNullableString(dto.description),
 			isActive: dto.isActive ?? true,
@@ -310,6 +315,7 @@ export class SpellMechanicsService {
 	private toMechanicCreateData(dto: CreateSpellMechanicDto) {
 		return {
 			categoryId: dto.categoryId,
+			slug: createSlug(dto.name),
 			name: dto.name.trim(),
 			description: this.toNullableString(dto.description),
 			configSchema: this.toJsonObject(dto.configSchema),
@@ -371,6 +377,7 @@ export class SpellMechanicsService {
 
 		return {
 			id: parameter.id,
+			slug: createSlug(parameter.name),
 			name: parameter.name.trim() || 'Параметр',
 			kind: this.toParameterKind(parameter.kind),
 			numericRole: this.toNumericRole(parameter.numericRole, parameter.kind),
@@ -394,6 +401,7 @@ export class SpellMechanicsService {
 		return {
 			id: parameter.id,
 			mechanicId,
+			slug: createSlug(parameter.name),
 			name: parameter.name.trim() || 'Параметр',
 			kind: this.toParameterKind(parameter.kind),
 			numericRole: this.toNumericRole(parameter.numericRole, parameter.kind),
@@ -626,6 +634,7 @@ export class SpellMechanicsService {
 	private mapCategory(category: CategoryRecord) {
 		return {
 			id: category.id,
+			slug: category.slug,
 			name: category.name,
 			description: category.description ?? '',
 			isActive: category.isActive,
@@ -639,6 +648,7 @@ export class SpellMechanicsService {
 		return {
 			id: mechanic.id,
 			categoryId: mechanic.categoryId,
+			slug: mechanic.slug,
 			name: mechanic.name,
 			description: mechanic.description ?? '',
 			configSchema: mechanic.configSchema,
@@ -648,6 +658,7 @@ export class SpellMechanicsService {
 			parameters: mechanic.parameters.map(parameter => ({
 				id: parameter.id,
 				mechanicId: parameter.mechanicId,
+				slug: parameter.slug,
 				name: parameter.name,
 				kind: this.fromParameterKind(parameter.kind),
 				numericRole: this.fromNumericRole(parameter.numericRole),

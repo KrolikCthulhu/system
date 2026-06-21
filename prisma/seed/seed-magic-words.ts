@@ -2,22 +2,36 @@ import {
 	MagicWordType,
 	Prisma
 } from '../__generated__/index.js';
-import {
-	MAGIC_MODIFIER_GESTURE_RESTRICTION_SEEDS,
-	MAGIC_WORD_ESSENCE_PROFILE_SEEDS,
-	MAGIC_WORD_SEEDS
-} from './data';
+import type {
+	ContentDocument,
+	MagicModifierGestureRestrictionContent,
+	MagicWordContent,
+	MagicWordEssenceProfileContent
+} from '../content/content-types';
+import { readContent } from './content';
+import { seedSlug } from './slug';
+
+type MagicWordsContent = ContentDocument<{
+	words: MagicWordContent[];
+	modifierGestureRestrictions: MagicModifierGestureRestrictionContent[];
+	essenceProfiles: MagicWordEssenceProfileContent[];
+}>;
+
+const magicWordsContent = readContent<MagicWordsContent>('magic/words.ts');
+const MAGIC_WORD_SEEDS = magicWordsContent.words;
+const MAGIC_MODIFIER_GESTURE_RESTRICTION_SEEDS =
+	magicWordsContent.modifierGestureRestrictions;
+const MAGIC_WORD_ESSENCE_PROFILE_SEEDS = magicWordsContent.essenceProfiles;
 
 export async function seedMagicWords(tx: Prisma.TransactionClient) {
 	for (const seed of MAGIC_WORD_SEEDS) {
 		const type = magicWordType(seed.type);
-		const existing = await tx.magicWord.findUnique({
+		const slug = seedSlug(seed);
+		const existing = await tx.magicWord.findFirst({
 			select: { id: true },
 			where: {
-				type_name: {
-					type,
-					name: seed.name
-				}
+				type,
+				OR: [{ slug }, { name: seed.name }]
 			}
 		});
 
@@ -25,6 +39,8 @@ export async function seedMagicWords(tx: Prisma.TransactionClient) {
 			await tx.magicWord.update({
 				where: { id: existing.id },
 				data: {
+					slug,
+					name: seed.name,
 					sortOrder: seed.sortOrder,
 					isActive: true
 				}
@@ -35,6 +51,7 @@ export async function seedMagicWords(tx: Prisma.TransactionClient) {
 		await tx.magicWord.create({
 			data: {
 				type,
+				slug,
 				name: seed.name,
 				isActive: true,
 				sortOrder: seed.sortOrder
@@ -51,9 +68,9 @@ async function seedModifierGestureRestrictions(tx: Prisma.TransactionClient) {
 		const modifier = await tx.magicWord.findUnique({
 			select: { id: true },
 			where: {
-				type_name: {
+				type_slug: {
 					type: MagicWordType.MODIFIER,
-					name: seed.modifierName
+					slug: seed.modifierSlug ?? seedSlug({ name: seed.modifierName })
 				}
 			}
 		});
@@ -66,13 +83,14 @@ async function seedModifierGestureRestrictions(tx: Prisma.TransactionClient) {
 			where: { modifierId: modifier.id }
 		});
 
-		for (const gestureName of seed.gestureNames) {
+		for (const [index, gestureName] of seed.gestureNames.entries()) {
 			const gesture = await tx.magicWord.findUnique({
 				select: { id: true },
 				where: {
-					type_name: {
+					type_slug: {
 						type: MagicWordType.GESTURE,
-						name: gestureName
+						slug:
+							seed.gestureSlugs?.[index] ?? seedSlug({ name: gestureName })
 					}
 				}
 			});
@@ -96,9 +114,9 @@ async function seedEssenceProfiles(tx: Prisma.TransactionClient) {
 		const magicWord = await tx.magicWord.findUnique({
 			select: { id: true },
 			where: {
-				type_name: {
+				type_slug: {
 					type: MagicWordType.ESSENCE,
-					name: seed.name
+					slug: seedSlug(seed)
 				}
 			}
 		});
@@ -130,7 +148,7 @@ async function seedEssenceProfiles(tx: Prisma.TransactionClient) {
 	}
 }
 
-function magicWordType(type: (typeof MAGIC_WORD_SEEDS)[number]['type']) {
+function magicWordType(type: keyof typeof MagicWordType) {
 	switch (type) {
 		case 'ACTION':
 			return MagicWordType.ACTION;

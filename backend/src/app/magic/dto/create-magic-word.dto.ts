@@ -13,7 +13,7 @@ import {
 	ValidateNested
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { MagicWordType } from '@prisma/generated';
+import { AreaShapeKind, MagicWordType } from '@prisma/generated';
 
 export class MagicWordEssenceProfileDto {
 	@IsNumber()
@@ -45,6 +45,33 @@ export class MagicWordEssenceProfileDto {
 	@Min(0)
 	@Max(1)
 	stabilityAffinity!: number;
+}
+
+export class MagicWordAreaShapeDto {
+	@IsEnum(AreaShapeKind)
+	kind!: AreaShapeKind;
+
+	@IsString()
+	name!: string;
+
+	@IsOptional()
+	@IsString()
+	description?: string;
+
+	@IsOptional()
+	dimensions?: unknown;
+
+	@IsOptional()
+	influenceConfig?: unknown;
+
+	@IsOptional()
+	@IsBoolean()
+	isActive?: boolean;
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	sortOrder?: number;
 }
 
 export class CreateMagicWordDto {
@@ -95,4 +122,9 @@ export class CreateMagicWordDto {
 	@ValidateNested()
 	@Type(() => MagicWordEssenceProfileDto)
 	essenceProfile?: MagicWordEssenceProfileDto;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => MagicWordAreaShapeDto)
+	areaShape?: MagicWordAreaShapeDto;
 }

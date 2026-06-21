@@ -5,6 +5,7 @@ import {
 
 export interface ProgressionPresetDto {
 	id: string;
+	slug: string;
 	name: string;
 	description: string;
 	kind: ProgressionPresetKind;

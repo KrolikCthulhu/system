@@ -54,12 +54,13 @@ import {
 	SpellMechanicParameterKind
 } from '../../../../spell-mechanics/domain/spell-mechanics.models';
 import { MAGIC_WORDS_REPOSITORY } from '../../../data/magic-words-repository.port';
-import { MagicWord } from '../../../domain/magic-word.models';
+import { MagicWord, MagicWordAreaShape } from '../../../domain/magic-word.models';
 import {
 	PersistedSpellStatus,
 	SPELL_STATUS_OPTIONS,
 	Spell,
 	SpellCatalog,
+	SpellConfig,
 	SpellFormulaCandidate,
 	SpellMechanicBlockConfig,
 	SpellEffectScaleConfig,
@@ -71,6 +72,8 @@ import {
 	SpellRuntimePreview,
 	SpellRuntimeEffect,
 	SpellRuntimeTraceEntry,
+	SpellTextBlock,
+	SpellTextBlockKind,
 	SpellTargetConfig,
 	canManageSpellActivity,
 	spellStatusLabel
@@ -182,6 +185,15 @@ interface SpellMechanicBlockDraft {
 	sortOrder: number;
 }
 
+interface SerializedSpellMechanicBlock {
+	id: string;
+	mechanicId: string;
+	parameterValues: Record<string, SpellParameterValue>;
+	config: SpellMechanicBlockConfig;
+	isActive: boolean;
+	sortOrder: number;
+}
+
 type SpellParameterValueMode = 'static' | 'progression' | 'auto' | 'formula';
 interface FormulaParameterSelection {
 	blockIndex: number;
@@ -219,11 +231,20 @@ interface SpellDraft {
 	formulaName: string;
 	name: string;
 	description: string;
+	config: SpellConfig;
 	status: PersistedSpellStatus;
 	isActive: boolean;
 	sortOrder: number;
 	targetConfigs: SpellTargetConfig[];
+	textBlocks: SpellTextBlock[];
 	mechanicBlocks: SpellMechanicBlockDraft[];
+}
+
+interface SpellAreaDimension {
+	key: string;
+	label: string;
+	defaultValue: number;
+	unitLabel: string;
 }
 
 const PARAMETER_VALUE_MODE_OPTIONS: Array<{
@@ -241,6 +262,14 @@ const EFFECT_SCALE_MODE_OPTIONS: Array<{ label: string; value: SpellEffectScaleM
 	{ label: 'Выбор доступного', value: 'choice' },
 	{ label: 'Все доступные', value: 'all' },
 	{ label: 'Точное совпадение', value: 'exact' }
+];
+
+const SPELL_TEXT_BLOCK_KIND_OPTIONS: Array<{
+	label: string;
+	value: SpellTextBlockKind;
+}> = [
+	{ label: 'Текст', value: 'text' },
+	{ label: 'Текст механики', value: 'mechanicText' }
 ];
 
 @Component({
@@ -366,6 +395,19 @@ export class AdminSpellDetailPageComponent {
 		const index = this.selectedTargetConfigIndex();
 		return index === null ? null : (this.draft()?.targetConfigs[index] ?? null);
 	});
+	protected readonly selectedGestureAreaShape = computed(() => {
+		const gestureId = this.draft()?.gestureId;
+
+		return gestureId
+			? (this.magicWords().find(word => word.id === gestureId)?.areaShape ?? null)
+			: null;
+	});
+	protected readonly areaDimensions = computed(() =>
+		createAreaDimensions(this.selectedGestureAreaShape())
+	);
+	protected readonly areaParameterValueModeOptions = PARAMETER_VALUE_MODE_OPTIONS.filter(
+		option => option.value === 'static' || option.value === 'auto'
+	);
 	protected readonly targetSourceOptions = TARGET_SOURCE_OPTIONS;
 	protected readonly targetRelationOptions = TARGET_RELATION_OPTIONS;
 	protected readonly targetCountModeOptions = TARGET_COUNT_MODE_OPTIONS;
@@ -373,6 +415,7 @@ export class AdminSpellDetailPageComponent {
 	protected readonly targetTemplateOptions = TARGET_TEMPLATE_OPTIONS;
 	protected readonly parameterValueModeOptions = PARAMETER_VALUE_MODE_OPTIONS;
 	protected readonly effectScaleModeOptions = EFFECT_SCALE_MODE_OPTIONS;
+	protected readonly spellTextBlockKindOptions = SPELL_TEXT_BLOCK_KIND_OPTIONS;
 	protected readonly progressionSourceKindOptions = PROGRESSION_SOURCE_KIND_OPTIONS;
 	protected readonly essenceProfileSourceOptions = ESSENCE_PROFILE_SOURCE_OPTIONS;
 	protected readonly roundingModeOptions = ROUNDING_MODE_OPTIONS;
@@ -431,6 +474,31 @@ export class AdminSpellDetailPageComponent {
 				value: preset.id
 			}))
 	);
+	protected readonly textMechanicBlockOptions = computed(() => {
+		const draft = this.draft();
+
+		return (draft?.mechanicBlocks ?? []).map((block, index) => ({
+			label: `${index + 1}. ${
+				this.mechanicBlockMechanic(block)?.name ?? 'Механика не найдена'
+			}`,
+			value: block.id
+		}));
+	});
+	protected readonly spellTextPreview = computed(() => {
+		const draft = this.draft();
+
+		if (!draft) {
+			return '';
+		}
+
+		return draft.textBlocks
+			.slice()
+			.sort((left, right) => left.sortOrder - right.sortOrder)
+			.filter(block => block.isActive)
+			.map(block => this.renderSpellTextBlock(block))
+			.filter(text => text.trim().length)
+			.join('\n\n');
+	});
 	protected readonly formulaSourceGroups = computed<MechanicCalculationSourceGroup[]>(
 		() => {
 			const selection = this.selectedFormulaParameter();
@@ -485,6 +553,297 @@ export class AdminSpellDetailPageComponent {
 
 	protected updateDraftSortOrder(sortOrder: number | null) {
 		this.patchDraft({ sortOrder: sortOrder ?? 0 });
+	}
+
+	protected areaParameterValue(dimensionKey: string) {
+		const value = this.draft()?.config.area?.dimensions[dimensionKey];
+		return isSpellParameterValue(value) ? value : createStaticParameterValue('0');
+	}
+
+	protected areaParameterValueMode(dimensionKey: string): SpellParameterValueMode {
+		const value = this.areaParameterValue(dimensionKey);
+
+		if (isAutoParameterValue(value)) {
+			return 'auto';
+		}
+
+		return 'static';
+	}
+
+	protected areaStaticParameterValue(dimensionKey: string) {
+		return parameterValueText(this.areaParameterValue(dimensionKey));
+	}
+
+	protected updateAreaParameterMode(
+		dimension: SpellAreaDimension,
+		mode: SpellParameterValueMode
+	) {
+		const current = this.areaParameterValue(dimension.key);
+		const nextValue =
+			mode === 'auto'
+				? this.createAreaAutoParameterValue(dimension)
+				: createStaticParameterValue(parameterValueText(current));
+
+		this.updateAreaParameterValue(dimension.key, nextValue);
+	}
+
+	protected updateAreaStaticParameterValue(dimensionKey: string, value: string) {
+		this.updateAreaParameterValue(dimensionKey, createStaticParameterValue(value));
+	}
+
+	protected areaAutoParameterValue(dimensionKey: string): SpellAutoParameterValue | null {
+		const value = this.areaParameterValue(dimensionKey);
+		return isAutoParameterValue(value) ? value : null;
+	}
+
+	protected updateAreaAutoParameter(
+		dimensionKey: string,
+		patch: Partial<SpellAutoParameterValue>
+	) {
+		const current = this.areaAutoParameterValue(dimensionKey);
+
+		if (!current) {
+			return;
+		}
+
+		this.updateAreaParameterValue(dimensionKey, {
+			...current,
+			...patch
+		});
+	}
+
+	protected updateAreaAutoSourceMode(
+		dimensionKey: string,
+		sourceMode: AutoValueSourceMode
+	) {
+		const current = this.areaAutoParameterValue(dimensionKey);
+
+		if (!current) {
+			return;
+		}
+
+		this.updateAreaAutoParameter(dimensionKey, {
+			sourceMode,
+			sources: createAutoSourcesForMode(sourceMode, current.sources)
+		});
+	}
+
+	protected addAreaAutoSource(dimensionKey: string) {
+		const current = this.areaAutoParameterValue(dimensionKey);
+
+		if (!current) {
+			return;
+		}
+
+		this.updateAreaAutoParameter(dimensionKey, {
+			sources: [...current.sources, createAutoParameterSource()]
+		});
+	}
+
+	protected updateAreaAutoSource(
+		dimensionKey: string,
+		sourceId: string,
+		patch: Partial<SpellAutoParameterSource>
+	) {
+		const current = this.areaAutoParameterValue(dimensionKey);
+
+		if (!current) {
+			return;
+		}
+
+		this.updateAreaAutoParameter(dimensionKey, {
+			sources: current.sources.map(source =>
+				source.id === sourceId ? { ...source, ...patch } : source
+			)
+		});
+	}
+
+	protected deleteAreaAutoSource(dimensionKey: string, sourceId: string) {
+		const current = this.areaAutoParameterValue(dimensionKey);
+
+		if (!current || current.sources.length <= 1) {
+			return;
+		}
+
+		this.updateAreaAutoParameter(dimensionKey, {
+			sources: current.sources.filter(source => source.id !== sourceId)
+		});
+	}
+
+	protected areaAutoSourceKeyOptions(source: SpellAutoParameterSource) {
+		switch (source.sourceKind) {
+			case 'mechanicParameter':
+				return this.areaMechanicParameterSourceOptions();
+			case 'systemValue':
+				return this.systemValues()
+					.slice()
+					.sort(compareBySectionAndName)
+					.map(value => ({
+						label: systemValueSourceLabel(value),
+						value: value.id
+					}));
+			case 'essenceProfile':
+				return ESSENCE_PROFILE_SOURCE_OPTIONS;
+			case 'manual':
+				return [];
+		}
+	}
+
+	protected defaultAreaAutoSourceKey(sourceKind: AutoValueSourceKind) {
+		switch (sourceKind) {
+			case 'mechanicParameter':
+				return this.areaMechanicParameterSourceOptions()[0]?.value ?? '';
+			case 'systemValue':
+				return (
+					this.systemValues().find(value => value.name === 'Уровень Заклинателя')?.id ??
+					this.systemValues().slice().sort(compareBySectionAndName)[0]?.id ??
+					''
+				);
+			case 'essenceProfile':
+				return 'area';
+			case 'manual':
+				return '';
+		}
+	}
+
+	protected areaNumericPreview(dimensionKey: string): NumericParameterPreview {
+		const value = this.areaParameterValue(dimensionKey);
+		const sourceNames = this.areaSourceNames();
+
+		if (isAutoParameterValue(value)) {
+			return {
+				formula: autoParameterFormulaLabel(value, sourceNames),
+				sources: autoParameterSourceLabels(value, sourceNames),
+				rounding: roundingLabel(value.roundingMode),
+				values: this.progressionPreviewSteps().map(x => ({
+					x,
+					value: formatPreviewNumber(evaluateAutoParameterValue(value, x))
+				}))
+			};
+		}
+
+		const staticValue = parameterValueText(value);
+
+		return {
+			formula: staticValue || '0',
+			sources: [],
+			rounding: 'Не применяется',
+			values: this.progressionPreviewSteps().map(x => ({
+				x,
+				value: staticValue || '0'
+			}))
+		};
+	}
+
+	protected addSpellTextBlock(kind: SpellTextBlockKind) {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		this.patchDraft({
+			textBlocks: [
+				...draft.textBlocks,
+				createSpellTextBlockDraft(kind, draft.textBlocks.length, {
+					mechanicBlockId: draft.mechanicBlocks[0]?.id ?? ''
+				})
+			]
+		});
+	}
+
+	protected addSpellMechanicTextBlocks() {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		const existingMechanicBlockIds = new Set(
+			draft.textBlocks
+				.filter(block => block.kind === 'mechanicText')
+				.map(block => block.mechanicBlockId)
+		);
+		const missingBlocks = draft.mechanicBlocks
+			.filter(block => !existingMechanicBlockIds.has(block.id))
+			.map((block, index) =>
+				createSpellTextBlockDraft('mechanicText', draft.textBlocks.length + index, {
+					mechanicBlockId: block.id
+				})
+			);
+
+		if (!missingBlocks.length) {
+			return;
+		}
+
+		this.patchDraft({
+			textBlocks: [...draft.textBlocks, ...missingBlocks]
+		});
+	}
+
+	protected updateSpellTextBlock(
+		blockId: string,
+		patch: Partial<SpellTextBlock>
+	) {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		this.patchDraft({
+			textBlocks: draft.textBlocks.map(block =>
+				block.id === blockId ? { ...block, ...patch } : block
+			)
+		});
+	}
+
+	protected deleteSpellTextBlock(blockId: string) {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		this.patchDraft({
+			textBlocks: draft.textBlocks
+				.filter(block => block.id !== blockId)
+				.map((block, index) => ({ ...block, sortOrder: index }))
+		});
+	}
+
+	protected moveSpellTextBlock(index: number, direction: -1 | 1) {
+		const draft = this.draft();
+		const nextIndex = index + direction;
+
+		if (!draft || nextIndex < 0 || nextIndex >= draft.textBlocks.length) {
+			return;
+		}
+
+		const blocks = [...draft.textBlocks];
+		const current = blocks[index];
+		const next = blocks[nextIndex];
+
+		if (!current || !next) {
+			return;
+		}
+
+		blocks[index] = next;
+		blocks[nextIndex] = current;
+		this.patchDraft({
+			textBlocks: blocks.map((block, blockIndex) => ({
+				...block,
+				sortOrder: blockIndex
+			}))
+		});
+	}
+
+	protected isFirstSpellTextBlock(index: number) {
+		return index === 0;
+	}
+
+	protected isLastSpellTextBlock(index: number) {
+		return index === (this.draft()?.textBlocks.length ?? 0) - 1;
 	}
 
 	protected setActiveTab(value: string | number | undefined) {
@@ -635,13 +994,14 @@ export class AdminSpellDetailPageComponent {
 			.filter(
 				parameter =>
 					parameter.id !== currentParameterId &&
+					parameter.slug !== currentParameterId &&
 					supportsNumericParameterKind(parameter.kind) &&
 					parameter.numericRole === 'targetCount'
 			)
 			.sort(compareByOrderAndName)
 			.map(parameter => ({
 				label: parameter.name,
-				value: parameter.id
+				value: parameterStorageKey(parameter)
 			}));
 	}
 
@@ -777,12 +1137,20 @@ export class AdminSpellDetailPageComponent {
 			return;
 		}
 
+		const patch = createMechanicBlockPatch(
+			draft,
+			mechanic,
+			this.essenceMagicWord()
+		);
+
 		this.patchDraft({
-			...createMechanicBlockPatch(
-				draft,
-				mechanic,
-				this.essenceMagicWord()
-			)
+			...patch,
+			textBlocks: [
+				...draft.textBlocks,
+				createSpellTextBlockDraft('mechanicText', draft.textBlocks.length, {
+					mechanicBlockId: patch.mechanicBlocks[draft.mechanicBlocks.length]?.id ?? ''
+				})
+			]
 		});
 		this.selectedMechanicBlockIndex.set(draft.mechanicBlocks.length);
 		this.addMechanicWizardVisible.set(false);
@@ -847,11 +1215,13 @@ export class AdminSpellDetailPageComponent {
 			return;
 		}
 
+		const key = this.parameterStorageKey(block, parameterId);
+
 		this.updateMechanicBlock(blockIndex, {
 			...block,
 			parameterValues: {
 				...block.parameterValues,
-				[parameterId]: value ?? ''
+				[key]: value ?? ''
 			}
 		});
 	}
@@ -862,7 +1232,7 @@ export class AdminSpellDetailPageComponent {
 		mode: SpellParameterValueMode
 	) {
 		const block = this.draft()?.mechanicBlocks[blockIndex];
-		const currentValue = block?.parameterValues[parameterId];
+		const currentValue = block ? this.rawParameterValue(block, parameterId) : undefined;
 		const nextValue =
 			mode === 'progression'
 				? createProgressionParameterValue(this.firstProgressionPreset())
@@ -1084,7 +1454,7 @@ export class AdminSpellDetailPageComponent {
 					.sort(compareByOrderAndName)
 					.map(parameter => ({
 						label: this.mechanicParameterSourceLabel(block, parameter),
-						value: parameter.id
+						value: parameterStorageKey(parameter)
 					}));
 			case 'systemValue':
 				return this.systemValues()
@@ -1128,10 +1498,11 @@ export class AdminSpellDetailPageComponent {
 					this.mechanicBlockParameters(block)
 						.filter(isAutoSourceMechanicParameter)
 						.sort(compareByOrderAndName)
-						.find(parameter => parameter.name.toLowerCase().includes('атаки'))?.id ??
+						.find(parameter => parameter.name.toLowerCase().includes('атаки'))
+						?.slug ??
 					this.mechanicBlockParameters(block)
 						.filter(isAutoSourceMechanicParameter)
-						.sort(compareByOrderAndName)[0]?.id ??
+						.sort(compareByOrderAndName)[0]?.slug ??
 					''
 				);
 			case 'systemValue':
@@ -1240,6 +1611,9 @@ export class AdminSpellDetailPageComponent {
 		this.patchDraft({
 			mechanicBlocks: draft.mechanicBlocks
 				.filter((_, blockIndex) => blockIndex !== index)
+				.map((block, blockIndex) => ({ ...block, sortOrder: blockIndex })),
+			textBlocks: draft.textBlocks
+				.filter(block => block.mechanicBlockId !== draft.mechanicBlocks[index]?.id)
 				.map((block, blockIndex) => ({ ...block, sortOrder: blockIndex }))
 		});
 		const nextLength = draft.mechanicBlocks.length - 1;
@@ -1455,7 +1829,10 @@ export class AdminSpellDetailPageComponent {
 							...nestedBlock,
 							parameterValues: {
 								...nestedBlock.parameterValues,
-								[parameterId]: value ?? ''
+								[this.parameterStorageKey(
+									nestedBlock as SpellMechanicBlockDraft,
+									parameterId
+								)]: value ?? ''
 							}
 					  }
 					: nestedBlock
@@ -1494,6 +1871,23 @@ export class AdminSpellDetailPageComponent {
 			block.parameterValues,
 			value => this.parameterValueLabel(value.kind, value.value)
 		);
+	}
+
+	protected renderSpellTextBlock(block: SpellTextBlock) {
+		if (block.kind === 'text') {
+			return block.text;
+		}
+
+		const mechanicBlock = this.draft()?.mechanicBlocks.find(
+			item => item.id === block.mechanicBlockId
+		);
+
+		return mechanicBlock ? this.mechanicBlockTextPreview(mechanicBlock) : '';
+	}
+
+	protected spellTextBlockPreview(block: SpellTextBlock) {
+		const text = this.renderSpellTextBlock(block).trim();
+		return text || 'Текст пока пустой.';
 	}
 
 	protected mechanicReadinessStatus(
@@ -1559,7 +1953,13 @@ export class AdminSpellDetailPageComponent {
 				for (const parameter of nestedMechanic.parameters.filter(
 					value => value.required
 				)) {
-					if (!isConfiguredParameterValue(parameter, nestedDraft.parameterValues[parameter.id], this.draft())) {
+					if (
+						!isConfiguredParameterValue(
+							parameter,
+							this.rawParameterValue(nestedDraft, parameter.id),
+							this.draft()
+						)
+					) {
 						issues.push(`${item.name}: ${mechanicParameterMissingLabel(parameter)}`);
 					}
 				}
@@ -1609,7 +2009,7 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	protected parameterValue(block: SpellMechanicBlockDraft, parameterId: string) {
-		const value = block.parameterValues[parameterId];
+		const value = this.rawParameterValue(block, parameterId);
 		return parameterValueText(value);
 	}
 
@@ -1617,7 +2017,7 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		parameterId: string
 	): SpellParameterValueMode {
-		const value = block.parameterValues[parameterId];
+		const value = this.rawParameterValue(block, parameterId);
 
 		if (isProgressionParameterValue(value)) {
 			return 'progression';
@@ -1638,7 +2038,7 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		parameterId: string
 	) {
-		return parameterValueText(block.parameterValues[parameterId]);
+		return parameterValueText(this.rawParameterValue(block, parameterId));
 	}
 
 	protected supportsProgression(parameter: SpellMechanicParameter) {
@@ -1649,7 +2049,7 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		parameterId: string
 	): SpellProgressionParameterValue | null {
-		const value = block.parameterValues[parameterId];
+		const value = this.rawParameterValue(block, parameterId);
 		return isProgressionParameterValue(value) ? value : null;
 	}
 
@@ -1657,7 +2057,7 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		parameterId: string
 	): SpellFormulaParameterValue | null {
-		const value = block.parameterValues[parameterId];
+		const value = this.rawParameterValue(block, parameterId);
 		return isFormulaParameterValue(value) ? value : null;
 	}
 
@@ -1665,7 +2065,7 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		parameterId: string
 	): SpellAutoParameterValue | null {
-		const value = block.parameterValues[parameterId];
+		const value = this.rawParameterValue(block, parameterId);
 		return isAutoParameterValue(value) ? value : null;
 	}
 
@@ -1680,7 +2080,7 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		parameter: SpellMechanicParameter
 	): NumericParameterPreview {
-		const value = block.parameterValues[parameter.id];
+		const value = this.rawParameterValue(block, parameter.id);
 		const sourceNames = this.formulaSourceNamesForBlock(block);
 
 		if (isProgressionParameterValue(value)) {
@@ -1752,7 +2152,7 @@ export class AdminSpellDetailPageComponent {
 			.filter(parameter => parameter.kind === 'number' || parameter.kind === 'formula')
 			.sort(compareByOrderAndName)
 			.map(parameter => ({
-				id: formulaSourceId('parameter', parameter.id),
+				id: formulaSourceId('parameter', parameterStorageKey(parameter)),
 				name: this.mechanicParameterSourceLabel(block, parameter),
 				searchText: `${parameter.name} параметр число формула`
 			}));
@@ -1760,7 +2160,7 @@ export class AdminSpellDetailPageComponent {
 			.filter(parameter => parameter.kind === 'skill')
 			.sort(compareByOrderAndName)
 			.map(parameter => ({
-				id: formulaSourceId('skillParameterLevel', parameter.id),
+				id: formulaSourceId('skillParameterLevel', parameterStorageKey(parameter)),
 				name: this.mechanicParameterSourceLabel(block, parameter),
 				searchText: `${parameter.name} уровень навык`
 			}));
@@ -1814,11 +2214,208 @@ export class AdminSpellDetailPageComponent {
 		);
 	}
 
+	private rawParameterValue(
+		block: SpellMechanicBlockDraft,
+		parameterIdOrSlug: string
+	) {
+		const key = this.parameterStorageKey(block, parameterIdOrSlug);
+
+		return block.parameterValues[key];
+	}
+
+	private updateAreaParameterValue(
+		dimensionKey: string,
+		value: SpellParameterValue
+	) {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		const area = normalizeSpellAreaConfig(
+			draft.config.area,
+			this.selectedGestureAreaShape(),
+			draft.gestureId
+		);
+
+		this.patchDraft({
+			config: {
+				...draft.config,
+				area: {
+					...area,
+					dimensions: {
+						...area.dimensions,
+						[dimensionKey]: value
+					}
+				}
+			}
+		});
+	}
+
+	private areaMechanicParameterSourceOptions() {
+		const draft = this.draft();
+
+		if (!draft) {
+			return [];
+		}
+
+		return draft.mechanicBlocks.flatMap(block => {
+			const mechanic = this.mechanicBlockMechanic(block);
+
+			if (!mechanic) {
+				return [];
+			}
+
+			return mechanic.parameters
+				.filter(isAutoSourceMechanicParameter)
+				.sort(compareByOrderAndName)
+				.map(parameter => ({
+					label: `${mechanic.name}: ${this.mechanicParameterSourceLabel(block, parameter)}`,
+					value: areaMechanicParameterSourceKey(block, parameter)
+				}));
+		});
+	}
+
+	private areaSourceNames() {
+		const mechanicSources = this.areaMechanicParameterSourceOptions().map(
+			option =>
+				[
+					formulaSourceId('mechanicParameter', option.value),
+					option.label
+				] as const
+		);
+		const systemSources = this.systemValues().map(
+			value =>
+				[
+					formulaSourceId('systemValue', value.id),
+					systemValueSourceLabel(value)
+				] as const
+		);
+		const essenceSources = ESSENCE_PROFILE_SOURCE_OPTIONS.map(
+			option =>
+				[
+					formulaSourceId('essenceProfile', option.value),
+					`Профиль сущности: ${option.label}`
+				] as const
+		);
+
+		return new Map([...mechanicSources, ...systemSources, ...essenceSources]);
+	}
+
+	private createAreaAutoParameterValue(
+		dimension: SpellAreaDimension
+	): SpellAutoParameterValue {
+		const value = createAutoParameterValue();
+		const systemValueSourceKey = this.defaultAreaAutoSourceKey('systemValue');
+		const mechanicParameterSourceKey =
+			this.defaultAreaAutoSourceKey('mechanicParameter');
+
+		return {
+			...value,
+			scale: dimension.key === 'tiles' ? 'large' : value.scale,
+			sourceMode: 'advanced',
+			sources: [
+				createAutoParameterSource({
+					sourceKind: 'systemValue',
+					sourceKey: systemValueSourceKey,
+					target: 'base',
+					curve: 'smooth',
+					weight: 1
+				}),
+				createAutoParameterSource({
+					sourceKind: 'mechanicParameter',
+					sourceKey: mechanicParameterSourceKey,
+					target: 'growth',
+					curve: 'smooth',
+					weight: 1
+				}),
+				createAutoParameterSource({
+					sourceKind: 'essenceProfile',
+					sourceKey: 'area',
+					target: 'multiplier',
+					curve: 'weak',
+					weight: 0.4
+				})
+			],
+			essenceInfluence: 'none',
+			essenceProfileKey: 'area',
+			roundingMode: 'round'
+		};
+	}
+
+	private parameterStorageKey(
+		block: SpellMechanicBlockDraft,
+		parameterIdOrSlug: string
+	) {
+		const parameter = this
+			.mechanicBlockMechanic(block)
+			?.parameters.find(
+				item => item.id === parameterIdOrSlug || item.slug === parameterIdOrSlug
+			);
+
+		return parameter ? parameterStorageKey(parameter) : parameterIdOrSlug;
+	}
+
+	private serializeMechanicBlock(
+		block: SpellMechanicBlockDraft,
+		sortOrder: number
+	): SerializedSpellMechanicBlock {
+		return {
+			id: block.id,
+			mechanicId: block.mechanicId,
+			parameterValues: this.normalizeBlockParameterValues(block),
+			config: this.normalizeBlockConfig(block),
+			isActive: block.isActive,
+			sortOrder
+		};
+	}
+
+	private normalizeBlockParameterValues(
+		block: SpellMechanicBlockDraft
+	): Record<string, SpellParameterValue> {
+		return normalizeParameterValues(
+			block.parameterValues,
+			this.mechanicBlockMechanic(block)?.parameters ?? []
+		);
+	}
+
+	private normalizeBlockConfig(block: SpellMechanicBlockDraft): SpellMechanicBlockConfig {
+		const config = { ...block.config };
+		const effectScale = config['effectScale'];
+
+		if (!isRecord(effectScale) || !Array.isArray(effectScale['items'])) {
+			return config;
+		}
+
+		return {
+			...config,
+			effectScale: {
+				...effectScale,
+				items: effectScale['items'].map((item): unknown => {
+					if (!isRecord(item) || !Array.isArray(item['mechanicBlocks'])) {
+						return item;
+					}
+
+					return {
+						...item,
+						mechanicBlocks: item['mechanicBlocks'].map(
+							(nestedBlock, index): unknown =>
+								isSpellMechanicBlockDraft(nestedBlock)
+									? this.serializeMechanicBlock(nestedBlock, index)
+									: nestedBlock
+						)
+					};
+				})
+			}
+		} as SpellMechanicBlockConfig;
+	}
+
 	private mechanicParameterSourceLabel(
 		block: SpellMechanicBlockDraft | null,
 		parameter: SpellMechanicParameter
 	) {
-		const value = block?.parameterValues[parameter.id];
+		const value = block ? this.rawParameterValue(block, parameter.id) : undefined;
 		const valueLabel =
 			value === undefined ? 'Не выбрано' : this.parameterValueLabel(parameter.kind, value);
 
@@ -1930,7 +2527,7 @@ export class AdminSpellDetailPageComponent {
 				.sort(compareByOrderAndName)
 				.map(parameter => ({
 					label: parameter.name,
-					value: parameter.id
+					value: parameterStorageKey(parameter)
 				}));
 		}
 
@@ -2054,19 +2651,23 @@ export class AdminSpellDetailPageComponent {
 			gestureId: draft.gestureId,
 			name,
 			description: draft.description.trim(),
+			config: normalizeSpellConfig(
+				draft.config,
+				this.selectedGestureAreaShape(),
+				draft.gestureId
+			),
 			status: draft.status,
 			isActive: draft.isActive,
 			sortOrder: draft.sortOrder,
-			mechanicBlocks: draft.mechanicBlocks.map((block, index) => ({
-				id: block.id,
-				mechanicId: block.mechanicId,
-				parameterValues: block.parameterValues,
-				config: block.config,
-				isActive: block.isActive,
-				sortOrder: index
-			})),
+			mechanicBlocks: draft.mechanicBlocks.map((block, index) =>
+				this.serializeMechanicBlock(block, index)
+			),
 			targetConfigs: draft.targetConfigs.map((target, index) => ({
 				...target,
+				sortOrder: index
+			})),
+			textBlocks: draft.textBlocks.map((block, index) => ({
+				...block,
 				sortOrder: index
 			}))
 		};
@@ -2436,10 +3037,16 @@ export class AdminSpellDetailPageComponent {
 			formulaName: `${formula.action.name} + ${formula.essence.name} + ${formula.gesture.name}`,
 			name: `${formula.action.name} ${formula.essence.name}: ${formula.gesture.name}`,
 			description: '',
+			config: normalizeSpellConfig(
+				{},
+				this.findAreaShapeByGestureId(formula.gesture.id),
+				formula.gesture.id
+			),
 			status: 'DRAFT',
 			isActive: false,
 			sortOrder: 0,
 			targetConfigs: createDefaultTargetConfigs(),
+			textBlocks: [],
 			mechanicBlocks: []
 		};
 
@@ -2458,10 +3065,16 @@ export class AdminSpellDetailPageComponent {
 			formulaName: spell.formulaName,
 			name: spell.name,
 			description: spell.description,
+			config: normalizeSpellConfig(
+				spell.config,
+				this.findAreaShapeByGestureId(spell.gestureId),
+				spell.gestureId
+			),
 			status: spell.status,
 			isActive: spell.isActive,
 			sortOrder: spell.sortOrder,
 			targetConfigs: normalizeTargetConfigs(spell.targetConfigs),
+			textBlocks: normalizeSpellTextBlocks(spell.textBlocks),
 			mechanicBlocks: spell.mechanicBlocks
 				.sort((first, second) => first.sortOrder - second.sortOrder)
 				.map(block => ({
@@ -2529,6 +3142,10 @@ export class AdminSpellDetailPageComponent {
 		return this.spellMechanics().find(mechanic => mechanic.id === mechanicId) ?? null;
 	}
 
+	private findAreaShapeByGestureId(gestureId: string) {
+		return this.magicWords().find(word => word.id === gestureId)?.areaShape ?? null;
+	}
+
 	private firstProgressionPreset() {
 		return (
 			this.progressionPresets()
@@ -2593,7 +3210,7 @@ export class AdminSpellDetailPageComponent {
 	) {
 		return isConfiguredParameterValue(
 			parameter,
-			block.parameterValues[parameter.id],
+			this.rawParameterValue(block, parameter.id),
 			this.draft()
 		);
 	}
@@ -2662,11 +3279,26 @@ function createMechanicBlockDraft(
 		mechanicId: mechanic.id,
 		parameterValues: Object.fromEntries(
 			mechanic.parameters.map(parameter => [
-				parameter.id,
+				parameterStorageKey(parameter),
 				defaultParameterValue(parameter, essence, targetIdsByParameterId)
 			])
 		),
 		config: createMechanicBlockConfig(mechanic),
+		isActive: true,
+		sortOrder
+	};
+}
+
+function createSpellTextBlockDraft(
+	kind: SpellTextBlockKind,
+	sortOrder: number,
+	options: { mechanicBlockId?: string; text?: string } = {}
+): SpellTextBlock {
+	return {
+		id: crypto.randomUUID(),
+		kind,
+		text: options.text ?? '',
+		mechanicBlockId: options.mechanicBlockId ?? '',
 		isActive: true,
 		sortOrder
 	};
@@ -2837,19 +3469,164 @@ function normalizeParameterValues(
 	values: Record<string, unknown>,
 	parameters: SpellMechanicParameter[]
 ) {
-	const parametersById = new Map(parameters.map(parameter => [parameter.id, parameter]));
+	const parametersBySlug = new Map(
+		parameters.map(parameter => [parameter.slug, parameter])
+	);
+	const parameterSlugsById = new Map(
+		parameters.map(parameter => [parameter.id, parameterStorageKey(parameter)])
+	);
 
 	return Object.fromEntries(
-		Object.entries(values).map(([key, value]) => [
-			key,
-			normalizeParameterValue(value, parametersById.get(key) ?? null)
-		])
+		Object.entries(values).map(([key, value]) => {
+			const parameter = parametersBySlug.get(key) ?? null;
+
+			return [
+				parameter ? parameterStorageKey(parameter) : key,
+				normalizeParameterValue(value, parameter, parameterSlugsById)
+			];
+		})
 	);
+}
+
+function parameterStorageKey(parameter: SpellMechanicParameter) {
+	return parameter.slug || parameter.id;
+}
+
+function areaMechanicParameterSourceKey(
+	block: SpellMechanicBlockDraft,
+	parameter: SpellMechanicParameter
+) {
+	return `${block.id}:${parameterStorageKey(parameter)}`;
+}
+
+function normalizeFormulaSourceId(
+	sourceId: string,
+	parameterSlugsById: Map<string, string>
+) {
+	for (const prefix of ['parameter:', 'skillParameterLevel:']) {
+		if (sourceId.startsWith(prefix)) {
+			const key = sourceId.slice(prefix.length);
+
+			return `${prefix}${parameterSlugsById.get(key) ?? key}`;
+		}
+	}
+
+	return sourceId;
+}
+
+function normalizeSpellConfig(
+	config: SpellConfig | Record<string, unknown>,
+	areaShape: MagicWordAreaShape | null,
+	gestureId: string
+): SpellConfig {
+	const currentArea =
+		isRecord(config) && isRecord(config['area'])
+			? config['area']
+			: undefined;
+
+	return {
+		...config,
+		area: normalizeSpellAreaConfig(currentArea, areaShape, gestureId)
+	};
+}
+
+function normalizeSpellAreaConfig(
+	config: unknown,
+	areaShape: MagicWordAreaShape | null,
+	gestureId: string
+) {
+	const dimensions = createAreaDimensions(areaShape);
+	const currentDimensions =
+		isRecord(config) && isRecord(config['dimensions'])
+			? config['dimensions']
+			: {};
+
+	return {
+		gestureId,
+		shapeKind: areaShape?.kind ?? '',
+		dimensions: Object.fromEntries(
+			dimensions.map(dimension => [
+				dimension.key,
+				isSpellParameterValue(currentDimensions[dimension.key])
+					? currentDimensions[dimension.key]
+					: createStaticParameterValue(String(dimension.defaultValue))
+			])
+		)
+	};
+}
+
+function createAreaDimensions(
+	areaShape: MagicWordAreaShape | null
+): SpellAreaDimension[] {
+	if (!areaShape?.isActive) {
+		return [];
+	}
+
+	return Object.entries(areaShape.dimensions.base)
+		.filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
+		.map(([key, value]) => ({
+			key,
+			label: areaDimensionLabel(key),
+			defaultValue: value,
+			unitLabel: areaDimensionUnitLabel(key)
+		}));
+}
+
+function areaDimensionLabel(key: string) {
+	switch (key) {
+		case 'radius':
+			return 'Радиус';
+		case 'length':
+			return 'Длина';
+		case 'width':
+			return 'Ширина';
+		case 'height':
+			return 'Высота';
+		case 'side':
+			return 'Сторона';
+		case 'tiles':
+			return 'Количество квадратов';
+		case 'innerRadius':
+			return 'Внутренний радиус';
+		case 'thickness':
+			return 'Толщина';
+		default:
+			return key;
+	}
+}
+
+function areaDimensionUnitLabel(key: string) {
+	return key === 'tiles' ? 'клетки 1x1' : 'клетки';
+}
+
+function isSpellParameterValue(value: unknown): value is SpellParameterValue {
+	return (
+		typeof value === 'string' ||
+		isStaticParameterValue(value) ||
+		isAutoParameterValue(value) ||
+		isProgressionParameterValue(value) ||
+		isFormulaParameterValue(value)
+	);
+}
+
+function normalizeSpellTextBlocks(blocks: SpellTextBlock[]): SpellTextBlock[] {
+	return blocks
+		.filter(block => block.kind === 'text' || block.kind === 'mechanicText')
+		.sort((left, right) => left.sortOrder - right.sortOrder)
+		.map((block, index) => ({
+			id: block.id || crypto.randomUUID(),
+			kind: block.kind,
+			text: block.text ?? '',
+			mechanicBlockId: block.mechanicBlockId ?? '',
+			isActive: block.isActive,
+			sortOrder: index
+		}));
 }
 
 function normalizeParameterValue(
 	value: unknown,
-	parameter: SpellMechanicParameter | null
+	parameter: SpellMechanicParameter | null,
+	parameterSlugsById: Map<string, string> = new Map()
 ): SpellParameterValue {
 	if (isStaticParameterValue(value)) {
 		return {
@@ -2862,7 +3639,10 @@ function normalizeParameterValue(
 		return {
 			mode: 'progression',
 			sourceKind: value.sourceKind,
-			sourceKey: value.sourceKey,
+			sourceKey:
+				value.sourceKind === 'skillLevel'
+					? (parameterSlugsById.get(value.sourceKey) ?? value.sourceKey)
+					: value.sourceKey,
 			presetId: value.presetId,
 			config: { ...value.config }
 		};
@@ -2873,7 +3653,13 @@ function normalizeParameterValue(
 			mode: 'formula',
 			graph: value.graph
 				? {
-						nodes: value.graph.nodes.map(node => ({ ...node })),
+						nodes: value.graph.nodes.map(node => ({
+							...node,
+							sourceId:
+								typeof node.sourceId === 'string'
+									? normalizeFormulaSourceId(node.sourceId, parameterSlugsById)
+									: node.sourceId
+						})),
 						edges: value.graph.edges.map(edge => ({ ...edge }))
 					}
 				: null
@@ -2887,7 +3673,13 @@ function normalizeParameterValue(
 			scale: value.scale,
 			growth: value.growth,
 			sourceMode: value.sourceMode,
-			sources: value.sources.map(source => ({ ...source })),
+			sources: value.sources.map(source => ({
+				...source,
+				sourceKey:
+					source.sourceKind === 'mechanicParameter'
+						? (parameterSlugsById.get(source.sourceKey) ?? source.sourceKey)
+						: source.sourceKey
+			})),
 			essenceInfluence: value.essenceInfluence,
 			essenceProfileKey: value.essenceProfileKey,
 			roundingMode: value.roundingMode,
@@ -3017,6 +3809,20 @@ function compareBySectionAndName(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isSpellMechanicBlockDraft(
+	value: unknown
+): value is SpellMechanicBlockDraft {
+	return (
+		isRecord(value) &&
+		typeof value['id'] === 'string' &&
+		typeof value['mechanicId'] === 'string' &&
+		isRecord(value['parameterValues']) &&
+		isRecord(value['config']) &&
+		typeof value['isActive'] === 'boolean' &&
+		typeof value['sortOrder'] === 'number'
+	);
 }
 
 function createRuntimeRollDraft(skillLevel: number): RuntimeRollDraft {

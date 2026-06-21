@@ -16,6 +16,7 @@ import { mapRollConsequenceDto } from '../../../roll-consequences/data/mappers/r
 export function mapSkillCategoryDto(dto: SkillCategoryDto): SkillCategory {
 	return {
 		id: dto.id,
+		slug: dto.slug,
 		name: dto.name,
 		description: dto.description,
 		isActive: dto.isActive
@@ -27,6 +28,7 @@ export function mapSkillDto(dto: SkillDto): Skill {
 
 	return {
 		id: dto.id,
+		slug: dto.slug,
 		name: dto.name,
 		categoryId: dto.categoryId,
 		description: dto.description,

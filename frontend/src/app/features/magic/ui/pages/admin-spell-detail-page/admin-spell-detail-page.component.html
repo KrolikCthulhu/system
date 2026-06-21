@@ -66,7 +66,9 @@
 					<p-tablist>
 						<p-tab value="main">Основное</p-tab>
 						<p-tab value="targets">Цели</p-tab>
+						<p-tab value="area">Область</p-tab>
 						<p-tab value="mechanics">Механики</p-tab>
+						<p-tab value="text">Текст</p-tab>
 						<p-tab value="problems">Проблемы</p-tab>
 					</p-tablist>
 
@@ -225,6 +227,356 @@
 										</div>
 									}
 								</section>
+							</div>
+						</p-tabpanel>
+
+						<p-tabpanel
+							value="area"
+							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--area"
+						>
+							<div class="admin-spell-detail-page__area-panel">
+								@if (selectedGestureAreaShape(); as areaShape) {
+									<div class="admin-spell-detail-page__area-head">
+										<div>
+											<h3>{{ areaShape.name }}</h3>
+											<span>{{ areaShape.description || 'Форма области от выбранного жеста.' }}</span>
+										</div>
+										<p-tag
+											[value]="areaShape.kind"
+											severity="secondary"
+										></p-tag>
+									</div>
+
+									@if (areaDimensions().length) {
+										<div class="admin-spell-detail-page__area-dimensions">
+											@for (dimension of areaDimensions(); track dimension.key) {
+												<section class="admin-spell-detail-page__area-dimension">
+													<div class="admin-spell-detail-page__area-dimension-head">
+														<div>
+															<strong>{{ dimension.label }}</strong>
+															<p-tag
+																[value]="dimension.unitLabel"
+																severity="secondary"
+															></p-tag>
+														</div>
+														<p-selectbutton
+															[options]="areaParameterValueModeOptions"
+															optionLabel="label"
+															optionValue="value"
+															size="small"
+															[allowEmpty]="false"
+															[ngModel]="areaParameterValueMode(dimension.key)"
+															(ngModelChange)="
+																updateAreaParameterMode(dimension, $event)
+															"
+														></p-selectbutton>
+													</div>
+
+													@if (areaParameterValueMode(dimension.key) === 'auto') {
+														@if (areaAutoParameterValue(dimension.key); as autoValue) {
+															<div class="admin-spell-detail-page__auto-editor admin-spell-detail-page__area-auto-editor">
+																<span class="admin-spell-detail-page__field">
+																	<span>Поведение</span>
+																	<p-select
+																		[options]="autoValueCharacterOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.character"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				character: $event
+																			})
+																		"
+																	></p-select>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Размер значения</span>
+																	<p-select
+																		[options]="autoValueScaleOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.scale"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				scale: $event
+																			})
+																		"
+																	></p-select>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Рост</span>
+																	<p-select
+																		[options]="autoValueGrowthOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.growth"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				growth: $event
+																			})
+																		"
+																	></p-select>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Режим влияний</span>
+																	<p-select
+																		[options]="autoValueSourceModeOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.sourceMode"
+																		(ngModelChange)="
+																			updateAreaAutoSourceMode(dimension.key, $event)
+																		"
+																	></p-select>
+																</span>
+
+																<div class="admin-spell-detail-page__auto-sources">
+																	<div class="admin-spell-detail-page__auto-sources-head">
+																		<strong>Влияния</strong>
+																		@if (autoValue.sourceMode === 'advanced') {
+																			<p-button
+																				label="Влияние"
+																				icon="pi pi-plus"
+																				severity="secondary"
+																				variant="outlined"
+																				(onClick)="addAreaAutoSource(dimension.key)"
+																			></p-button>
+																		}
+																	</div>
+
+																	@for (source of autoValue.sources; track source.id) {
+																		<div class="admin-spell-detail-page__auto-source-row">
+																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind">
+																				<span>Что влияет</span>
+																				<p-select
+																					[options]="autoValueSourceKindOptions"
+																					optionLabel="label"
+																					optionValue="value"
+																					[ngModel]="source.sourceKind"
+																					(ngModelChange)="
+																						updateAreaAutoSource(
+																							dimension.key,
+																							source.id,
+																							{
+																								sourceKind: $event,
+																								sourceKey: defaultAreaAutoSourceKey($event)
+																							}
+																						)
+																					"
+																				></p-select>
+																			</span>
+
+																			@if (shouldShowAutoSourceKey(source)) {
+																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
+																					<span>{{ autoSourceKeyLabel(source) }}</span>
+																					<p-select
+																						[options]="areaAutoSourceKeyOptions(source)"
+																						optionLabel="label"
+																						optionValue="value"
+																						[filter]="true"
+																						[showClear]="true"
+																						[ngModel]="source.sourceKey || null"
+																						(ngModelChange)="
+																							updateAreaAutoSource(
+																								dimension.key,
+																								source.id,
+																								{ sourceKey: $event ?? '' }
+																							)
+																						"
+																					></p-select>
+																				</span>
+																			} @else {
+																				<div class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
+																					<span>Значение</span>
+																					<div class="admin-spell-detail-page__auto-source-static">
+																						x
+																					</div>
+																				</div>
+																			}
+
+																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target">
+																				<span>Влияет на</span>
+																				<p-select
+																					[options]="autoValueSourceTargetOptions"
+																					optionLabel="label"
+																					optionValue="value"
+																					[ngModel]="source.target"
+																					[disabled]="!canEditAutoSourceTarget(autoValue)"
+																					(ngModelChange)="
+																						updateAreaAutoSource(
+																							dimension.key,
+																							source.id,
+																							{ target: $event }
+																						)
+																					"
+																				></p-select>
+																			</span>
+
+																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve">
+																				<span>Кривая</span>
+																				<p-select
+																					[options]="autoValueSourceCurveOptions"
+																					optionLabel="label"
+																					optionValue="value"
+																					[ngModel]="source.curve"
+																					(ngModelChange)="
+																						updateAreaAutoSource(
+																							dimension.key,
+																							source.id,
+																							{ curve: $event }
+																						)
+																					"
+																				></p-select>
+																			</span>
+
+																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight">
+																				<span>Вес</span>
+																				<p-inputnumber
+																					[ngModel]="source.weight"
+																					[step]="0.1"
+																					[min]="0"
+																					(ngModelChange)="
+																						updateAreaAutoSource(
+																							dimension.key,
+																							source.id,
+																							{ weight: $event ?? 0 }
+																						)
+																					"
+																				></p-inputnumber>
+																			</span>
+
+																			@if (canDeleteAutoSource(autoValue)) {
+																				<div class="admin-spell-detail-page__auto-source-cell--action">
+																					<p-button
+																						icon="pi pi-trash"
+																						severity="danger"
+																						text
+																						rounded
+																						(onClick)="
+																							deleteAreaAutoSource(
+																								dimension.key,
+																								source.id
+																							)
+																						"
+																					></p-button>
+																				</div>
+																			} @else {
+																				<div class="admin-spell-detail-page__auto-source-cell--action"></div>
+																			}
+																		</div>
+																	}
+																</div>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Влияние сущности</span>
+																	<p-select
+																		[options]="autoValueEssenceInfluenceOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.essenceInfluence"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				essenceInfluence: $event
+																			})
+																		"
+																	></p-select>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Профиль сущности</span>
+																	<p-select
+																		[options]="essenceProfileSourceOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.essenceProfileKey"
+																		[disabled]="autoValue.essenceInfluence === 'none'"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				essenceProfileKey: $event
+																			})
+																		"
+																	></p-select>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Округление</span>
+																	<p-select
+																		[options]="roundingModeOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.roundingMode"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				roundingMode: $event
+																			})
+																		"
+																	></p-select>
+																</span>
+															</div>
+														}
+													} @else {
+														<span class="admin-spell-detail-page__field">
+															<span>Значение</span>
+															<input
+																pInputText
+																type="text"
+																[value]="areaStaticParameterValue(dimension.key)"
+																(input)="
+																	updateAreaStaticParameterValue(
+																		dimension.key,
+																		$any($event.target).value
+																	)
+																"
+															/>
+														</span>
+													}
+
+													@if (areaNumericPreview(dimension.key); as preview) {
+														<div class="admin-spell-detail-page__numeric-preview">
+															<div class="admin-spell-detail-page__numeric-preview-row">
+																<span>Формула</span>
+																<strong>{{ preview.formula }}</strong>
+															</div>
+															<div class="admin-spell-detail-page__numeric-preview-row">
+																<span>Данные</span>
+																<strong>
+																	@if (preview.sources.length) {
+																		{{ preview.sources.join(', ') }}
+																	} @else {
+																		Не используются
+																	}
+																</strong>
+															</div>
+															<div class="admin-spell-detail-page__numeric-preview-row">
+																<span>Округление</span>
+																<strong>{{ preview.rounding }}</strong>
+															</div>
+															<div class="admin-spell-detail-page__numeric-preview-values">
+																@for (item of preview.values; track item.x) {
+																	<span>
+																		{{ item.x }}:
+																		<strong>{{ item.value }}</strong>
+																	</span>
+																}
+															</div>
+														</div>
+													}
+												</section>
+											}
+										</div>
+									} @else {
+										<div class="admin-spell-detail-page__empty-block">
+											Этот жест не добавляет размерные параметры области.
+										</div>
+									}
+								} @else {
+									<div class="admin-spell-detail-page__empty-block">
+										У выбранного жеста не настроена форма области.
+									</div>
+								}
 							</div>
 						</p-tabpanel>
 
@@ -1129,6 +1481,167 @@
 											Выбери механику слева или добавь новую.
 										</div>
 									}
+								</section>
+							</div>
+						</p-tabpanel>
+
+						<p-tabpanel
+							value="text"
+							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--text"
+						>
+							<div class="admin-spell-detail-page__text-panel">
+								<section class="admin-spell-detail-page__text-preview">
+									<div class="admin-spell-detail-page__text-section-head">
+										<h3>Итоговый текст</h3>
+										<p-button
+											label="Из механик"
+											icon="pi pi-sync"
+											size="small"
+											severity="secondary"
+											variant="outlined"
+											(onClick)="addSpellMechanicTextBlocks()"
+										></p-button>
+									</div>
+
+									@if (spellTextPreview(); as preview) {
+										<div class="admin-spell-detail-page__text-preview-content">
+											{{ preview }}
+										</div>
+									} @else {
+										<div class="admin-spell-detail-page__empty-block">
+											Текст пока не собран.
+										</div>
+									}
+								</section>
+
+								<section class="admin-spell-detail-page__text-builder">
+									<div class="admin-spell-detail-page__text-section-head">
+										<h3>Блоки текста</h3>
+										<div class="admin-spell-detail-page__text-actions">
+											<p-button
+												label="Текст"
+												icon="pi pi-plus"
+												size="small"
+												severity="secondary"
+												variant="outlined"
+												(onClick)="addSpellTextBlock('text')"
+											></p-button>
+											<p-button
+												label="Механика"
+												icon="pi pi-plus"
+												size="small"
+												severity="secondary"
+												variant="outlined"
+												(onClick)="addSpellTextBlock('mechanicText')"
+											></p-button>
+										</div>
+									</div>
+
+									<div class="admin-spell-detail-page__text-blocks">
+										@for (
+											block of currentDraft.textBlocks;
+											track block.id;
+											let blockIndex = $index
+										) {
+											<div class="admin-spell-detail-page__text-block">
+												<div class="admin-spell-detail-page__text-block-toolbar">
+													<span class="admin-spell-detail-page__field">
+														<span>Тип блока</span>
+														<p-select
+															[options]="spellTextBlockKindOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="block.kind"
+															(ngModelChange)="
+																updateSpellTextBlock(block.id, {
+																	kind: $event
+																})
+															"
+														></p-select>
+													</span>
+
+													<span class="admin-spell-detail-page__inline-switch">
+														<span>Активно</span>
+														<p-toggleswitch
+															[ngModel]="block.isActive"
+															(ngModelChange)="
+																updateSpellTextBlock(block.id, {
+																	isActive: $event
+																})
+															"
+														></p-toggleswitch>
+													</span>
+
+													<div class="admin-spell-detail-page__text-block-actions">
+														<p-button
+															icon="pi pi-arrow-up"
+															severity="secondary"
+															text
+															rounded
+															[disabled]="isFirstSpellTextBlock(blockIndex)"
+															(onClick)="moveSpellTextBlock(blockIndex, -1)"
+														></p-button>
+														<p-button
+															icon="pi pi-arrow-down"
+															severity="secondary"
+															text
+															rounded
+															[disabled]="isLastSpellTextBlock(blockIndex)"
+															(onClick)="moveSpellTextBlock(blockIndex, 1)"
+														></p-button>
+														<p-button
+															icon="pi pi-trash"
+															severity="danger"
+															text
+															rounded
+															(onClick)="deleteSpellTextBlock(block.id)"
+														></p-button>
+													</div>
+												</div>
+
+												@if (block.kind === 'mechanicText') {
+													<span class="admin-spell-detail-page__field">
+														<span>Механика</span>
+														<p-select
+															[options]="textMechanicBlockOptions()"
+															optionLabel="label"
+															optionValue="value"
+															placeholder="Не выбрано"
+															[showClear]="true"
+															[ngModel]="block.mechanicBlockId || null"
+															(ngModelChange)="
+																updateSpellTextBlock(block.id, {
+																	mechanicBlockId: $event || ''
+																})
+															"
+														></p-select>
+													</span>
+												} @else {
+													<span class="admin-spell-detail-page__field">
+														<span>Текст</span>
+														<textarea
+															pTextarea
+															rows="3"
+															[value]="block.text"
+															(input)="
+																updateSpellTextBlock(block.id, {
+																	text: $any($event.target).value
+																})
+															"
+														></textarea>
+													</span>
+												}
+
+												<div class="admin-spell-detail-page__text-block-preview">
+													{{ spellTextBlockPreview(block) }}
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-spell-detail-page__empty-block">
+												Добавь текстовый блок или собери текст из механик.
+											</div>
+										}
+									</div>
 								</section>
 							</div>
 						</p-tabpanel>

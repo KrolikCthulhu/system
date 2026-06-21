@@ -2,6 +2,7 @@ import { Prisma, SystemValueOwnerType } from '../__generated__/index.js';
 
 export type SeedSystemValue = {
 	id: string;
+	slug: string;
 	name: string;
 	description: string | null;
 	primaryOwnerType: SystemValueOwnerType;
@@ -48,6 +49,7 @@ export type SeedRollConsequence = {
 
 export type SeedSkillCategory = {
 	id: string;
+	slug: string;
 	name: string;
 	description: string | null;
 	isActive: boolean;
@@ -56,6 +58,7 @@ export type SeedSkillCategory = {
 
 export type SeedSkill = {
 	id: string;
+	slug: string;
 	name: string;
 	categoryId: string;
 	description: string | null;

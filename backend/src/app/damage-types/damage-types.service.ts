@@ -2,11 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateDamageTypeDto } from './dto/create-damage-type.dto';
 import { UpdateDamageTypeDto } from './dto/update-damage-type.dto';
 
 const damageTypeSelect = {
 	id: true,
+	slug: true,
 	name: true,
 	description: true,
 	isActive: true,
@@ -83,6 +85,7 @@ export class DamageTypesService {
 
 	private toCreateData(dto: CreateDamageTypeDto) {
 		return {
+			slug: createSlug(dto.name),
 			name: dto.name.trim(),
 			description: this.toNullableString(dto.description),
 			isActive: dto.isActive ?? true,
@@ -114,6 +117,7 @@ export class DamageTypesService {
 	private mapDamageType(damageType: DamageTypeRecord) {
 		return {
 			id: damageType.id,
+			slug: damageType.slug,
 			name: damageType.name,
 			description: damageType.description ?? '',
 			isActive: damageType.isActive,

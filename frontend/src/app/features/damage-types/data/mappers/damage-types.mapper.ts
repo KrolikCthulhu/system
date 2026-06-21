@@ -18,6 +18,7 @@ export function mapDamageTypesCatalogResponseDto(
 export function mapDamageTypeDto(dto: DamageTypeDto): DamageType {
 	return {
 		id: dto.id,
+		slug: dto.slug,
 		name: dto.name,
 		description: dto.description ?? '',
 		isActive: dto.isActive,

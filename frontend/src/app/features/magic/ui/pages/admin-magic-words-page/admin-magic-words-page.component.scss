@@ -299,6 +299,18 @@
 	color: var(--p-text-muted-color);
 }
 
+.admin-magic-words-page__area-title {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	color: var(--p-text-color);
+	font-weight: 600;
+}
+
+.admin-magic-words-page__area-grid {
+	padding-top: 0.5rem;
+}
+
 .admin-magic-words-page__hint-icon {
 	color: var(--p-text-muted-color);
 	font-size: 0.75rem;
@@ -356,4 +368,5 @@
 	.admin-magic-words-page__affinity-grid {
 		grid-template-columns: 1fr;
 	}
+
 }

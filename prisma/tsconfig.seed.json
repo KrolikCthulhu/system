@@ -10,6 +10,7 @@
 		"seed.ts",
 		"seed-e2e.ts",
 		"seed/**/*.ts",
+		"content/**/*.ts",
 		"../backend/src/app/shared/**/*.ts"
 	]
 }

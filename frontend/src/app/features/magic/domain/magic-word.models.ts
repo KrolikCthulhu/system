@@ -1,18 +1,67 @@
 export type MagicWordType = 'ACTION' | 'ESSENCE' | 'GESTURE' | 'MODIFIER';
+export type AreaShapeKind =
+	| 'POINT'
+	| 'LINE'
+	| 'PLANE'
+	| 'CONE'
+	| 'SPHERE'
+	| 'CUBE'
+	| 'CYLINDER'
+	| 'RING';
+
+export type AreaShapeInfluenceSourceKind =
+	| 'systemValue'
+	| 'linkedSkill'
+	| 'essenceProfile';
+export type AreaShapeOrientation = 'horizontal' | 'vertical' | 'free';
+
+export interface AreaShapeInfluence {
+	sourceKind: AreaShapeInfluenceSourceKind;
+	sourceKey: string;
+	targetDimension: string;
+	weight: number;
+}
+
+export interface AreaShapeDimensions {
+	version: 1;
+	primaryDimension: string;
+	unit: string;
+	base: Record<string, number>;
+	orientation?: AreaShapeOrientation;
+	tileSize?: number;
+}
+
+export interface AreaShapeInfluenceConfig {
+	version: 1;
+	sources: AreaShapeInfluence[];
+}
+
+export interface MagicWordAreaShape {
+	kind: AreaShapeKind;
+	name: string;
+	description: string;
+	dimensions: AreaShapeDimensions;
+	influenceConfig: AreaShapeInfluenceConfig;
+	isActive: boolean;
+	sortOrder: number;
+}
 
 export interface MagicWordGestureOption {
 	id: string;
+	slug: string;
 	name: string;
 }
 
 export interface MagicWordSkillOption {
 	id: string;
+	slug: string;
 	name: string;
 	categoryName: string;
 }
 
 export interface MagicWordLinkedOption {
 	id: string;
+	slug: string;
 	name: string;
 }
 
@@ -28,6 +77,7 @@ export interface MagicWordEssenceProfile {
 export interface MagicWord {
 	id: string;
 	type: MagicWordType;
+	slug: string;
 	name: string;
 	description: string;
 	isActive: boolean;
@@ -41,14 +91,17 @@ export interface MagicWord {
 	conditionIds: string[];
 	conditions: MagicWordLinkedOption[];
 	essenceProfile: MagicWordEssenceProfile | null;
+	areaShape: MagicWordAreaShape | null;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export interface MagicSpellFormula {
 	actionId: string;
+	actionSlug: string;
 	actionName: string;
 	essenceId: string;
+	essenceSlug: string;
 	essenceName: string;
 	name: string;
 }

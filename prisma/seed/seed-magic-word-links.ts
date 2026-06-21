@@ -1,11 +1,20 @@
 import { Prisma } from '../__generated__/index.js';
-import { MAGIC_WORD_LINK_SEEDS } from './data';
+import type { ContentDocument, MagicWordLinkContent } from '../content/content-types';
+import { readContent } from './content';
+
+const MAGIC_WORD_LINK_SEEDS = readContent<
+	ContentDocument<{ links: MagicWordLinkContent[] }>
+>(
+	'magic/words.ts'
+).links;
 
 export async function seedMagicWordLinks(tx: Prisma.TransactionClient) {
 	for (const seed of MAGIC_WORD_LINK_SEEDS) {
 		const magicWord = await tx.magicWord.findFirst({
 			select: { id: true },
-			where: { name: seed.magicWordName }
+			where: seed.magicWordSlug
+				? { slug: seed.magicWordSlug }
+				: { name: seed.magicWordName }
 		});
 
 		if (!magicWord) {
@@ -25,7 +34,9 @@ export async function seedMagicWordLinks(tx: Prisma.TransactionClient) {
 		for (const [index, skillName] of seed.skillNames.entries()) {
 			const skill = await tx.skill.findFirst({
 				select: { id: true },
-				where: { name: skillName }
+				where: seed.skillSlugs?.[index]
+					? { slug: seed.skillSlugs[index] }
+					: { name: skillName }
 			});
 
 			if (!skill) {
@@ -44,7 +55,9 @@ export async function seedMagicWordLinks(tx: Prisma.TransactionClient) {
 		for (const [index, damageTypeName] of seed.damageTypeNames.entries()) {
 			const damageType = await tx.damageType.findUnique({
 				select: { id: true },
-				where: { name: damageTypeName }
+				where: seed.damageTypeSlugs?.[index]
+					? { slug: seed.damageTypeSlugs[index] }
+					: { name: damageTypeName }
 			});
 
 			if (!damageType) {
@@ -63,7 +76,9 @@ export async function seedMagicWordLinks(tx: Prisma.TransactionClient) {
 		for (const [index, conditionName] of seed.conditionNames.entries()) {
 			const condition = await tx.condition.findUnique({
 				select: { id: true },
-				where: { name: conditionName }
+				where: seed.conditionSlugs?.[index]
+					? { slug: seed.conditionSlugs[index] }
+					: { name: conditionName }
 			});
 
 			if (!condition) {

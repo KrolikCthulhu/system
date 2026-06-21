@@ -18,6 +18,7 @@ export function mapConditionsCatalogResponseDto(
 export function mapConditionDto(dto: ConditionDto): Condition {
 	return {
 		id: dto.id,
+		slug: dto.slug,
 		name: dto.name,
 		description: dto.description ?? '',
 		isActive: dto.isActive,

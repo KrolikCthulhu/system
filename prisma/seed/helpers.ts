@@ -1,12 +1,14 @@
 import { randomUUID } from 'crypto';
 import { Prisma, SystemValueOwnerType } from '../__generated__/index.js';
 import { createAvailablePoolGraph } from '../../backend/src/app/shared/system-value-graph.factory';
+import { createSlug } from './slug';
 import { SeedAttribute } from './types';
 
 export async function ensureSystemValue(
 	tx: Prisma.TransactionClient,
 	params: {
 		id: string;
+		slug?: string;
 		name: string;
 		description: string | null;
 		primaryOwnerType: SystemValueOwnerType;
@@ -28,6 +30,7 @@ export async function ensureSystemValue(
 		where: { id: params.id }
 	});
 	const data = {
+		slug: params.slug ?? createSlug(params.name),
 		name: params.name,
 		description: params.description,
 		primaryOwnerType: params.primaryOwnerType,

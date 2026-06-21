@@ -1,5 +1,6 @@
 export interface SpellMechanicCategoryDto {
 	id: string;
+	slug: string;
 	name: string;
 	description: string;
 	isActive: boolean;
@@ -11,6 +12,7 @@ export interface SpellMechanicCategoryDto {
 export interface SpellMechanicDto {
 	id: string;
 	categoryId: string;
+	slug: string;
 	name: string;
 	description: string;
 	configSchema: Record<string, unknown>;
@@ -54,6 +56,7 @@ export interface SpellMechanicParameterDefaultValueDto {
 export interface SpellMechanicParameterDto {
 	id: string;
 	mechanicId: string;
+	slug: string;
 	name: string;
 	kind: SpellMechanicParameterKindDto;
 	numericRole: SpellMechanicNumericRoleDto;

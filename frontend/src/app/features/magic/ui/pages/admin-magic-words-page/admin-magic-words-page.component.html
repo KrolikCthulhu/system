@@ -281,6 +281,53 @@
 							</section>
 						}
 
+						@if (currentDraft.type === 'GESTURE') {
+							<section class="admin-magic-words-page__field admin-magic-words-page__field--wide">
+								<span class="admin-magic-words-page__area-title">
+									<span>Форма области</span>
+									<i
+										class="pi pi-question-circle admin-magic-words-page__hint-icon"
+										pTooltip="Жест задаёт тип области. Размеры этой области настраиваются в конкретном заклинании."
+										tooltipPosition="top"
+									></i>
+								</span>
+
+								<div class="admin-magic-words-page__form-grid admin-magic-words-page__area-grid">
+									<span class="admin-magic-words-page__field">
+										<span>Тип формы</span>
+										<p-select
+											[options]="areaShapeKindOptions"
+											optionLabel="label"
+											optionValue="value"
+											appendTo="body"
+											[ngModel]="currentDraft.areaShape.kind"
+											(ngModelChange)="updateAreaShape({ kind: $event })"
+										></p-select>
+									</span>
+
+									<span class="admin-magic-words-page__field">
+										<span>Название</span>
+										<input
+											pInputText
+											type="text"
+											[value]="currentDraft.areaShape.name"
+											(input)="
+												updateAreaShape({ name: $any($event.target).value })
+											"
+										/>
+									</span>
+
+									<span class="admin-magic-words-page__switch-field">
+										<span>Активна</span>
+										<p-toggleswitch
+											[ngModel]="currentDraft.areaShape.isActive"
+											(ngModelChange)="updateAreaShape({ isActive: $event })"
+										></p-toggleswitch>
+									</span>
+								</div>
+							</section>
+						}
+
 						@if (currentDraft.type === 'MODIFIER') {
 							<span class="admin-magic-words-page__field admin-magic-words-page__field--wide">
 								<span>Разрешённые жесты</span>

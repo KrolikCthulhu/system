@@ -1,5 +1,6 @@
 export interface DamageType {
 	id: string;
+	slug: string;
 	name: string;
 	description: string;
 	isActive: boolean;

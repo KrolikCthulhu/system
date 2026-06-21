@@ -10,11 +10,13 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { createCharacterInputGraph } from '../shared/system-value-graph.factory';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateManualSystemValueDto } from './dto/create-manual-system-value.dto';
 import { UpdateSystemValueDto } from './dto/update-system-value.dto';
 
 const systemValueSelect = {
 	id: true,
+	slug: true,
 	name: true,
 	description: true,
 	primaryOwnerType: true,
@@ -71,6 +73,7 @@ export class ValuesService {
 				select: systemValueSelect,
 				data: {
 					name: dto.name.trim(),
+					slug: createSlug(dto.name),
 					description: dto.description?.trim() || null,
 					primaryOwnerType: SystemValueOwnerType.MANUAL,
 					primaryOwnerId: null,
@@ -243,6 +246,7 @@ export class ValuesService {
 	) {
 		return {
 			id: value.id,
+			slug: value.slug,
 			name: value.name,
 			kind: mapOwnerType(value.primaryOwnerType),
 			groupLabel: value.displaySection?.trim() || groupLabel(value.primaryOwnerType),

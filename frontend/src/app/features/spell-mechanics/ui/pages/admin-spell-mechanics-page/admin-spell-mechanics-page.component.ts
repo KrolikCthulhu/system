@@ -1837,6 +1837,7 @@ export class AdminSpellMechanicsPageComponent {
 		const nextSlot: SpellMechanicParameter = {
 			id: crypto.randomUUID(),
 			mechanicId: draft.id ?? '',
+			slug: '',
 			name: '',
 			kind: 'target',
 			numericRole: 'custom',

@@ -2,11 +2,13 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma, ProgressionPresetKind } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateProgressionPresetDto } from './dto/create-progression-preset.dto';
 import { UpdateProgressionPresetDto } from './dto/update-progression-preset.dto';
 
 const progressionPresetSelect = {
 	id: true,
+	slug: true,
 	name: true,
 	description: true,
 	kind: true,
@@ -88,6 +90,7 @@ export class ProgressionPresetsService {
 
 	private toCreateData(dto: CreateProgressionPresetDto) {
 		return {
+			slug: createSlug(dto.name),
 			name: dto.name.trim(),
 			description: this.toNullableString(dto.description),
 			kind: dto.kind,
@@ -186,6 +189,7 @@ export class ProgressionPresetsService {
 	private mapPreset(preset: ProgressionPresetRecord) {
 		return {
 			id: preset.id,
+			slug: preset.slug,
 			name: preset.name,
 			description: preset.description ?? '',
 			kind: preset.kind,

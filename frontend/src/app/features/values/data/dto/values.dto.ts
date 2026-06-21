@@ -20,6 +20,7 @@ export interface SystemValueLinkDto {
 
 export interface SystemValueDto {
 	id: string;
+	slug: string;
 	name: string;
 	kind: SystemValueKindDto;
 	groupLabel: string;

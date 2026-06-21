@@ -20,6 +20,7 @@ export function mapProgressionPresetDto(
 ): ProgressionPreset {
 	return {
 		id: dto.id,
+		slug: dto.slug,
 		name: dto.name,
 		description: dto.description ?? '',
 		kind: dto.kind,

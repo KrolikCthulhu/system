@@ -131,6 +131,7 @@ const runtimeSpellSelect = {
 					parameters: {
 						select: {
 							id: true,
+							slug: true,
 							name: true,
 							kind: true,
 							defaultMode: true,
@@ -665,6 +666,10 @@ export class SpellRuntimePreviewService {
 		value: unknown,
 		context: RuntimeContext
 	): RuntimeValue {
+		if (typeof value === 'string') {
+			return this.resolveStringSource(spell, block, value, context);
+		}
+
 		if (!isRecord(value)) {
 			return null;
 		}
@@ -702,14 +707,43 @@ export class SpellRuntimePreviewService {
 		}
 	}
 
+	private resolveStringSource(
+		spell: RuntimeSpell | null,
+		block: RuntimeBlock,
+		sourceId: string,
+		context: RuntimeContext
+	): RuntimeValue {
+		if (
+			sourceId.startsWith('mechanicParameter:') ||
+			sourceId.startsWith('parameter:') ||
+			sourceId.startsWith('skillParameterLevel:')
+		) {
+			const parameterIdOrSlug = sourceId.slice(sourceId.indexOf(':') + 1);
+
+			return this.resolveMechanicParameterValue(block, parameterIdOrSlug, context);
+		}
+
+		if (sourceId === 'manual:x') {
+			return 0;
+		}
+
+		if (sourceId === 'linkedMagicWordSkill') {
+			return spell ? firstLinkedSkill(spell) : null;
+		}
+
+		return null;
+	}
+
 	private resolveMechanicParameterValue(
 		block: RuntimeBlock,
-		parameterId: string,
+		parameterIdOrSlug: string,
 		context: RuntimeContext
 	): RuntimeValue {
 		const values = toRecord(block.parameterValues);
-		const rawValue = values[parameterId];
-		const parameter = block.mechanic.parameters.find(item => item.id === parameterId);
+		const parameter = block.mechanic.parameters.find(
+			item => item.id === parameterIdOrSlug || item.slug === parameterIdOrSlug
+		);
+		const rawValue = parameter ? values[parameter.slug] : values[parameterIdOrSlug];
 
 		if (rawValue !== undefined) {
 			return this.resolveParameterRuntimeValue(rawValue, context);

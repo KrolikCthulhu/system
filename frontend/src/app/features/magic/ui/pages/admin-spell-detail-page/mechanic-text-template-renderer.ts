@@ -36,7 +36,7 @@ export function renderMechanicTextTemplate<TValue>(
 
 				return formatValue({
 					kind: parameter.kind,
-					value: values[parameter.id] ?? parameter.defaultValue.value
+					value: values[parameter.slug] ?? parameter.defaultValue.value
 				});
 			}
 

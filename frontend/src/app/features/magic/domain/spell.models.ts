@@ -3,6 +3,7 @@ export type PersistedSpellStatus = Exclude<SpellStatus, 'EMPTY'>;
 
 export interface SpellFormulaWord {
 	id: string;
+	slug: string;
 	name: string;
 }
 
@@ -13,6 +14,7 @@ export interface Spell {
 	gestureId: string;
 	name: string;
 	description: string;
+	config: SpellConfig;
 	status: PersistedSpellStatus;
 	isActive: boolean;
 	sortOrder: number;
@@ -21,9 +23,31 @@ export interface Spell {
 	essence: SpellFormulaWord;
 	gesture: SpellFormulaWord;
 	targetConfigs: SpellTargetConfig[];
+	textBlocks: SpellTextBlock[];
 	mechanicBlocks: SpellMechanicBlock[];
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface SpellConfig {
+	area?: SpellAreaConfig;
+}
+
+export interface SpellAreaConfig {
+	gestureId: string;
+	shapeKind: string;
+	dimensions: Record<string, unknown>;
+}
+
+export type SpellTextBlockKind = 'text' | 'mechanicText';
+
+export interface SpellTextBlock {
+	id: string;
+	kind: SpellTextBlockKind;
+	text: string;
+	mechanicBlockId: string;
+	isActive: boolean;
+	sortOrder: number;
 }
 
 export type SpellTargetSource = 'caster' | 'selected' | 'area';

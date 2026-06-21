@@ -4,12 +4,14 @@ import {
 	NotFoundException
 } from '@nestjs/common';
 import {
+	AreaShapeKind,
 	MagicWordType,
 	Prisma,
 	SpellStatus
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateMagicWordDto } from './dto/create-magic-word.dto';
 import { UpdateMagicWordDto } from './dto/update-magic-word.dto';
 import {
@@ -20,6 +22,7 @@ import {
 const magicWordSelect = {
 	id: true,
 	type: true,
+	slug: true,
 	name: true,
 	description: true,
 	isActive: true,
@@ -32,6 +35,7 @@ const magicWordSelect = {
 			gesture: {
 				select: {
 					id: true,
+					slug: true,
 					name: true,
 					sortOrder: true
 				}
@@ -43,8 +47,9 @@ const magicWordSelect = {
 			skillId: true,
 			skill: {
 				select: {
-					id: true,
-					name: true,
+							id: true,
+							slug: true,
+							name: true,
 					category: {
 						select: {
 							name: true
@@ -61,6 +66,7 @@ const magicWordSelect = {
 			damageType: {
 				select: {
 					id: true,
+					slug: true,
 					name: true,
 					sortOrder: true
 				}
@@ -73,6 +79,7 @@ const magicWordSelect = {
 			condition: {
 				select: {
 					id: true,
+					slug: true,
 					name: true,
 					sortOrder: true
 				}
@@ -88,6 +95,17 @@ const magicWordSelect = {
 			areaAffinity: true,
 			stabilityAffinity: true
 		}
+	},
+	areaShape: {
+		select: {
+			kind: true,
+			name: true,
+			description: true,
+			dimensions: true,
+			influenceConfig: true,
+			isActive: true,
+			sortOrder: true
+		}
 	}
 } satisfies Prisma.MagicWordSelect;
 
@@ -102,15 +120,17 @@ const spellSelect = {
 	gestureId: true,
 	name: true,
 	description: true,
+	config: true,
 	targetConfigs: true,
+	textBlocks: true,
 	status: true,
 	isActive: true,
 	sortOrder: true,
 	createdAt: true,
 	updatedAt: true,
-	action: { select: { id: true, name: true, sortOrder: true } },
-	essence: { select: { id: true, name: true, sortOrder: true } },
-	gesture: { select: { id: true, name: true, sortOrder: true } },
+	action: { select: { id: true, slug: true, name: true, sortOrder: true } },
+	essence: { select: { id: true, slug: true, name: true, sortOrder: true } },
+	gesture: { select: { id: true, slug: true, name: true, sortOrder: true } },
 	mechanicBlocks: {
 		select: {
 			id: true,
@@ -144,12 +164,12 @@ export class MagicService {
 	async getSpellFormulas() {
 		const [actions, essences] = await Promise.all([
 			this.prisma.magicWord.findMany({
-				select: { id: true, name: true, sortOrder: true },
+				select: { id: true, slug: true, name: true, sortOrder: true },
 				where: { type: MagicWordType.ACTION, isActive: true },
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			}),
 			this.prisma.magicWord.findMany({
-				select: { id: true, name: true, sortOrder: true },
+				select: { id: true, slug: true, name: true, sortOrder: true },
 				where: { type: MagicWordType.ESSENCE, isActive: true },
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			})
@@ -159,8 +179,10 @@ export class MagicService {
 			formulas: actions.flatMap(action =>
 				essences.map(essence => ({
 					actionId: action.id,
+					actionSlug: action.slug,
 					actionName: action.name,
 					essenceId: essence.id,
+					essenceSlug: essence.slug,
 					essenceName: essence.name,
 					name: `${action.name} ${essence.name}`
 				}))
@@ -228,7 +250,9 @@ export class MagicService {
 						gestureId: dto.gestureId,
 						name: dto.name.trim(),
 						description: dto.description?.trim() || null,
+						config: toJsonObject(dto.config),
 						targetConfigs: toJsonArray(dto.targetConfigs),
+						textBlocks: toJsonArray(dto.textBlocks),
 						status: dto.status,
 						isActive: normalizeSpellActive(dto.status, dto.isActive),
 						sortOrder: dto.sortOrder ?? 0
@@ -274,10 +298,18 @@ export class MagicService {
 					data: {
 						name: dto.name.trim(),
 						description: dto.description?.trim() || null,
+						config:
+							dto.config === undefined
+								? undefined
+								: toJsonObject(dto.config),
 						targetConfigs:
 							dto.targetConfigs === undefined
 								? undefined
 								: toJsonArray(dto.targetConfigs),
+						textBlocks:
+							dto.textBlocks === undefined
+								? undefined
+								: toJsonArray(dto.textBlocks),
 						status: dto.status,
 						isActive: normalizeSpellActive(dto.status, dto.isActive, existing),
 						sortOrder: dto.sortOrder ?? 0
@@ -330,6 +362,7 @@ export class MagicService {
 					select: { id: true },
 					data: {
 						type: dto.type,
+						slug: createSlug(dto.name),
 						name: dto.name.trim(),
 						description: dto.description?.trim() || null,
 						isActive: dto.isActive ?? true,
@@ -353,6 +386,12 @@ export class MagicService {
 					created.id,
 					dto.type,
 					dto.essenceProfile
+				);
+				await this.syncAreaShape(
+					tx,
+					created.id,
+					dto.type,
+					dto.areaShape
 				);
 
 				return created.id;
@@ -438,6 +477,9 @@ export class MagicService {
 						nextType,
 						dto.essenceProfile
 					);
+				}
+				if (dto.type !== undefined || dto.areaShape !== undefined) {
+					await this.syncAreaShape(tx, id, nextType, dto.areaShape);
 				}
 			});
 			const word = await this.prisma.magicWord.findUniqueOrThrow({
@@ -647,6 +689,51 @@ export class MagicService {
 		});
 	}
 
+	private async syncAreaShape(
+		tx: Prisma.TransactionClient,
+		magicWordId: string,
+		type: MagicWordType,
+		shape:
+			| {
+					kind: AreaShapeKind;
+					name: string;
+					description?: string;
+					dimensions?: unknown;
+					influenceConfig?: unknown;
+					isActive?: boolean;
+					sortOrder?: number;
+			  }
+			| undefined
+	) {
+		if (type !== MagicWordType.GESTURE) {
+			await tx.areaShape.deleteMany({ where: { gestureId: magicWordId } });
+			return;
+		}
+
+		if (!shape) {
+			return;
+		}
+
+		const data = {
+			kind: shape.kind,
+			name: shape.name.trim(),
+			description: shape.description?.trim() || null,
+			dimensions: toJsonObject(shape.dimensions),
+			influenceConfig: toJsonObject(shape.influenceConfig),
+			isActive: shape.isActive ?? true,
+			sortOrder: shape.sortOrder ?? 0
+		};
+
+		await tx.areaShape.upsert({
+			where: { gestureId: magicWordId },
+			create: {
+				gestureId: magicWordId,
+				...data
+			},
+			update: data
+		});
+	}
+
 	private async syncSpellMechanicBlocks(
 		tx: Prisma.TransactionClient,
 		spellId: string,
@@ -726,6 +813,7 @@ export class MagicService {
 		return {
 			id: word.id,
 			type: word.type,
+			slug: word.slug,
 			name: word.name,
 			description: word.description ?? '',
 			isActive: word.isActive,
@@ -733,22 +821,26 @@ export class MagicService {
 			allowedGestureIds: allowedGestures.map(gesture => gesture.id),
 			allowedGestures: allowedGestures.map(gesture => ({
 				id: gesture.id,
+				slug: gesture.slug,
 				name: gesture.name
 			})),
 			skillIds: skills.map(skill => skill.id),
 			skills: skills.map(skill => ({
 				id: skill.id,
+				slug: skill.slug,
 				name: skill.name,
 				categoryName: skill.category.name
 			})),
 			damageTypeIds: damageTypes.map(damageType => damageType.id),
 			damageTypes: damageTypes.map(damageType => ({
 				id: damageType.id,
+				slug: damageType.slug,
 				name: damageType.name
 			})),
 			conditionIds: conditions.map(condition => condition.id),
 			conditions: conditions.map(condition => ({
 				id: condition.id,
+				slug: condition.slug,
 				name: condition.name
 			})),
 			essenceProfile: word.essenceProfile
@@ -761,6 +853,17 @@ export class MagicService {
 						stabilityAffinity: Number(word.essenceProfile.stabilityAffinity)
 				  }
 				: null,
+			areaShape: word.areaShape
+				? {
+						kind: word.areaShape.kind,
+						name: word.areaShape.name,
+						description: word.areaShape.description ?? '',
+						dimensions: toJsonObject(word.areaShape.dimensions),
+						influenceConfig: toJsonObject(word.areaShape.influenceConfig),
+						isActive: word.areaShape.isActive,
+						sortOrder: word.areaShape.sortOrder
+				  }
+				: null,
 			createdAt: word.createdAt.toISOString(),
 			updatedAt: word.updatedAt.toISOString()
 		};
@@ -768,7 +871,7 @@ export class MagicService {
 
 	private async loadActiveWords(type: MagicWordType) {
 		return this.prisma.magicWord.findMany({
-			select: { id: true, name: true, sortOrder: true },
+			select: { id: true, slug: true, name: true, sortOrder: true },
 			where: { type, isActive: true },
 			orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 		});
@@ -806,16 +909,18 @@ export class MagicService {
 			gestureId: spell.gestureId,
 			name: spell.name,
 			description: spell.description ?? '',
+			config: toJsonObject(spell.config),
 			targetConfigs: Array.isArray(spell.targetConfigs)
 				? spell.targetConfigs
 				: [],
+			textBlocks: Array.isArray(spell.textBlocks) ? spell.textBlocks : [],
 			status: spell.status,
 			isActive: spell.isActive,
 			sortOrder: spell.sortOrder,
 			formulaName: `${spell.action.name} + ${spell.essence.name} + ${spell.gesture.name}`,
-			action: { id: spell.action.id, name: spell.action.name },
-			essence: { id: spell.essence.id, name: spell.essence.name },
-			gesture: { id: spell.gesture.id, name: spell.gesture.name },
+			action: { id: spell.action.id, slug: spell.action.slug, name: spell.action.name },
+			essence: { id: spell.essence.id, slug: spell.essence.slug, name: spell.essence.name },
+			gesture: { id: spell.gesture.id, slug: spell.gesture.slug, name: spell.gesture.name },
 			mechanicBlocks: spell.mechanicBlocks.map(block => ({
 				id: block.id,
 				mechanicId: block.mechanicId,
@@ -832,8 +937,12 @@ export class MagicService {
 	}
 }
 
-function toJsonObject(value: Record<string, unknown> | undefined) {
-	if (!value || Array.isArray(value)) {
+function toJsonObject(value: unknown) {
+	if (
+		!value ||
+		Array.isArray(value) ||
+		typeof value !== 'object'
+	) {
 		return {};
 	}
 

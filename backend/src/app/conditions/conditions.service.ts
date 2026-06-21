@@ -2,11 +2,13 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateConditionDto } from './dto/create-condition.dto';
 import { UpdateConditionDto } from './dto/update-condition.dto';
 
 const conditionSelect = {
 	id: true,
+	slug: true,
 	name: true,
 	description: true,
 	isActive: true,
@@ -83,6 +85,7 @@ export class ConditionsService {
 
 	private toCreateData(dto: CreateConditionDto) {
 		return {
+			slug: createSlug(dto.name),
 			name: dto.name.trim(),
 			description: this.toNullableString(dto.description),
 			isActive: dto.isActive ?? true,
@@ -114,6 +117,7 @@ export class ConditionsService {
 	private mapCondition(condition: ConditionRecord) {
 		return {
 			id: condition.id,
+			slug: condition.slug,
 			name: condition.name,
 			description: condition.description ?? '',
 			isActive: condition.isActive,

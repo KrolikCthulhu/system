@@ -16,6 +16,7 @@ export type ProgressionPresetConfig = Record<
 
 export interface ProgressionPreset {
 	id: string;
+	slug: string;
 	name: string;
 	description: string;
 	kind: ProgressionPresetKind;

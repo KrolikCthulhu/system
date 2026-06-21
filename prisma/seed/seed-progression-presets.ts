@@ -1,13 +1,26 @@
 import { Prisma, ProgressionPresetKind } from '../__generated__/index.js';
-import { PROGRESSION_PRESET_SEEDS } from './data';
+import type { ContentDocument, ProgressionContent } from '../content/content-types';
+import { readContent } from './content';
+import { seedSlug } from './slug';
+
+const PROGRESSION_PRESET_SEEDS = readContent<
+	ContentDocument<{ progressions: ProgressionContent[] }>
+>(
+	'dictionaries/progressions.ts'
+).progressions;
 
 export async function seedProgressionPresets(tx: Prisma.TransactionClient) {
 	for (const seed of PROGRESSION_PRESET_SEEDS) {
-		const existing = await tx.progressionPreset.findUnique({
-			where: { name: seed.name }
+		const slug = seedSlug(seed);
+		const existing = await tx.progressionPreset.findFirst({
+			where: {
+				OR: [{ slug }, { name: seed.name }]
+			}
 		});
 
 		const data = {
+			slug,
+			name: seed.name,
 			description: seed.description,
 			kind: toProgressionPresetKind(seed.kind),
 			config: seed.config,
@@ -25,7 +38,6 @@ export async function seedProgressionPresets(tx: Prisma.TransactionClient) {
 
 		await tx.progressionPreset.create({
 			data: {
-				name: seed.name,
 				...data
 			}
 		});

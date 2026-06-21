@@ -8,6 +8,7 @@ import { seedCharacteristics } from './seed-characteristics';
 import { seedConditions } from './seed-conditions';
 import { seedDamageTypes } from './seed-damage-types';
 import { seedGameEventHandlers } from './seed-game-events';
+import { seedAreaShapes } from './seed-area-shapes';
 import { seedMagicWordLinks } from './seed-magic-word-links';
 import { seedMagicWords } from './seed-magic-words';
 import { seedProgressionPresets } from './seed-progression-presets';
@@ -19,6 +20,7 @@ import {
 import { seedSkillLevels } from './seed-skill-levels';
 import { seedSkillCategories, seedSkills } from './seed-skills';
 import { seedSpellMechanics } from './seed-spell-mechanics';
+import { seedSpells } from './seed-spells';
 import {
 	seedHealthValue,
 	seedPotentialValue,
@@ -63,5 +65,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedSpellcasterLevelValue(tx);
 	await seedSpellMechanics(tx);
 	await seedMagicWords(tx);
+	await seedAreaShapes(tx);
 	await seedMagicWordLinks(tx);
+	await seedSpells(tx);
 }

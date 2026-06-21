@@ -1,19 +1,28 @@
-import { MagicWordType } from '../../domain/magic-word.models';
-import { SpellMechanicBlockConfig } from '../../domain/spell.models';
+import {
+	AreaShapeKind,
+	MagicWordType
+} from '../../domain/magic-word.models';
+import {
+	SpellConfig,
+	SpellMechanicBlockConfig
+} from '../../domain/spell.models';
 
 export interface MagicWordGestureOptionDto {
 	id: string;
+	slug: string;
 	name: string;
 }
 
 export interface MagicWordSkillOptionDto {
 	id: string;
+	slug: string;
 	name: string;
 	categoryName: string;
 }
 
 export interface MagicWordLinkedOptionDto {
 	id: string;
+	slug: string;
 	name: string;
 }
 
@@ -26,9 +35,20 @@ export interface MagicWordEssenceProfileDto {
 	stabilityAffinity: number;
 }
 
+export interface MagicWordAreaShapeDto {
+	kind: AreaShapeKind;
+	name: string;
+	description: string;
+	dimensions: unknown;
+	influenceConfig: unknown;
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface MagicWordDto {
 	id: string;
 	type: MagicWordType;
+	slug: string;
 	name: string;
 	description: string;
 	isActive: boolean;
@@ -42,6 +62,7 @@ export interface MagicWordDto {
 	conditionIds: string[];
 	conditions: MagicWordLinkedOptionDto[];
 	essenceProfile: MagicWordEssenceProfileDto | null;
+	areaShape: MagicWordAreaShapeDto | null;
 	createdAt: string;
 	updatedAt: string;
 }
@@ -52,8 +73,10 @@ export interface MagicWordsResponseDto {
 
 export interface MagicSpellFormulaDto {
 	actionId: string;
+	actionSlug: string;
 	actionName: string;
 	essenceId: string;
+	essenceSlug: string;
 	essenceName: string;
 	name: string;
 }
@@ -73,6 +96,7 @@ export interface CreateMagicWordDto {
 	damageTypeIds?: string[];
 	conditionIds?: string[];
 	essenceProfile?: MagicWordEssenceProfileDto;
+	areaShape?: MagicWordAreaShapeDto;
 }
 
 export interface UpdateMagicWordDto {
@@ -86,6 +110,7 @@ export interface UpdateMagicWordDto {
 	damageTypeIds?: string[];
 	conditionIds?: string[];
 	essenceProfile?: MagicWordEssenceProfileDto;
+	areaShape?: MagicWordAreaShapeDto;
 }
 
 export type SpellStatusDto = 'DRAFT' | 'TESTING' | 'READY';
@@ -93,6 +118,7 @@ export type SpellCatalogStatusDto = 'EMPTY' | SpellStatusDto;
 
 export interface SpellFormulaWordDto {
 	id: string;
+	slug: string;
 	name: string;
 }
 
@@ -103,6 +129,7 @@ export interface SpellDto {
 	gestureId: string;
 	name: string;
 	description: string;
+	config?: SpellConfig;
 	status: SpellStatusDto;
 	isActive: boolean;
 	sortOrder: number;
@@ -111,9 +138,19 @@ export interface SpellDto {
 	essence: SpellFormulaWordDto;
 	gesture: SpellFormulaWordDto;
 	targetConfigs: SpellTargetConfigDto[];
+	textBlocks: SpellTextBlockDto[];
 	mechanicBlocks: SpellMechanicBlockDto[];
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface SpellTextBlockDto {
+	id: string;
+	kind: string;
+	text?: string;
+	mechanicBlockId?: string;
+	isActive?: boolean;
+	sortOrder?: number;
 }
 
 export interface SpellTargetConfigDto {
@@ -169,10 +206,12 @@ export interface SaveSpellDto {
 	gestureId?: string;
 	name: string;
 	description?: string;
+	config?: SpellConfig;
 	status: SpellStatusDto;
 	isActive?: boolean;
 	sortOrder?: number;
 	targetConfigs?: SpellTargetConfigDto[];
+	textBlocks?: SpellTextBlockDto[];
 	mechanicBlocks?: SaveSpellMechanicBlockDto[];
 }
 

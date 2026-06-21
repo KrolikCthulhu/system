@@ -22,6 +22,7 @@ export function mapSpellMechanicCategoryDto(
 ): SpellMechanicCategory {
 	return {
 		id: dto.id,
+		slug: dto.slug,
 		name: dto.name,
 		description: dto.description ?? '',
 		isActive: dto.isActive,
@@ -37,6 +38,7 @@ export function mapSpellMechanicDto(
 	return {
 		id: dto.id,
 		categoryId: dto.categoryId,
+		slug: dto.slug,
 		name: dto.name,
 		description: dto.description ?? '',
 		configSchema: dto.configSchema ?? {},
@@ -56,6 +58,7 @@ function mapSpellMechanicParameterDto(
 	return {
 		id: dto.id,
 		mechanicId: dto.mechanicId,
+		slug: dto.slug,
 		name: dto.name,
 		kind: dto.kind,
 		numericRole: dto.numericRole ?? 'custom',

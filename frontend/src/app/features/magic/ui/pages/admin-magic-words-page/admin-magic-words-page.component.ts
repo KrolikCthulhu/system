@@ -34,6 +34,8 @@ import { DamageType } from '../../../../damage-types/domain/damage-types.models'
 import { SKILLS_REPOSITORY } from '../../../../skills/data/skills-repository.port';
 import { Skill, SkillCategory } from '../../../../skills/domain/skills.models';
 import {
+	AreaShapeKind,
+	MagicWordAreaShape,
 	MAGIC_WORD_TYPE_OPTIONS,
 	MagicWord,
 	MagicWordEssenceProfile,
@@ -55,9 +57,19 @@ interface MagicWordDraft {
 	damageTypeIds: string[];
 	conditionIds: string[];
 	essenceProfile: MagicWordEssenceProfile;
+	areaShape: MagicWordAreaShape;
 }
 
 type EssenceProfileField = keyof MagicWordEssenceProfile;
+type AreaShapeBaseDimensionKey =
+	| 'radius'
+	| 'length'
+	| 'width'
+	| 'height'
+	| 'side'
+	| 'tiles'
+	| 'innerRadius'
+	| 'thickness';
 
 interface SelectOption {
 	id: string;
@@ -145,6 +157,19 @@ export class AdminMagicWordsPageComponent {
 			label: 'Стабильность',
 			tooltip: 'Насколько сущность подходит для устойчивых, защищённых и предсказуемых эффектов.'
 		}
+	];
+	protected readonly areaShapeKindOptions: Array<{
+		label: string;
+		value: AreaShapeKind;
+	}> = [
+		{ label: 'Точка', value: 'POINT' },
+		{ label: 'Линия', value: 'LINE' },
+		{ label: 'Плоскость', value: 'PLANE' },
+		{ label: 'Конус', value: 'CONE' },
+		{ label: 'Сфера', value: 'SPHERE' },
+		{ label: 'Куб', value: 'CUBE' },
+		{ label: 'Цилиндр', value: 'CYLINDER' },
+		{ label: 'Кольцо', value: 'RING' }
 	];
 	protected readonly selectedType = signal<MagicWordType>('ACTION');
 	protected readonly selectedWordId = signal<string | null>(null);
@@ -337,6 +362,40 @@ export class AdminMagicWordsPageComponent {
 		});
 	}
 
+	protected updateAreaShape(patch: Partial<MagicWordAreaShape>) {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		const nextKind = patch.kind ?? draft.areaShape.kind;
+		const shouldResetDimensions = patch.kind && patch.kind !== draft.areaShape.kind;
+		const shapeDefaults = createDefaultAreaShapeByKind(nextKind);
+
+		this.patchDraft({
+			areaShape: {
+				...draft.areaShape,
+				...(shouldResetDimensions
+					? {
+							...shapeDefaults,
+							name: draft.areaShape.name,
+							description: draft.areaShape.description,
+							isActive: draft.areaShape.isActive,
+							sortOrder: draft.areaShape.sortOrder
+					  }
+					: {}),
+				...patch,
+				dimensions: shouldResetDimensions
+					? shapeDefaults.dimensions
+					: patch.dimensions ?? draft.areaShape.dimensions,
+				influenceConfig: shouldResetDimensions
+					? shapeDefaults.influenceConfig
+					: patch.influenceConfig ?? draft.areaShape.influenceConfig
+			}
+		});
+	}
+
 	protected essenceProfilePercent(
 		profile: MagicWordEssenceProfile,
 		field: EssenceProfileField
@@ -386,7 +445,9 @@ export class AdminMagicWordsPageComponent {
 			damageTypeIds: draft.damageTypeIds,
 			conditionIds: draft.conditionIds,
 			essenceProfile:
-				draft.type === 'ESSENCE' ? draft.essenceProfile : undefined
+				draft.type === 'ESSENCE' ? draft.essenceProfile : undefined,
+			areaShape:
+				draft.type === 'GESTURE' ? normalizeAreaShape(draft.areaShape) : undefined
 		};
 		const request = draft.id
 			? this.repository.updateWord(draft.id, command)
@@ -498,7 +559,10 @@ export class AdminMagicWordsPageComponent {
 			conditionIds: [...word.conditionIds],
 			essenceProfile: word.essenceProfile
 				? { ...word.essenceProfile }
-				: createDefaultEssenceProfile()
+				: createDefaultEssenceProfile(),
+			areaShape: word.areaShape
+				? { ...word.areaShape }
+				: createDefaultAreaShape(word.name)
 		};
 
 		this.selectedWordId.set(word.id);
@@ -559,7 +623,8 @@ function createEmptyDraft(type: MagicWordType): MagicWordDraft {
 		skillIds: [],
 		damageTypeIds: [],
 		conditionIds: [],
-		essenceProfile: createDefaultEssenceProfile()
+		essenceProfile: createDefaultEssenceProfile(),
+		areaShape: createDefaultAreaShape('')
 	};
 }
 
@@ -613,4 +678,78 @@ function normalizePercent(value: number | null) {
 	}
 
 	return Math.min(1, Math.max(0, Math.round(value) / 100));
+}
+
+function createDefaultAreaShape(name: string): MagicWordAreaShape {
+	return {
+		...createDefaultAreaShapeByKind('POINT'),
+		name: name || 'Форма области'
+	};
+}
+
+function createDefaultAreaShapeByKind(kind: AreaShapeKind): MagicWordAreaShape {
+	const defaults = areaShapeDimensionDefaults(kind);
+
+	return {
+		kind,
+		name: 'Форма области',
+		description: '',
+		dimensions: {
+			version: 1,
+			primaryDimension: defaults.primaryDimension,
+			unit: 'cell',
+			base: defaults.base
+		},
+		influenceConfig: {
+			version: 1,
+			sources: []
+		},
+		isActive: true,
+		sortOrder: 0
+	};
+}
+
+function areaShapeDimensionDefaults(kind: AreaShapeKind): {
+	primaryDimension: AreaShapeBaseDimensionKey | '';
+	base: Partial<Record<AreaShapeBaseDimensionKey, number>>;
+} {
+	switch (kind) {
+		case 'POINT':
+			return { primaryDimension: '', base: {} };
+		case 'LINE':
+			return { primaryDimension: 'length', base: { length: 5, width: 1 } };
+		case 'PLANE':
+			return { primaryDimension: 'tiles', base: { tiles: 4 } };
+		case 'CONE':
+			return { primaryDimension: 'length', base: { length: 4 } };
+		case 'SPHERE':
+			return { primaryDimension: 'radius', base: { radius: 2 } };
+		case 'CUBE':
+			return { primaryDimension: 'side', base: { side: 3 } };
+		case 'CYLINDER':
+			return { primaryDimension: 'radius', base: { radius: 2, height: 4 } };
+		case 'RING':
+			return { primaryDimension: 'innerRadius', base: { innerRadius: 1, thickness: 2 } };
+	}
+}
+
+function normalizeAreaShape(shape: MagicWordAreaShape): MagicWordAreaShape {
+	const defaults = createDefaultAreaShapeByKind(shape.kind);
+
+	return {
+		...shape,
+		name: shape.name.trim() || 'Форма области',
+		description: shape.description.trim(),
+		dimensions: {
+			version: 1,
+			primaryDimension:
+				shape.dimensions.primaryDimension || defaults.dimensions.primaryDimension,
+			unit: 'cell',
+			base: { ...defaults.dimensions.base }
+		},
+		influenceConfig: {
+			version: 1,
+			sources: []
+		}
+	};
 }

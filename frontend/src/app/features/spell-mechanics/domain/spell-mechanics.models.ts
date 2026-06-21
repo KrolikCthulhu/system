@@ -1,5 +1,6 @@
 export interface SpellMechanicCategory {
 	id: string;
+	slug: string;
 	name: string;
 	description: string;
 	isActive: boolean;
@@ -11,6 +12,7 @@ export interface SpellMechanicCategory {
 export interface SpellMechanic {
 	id: string;
 	categoryId: string;
+	slug: string;
 	name: string;
 	description: string;
 	configSchema: SpellMechanicConfigSchema;
@@ -49,6 +51,7 @@ export type SpellMechanicNumericRole =
 export interface SpellMechanicParameter {
 	id: string;
 	mechanicId: string;
+	slug: string;
 	name: string;
 	kind: SpellMechanicParameterKind;
 	numericRole: SpellMechanicNumericRole;
@@ -91,7 +94,7 @@ export interface SpellMechanicParameterDefaultValue {
 
 export type SpellMechanicParameterCommand = Omit<
 	SpellMechanicParameter,
-	'mechanicId' | 'createdAt' | 'updatedAt'
+	'slug' | 'mechanicId' | 'createdAt' | 'updatedAt'
 >;
 
 export type SpellMechanicActionKind =

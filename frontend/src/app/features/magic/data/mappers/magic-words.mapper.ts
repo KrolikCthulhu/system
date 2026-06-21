@@ -1,4 +1,6 @@
 import {
+	AreaShapeDimensions,
+	AreaShapeInfluenceConfig,
 	MagicSpellFormula,
 	MagicWord,
 	MagicWordsCatalog
@@ -7,6 +9,7 @@ import {
 	Spell,
 	SpellCatalog,
 	SpellRuntimePreview,
+	SpellTextBlock,
 	SpellTargetConfig,
 	SpellTargetCountMode,
 	SpellTargetCountValueMode,
@@ -66,6 +69,7 @@ export function mapMagicWordDto(dto: MagicWordDto): MagicWord {
 	return {
 		id: dto.id,
 		type: dto.type,
+		slug: dto.slug,
 		name: dto.name,
 		description: dto.description ?? '',
 		isActive: dto.isActive,
@@ -88,16 +92,115 @@ export function mapMagicWordDto(dto: MagicWordDto): MagicWord {
 					stabilityAffinity: dto.essenceProfile.stabilityAffinity
 			  }
 			: null,
+		areaShape: dto.areaShape
+			? {
+					kind: dto.areaShape.kind,
+					name: dto.areaShape.name,
+					description: dto.areaShape.description ?? '',
+					dimensions: normalizeAreaShapeDimensions(dto.areaShape.dimensions),
+					influenceConfig: normalizeAreaShapeInfluenceConfig(
+						dto.areaShape.influenceConfig
+					),
+					isActive: dto.areaShape.isActive,
+					sortOrder: dto.areaShape.sortOrder
+			  }
+			: null,
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
 	};
 }
 
+function normalizeAreaShapeDimensions(value: unknown): AreaShapeDimensions {
+	if (!isRecord(value)) {
+		return createDefaultAreaShapeDimensions();
+	}
+
+	const baseValue = value['base'];
+	const base: Record<string, number> = {};
+
+	if (isRecord(baseValue)) {
+		for (const [key, item] of Object.entries(baseValue)) {
+			if (typeof item === 'number' && Number.isFinite(item)) {
+				base[key] = item;
+			}
+		}
+	}
+
+	return {
+		version: 1,
+		primaryDimension:
+			typeof value['primaryDimension'] === 'string'
+				? value['primaryDimension']
+				: 'radius',
+		unit: typeof value['unit'] === 'string' ? value['unit'] : 'm',
+		base,
+		orientation:
+			value['orientation'] === 'horizontal' ||
+			value['orientation'] === 'vertical' ||
+			value['orientation'] === 'free'
+				? value['orientation']
+				: undefined,
+		tileSize:
+			typeof value['tileSize'] === 'number' && Number.isFinite(value['tileSize'])
+				? value['tileSize']
+				: undefined
+	};
+}
+
+function normalizeAreaShapeInfluenceConfig(
+	value: unknown
+): AreaShapeInfluenceConfig {
+	if (!isRecord(value) || !Array.isArray(value['sources'])) {
+		return { version: 1, sources: [] };
+	}
+
+	return {
+		version: 1,
+		sources: value['sources']
+			.filter(isRecord)
+			.map(source => ({
+				sourceKind:
+					source['sourceKind'] === 'systemValue' ||
+					source['sourceKind'] === 'linkedSkill' ||
+					source['sourceKind'] === 'essenceProfile'
+						? source['sourceKind']
+						: 'systemValue',
+				sourceKey:
+					typeof source['sourceKey'] === 'string'
+						? source['sourceKey']
+						: '',
+				targetDimension:
+					typeof source['targetDimension'] === 'string'
+						? source['targetDimension']
+						: 'radius',
+				weight:
+					typeof source['weight'] === 'number' && Number.isFinite(source['weight'])
+						? source['weight']
+						: 0
+			}))
+	};
+}
+
+function createDefaultAreaShapeDimensions(): AreaShapeDimensions {
+	return {
+		version: 1,
+		primaryDimension: 'radius',
+		unit: 'm',
+		base: {}
+	};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
 function mapMagicSpellFormulaDto(dto: MagicSpellFormulaDto): MagicSpellFormula {
 	return {
 		actionId: dto.actionId,
+		actionSlug: dto.actionSlug,
 		actionName: dto.actionName,
 		essenceId: dto.essenceId,
+		essenceSlug: dto.essenceSlug,
 		essenceName: dto.essenceName,
 		name: dto.name
 	};
@@ -111,6 +214,7 @@ export function mapSpellDto(dto: SpellDto): Spell {
 		gestureId: dto.gestureId,
 		name: dto.name,
 		description: dto.description ?? '',
+		config: isRecord(dto.config) ? dto.config : {},
 		status: dto.status,
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
@@ -119,6 +223,7 @@ export function mapSpellDto(dto: SpellDto): Spell {
 		essence: dto.essence,
 		gesture: dto.gesture,
 		targetConfigs: (dto.targetConfigs ?? []).map(mapSpellTargetConfigDto),
+		textBlocks: (dto.textBlocks ?? []).map(mapSpellTextBlockDto),
 		mechanicBlocks: (dto.mechanicBlocks ?? []).map(block => ({
 			id: block.id,
 			mechanicId: block.mechanicId,
@@ -131,6 +236,24 @@ export function mapSpellDto(dto: SpellDto): Spell {
 		})),
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
+	};
+}
+
+function mapSpellTextBlockDto(dto: {
+	id: string;
+	kind: string;
+	text?: string;
+	mechanicBlockId?: string;
+	isActive?: boolean;
+	sortOrder?: number;
+}): SpellTextBlock {
+	return {
+		id: dto.id,
+		kind: dto.kind === 'mechanicText' ? 'mechanicText' : 'text',
+		text: dto.text ?? '',
+		mechanicBlockId: dto.mechanicBlockId ?? '',
+		isActive: dto.isActive ?? true,
+		sortOrder: dto.sortOrder ?? 0
 	};
 }
 

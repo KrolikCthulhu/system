@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 import {
 	Prisma,
 	SpellMechanicActionKind,
@@ -5,60 +6,41 @@ import {
 	SpellMechanicParameterDefaultMode,
 	SpellMechanicParameterKind
 } from '../__generated__/index.js';
-import {
-	SPELL_MECHANIC_CATEGORY_SEEDS,
-	SPELL_MECHANIC_SEEDS
-} from './data';
+import type {
+	ContentDocument,
+	SpellMechanicActionContent,
+	SpellMechanicCategoryContent,
+	SpellMechanicContent,
+	SpellMechanicParameterContent
+} from '../content/content-types';
+import { readContent } from './content';
+import { seedSlug } from './slug';
 
-type SpellMechanicParameterSeedKind =
-	| 'target'
-	| 'skill'
-	| 'number'
-	| 'formula'
-	| 'damageType'
-	| 'condition'
-	| 'systemValue'
-	| 'text';
-
-type SpellMechanicParameterSeedDefaultMode =
-	| 'empty'
-	| 'static'
-	| 'fromMagicWord';
-
-type SpellMechanicNumericRoleSeed =
-	| 'damage'
-	| 'range'
-	| 'duration'
-	| 'area'
-	| 'targetCount'
-	| 'custom';
-
-type SpellMechanicActionSeedKind =
-	| 'roll'
-	| 'check'
-	| 'comparison'
-	| 'calculation'
-	| 'branch'
-	| 'effectScale'
-	| 'valueChange'
-	| 'conditionAdd'
-	| 'conditionRemove'
-	| 'text'
-	| 'custom';
+type SpellMechanicsContent = ContentDocument<{
+	categories: SpellMechanicCategoryContent[];
+	mechanics: SpellMechanicContent[];
+}>;
 
 type SeedContext = {
-	parametersById: Map<string, string>;
-	actionsById: Map<string, string>;
+	mechanicSlug: string;
+	parametersBySlug: Map<string, string>;
+	actionsBySlug: Map<string, string>;
 	skillsByName: Map<string, string>;
 	damageTypesByName: Map<string, string>;
 	conditionsByName: Map<string, string>;
 	systemValuesByName: Map<string, string>;
 };
 
+const spellMechanicsContent = readContent<SpellMechanicsContent>(
+	'magic/mechanics.ts'
+);
+const SPELL_MECHANIC_CATEGORY_SEEDS = spellMechanicsContent.categories;
+const SPELL_MECHANIC_SEEDS = spellMechanicsContent.mechanics;
+
 export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 	const categories = new Map<string, { id: string }>();
-	const categoryNames = SPELL_MECHANIC_CATEGORY_SEEDS.map(seed => seed.name);
-	const mechanicNames = SPELL_MECHANIC_SEEDS.map(seed => seed.name);
+	const categorySlugs = SPELL_MECHANIC_CATEGORY_SEEDS.map(seed => seedSlug(seed));
+	const mechanicSlugs = SPELL_MECHANIC_SEEDS.map(seed => seedSlug(seed));
 	const skillsByName = new Map(
 		(
 			await tx.skill.findMany({
@@ -88,42 +70,38 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 		).map(value => [value.name, value.id])
 	);
 
-	await tx.spellMechanic.deleteMany({
-		where: {
-			name: {
-				notIn: mechanicNames
-			}
-		}
-	});
-
-	await tx.spellMechanicCategory.deleteMany({
-		where: {
-			name: {
-				notIn: categoryNames
-			},
-			mechanics: {
-				none: {}
-			}
-		}
-	});
-
 	for (const seed of SPELL_MECHANIC_CATEGORY_SEEDS) {
-		const category = await tx.spellMechanicCategory.upsert({
+		const slug = seedSlug(seed);
+		const existing = await tx.spellMechanicCategory.findFirst({
 			select: { id: true },
-			where: { name: seed.name },
-			create: {
-				name: seed.name,
-				sortOrder: seed.sortOrder
-			},
-			update: {
-				sortOrder: seed.sortOrder
+			where: {
+				OR: [{ slug }, { name: seed.name }]
 			}
 		});
+		const category = existing
+			? await tx.spellMechanicCategory.update({
+					select: { id: true },
+					where: { id: existing.id },
+					data: {
+						slug,
+						name: seed.name,
+						sortOrder: seed.sortOrder
+					}
+			  })
+			: await tx.spellMechanicCategory.create({
+					select: { id: true },
+					data: {
+						slug,
+						name: seed.name,
+						sortOrder: seed.sortOrder
+					}
+			  });
 
 		categories.set(seed.name, category);
 	}
 
 	for (const seed of SPELL_MECHANIC_SEEDS) {
+		const slug = seedSlug(seed);
 		const category = categories.get(seed.categoryName);
 
 		if (!category) {
@@ -132,27 +110,44 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 			);
 		}
 
-		const mechanic = await tx.spellMechanic.upsert({
+		const existing = await tx.spellMechanic.findFirst({
 			select: { id: true },
-			where: { name: seed.name },
-			create: {
-				categoryId: category.id,
-				name: seed.name,
-				description: 'description' in seed ? seed.description : null,
-				sortOrder: seed.sortOrder,
-				configSchema: seed.configSchema,
-				textTemplate:
-					typeof seed.textTemplate === 'string' ? seed.textTemplate : null
-			},
-			update: {
-				categoryId: category.id,
-				description: 'description' in seed ? seed.description : null,
-				sortOrder: seed.sortOrder,
-				configSchema: seed.configSchema,
-				textTemplate:
-					typeof seed.textTemplate === 'string' ? seed.textTemplate : null
+			where: {
+				OR: [{ slug }, { name: seed.name }]
 			}
 		});
+		const mechanic = existing
+			? await tx.spellMechanic.update({
+					select: { id: true },
+					where: { id: existing.id },
+					data: {
+						categoryId: category.id,
+						slug,
+						name: seed.name,
+						description: 'description' in seed ? seed.description : null,
+						sortOrder: seed.sortOrder,
+						configSchema: seed.configSchema,
+						textTemplate:
+							typeof seed.textTemplate === 'string'
+								? seed.textTemplate
+								: null
+					}
+			  })
+			: await tx.spellMechanic.create({
+					select: { id: true },
+					data: {
+						categoryId: category.id,
+						slug,
+						name: seed.name,
+						description: 'description' in seed ? seed.description : null,
+						sortOrder: seed.sortOrder,
+						configSchema: seed.configSchema,
+						textTemplate:
+							typeof seed.textTemplate === 'string'
+								? seed.textTemplate
+								: null
+					}
+			  });
 
 		await tx.spellMechanicParameter.deleteMany({
 			where: { mechanicId: mechanic.id }
@@ -161,8 +156,11 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 		if (seed.parameters.length) {
 			await tx.spellMechanicParameter.createMany({
 				data: seed.parameters.map((parameter, index) => ({
-					id: parameter.id,
+					id: stableSeedUuid(
+						`spell-mechanic-parameter:${slug}:${seedSlug(parameter)}`
+					),
 					mechanicId: mechanic.id,
+					slug: seedSlug(parameter),
 					name: parameter.name,
 					kind: toParameterKind(parameter.kind),
 					numericRole: toNumericRole(
@@ -231,24 +229,29 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 			});
 		}
 
-		const parametersById = new Map(
-			(
-				await tx.spellMechanicParameter.findMany({
-					select: { id: true },
-					where: { mechanicId: mechanic.id }
-				})
-			).map(parameter => [parameter.id, parameter.id])
+		const parametersBySlug = new Map(
+			seed.parameters.map(parameter => {
+				const parameterSlug = seedSlug(parameter);
+				return [
+					parameterSlug,
+					stableSeedUuid(`spell-mechanic-parameter:${slug}:${parameterSlug}`)
+				];
+			})
 		);
 
-		const actionsById = new Map<string, string>();
+		const actionsBySlug = new Map<string, string>();
 
 		for (const action of seed.actions) {
-			actionsById.set(action.id, action.id);
+			actionsBySlug.set(
+				action.slug,
+				stableSeedUuid(`spell-mechanic-action:${slug}:${action.slug}`)
+			);
 		}
 
 		const context: SeedContext = {
-			parametersById,
-			actionsById,
+			mechanicSlug: slug,
+			parametersBySlug,
+			actionsBySlug,
 			skillsByName,
 			damageTypesByName,
 			conditionsByName,
@@ -269,7 +272,11 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 		if (seed.actions.length) {
 			await tx.spellMechanicAction.createMany({
 				data: seed.actions.map((action, index) => ({
-					id: action.id,
+					id: requireMapValue(
+						context.actionsBySlug,
+						action.slug,
+						`Spell mechanic action seed not found: ${action.slug}`
+					),
 					mechanicId: mechanic.id,
 					name: action.name,
 					kind: toActionKind(action.kind),
@@ -281,6 +288,25 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 			});
 		}
 	}
+
+	await tx.spellMechanic.deleteMany({
+		where: {
+			slug: {
+				notIn: mechanicSlugs
+			}
+		}
+	});
+
+	await tx.spellMechanicCategory.deleteMany({
+		where: {
+			slug: {
+				notIn: categorySlugs
+			},
+			mechanics: {
+				none: {}
+			}
+		}
+	});
 }
 
 function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJsonValue {
@@ -293,26 +319,26 @@ function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJs
 	}
 
 	if (value.kind === 'mechanicParameter') {
-		const parameterId = readString(value, 'parameterId');
+		const parameterSlug = readString(value, 'parameterSlug');
 		return {
 			kind: 'mechanicParameter',
 			parameterId: requireMapValue(
-				context.parametersById,
-				parameterId,
-				`Spell mechanic parameter seed not found: ${parameterId}`
+				context.parametersBySlug,
+				parameterSlug,
+				`Spell mechanic parameter seed not found: ${parameterSlug}`
 			)
 		};
 	}
 
 	if (value.kind === 'actionResult') {
-		const actionId = readString(value, 'actionId');
+		const actionSlug = readString(value, 'actionSlug');
 		const resultName = readString(value, 'resultName');
 		return {
 			kind: 'actionResult',
 			actionId: requireMapValue(
-				context.actionsById,
-				actionId,
-				`Spell mechanic action seed not found: ${actionId}`
+				context.actionsBySlug,
+				actionSlug,
+				`Spell mechanic action seed not found: ${actionSlug}`
 			),
 			resultName
 		};
@@ -320,7 +346,7 @@ function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJs
 
 	const nestedContext = {
 		...context,
-		actionsById: new Map(context.actionsById)
+		actionsBySlug: new Map(context.actionsBySlug)
 	};
 	const result: Record<string, Prisma.InputJsonValue> = {};
 
@@ -345,8 +371,13 @@ function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJs
 
 			for (const action of actions) {
 				if (isRecord(action)) {
-					const actionId = readString(action, 'id');
-					nestedContext.actionsById.set(actionId, actionId);
+					const actionSlug = readString(action, 'slug');
+					nestedContext.actionsBySlug.set(
+						actionSlug,
+						stableSeedUuid(
+							`spell-mechanic-action:${context.mechanicSlug}:${actionSlug}`
+						)
+					);
 				}
 			}
 
@@ -395,25 +426,25 @@ function resolveSeedTextTemplateSegment(
 	}
 
 	if (value.kind === 'parameter') {
-		const parameterId = readString(value, 'parameterId');
+		const parameterSlug = readString(value, 'parameterSlug');
 		return {
 			kind: 'parameter',
 			parameterId: requireMapValue(
-				context.parametersById,
-				parameterId,
-				`Spell mechanic parameter seed not found: ${parameterId}`
+				context.parametersBySlug,
+				parameterSlug,
+				`Spell mechanic parameter seed not found: ${parameterSlug}`
 			)
 		};
 	}
 
 	if (value.kind === 'actionResult') {
-		const actionId = readString(value, 'actionId');
+		const actionSlug = readString(value, 'actionSlug');
 		return {
 			kind: 'actionResult',
 			actionId: requireMapValue(
-				context.actionsById,
-				actionId,
-				`Spell mechanic action seed not found: ${actionId}`
+				context.actionsBySlug,
+				actionSlug,
+				`Spell mechanic action seed not found: ${actionSlug}`
 			),
 			resultName: readString(value, 'resultName')
 		};
@@ -435,11 +466,11 @@ function resolveNestedSeedAction(
 
 	const name = readString(value, 'name');
 	const kind = readString(value, 'kind');
-	const seedId = readString(value, 'id');
+	const seedSlug = readString(value, 'slug');
 	const id = requireMapValue(
-		context.actionsById,
-		seedId,
-		`Nested spell mechanic action seed not found: ${seedId}`
+		context.actionsBySlug,
+		seedSlug,
+		`Nested spell mechanic action seed not found: ${seedSlug}`
 	);
 
 	return {
@@ -480,6 +511,21 @@ function readString(value: Record<string, unknown>, key: string) {
 	return result;
 }
 
+function stableSeedUuid(value: string) {
+	const bytes = createHash('sha256').update(value).digest().subarray(0, 16);
+	bytes[6] = (bytes[6] & 0x0f) | 0x50;
+	bytes[8] = (bytes[8] & 0x3f) | 0x80;
+	const hex = bytes.toString('hex');
+
+	return [
+		hex.slice(0, 8),
+		hex.slice(8, 12),
+		hex.slice(12, 16),
+		hex.slice(16, 20),
+		hex.slice(20)
+	].join('-');
+}
+
 function requireMapValue(
 	map: Map<string, string>,
 	key: string,
@@ -498,7 +544,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-function toParameterKind(kind: SpellMechanicParameterSeedKind) {
+function toParameterKind(kind: SpellMechanicParameterContent['kind']) {
 	const kinds = {
 		target: 'TARGET',
 		skill: 'SKILL',
@@ -508,18 +554,20 @@ function toParameterKind(kind: SpellMechanicParameterSeedKind) {
 		condition: 'CONDITION',
 		systemValue: 'SYSTEM_VALUE',
 		text: 'TEXT'
-	} satisfies Record<SpellMechanicParameterSeedKind, SpellMechanicParameterKind>;
+	} satisfies Record<SpellMechanicParameterContent['kind'], SpellMechanicParameterKind>;
 
 	return kinds[kind];
 }
 
-function toParameterDefaultMode(mode: SpellMechanicParameterSeedDefaultMode) {
+function toParameterDefaultMode(
+	mode: SpellMechanicParameterContent['defaultValue']['mode']
+) {
 	const modes = {
 		empty: 'EMPTY',
 		static: 'STATIC',
 		fromMagicWord: 'FROM_MAGIC_WORD'
 	} satisfies Record<
-		SpellMechanicParameterSeedDefaultMode,
+		SpellMechanicParameterContent['defaultValue']['mode'],
 		SpellMechanicParameterDefaultMode
 	>;
 
@@ -527,8 +575,8 @@ function toParameterDefaultMode(mode: SpellMechanicParameterSeedDefaultMode) {
 }
 
 function toNumericRole(
-	role: SpellMechanicNumericRoleSeed | undefined,
-	kind: SpellMechanicParameterSeedKind
+	role: SpellMechanicParameterContent['numericRole'] | undefined,
+	kind: SpellMechanicParameterContent['kind']
 ) {
 	if (kind !== 'number' && kind !== 'formula') {
 		return SpellMechanicNumericRole.CUSTOM;
@@ -541,12 +589,15 @@ function toNumericRole(
 		area: 'AREA',
 		targetCount: 'TARGET_COUNT',
 		custom: 'CUSTOM'
-	} satisfies Record<SpellMechanicNumericRoleSeed, SpellMechanicNumericRole>;
+	} satisfies Record<
+		NonNullable<SpellMechanicParameterContent['numericRole']>,
+		SpellMechanicNumericRole
+	>;
 
 	return roles[role ?? 'custom'];
 }
 
-function toActionKind(kind: SpellMechanicActionSeedKind) {
+function toActionKind(kind: SpellMechanicActionContent['kind']) {
 	const kinds = {
 		roll: 'ROLL',
 		check: 'CHECK',
@@ -559,7 +610,7 @@ function toActionKind(kind: SpellMechanicActionSeedKind) {
 		conditionRemove: 'CONDITION_REMOVE',
 		text: 'TEXT',
 		custom: 'CUSTOM'
-	} satisfies Record<SpellMechanicActionSeedKind, SpellMechanicActionKind>;
+	} satisfies Record<SpellMechanicActionContent['kind'], SpellMechanicActionKind>;
 
 	return kinds[kind];
 }

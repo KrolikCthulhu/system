@@ -8,6 +8,7 @@ export interface SkillSystemValueDto {
 
 export interface SkillCategoryDto {
 	id: string;
+	slug: string;
 	name: string;
 	description: string;
 	isActive: boolean;
@@ -15,6 +16,7 @@ export interface SkillCategoryDto {
 
 export interface SkillDto {
 	id: string;
+	slug: string;
 	name: string;
 	categoryId: string;
 	description: string;

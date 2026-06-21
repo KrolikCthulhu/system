@@ -15,6 +15,7 @@ export interface SystemValueLink {
 
 export interface SystemValue {
 	id: string;
+	slug: string;
 	name: string;
 	kind: SystemValueSourceType;
 	groupLabel: string;

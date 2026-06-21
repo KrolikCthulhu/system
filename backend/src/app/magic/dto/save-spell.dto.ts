@@ -82,6 +82,31 @@ export class SaveSpellTargetConfigDto {
 	sortOrder?: number;
 }
 
+export class SaveSpellTextBlockDto {
+	@IsString()
+	id!: string;
+
+	@IsString()
+	kind!: string;
+
+	@IsOptional()
+	@IsString()
+	text?: string;
+
+	@IsOptional()
+	@IsString()
+	mechanicBlockId?: string;
+
+	@IsOptional()
+	@IsBoolean()
+	isActive?: boolean;
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	sortOrder?: number;
+}
+
 export class SaveSpellDto {
 	@IsOptional()
 	@IsUUID('4')
@@ -102,6 +127,10 @@ export class SaveSpellDto {
 	@IsString()
 	description?: string;
 
+	@IsOptional()
+	@IsObject()
+	config?: Record<string, unknown>;
+
 	@IsEnum(SpellStatus)
 	status!: SpellStatus;
 
@@ -119,6 +148,12 @@ export class SaveSpellDto {
 	@ValidateNested({ each: true })
 	@Type(() => SaveSpellTargetConfigDto)
 	targetConfigs?: SaveSpellTargetConfigDto[];
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => SaveSpellTextBlockDto)
+	textBlocks?: SaveSpellTextBlockDto[];
 
 	@IsOptional()
 	@IsArray()
