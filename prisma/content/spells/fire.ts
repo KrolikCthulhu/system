@@ -73,6 +73,8 @@ export default {
 							"character": "scalable",
 							"scale": "large",
 							"growth": "smooth",
+							"startLevel": 1,
+							"minimum": 0,
 							"sourceMode": "advanced",
 							"sources": [
 								{
@@ -106,6 +108,8 @@ export default {
 							"character": "elemental",
 							"scale": "small",
 							"growth": "smooth",
+							"startLevel": 1,
+							"minimum": 0,
 							"sourceMode": "advanced",
 							"sources": [
 								{

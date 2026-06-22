@@ -6,7 +6,11 @@ import {
 import {
 	SpellMechanic,
 	SpellMechanicAction,
+	SpellMechanicActionKind,
 	SpellMechanicParameter,
+	SpellMechanicParameterDefaultValueMode,
+	SpellMechanicParameterKind,
+	SpellMechanicNumericRole,
 	SpellMechanicTargetConfig,
 	SpellMechanicTargetCountMode,
 	SpellMechanicTargetCountValueMode,
@@ -60,12 +64,15 @@ function mapSpellMechanicParameterDto(
 		mechanicId: dto.mechanicId,
 		slug: dto.slug,
 		name: dto.name,
-		kind: dto.kind,
-		numericRole: dto.numericRole ?? 'custom',
+		kind: mapParameterKind(dto.kind),
+		numericRole: mapNumericRole(dto.numericRole),
 		required: dto.required,
 		configuredBySpell: dto.configuredBySpell,
 		overrideAllowed: dto.overrideAllowed,
-		defaultValue: dto.defaultValue,
+		defaultValue: {
+			mode: mapDefaultValueMode(dto.defaultValue.mode),
+			value: dto.defaultValue.value
+		},
 		defaultTargetConfig: dto.defaultTargetConfig
 			? mapTargetConfigDto(dto.defaultTargetConfig)
 			: null,
@@ -118,13 +125,118 @@ function mapSpellMechanicActionDto(
 		id: dto.id,
 		mechanicId: dto.mechanicId,
 		name: dto.name,
-		kind: dto.kind,
+		kind: mapActionKind(dto.kind),
 		config: dto.config ?? {},
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
 	};
+}
+
+function mapParameterKind(value: string): SpellMechanicParameterKind {
+	switch (value) {
+		case 'TARGET':
+		case 'target':
+			return 'target';
+		case 'SKILL':
+		case 'skill':
+			return 'skill';
+		case 'NUMBER':
+		case 'number':
+			return 'number';
+		case 'FORMULA':
+		case 'formula':
+			return 'formula';
+		case 'DAMAGE_TYPE':
+		case 'damageType':
+			return 'damageType';
+		case 'CONDITION':
+		case 'condition':
+			return 'condition';
+		case 'SYSTEM_VALUE':
+		case 'systemValue':
+			return 'systemValue';
+		case 'TEXT':
+		case 'text':
+			return 'text';
+		default:
+			return 'text';
+	}
+}
+
+function mapNumericRole(value: string | undefined): SpellMechanicNumericRole {
+	switch (value) {
+		case 'DAMAGE':
+		case 'damage':
+			return 'damage';
+		case 'RANGE':
+		case 'range':
+			return 'range';
+		case 'DURATION':
+		case 'duration':
+			return 'duration';
+		case 'AREA':
+		case 'area':
+			return 'area';
+		case 'TARGET_COUNT':
+		case 'targetCount':
+			return 'targetCount';
+		default:
+			return 'custom';
+	}
+}
+
+function mapDefaultValueMode(
+	value: string
+): SpellMechanicParameterDefaultValueMode {
+	switch (value) {
+		case 'STATIC':
+		case 'static':
+			return 'static';
+		case 'FROM_MAGIC_WORD':
+		case 'fromMagicWord':
+			return 'fromMagicWord';
+		default:
+			return 'empty';
+	}
+}
+
+function mapActionKind(value: string): SpellMechanicActionKind {
+	switch (value) {
+		case 'ROLL':
+		case 'roll':
+			return 'roll';
+		case 'CHECK':
+		case 'check':
+			return 'check';
+		case 'COMPARISON':
+		case 'comparison':
+			return 'comparison';
+		case 'CALCULATION':
+		case 'calculation':
+			return 'calculation';
+		case 'BRANCH':
+		case 'branch':
+			return 'branch';
+		case 'EFFECT_SCALE':
+		case 'effectScale':
+			return 'effectScale';
+		case 'VALUE_CHANGE':
+		case 'valueChange':
+			return 'valueChange';
+		case 'CONDITION_ADD':
+		case 'conditionAdd':
+			return 'conditionAdd';
+		case 'CONDITION_REMOVE':
+		case 'conditionRemove':
+			return 'conditionRemove';
+		case 'TEXT':
+		case 'text':
+			return 'text';
+		default:
+			return 'custom';
+	}
 }
 
 export function mapSpellMechanicsCatalogResponseDto(

@@ -7,30 +7,16 @@ import {
 	findRequiredByName,
 	findRequiredMapValue
 } from './helpers';
+import { readContent } from './content';
 import { SeedAttribute, SeedSystemValue } from './types';
+import type { ContentDocument, SystemValueContent } from '../content/content-types';
+
+const SYSTEM_VALUE_CONTENT = readContent<
+	ContentDocument<{ values: SystemValueContent[] }>
+>('system/values.ts').values;
 
 export async function seedSourceValue(tx: Prisma.TransactionClient) {
-	const existing = await tx.systemValue.findFirst({
-		where: {
-			name: 'Источник',
-			primaryOwnerType: SystemValueOwnerType.MANUAL,
-			primaryOwnerId: null
-		}
-	});
-
-	return ensureSystemValue(tx, {
-		id: existing?.id ?? randomUUID(),
-		name: 'Источник',
-		description:
-			'Ресурс персонажа: начисляется за выпавшие шестерки при броске.',
-		primaryOwnerType: SystemValueOwnerType.MANUAL,
-		primaryOwnerId: null,
-		displaySection: 'Ресурсы персонажа',
-		calculationGraph: createCharacterInputGraph(),
-		isSystemManaged: false,
-		isActive: true,
-		sortOrder: 0
-	});
+	return seedManualSystemValue(tx, 'istochnik');
 }
 
 export async function seedPotentialValue(
@@ -74,26 +60,7 @@ export async function seedPotentialValue(
 }
 
 export async function seedHealthValue(tx: Prisma.TransactionClient) {
-	const existing = await tx.systemValue.findFirst({
-		where: {
-			name: 'Здоровье',
-			primaryOwnerType: SystemValueOwnerType.MANUAL,
-			primaryOwnerId: null
-		}
-	});
-
-	return ensureSystemValue(tx, {
-		id: existing?.id ?? randomUUID(),
-		name: 'Здоровье',
-		description: 'Ресурс персонажа: запас состояния, который изменяется уроном и восстановлением.',
-		primaryOwnerType: SystemValueOwnerType.MANUAL,
-		primaryOwnerId: null,
-		displaySection: 'Ресурсы персонажа',
-		calculationGraph: createCharacterInputGraph(),
-		isSystemManaged: false,
-		isActive: true,
-		sortOrder: 2
-	});
+	return seedManualSystemValue(tx, 'zdorovye');
 }
 
 export async function seedSpellcasterLevelValue(tx: Prisma.TransactionClient) {
@@ -147,4 +114,59 @@ export async function seedSpellcasterLevelValue(tx: Prisma.TransactionClient) {
 		isActive: true,
 		sortOrder: 0
 	});
+}
+
+async function seedManualSystemValue(
+	tx: Prisma.TransactionClient,
+	slug: string
+) {
+	const seed = findSystemValueContent(slug);
+	const existing = await findExistingManualSystemValue(tx, seed);
+
+	return ensureSystemValue(tx, {
+		id: existing?.id ?? randomUUID(),
+		slug: seed.slug,
+		name: seed.name,
+		description: seed.description ?? null,
+		primaryOwnerType: SystemValueOwnerType[seed.primaryOwnerType],
+		primaryOwnerId: null,
+		displaySection: seed.displaySection,
+		calculationGraph: createSystemValueGraph(seed),
+		isSystemManaged: seed.isSystemManaged,
+		isActive: seed.isActive,
+		sortOrder: seed.sortOrder
+	});
+}
+
+async function findExistingManualSystemValue(
+	tx: Prisma.TransactionClient,
+	seed: SystemValueContent
+) {
+	return tx.systemValue.findFirst({
+		where: {
+			primaryOwnerType: SystemValueOwnerType.MANUAL,
+			primaryOwnerId: null,
+			OR: [
+				{ slug: seed.slug },
+				{ name: seed.name }
+			]
+		}
+	});
+}
+
+function findSystemValueContent(slug: string) {
+	const seed = SYSTEM_VALUE_CONTENT.find(value => value.slug === slug);
+
+	if (!seed) {
+		throw new Error(`System value content not found: ${slug}`);
+	}
+
+	return seed;
+}
+
+function createSystemValueGraph(seed: SystemValueContent) {
+	switch (seed.calculation) {
+		case 'characterInput':
+			return createCharacterInputGraph();
+	}
 }

@@ -57,6 +57,7 @@ export type SpellTargetCountValueMode = 'fixed' | 'formula' | 'parameter';
 
 export interface SpellTargetConfig {
 	id: string;
+	slug: string;
 	name: string;
 	source: SpellTargetSource;
 	relation: SpellTargetRelation;
@@ -81,7 +82,13 @@ export interface SpellMechanicBlock {
 }
 
 export interface SpellMechanicBlockConfig {
+	application?: SpellMechanicApplicationConfig;
 	effectScale?: SpellEffectScaleConfig;
+}
+
+export interface SpellMechanicApplicationConfig {
+	visibilityRequired: boolean;
+	lineOfEffectRequired: boolean;
 }
 
 export type SpellEffectScaleMode = 'best' | 'choice' | 'all' | 'exact';
@@ -117,6 +124,7 @@ export interface SpellRuntimePreviewRequest {
 }
 
 export type SpellRuntimePreviewStatus =
+	| 'BLOCKED'
 	| 'WAITING_FOR_ROLLS'
 	| 'WAITING_FOR_CHOICE'
 	| 'COMPLETED';

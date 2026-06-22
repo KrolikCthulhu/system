@@ -39,7 +39,15 @@ import {
 import { SKILLS_REPOSITORY } from '../../../../skills/data/skills-repository.port';
 import { Skill, SkillCategory, SkillLevel } from '../../../../skills/domain/skills.models';
 import { VALUES_REPOSITORY } from '../../../../values/data/values-repository.port';
+import {
+	CHARACTER_INPUT_OVERRIDE_KEY,
+	evaluateGraph
+} from '../../../../values/domain/value-graph.engine';
 import { SystemValue } from '../../../../values/domain/values.models';
+import { CHARACTER_SHEET_SANDBOX_REPOSITORY } from '../../../../character-sheet/data/character-sheet-sandbox-repository.port';
+import {
+	CharacterSheetSandboxDraft
+} from '../../../../character-sheet/domain/character-sheet-sandbox.models';
 import { SPELL_MECHANICS_REPOSITORY } from '../../../../spell-mechanics/data/spell-mechanics-repository.port';
 import { MechanicCalculationGraphEditorComponent } from '../../../../spell-mechanics/ui/components/mechanic-calculation-graph-editor/mechanic-calculation-graph-editor.component';
 import { formatMechanicCalculationFormula } from '../../../../spell-mechanics/ui/mechanic-calculation-graph.formula';
@@ -62,6 +70,7 @@ import {
 	SpellCatalog,
 	SpellConfig,
 	SpellFormulaCandidate,
+	SpellMechanicApplicationConfig,
 	SpellMechanicBlockConfig,
 	SpellEffectScaleConfig,
 	SpellEffectScaleItemConfig,
@@ -100,7 +109,10 @@ import {
 	targetMatchesTemplate,
 	targetRuntimeSummary
 } from './spell-target-config.utils';
-import { renderMechanicTextTemplate } from './mechanic-text-template-renderer';
+import {
+	renderApplicationText,
+	renderMechanicTextTemplate
+} from './mechanic-text-template-renderer';
 import {
 	AUTO_VALUE_CHARACTER_OPTIONS,
 	AUTO_VALUE_ESSENCE_INFLUENCE_OPTIONS,
@@ -112,6 +124,7 @@ import {
 	AUTO_VALUE_SOURCE_TARGET_OPTIONS,
 	AutoValueSourceKind,
 	AutoValueSourceMode,
+	AutoValueSourceTarget,
 	ESSENCE_PROFILE_SOURCE_OPTIONS,
 	NumericParameterPreview,
 	PROGRESSION_SOURCE_KIND_OPTIONS,
@@ -195,6 +208,7 @@ interface SerializedSpellMechanicBlock {
 }
 
 type SpellParameterValueMode = 'static' | 'progression' | 'auto' | 'formula';
+type SpellTextPreviewMode = 'game' | 'formula';
 interface FormulaParameterSelection {
 	blockIndex: number;
 	parameterId: string;
@@ -272,6 +286,14 @@ const SPELL_TEXT_BLOCK_KIND_OPTIONS: Array<{
 	{ label: 'Текст механики', value: 'mechanicText' }
 ];
 
+const SPELL_TEXT_PREVIEW_MODE_OPTIONS: Array<{
+	label: string;
+	value: SpellTextPreviewMode;
+}> = [
+	{ label: 'Игровой', value: 'game' },
+	{ label: 'Формулы', value: 'formula' }
+];
+
 @Component({
 	selector: 'app-admin-spell-detail-page',
 	standalone: true,
@@ -313,6 +335,9 @@ export class AdminSpellDetailPageComponent {
 	private readonly conditionsRepository = inject(CONDITIONS_REPOSITORY);
 	private readonly progressionPresetsRepository = inject(PROGRESSION_PRESETS_REPOSITORY);
 	private readonly valuesRepository = inject(VALUES_REPOSITORY);
+	private readonly characterSheetSandboxRepository = inject(
+		CHARACTER_SHEET_SANDBOX_REPOSITORY
+	);
 	private readonly route = inject(ActivatedRoute);
 	private readonly router = inject(Router);
 	private readonly confirmationService = inject(ConfirmationService);
@@ -329,6 +354,7 @@ export class AdminSpellDetailPageComponent {
 	protected readonly conditions = signal<Condition[]>([]);
 	protected readonly progressionPresets = signal<ProgressionPreset[]>([]);
 	protected readonly systemValues = signal<SystemValue[]>([]);
+	protected readonly sandboxInputValues = signal<Record<string, number>>({});
 	protected readonly selectedMechanicBlockIndex = signal<number | null>(null);
 	protected readonly selectedTargetConfigIndex = signal<number | null>(null);
 	protected readonly selectedFormulaParameter =
@@ -416,6 +442,8 @@ export class AdminSpellDetailPageComponent {
 	protected readonly parameterValueModeOptions = PARAMETER_VALUE_MODE_OPTIONS;
 	protected readonly effectScaleModeOptions = EFFECT_SCALE_MODE_OPTIONS;
 	protected readonly spellTextBlockKindOptions = SPELL_TEXT_BLOCK_KIND_OPTIONS;
+	protected readonly spellTextPreviewModeOptions = SPELL_TEXT_PREVIEW_MODE_OPTIONS;
+	protected readonly spellTextPreviewMode = signal<SpellTextPreviewMode>('game');
 	protected readonly progressionSourceKindOptions = PROGRESSION_SOURCE_KIND_OPTIONS;
 	protected readonly essenceProfileSourceOptions = ESSENCE_PROFILE_SOURCE_OPTIONS;
 	protected readonly roundingModeOptions = ROUNDING_MODE_OPTIONS;
@@ -491,13 +519,21 @@ export class AdminSpellDetailPageComponent {
 			return '';
 		}
 
-		return draft.textBlocks
+		const text = draft.textBlocks
 			.slice()
 			.sort((left, right) => left.sortOrder - right.sortOrder)
 			.filter(block => block.isActive)
-			.map(block => this.renderSpellTextBlock(block))
+			.map(block => this.renderSpellTextBlock(block, this.spellTextPreviewMode()))
 			.filter(text => text.trim().length)
 			.join('\n\n');
+
+		if (this.spellTextPreviewMode() !== 'game') {
+			return text;
+		}
+
+		const unavailableReason = this.spellCastingUnavailableReason();
+
+		return unavailableReason ? `${unavailableReason}\n\n${text}`.trim() : text;
 	});
 	protected readonly formulaSourceGroups = computed<MechanicCalculationSourceGroup[]>(
 		() => {
@@ -1029,6 +1065,10 @@ export class AdminSpellDetailPageComponent {
 		this.selectedTargetConfigIndex.set(
 			nextLength > 0 ? Math.min(index, nextLength - 1) : null
 		);
+	}
+
+	protected updateSpellTextPreviewMode(mode: SpellTextPreviewMode) {
+		this.spellTextPreviewMode.set(mode);
 	}
 
 	protected moveTargetConfig(index: number, direction: -1 | 1) {
@@ -1858,7 +1898,10 @@ export class AdminSpellDetailPageComponent {
 		});
 	}
 
-	protected mechanicBlockTextPreview(block: SpellMechanicBlockDraft) {
+	protected mechanicBlockTextPreview(
+		block: SpellMechanicBlockDraft,
+		mode: SpellTextPreviewMode = this.spellTextPreviewMode()
+	) {
 		const mechanic = this.mechanicBlockMechanic(block);
 
 		if (!mechanic) {
@@ -1869,11 +1912,59 @@ export class AdminSpellDetailPageComponent {
 			mechanic.textTemplate,
 			mechanic,
 			block.parameterValues,
-			value => this.parameterValueLabel(value.kind, value.value)
+			this.mechanicApplicationConfig(block),
+			value =>
+				mode === 'game'
+					? this.gameParameterValueLabel(
+							block,
+							value.value,
+							value.parameter
+						)
+					: this.parameterValueLabel(value.kind, value.value)
 		);
 	}
 
-	protected renderSpellTextBlock(block: SpellTextBlock) {
+	protected mechanicApplicationConfig(
+		block: SpellMechanicBlockDraft
+	): SpellMechanicApplicationConfig {
+		return normalizeApplicationConfig(
+			block.config.application ??
+				readDefaultApplicationConfig(
+					this.mechanicBlockMechanic(block)?.configSchema ?? {}
+				)
+		);
+	}
+
+	protected mechanicApplicationText(block: SpellMechanicBlockDraft) {
+		return renderApplicationText(this.mechanicApplicationConfig(block));
+	}
+
+	protected updateSelectedMechanicApplication(
+		patch: Partial<SpellMechanicApplicationConfig>
+	) {
+		const index = this.selectedMechanicBlockIndex();
+		const block = index === null ? null : this.draft()?.mechanicBlocks[index];
+
+		if (index === null || !block) {
+			return;
+		}
+
+		this.updateMechanicBlock(index, {
+			...block,
+			config: {
+				...block.config,
+				application: {
+					...this.mechanicApplicationConfig(block),
+					...patch
+				}
+			}
+		});
+	}
+
+	protected renderSpellTextBlock(
+		block: SpellTextBlock,
+		mode: SpellTextPreviewMode = this.spellTextPreviewMode()
+	) {
 		if (block.kind === 'text') {
 			return block.text;
 		}
@@ -1882,11 +1973,11 @@ export class AdminSpellDetailPageComponent {
 			item => item.id === block.mechanicBlockId
 		);
 
-		return mechanicBlock ? this.mechanicBlockTextPreview(mechanicBlock) : '';
+		return mechanicBlock ? this.mechanicBlockTextPreview(mechanicBlock, mode) : '';
 	}
 
 	protected spellTextBlockPreview(block: SpellTextBlock) {
-		const text = this.renderSpellTextBlock(block).trim();
+		const text = this.renderSpellTextBlock(block, this.spellTextPreviewMode()).trim();
 		return text || 'Текст пока пустой.';
 	}
 
@@ -2381,7 +2472,10 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	private normalizeBlockConfig(block: SpellMechanicBlockDraft): SpellMechanicBlockConfig {
-		const config = { ...block.config };
+		const config: SpellMechanicBlockConfig = {
+			...block.config,
+			application: this.mechanicApplicationConfig(block)
+		};
 		const effectScale = config['effectScale'];
 
 		if (!isRecord(effectScale) || !Array.isArray(effectScale['items'])) {
@@ -2763,6 +2857,7 @@ export class AdminSpellDetailPageComponent {
 		this.runtimePreviewError.set(null);
 		this.repository
 			.executeSpellRuntimePreview(draft.id, {
+				inputValues: this.sandboxInputValues(),
 				rollResults: this.runtimeRollResults(),
 				choiceResults: this.runtimeChoiceResults()
 			})
@@ -2880,12 +2975,26 @@ export class AdminSpellDetailPageComponent {
 
 	protected runtimePreviewStatusLabel(status: SpellRuntimePreview['status']) {
 		switch (status) {
+			case 'BLOCKED':
+				return 'Недоступно';
 			case 'COMPLETED':
 				return 'Выполнено';
 			case 'WAITING_FOR_CHOICE':
 				return 'Ожидает выбор';
 			case 'WAITING_FOR_ROLLS':
 				return 'Ожидает броски';
+		}
+	}
+
+	protected runtimePreviewStatusSeverity(status: SpellRuntimePreview['status']) {
+		switch (status) {
+			case 'BLOCKED':
+				return 'danger';
+			case 'COMPLETED':
+				return 'success';
+			case 'WAITING_FOR_CHOICE':
+			case 'WAITING_FOR_ROLLS':
+				return 'warn';
 		}
 	}
 
@@ -2977,7 +3086,8 @@ export class AdminSpellDetailPageComponent {
 			damageTypes: this.damageTypesRepository.loadCatalog(),
 			conditions: this.conditionsRepository.loadCatalog(),
 			progressionPresets: this.progressionPresetsRepository.loadCatalog(),
-			systemValues: this.valuesRepository.loadCatalog()
+			systemValues: this.valuesRepository.loadCatalog(),
+			sandboxDraft: this.characterSheetSandboxRepository.loadDraft()
 		})
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
@@ -2989,7 +3099,8 @@ export class AdminSpellDetailPageComponent {
 					damageTypes,
 					conditions,
 					progressionPresets,
-					systemValues
+					systemValues,
+					sandboxDraft
 				}) => {
 					this.spellMechanics.set(mechanics.mechanics);
 					this.magicWords.set(words.words);
@@ -3000,6 +3111,7 @@ export class AdminSpellDetailPageComponent {
 					this.conditions.set(conditions.conditions);
 					this.progressionPresets.set(progressionPresets.presets);
 					this.systemValues.set(systemValues.values);
+					this.initializeSandboxInputValues(sandboxDraft);
 
 					const formula = findFormulaFromRoute(spells, this.route);
 
@@ -3021,6 +3133,27 @@ export class AdminSpellDetailPageComponent {
 					this.loading.set(false);
 				}
 			});
+	}
+
+	private initializeSandboxInputValues(draft: CharacterSheetSandboxDraft) {
+		this.sandboxInputValues.set({
+			...this.createDefaultSandboxInputValues(),
+			...draft.inputValues
+		});
+	}
+
+	private createDefaultSandboxInputValues() {
+		const values: Record<string, number> = {};
+
+		for (const skill of this.skills()) {
+			values[skill.systemValue.id] = skill.defaultLevel;
+		}
+
+		for (const value of this.systemValues()) {
+			values[value.id] = value.baseValue;
+		}
+
+		return values;
 	}
 
 	private setDraftFromFormula(formula: SpellFormulaCandidate) {
@@ -3164,8 +3297,8 @@ export class AdminSpellDetailPageComponent {
 
 	private parameterValueLabel(
 		kind: SpellMechanicParameterKind,
-		value: SpellParameterValue
-	) {
+		value: unknown
+	): string {
 		if (isProgressionParameterValue(value)) {
 			const preset = this.progressionPresets().find(item => item.id === value.presetId);
 			return preset ? `Прогрессия: ${preset.name}` : 'Прогрессия';
@@ -3179,12 +3312,43 @@ export class AdminSpellDetailPageComponent {
 			return autoParameterFormulaLabel(value, this.formulaSourceNames());
 		}
 
+		if (isRecord(value) && value['mode'] === 'auto') {
+			const autoValue = normalizeLooseAutoParameterValue(value);
+			return autoValue
+				? autoParameterFormulaLabel(autoValue, this.formulaSourceNames())
+				: 'автоматически рассчитанное значение';
+		}
+
 		if (isStaticParameterValue(value)) {
-			return value.value || 'Не выбрано';
+			return this.parameterValueLabel(kind, value.value);
+		}
+
+		if (isRecord(value) && value['mode'] === 'static') {
+			return this.parameterValueLabel(kind, value['value']);
 		}
 
 		if (!value) {
 			return 'Не выбрано';
+		}
+
+		if (isRecord(value)) {
+			if (kind === 'target' && typeof value['target'] === 'string') {
+				const targetConfig = this.draft()?.targetConfigs.find(
+					item => item.id === value['target'] || item.slug === value['target']
+				);
+
+				return targetConfig ? targetConfigText(targetConfig) : 'Не выбрано';
+			}
+
+			const linkedLabel = this.linkedParameterValueLabel(value);
+
+			if (linkedLabel) {
+				return this.parameterValueLabel(kind, linkedLabel);
+			}
+		}
+
+		if (typeof value !== 'string') {
+			return 'Настроено';
 		}
 
 		switch (kind) {
@@ -3192,7 +3356,9 @@ export class AdminSpellDetailPageComponent {
 				return this.skills().find(item => item.id === value)?.name ?? value;
 			case 'target':
 				return targetConfigText(
-					this.draft()?.targetConfigs.find(item => item.id === value) ??
+					this.draft()?.targetConfigs.find(
+						item => item.id === value || item.slug === value
+					) ??
 						createTargetPreset('Цель', 'selected', 'any', 'one')
 				);
 			case 'damageType':
@@ -3202,6 +3368,320 @@ export class AdminSpellDetailPageComponent {
 			default:
 				return value;
 		}
+	}
+
+	private gameParameterValueLabel(
+		block: SpellMechanicBlockDraft,
+		value: unknown,
+		parameter: SpellMechanicParameter
+	): string {
+		const kind = parameter.kind;
+
+		if (kind === 'number' || kind === 'formula') {
+			if (isAutoParameterValue(value)) {
+				return this.gameNumberParameterLabel(
+					this.evaluateAutoParameterForGameText(block, value),
+					parameter
+				);
+			}
+
+			if (isRecord(value) && value['mode'] === 'auto') {
+				const autoValue = normalizeLooseAutoParameterValue(value);
+
+				return autoValue
+					? this.gameNumberParameterLabel(
+							this.evaluateAutoParameterForGameText(block, autoValue),
+							parameter
+						)
+					: 'не рассчитано';
+			}
+
+			if (isStaticParameterValue(value)) {
+				return this.gameNumberParameterLabel(value.value, parameter);
+			}
+
+			if (isRecord(value) && value['mode'] === 'static') {
+				return this.gameNumberParameterLabel(value['value'], parameter);
+			}
+		}
+
+		return this.parameterValueLabel(kind, value);
+	}
+
+	private gameNumberParameterLabel(
+		value: number | string | unknown,
+		parameter: SpellMechanicParameter
+	) {
+		const numericValue =
+			typeof value === 'number'
+				? value
+				: typeof value === 'string'
+					? Number(value.replace(',', '.'))
+					: Number.NaN;
+		const label = Number.isFinite(numericValue)
+			? formatPreviewNumber(numericValue)
+			: this.parameterValueLabel(parameter.kind, value);
+
+		if (parameter.numericRole === 'range' && Number.isFinite(numericValue)) {
+			return `${label} ${meterGenitiveWord(numericValue)}`;
+		}
+
+		return label;
+	}
+
+	private evaluateAutoParameterForGameText(
+		block: SpellMechanicBlockDraft,
+		value: SpellAutoParameterValue
+	) {
+		const config = autoParameterRuntimeConfig(value);
+		const groups: Record<AutoValueSourceTarget, number> = {
+			growth: 0,
+			multiplier: 0,
+			base: 0,
+			maximum: 0,
+			essenceBonus: 0
+		};
+
+		for (const source of value.sources) {
+			const sourceValue = this.autoSourceRuntimeValue(block, source);
+			groups[source.target] +=
+				applyAutoRuntimeCurve(
+					source.curve,
+					autoEffectiveRuntimeSourceValue(source, sourceValue, value.startLevel)
+				) * source.weight;
+		}
+
+		const essenceValue = this.essenceProfileRuntimeValue(value.essenceProfileKey);
+		const base = config.base + groups.base;
+		const power = groups.growth * config.powerMultiplier;
+		const essence = autoEssenceRuntimeInfluenceWeight(value.essenceInfluence) * essenceValue;
+		const multiplied =
+			(base + power + essence + groups.essenceBonus) * (1 + groups.multiplier);
+		const limitBase =
+			config.limitMax === null && groups.maximum > 0 ? config.base : config.limitMax;
+		const limit = limitBase === null ? null : limitBase + groups.maximum;
+		const limited = limit === null ? multiplied : Math.min(multiplied, limit);
+
+		return Math.max(value.minimum, applyRuntimeRounding(limited, value.roundingMode));
+	}
+
+	private autoSourceRuntimeValue(
+		block: SpellMechanicBlockDraft,
+		source: SpellAutoParameterSource
+	) {
+		switch (source.sourceKind) {
+			case 'systemValue':
+				return this.systemValueRuntimeValue(source.sourceKey);
+			case 'mechanicParameter':
+				return this.mechanicParameterRuntimeValue(block, source.sourceKey);
+			case 'essenceProfile':
+				return this.essenceProfileRuntimeValue(source.sourceKey);
+			case 'manual':
+				return 0;
+		}
+	}
+
+	private mechanicParameterRuntimeValue(
+		block: SpellMechanicBlockDraft,
+		parameterSlug: string
+	) {
+		const parameter = this.mechanicBlockMechanic(block)?.parameters.find(
+			item => item.slug === parameterSlug || item.id === parameterSlug
+		);
+		const value = this.rawParameterValue(block, parameterSlug);
+
+		if (parameter?.kind === 'skill') {
+			const skill = this.skillFromParameterValue(value);
+			return skill ? this.systemValueRuntimeValue(skill.systemValue.id) : 0;
+		}
+
+		if (parameter?.kind === 'systemValue') {
+			const systemValue = this.systemValueFromParameterValue(value);
+			return systemValue ? this.systemValueRuntimeValue(systemValue.id) : 0;
+		}
+
+		if (parameter && supportsNumericParameterKind(parameter.kind)) {
+			const text = parameterValueText(value);
+			const numericValue = Number(text.replace(',', '.'));
+			return Number.isFinite(numericValue) ? numericValue : 0;
+		}
+
+		return 0;
+	}
+
+	private skillFromParameterValue(value: unknown) {
+		if (typeof value === 'string') {
+			return this.skills().find(
+				item => item.id === value || item.slug === value || item.name === value
+			);
+		}
+
+		if (!isRecord(value)) {
+			return null;
+		}
+
+		const nested =
+			(isRecord(value['defaultSkill']) && value['defaultSkill']) ||
+			(isRecord(value['skill']) && value['skill']) ||
+			value;
+		const slug = typeof nested['slug'] === 'string' ? nested['slug'] : '';
+		const id = typeof nested['id'] === 'string' ? nested['id'] : '';
+		const name = typeof nested['name'] === 'string' ? nested['name'] : '';
+
+		return (
+			this.skills().find(
+				item =>
+					(id && item.id === id) ||
+					(slug && item.slug === slug) ||
+					(name && item.name === name)
+			) ?? null
+		);
+	}
+
+	private systemValueFromParameterValue(value: unknown) {
+		if (typeof value === 'string') {
+			return this.systemValues().find(
+				item => item.id === value || item.slug === value || item.name === value
+			);
+		}
+
+		if (!isRecord(value)) {
+			return null;
+		}
+
+		const slug = typeof value['slug'] === 'string' ? value['slug'] : '';
+		const id = typeof value['id'] === 'string' ? value['id'] : '';
+		const name = typeof value['name'] === 'string' ? value['name'] : '';
+
+		return (
+			this.systemValues().find(
+				item =>
+					(id && item.id === id) ||
+					(slug && item.slug === slug) ||
+					(name && item.name === name)
+			) ?? null
+		);
+	}
+
+	private systemValueRuntimeValue(systemValueIdOrSlug: string) {
+		const systemValue = this.systemValues().find(
+			item => item.id === systemValueIdOrSlug || item.slug === systemValueIdOrSlug
+		);
+
+		if (!systemValue) {
+			return 0;
+		}
+
+		const inputValues = this.sandboxInputValues();
+
+		if (!systemValue.calculationGraph) {
+			return inputValues[systemValue.id] ?? systemValue.baseValue;
+		}
+
+		return evaluateGraph(systemValue.calculationGraph, this.systemValues(), {
+			...inputValues,
+			[CHARACTER_INPUT_OVERRIDE_KEY]:
+				inputValues[systemValue.id] ?? systemValue.baseValue
+		}).finalBase;
+	}
+
+	private essenceProfileRuntimeValue(key: string) {
+		const profile = this.essenceMagicWord()?.essenceProfile;
+
+		if (!profile) {
+			return 0;
+		}
+
+		switch (key) {
+			case 'damage':
+				return profile.damageAffinity;
+			case 'range':
+				return profile.rangeAffinity;
+			case 'control':
+				return profile.controlAffinity;
+			case 'duration':
+				return profile.durationAffinity;
+			case 'area':
+				return profile.areaAffinity;
+			case 'stability':
+				return profile.stabilityAffinity;
+			default:
+				return 0;
+		}
+	}
+
+	private spellCastingUnavailableReason() {
+		const linkedUnderstandingSkills = this.linkedSpellUnderstandingSkills();
+
+		if (
+			linkedUnderstandingSkills.length &&
+			linkedUnderstandingSkills.some(
+				skill => this.systemValueRuntimeValue(skill.systemValue.id) > 0
+			)
+		) {
+			return null;
+		}
+
+		return 'Недоступно: требуется хотя бы одно связанное Понимание выше 0.';
+	}
+
+	private linkedSpellUnderstandingSkills() {
+		const skillsById = new Map<string, Skill>();
+		const essence = this.essenceMagicWord();
+
+		for (const skillId of essence?.skillIds ?? []) {
+			const skill = this.skills().find(
+				item => item.id === skillId || item.slug === skillId
+			);
+
+			if (skill && isUnderstandingSkill(skill)) {
+				skillsById.set(skill.id, skill);
+			}
+		}
+
+		for (const block of this.draft()?.mechanicBlocks ?? []) {
+			const mechanic = this.mechanicBlockMechanic(block);
+
+			for (const parameter of mechanic?.parameters ?? []) {
+				if (parameter.kind !== 'skill') {
+					continue;
+				}
+
+				const skill = this.skillFromParameterValue(
+					this.rawParameterValue(block, parameter.id)
+				);
+
+				if (skill && isUnderstandingSkill(skill)) {
+					skillsById.set(skill.id, skill);
+				}
+			}
+		}
+
+		return [...skillsById.values()];
+	}
+
+	private linkedParameterValueLabel(value: Record<string, unknown>) {
+		if (typeof value['name'] === 'string' && value['name'].trim()) {
+			return value['name'];
+		}
+
+		for (const key of ['defaultDamageType', 'defaultSkill', 'defaultCondition']) {
+			const nested = value[key];
+
+			if (
+				isRecord(nested) &&
+				typeof nested['name'] === 'string' &&
+				nested['name'].trim()
+			) {
+				return nested['name'];
+			}
+		}
+
+		if (typeof value['value'] === 'string' && value['value'].trim()) {
+			return value['value'];
+		}
+
+		return null;
 	}
 
 	private isMechanicParameterConfigured(
@@ -3304,15 +3784,42 @@ function createSpellTextBlockDraft(
 	};
 }
 
-function createMechanicBlockConfig(mechanic: SpellMechanic): Record<string, unknown> {
+function createMechanicBlockConfig(mechanic: SpellMechanic): SpellMechanicBlockConfig {
 	const effectScaleAction = mechanic.actions.find(action => action.kind === 'effectScale');
+	const defaultApplication = normalizeApplicationConfig(
+		readDefaultApplicationConfig(mechanic.configSchema)
+	);
+	const config: SpellMechanicBlockConfig = {
+		application: defaultApplication
+	};
 
-	if (!effectScaleAction) {
-		return {};
+	if (effectScaleAction) {
+		config.effectScale = readSpellEffectScaleConfig(effectScaleAction.config);
 	}
 
+	return config;
+}
+
+function readDefaultApplicationConfig(
+	configSchema: Record<string, unknown>
+): Partial<SpellMechanicApplicationConfig> | null {
+	const value = configSchema['defaultApplication'];
+
+	return isRecord(value) ? value : null;
+}
+
+function normalizeApplicationConfig(
+	value: Partial<SpellMechanicApplicationConfig> | null | undefined
+): SpellMechanicApplicationConfig {
 	return {
-		effectScale: readSpellEffectScaleConfig(effectScaleAction.config)
+		visibilityRequired:
+			typeof value?.visibilityRequired === 'boolean'
+				? value.visibilityRequired
+				: true,
+		lineOfEffectRequired:
+			typeof value?.lineOfEffectRequired === 'boolean'
+				? value.lineOfEffectRequired
+				: false
 	};
 }
 
@@ -3401,7 +3908,9 @@ function isConfiguredParameterValue(
 		return (
 			typeof value === 'string' &&
 			value.length > 0 &&
-			!!draft?.targetConfigs.some(target => target.id === value)
+			!!draft?.targetConfigs.some(
+				target => target.id === value || target.slug === value
+			)
 		);
 	}
 
@@ -3463,6 +3972,246 @@ function mechanicParameterMissingLabel(parameter: SpellMechanicParameter) {
 	}
 
 	return `Не заполнено ${parameter.name.toLocaleLowerCase('ru')}`;
+}
+
+function normalizeLooseAutoParameterValue(
+	value: Record<string, unknown>
+): SpellAutoParameterValue | null {
+	const sources = Array.isArray(value['sources'])
+		? value['sources'].map((source, index) =>
+				normalizeLooseAutoParameterSource(source, index)
+			)
+		: [];
+
+	if (!sources.length) {
+		return null;
+	}
+
+	return {
+		mode: 'auto',
+		character: readAutoCharacter(value['character']),
+		scale: readAutoScale(value['scale']),
+		growth: readAutoGrowth(value['growth']),
+		startLevel: readFiniteNumber(value['startLevel'], 0),
+		minimum: readFiniteNumber(value['minimum'], 0),
+		sourceMode: value['sourceMode'] === 'simple' ? 'simple' : 'advanced',
+		sources,
+		essenceInfluence: readAutoEssenceInfluence(value['essenceInfluence']),
+		essenceProfileKey: readEssenceProfileKey(value['essenceProfileKey']),
+		roundingMode: readRoundingMode(value['roundingMode'])
+	};
+}
+
+function normalizeLooseAutoParameterSource(
+	value: unknown,
+	index: number
+): SpellAutoParameterSource {
+	const source = isRecord(value) ? value : {};
+
+	return {
+		id: typeof source['id'] === 'string' ? source['id'] : `source-${index}`,
+		sourceKind: readAutoSourceKind(source['sourceKind']),
+		sourceKey: typeof source['sourceKey'] === 'string' ? source['sourceKey'] : '',
+		target: readAutoSourceTarget(source['target']),
+		weight: typeof source['weight'] === 'number' ? source['weight'] : 1,
+		curve: readAutoSourceCurve(source['curve'])
+	};
+}
+
+function readFiniteNumber(value: unknown, fallback: number) {
+	return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+}
+
+function readAutoCharacter(value: unknown): SpellAutoParameterValue['character'] {
+	return value === 'stable' ||
+		value === 'scalable' ||
+		value === 'elemental' ||
+		value === 'masterful' ||
+		value === 'limited' ||
+		value === 'extreme'
+		? value
+		: 'scalable';
+}
+
+function readAutoScale(value: unknown): SpellAutoParameterValue['scale'] {
+	return value === 'small' || value === 'medium' || value === 'large' || value === 'huge'
+		? value
+		: 'medium';
+}
+
+function readAutoGrowth(value: unknown): SpellAutoParameterValue['growth'] {
+	return value === 'weak' ||
+		value === 'smooth' ||
+		value === 'fast' ||
+		value === 'saturation' ||
+		value === 'explosive'
+		? value
+		: 'smooth';
+}
+
+function readAutoSourceKind(value: unknown): SpellAutoParameterSource['sourceKind'] {
+	return value === 'mechanicParameter' ||
+		value === 'systemValue' ||
+		value === 'essenceProfile' ||
+		value === 'manual'
+		? value
+		: 'manual';
+}
+
+function readAutoSourceTarget(value: unknown): SpellAutoParameterSource['target'] {
+	return value === 'growth' ||
+		value === 'multiplier' ||
+		value === 'base' ||
+		value === 'maximum' ||
+		value === 'essenceBonus'
+		? value
+		: 'growth';
+}
+
+function readAutoSourceCurve(value: unknown): SpellAutoParameterSource['curve'] {
+	return value === 'weak' ||
+		value === 'smooth' ||
+		value === 'fast' ||
+		value === 'saturation' ||
+		value === 'explosive'
+		? value
+		: 'smooth';
+}
+
+function readAutoEssenceInfluence(
+	value: unknown
+): SpellAutoParameterValue['essenceInfluence'] {
+	return value === 'none' ||
+		value === 'light' ||
+		value === 'medium' ||
+		value === 'strong'
+		? value
+		: 'none';
+}
+
+function readEssenceProfileKey(value: unknown): SpellAutoParameterValue['essenceProfileKey'] {
+	return value === 'damage' ||
+		value === 'range' ||
+		value === 'control' ||
+		value === 'duration' ||
+		value === 'area' ||
+		value === 'stability'
+		? value
+		: 'damage';
+}
+
+function readRoundingMode(value: unknown): SpellAutoParameterValue['roundingMode'] {
+	return value === 'floor' || value === 'round' || value === 'ceil' ? value : 'round';
+}
+
+function autoParameterRuntimeConfig(value: SpellAutoParameterValue) {
+	const scale = autoRuntimeScaleConfig(value.scale);
+	const character = autoRuntimeCharacterConfig(value.character);
+
+	return {
+		base: scale.base,
+		powerMultiplier: scale.powerMultiplier * character.powerMultiplier,
+		limitMax: character.limitMax === null ? null : scale.base + character.limitMax
+	};
+}
+
+function autoRuntimeScaleConfig(scale: SpellAutoParameterValue['scale']) {
+	switch (scale) {
+		case 'small':
+			return { base: 2, powerMultiplier: 1 };
+		case 'medium':
+			return { base: 5, powerMultiplier: 2 };
+		case 'large':
+			return { base: 10, powerMultiplier: 3 };
+		case 'huge':
+			return { base: 20, powerMultiplier: 5 };
+	}
+}
+
+function autoRuntimeCharacterConfig(character: SpellAutoParameterValue['character']) {
+	switch (character) {
+		case 'stable':
+			return { powerMultiplier: 0.75, limitMax: 16 };
+		case 'scalable':
+			return { powerMultiplier: 1.25, limitMax: null };
+		case 'elemental':
+			return { powerMultiplier: 1, limitMax: null };
+		case 'masterful':
+			return { powerMultiplier: 1.5, limitMax: null };
+		case 'limited':
+			return { powerMultiplier: 1, limitMax: 12 };
+		case 'extreme':
+			return { powerMultiplier: 2, limitMax: null };
+	}
+}
+
+function applyAutoRuntimeCurve(
+	curve: SpellAutoParameterSource['curve'],
+	value: number
+) {
+	switch (curve) {
+		case 'weak':
+			return value * 0.5;
+		case 'smooth':
+			return value;
+		case 'fast':
+			return value * 1.5;
+		case 'saturation':
+			return 5 * (1 - Math.exp(-value * 0.45));
+		case 'explosive':
+			return value ** 2 * 0.35;
+	}
+}
+
+function autoEffectiveRuntimeSourceValue(
+	source: SpellAutoParameterSource,
+	value: number,
+	startLevel: number
+) {
+	return source.sourceKind === 'essenceProfile' ? value : Math.max(0, value - startLevel);
+}
+
+function autoEssenceRuntimeInfluenceWeight(
+	influence: SpellAutoParameterValue['essenceInfluence']
+) {
+	switch (influence) {
+		case 'none':
+			return 0;
+		case 'light':
+			return 1;
+		case 'medium':
+			return 2;
+		case 'strong':
+			return 4;
+	}
+}
+
+function applyRuntimeRounding(
+	value: number,
+	mode: SpellAutoParameterValue['roundingMode']
+) {
+	switch (mode) {
+		case 'floor':
+			return Math.floor(value);
+		case 'round':
+			return Math.round(value);
+		case 'ceil':
+			return Math.ceil(value);
+	}
+}
+
+function meterGenitiveWord(value: number) {
+	const absolute = Math.abs(Math.trunc(value));
+
+	if (absolute === 1) {
+		return 'метра';
+	}
+
+	return 'метров';
+}
+
+function isUnderstandingSkill(skill: Skill) {
+	return skill.name.toLocaleLowerCase('ru').includes('понимание');
 }
 
 function normalizeParameterValues(
@@ -3602,6 +4351,7 @@ function areaDimensionUnitLabel(key: string) {
 function isSpellParameterValue(value: unknown): value is SpellParameterValue {
 	return (
 		typeof value === 'string' ||
+		isRecord(value) ||
 		isStaticParameterValue(value) ||
 		isAutoParameterValue(value) ||
 		isProgressionParameterValue(value) ||
@@ -3672,6 +4422,8 @@ function normalizeParameterValue(
 			character: value.character,
 			scale: value.scale,
 			growth: value.growth,
+			startLevel: value.startLevel,
+			minimum: value.minimum,
 			sourceMode: value.sourceMode,
 			sources: value.sources.map(source => ({
 				...source,
@@ -3682,8 +4434,29 @@ function normalizeParameterValue(
 			})),
 			essenceInfluence: value.essenceInfluence,
 			essenceProfileKey: value.essenceProfileKey,
-			roundingMode: value.roundingMode,
+			roundingMode: value.roundingMode
 		};
+	}
+
+	if (isRecord(value) && value['mode'] === 'auto') {
+		const autoValue = normalizeLooseAutoParameterValue(value);
+
+		if (autoValue) {
+			return {
+				...autoValue,
+				sources: autoValue.sources.map(source => ({
+					...source,
+					sourceKey:
+						source.sourceKind === 'mechanicParameter'
+							? (parameterSlugsById.get(source.sourceKey) ?? source.sourceKey)
+							: source.sourceKey
+				}))
+			};
+		}
+	}
+
+	if (isRecord(value)) {
+		return { ...value };
 	}
 
 	if (parameter && supportsNumericParameterKind(parameter.kind)) {

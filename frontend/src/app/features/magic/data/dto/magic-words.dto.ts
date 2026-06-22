@@ -154,7 +154,8 @@ export interface SpellTextBlockDto {
 }
 
 export interface SpellTargetConfigDto {
-	id: string;
+	id?: string;
+	slug?: string;
 	name: string;
 	source: string;
 	relation: string;
@@ -236,7 +237,7 @@ export interface SpellRuntimePreviewDto {
 		name: string;
 		formulaName: string;
 	};
-	status: 'WAITING_FOR_ROLLS' | 'WAITING_FOR_CHOICE' | 'COMPLETED';
+	status: 'BLOCKED' | 'WAITING_FOR_ROLLS' | 'WAITING_FOR_CHOICE' | 'COMPLETED';
 	pendingRolls: SpellRuntimePendingRollDto[];
 	pendingChoices: SpellRuntimePendingChoiceDto[];
 	effects: SpellRuntimeEffectDto[];

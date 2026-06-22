@@ -13,8 +13,13 @@ export default {
 			"slug": "sostoyaniya"
 		},
 		{
-			"name": "Эффекты",
+			"name": "Значения",
 			"sortOrder": 2,
+			"slug": "znacheniya"
+		},
+		{
+			"name": "Эффекты",
+			"sortOrder": 3,
 			"slug": "effekty"
 		}
 	],
@@ -24,7 +29,12 @@ export default {
 			"name": "Атака заклинанием",
 			"description": "Эта механика описывает заклинание, которым кастер пытается попасть по цели. Сначала кастер бросает кубы на атаку заклинанием. После этого цель может попытаться защититься и бросить кубы на защиту. Затем сравниваются успехи: если у кастера успехов больше, атака попала; если успехов столько же или меньше, атака не попала. Если атака попала, лишние успехи кастера становятся базовым уроном. Например, если у кастера 4 успеха, а у цели 2 успеха защиты, разница равна 2. К этой разнице добавляется дополнительный урон, указанный в заклинании. Получившееся число вычитается из здоровья цели. Тип урона берётся из настройки заклинания или из связанной сущности магического слова.",
 			"sortOrder": 0,
-			"configSchema": {},
+			"configSchema": {
+				"defaultApplication": {
+					"visibilityRequired": true,
+					"lineOfEffectRequired": true
+				}
+			},
 			"parameters": [
 				{
 					"name": "Цель",
@@ -271,11 +281,26 @@ export default {
 				"segments": [
 					{
 						"kind": "text",
-						"text": "Совершите атаку заклинанием по цели в пределах "
+						"text": "Совершите атаку заклинанием "
+					},
+					{
+						"kind": "parameter",
+						"parameterSlug": "tsel"
+					},
+					{
+						"kind": "text",
+						"text": " в пределах "
 					},
 					{
 						"kind": "parameter",
 						"parameterSlug": "dalnost"
+					},
+					{
+						"kind": "text",
+						"text": ", "
+					},
+					{
+						"kind": "applicationText"
 					},
 					{
 						"kind": "text",
@@ -404,11 +429,356 @@ export default {
 			"slug": "snyatie-sostoyaniya"
 		},
 		{
+			"categoryName": "Значения",
+			"name": "Исцеление",
+			"description": "Механика восстанавливает выбранное системное значение цели. По умолчанию используется для очков здоровья, но может применяться к любому ресурсу, который нужно восстановить.",
+			"sortOrder": 0,
+			"configSchema": {},
+			"parameters": [
+				{
+					"name": "Цель",
+					"kind": "target",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": false,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "tsel"
+				},
+				{
+					"name": "Значение",
+					"kind": "systemValue",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "static",
+						"value": "Здоровье"
+					},
+					"slug": "znachenie"
+				},
+				{
+					"name": "Величина",
+					"kind": "number",
+					"numericRole": "custom",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "velichina"
+				}
+			],
+			"actions": [
+				{
+					"name": "Восстановить значение",
+					"kind": "valueChange",
+					"config": {
+						"target": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "tsel"
+						},
+						"systemValue": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "znachenie"
+						},
+						"systemValueName": "Здоровье",
+						"operation": "increase",
+						"amount": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "velichina"
+						}
+					},
+					"slug": "vosstanovit-znachenie"
+				}
+			],
+			"textTemplate": {
+				"segments": [
+					{
+						"kind": "text",
+						"text": "Восстановите "
+					},
+					{
+						"kind": "parameter",
+						"parameterSlug": "tsel"
+					},
+					{
+						"kind": "text",
+						"text": " "
+					},
+					{
+						"kind": "parameter",
+						"parameterSlug": "velichina"
+					},
+					{
+						"kind": "text",
+						"text": " "
+					},
+					{
+						"kind": "parameter",
+						"parameterSlug": "znachenie"
+					},
+					{
+						"kind": "text",
+						"text": "."
+					}
+				]
+			},
+			"slug": "istselenie"
+		},
+		{
+			"categoryName": "Значения",
+			"name": "Нанесение вреда",
+			"description": "Механика уменьшает выбранное системное значение цели без отдельной проверки атаки. Подходит для прямого вреда, истощения ресурса и похожих эффектов.",
+			"sortOrder": 1,
+			"configSchema": {},
+			"parameters": [
+				{
+					"name": "Цель",
+					"kind": "target",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": false,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "tsel"
+				},
+				{
+					"name": "Значение",
+					"kind": "systemValue",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "static",
+						"value": "Здоровье"
+					},
+					"slug": "znachenie"
+				},
+				{
+					"name": "Величина",
+					"kind": "number",
+					"numericRole": "damage",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "velichina"
+				}
+			],
+			"actions": [
+				{
+					"name": "Уменьшить значение",
+					"kind": "valueChange",
+					"config": {
+						"target": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "tsel"
+						},
+						"systemValue": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "znachenie"
+						},
+						"systemValueName": "Здоровье",
+						"operation": "decrease",
+						"amount": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "velichina"
+						}
+					},
+					"slug": "umenshit-znachenie"
+				}
+			],
+			"textTemplate": {
+				"segments": [
+					{
+						"kind": "parameter",
+						"parameterSlug": "tsel"
+					},
+					{
+						"kind": "text",
+						"text": " теряет "
+					},
+					{
+						"kind": "parameter",
+						"parameterSlug": "velichina"
+					},
+					{
+						"kind": "text",
+						"text": " "
+					},
+					{
+						"kind": "parameter",
+						"parameterSlug": "znachenie"
+					},
+					{
+						"kind": "text",
+						"text": "."
+					}
+				]
+			},
+			"slug": "nanesenie-vreda"
+		},
+		{
+			"categoryName": "Значения",
+			"name": "Усиление значения",
+			"description": "Механика временно или постоянно увеличивает выбранное системное значение цели.",
+			"sortOrder": 2,
+			"configSchema": {},
+			"parameters": [
+				{
+					"name": "Цель",
+					"kind": "target",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": false,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "tsel"
+				},
+				{
+					"name": "Значение",
+					"kind": "systemValue",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "znachenie"
+				},
+				{
+					"name": "Величина",
+					"kind": "number",
+					"numericRole": "custom",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "velichina"
+				}
+			],
+			"actions": [
+				{
+					"name": "Усилить значение",
+					"kind": "valueChange",
+					"config": {
+						"target": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "tsel"
+						},
+						"systemValue": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "znachenie"
+						},
+						"operation": "increase",
+						"amount": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "velichina"
+						}
+					},
+					"slug": "usilit-znachenie"
+				}
+			],
+			"textTemplate": "Цель получает бонус к выбранному значению.",
+			"slug": "usilenie-znacheniya"
+		},
+		{
+			"categoryName": "Значения",
+			"name": "Ослабление значения",
+			"description": "Механика временно или постоянно уменьшает выбранное системное значение цели.",
+			"sortOrder": 3,
+			"configSchema": {},
+			"parameters": [
+				{
+					"name": "Цель",
+					"kind": "target",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": false,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "tsel"
+				},
+				{
+					"name": "Значение",
+					"kind": "systemValue",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "znachenie"
+				},
+				{
+					"name": "Величина",
+					"kind": "number",
+					"numericRole": "custom",
+					"required": true,
+					"configuredBySpell": true,
+					"overrideAllowed": true,
+					"defaultValue": {
+						"mode": "empty",
+						"value": ""
+					},
+					"slug": "velichina"
+				}
+			],
+			"actions": [
+				{
+					"name": "Ослабить значение",
+					"kind": "valueChange",
+					"config": {
+						"target": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "tsel"
+						},
+						"systemValue": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "znachenie"
+						},
+						"operation": "decrease",
+						"amount": {
+							"kind": "mechanicParameter",
+							"parameterSlug": "velichina"
+						}
+					},
+					"slug": "oslabit-znachenie"
+				}
+			],
+			"textTemplate": "Цель получает штраф к выбранному значению.",
+			"slug": "oslablenie-znacheniya"
+		},
+		{
 			"categoryName": "Эффекты",
 			"name": "Шкала эффекта",
 			"description": "Эта механика позволяет привязать результат проверки к таблице эффектов. Кастер делает бросок выбранным навыком, после чего система смотрит, какие пункты шкалы доступны по количеству успехов. В зависимости от режима можно автоматически выбрать лучший доступный пункт, выполнить все доступные пункты, потребовать точное совпадение или дать администратору/игроку выбрать один из доступных вариантов. Конкретные пункты шкалы и их эффекты настраиваются в заклинании.",
 			"sortOrder": 0,
-			"configSchema": {},
+			"configSchema": {
+				"defaultApplication": {
+					"visibilityRequired": true,
+					"lineOfEffectRequired": false
+				}
+			},
 			"parameters": [
 				{
 					"name": "Цель",
@@ -515,6 +885,13 @@ export default {
 					{
 						"kind": "parameter",
 						"parameterSlug": "navyk-proverki"
+					},
+					{
+						"kind": "text",
+						"text": " "
+					},
+					{
+						"kind": "applicationText"
 					},
 					{
 						"kind": "text",

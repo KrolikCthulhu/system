@@ -67,6 +67,7 @@ export const TARGET_TEMPLATE_OPTIONS: TargetTemplateOption[] = [
 
 export type TargetConfigLike = Pick<
 	SpellTargetConfig,
+	| 'name'
 	| 'source'
 	| 'relation'
 	| 'countMode'
@@ -82,6 +83,7 @@ export function createTargetConfigFromMechanicDefault(
 ): SpellTargetConfig {
 	return {
 		id: crypto.randomUUID(),
+		slug: '',
 		name: defaultTarget.name,
 		source: defaultTarget.source,
 		relation: defaultTarget.relation,
@@ -102,6 +104,7 @@ export function createDefaultTargetConfigs(): SpellTargetConfig[] {
 export function createTargetConfigDraft(sortOrder: number): SpellTargetConfig {
 	return {
 		id: crypto.randomUUID(),
+		slug: '',
 		name: `Цель ${sortOrder + 1}`,
 		source: 'selected',
 		relation: 'any',
@@ -140,6 +143,7 @@ export function createTargetConfigFromTemplate(
 		return mechanicDefault
 			? {
 					id,
+					slug: currentTarget?.slug ?? '',
 					name: mechanicDefault.name,
 					source: mechanicDefault.source,
 					relation: mechanicDefault.relation,
@@ -159,6 +163,7 @@ export function createTargetConfigFromTemplate(
 	return preset
 		? {
 				id,
+				slug: currentTarget?.slug ?? '',
 				...preset,
 				sortOrder
 			}
@@ -167,7 +172,7 @@ export function createTargetConfigFromTemplate(
 
 export function targetPresetConfig(
 	templateId: TargetTemplateId
-): Omit<SpellTargetConfig, 'id' | 'sortOrder'> | null {
+): TargetConfigLike | null {
 	switch (templateId) {
 		case 'caster':
 			return createTargetPreset('Кастер', 'caster', 'self', 'one');
@@ -226,7 +231,7 @@ export function createTargetPreset(
 	source: SpellTargetSource,
 	relation: SpellTargetRelation,
 	countMode: SpellTargetCountMode
-): Omit<SpellTargetConfig, 'id' | 'sortOrder'> {
+): TargetConfigLike {
 	return {
 		name,
 		source,
@@ -258,7 +263,7 @@ export function findTargetPresetTemplate(target: SpellTargetConfig): TargetTempl
 
 export function targetMatchesTemplate(
 	target: SpellTargetConfig,
-	template: Omit<SpellTargetConfig, 'id' | 'sortOrder'>
+	template: TargetConfigLike
 ) {
 	return (
 		target.name === template.name &&
@@ -278,6 +283,7 @@ export function normalizeTargetConfigs(targets: SpellTargetConfig[]): SpellTarge
 		.sort(compareTargetsByOrderAndName)
 		.map((target, index) => ({
 			id: target.id || crypto.randomUUID(),
+			slug: target.slug || target.id || '',
 			name: target.name || `Цель ${index + 1}`,
 			source: target.source,
 			relation: target.relation,

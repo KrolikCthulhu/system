@@ -2,7 +2,8 @@ import {
 	AreaShapeKind,
 	MagicWordType,
 	Prisma,
-	SpellStatus
+	SpellStatus,
+	SystemValueOwnerType
 } from '../__generated__/index.js';
 
 export type ContentDocument<TCollections extends Record<string, unknown>> = {
@@ -38,6 +39,14 @@ export type ConditionContent = SortableContentItem;
 export type ProgressionContent = NamedContentItem & {
 	kind: string;
 	config: Prisma.InputJsonValue;
+};
+
+export type SystemValueContent = NamedContentItem & {
+	primaryOwnerType: keyof typeof SystemValueOwnerType;
+	displaySection: string;
+	calculation: 'characterInput';
+	isSystemManaged: boolean;
+	isActive: boolean;
 };
 
 export type SkillCategoryContent = NamedContentItem & {

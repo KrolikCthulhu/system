@@ -450,6 +450,12 @@ function resolveSeedTextTemplateSegment(
 		};
 	}
 
+	if (value.kind === 'applicationText') {
+		return {
+			kind: 'applicationText'
+		};
+	}
+
 	throw new Error(
 		`Unsupported spell mechanic text template segment seed kind: ${String(value.kind)}`
 	);

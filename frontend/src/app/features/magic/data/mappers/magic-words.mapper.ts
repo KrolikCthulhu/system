@@ -274,7 +274,8 @@ export function mapSpellRuntimePreviewDto(
 
 function mapSpellTargetConfigDto(dto: SpellTargetConfigDto): SpellTargetConfig {
 	return {
-		id: dto.id,
+		id: dto.id ?? dto.slug ?? '',
+		slug: dto.slug ?? '',
 		name: dto.name,
 		source: isSpellTargetSource(dto.source) ? dto.source : 'selected',
 		relation: isSpellTargetRelation(dto.relation) ? dto.relation : 'any',

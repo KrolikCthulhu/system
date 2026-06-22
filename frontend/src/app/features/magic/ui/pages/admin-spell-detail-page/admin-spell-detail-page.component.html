@@ -321,6 +321,31 @@
 																</span>
 
 																<span class="admin-spell-detail-page__field">
+																	<span>Старт расчёта</span>
+																	<p-inputnumber
+																		[ngModel]="autoValue.startLevel"
+																		[min]="0"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				startLevel: $event ?? 0
+																			})
+																		"
+																	></p-inputnumber>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Минимум</span>
+																	<p-inputnumber
+																		[ngModel]="autoValue.minimum"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				minimum: $event ?? 0
+																			})
+																		"
+																	></p-inputnumber>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
 																	<span>Режим влияний</span>
 																	<p-select
 																		[options]="autoValueSourceModeOptions"
@@ -693,6 +718,45 @@
 											{{ mechanicBlockTextPreview(block) }}
 										</div>
 
+										<section class="admin-spell-detail-page__mechanic-application">
+											<div class="admin-spell-detail-page__mechanic-section-head">
+												<h3>Ограничения применения</h3>
+												<span>{{ mechanicApplicationText(block) }}</span>
+											</div>
+
+											<div class="admin-spell-detail-page__mechanic-application-grid">
+												<span class="admin-spell-detail-page__inline-switch">
+													<span>Нужна видимость</span>
+													<p-toggleswitch
+														[ngModel]="
+															mechanicApplicationConfig(block)
+																.visibilityRequired
+														"
+														(ngModelChange)="
+															updateSelectedMechanicApplication({
+																visibilityRequired: $event
+															})
+														"
+													></p-toggleswitch>
+												</span>
+
+												<span class="admin-spell-detail-page__inline-switch">
+													<span>Свободный путь</span>
+													<p-toggleswitch
+														[ngModel]="
+															mechanicApplicationConfig(block)
+																.lineOfEffectRequired
+														"
+														(ngModelChange)="
+															updateSelectedMechanicApplication({
+																lineOfEffectRequired: $event
+															})
+														"
+													></p-toggleswitch>
+												</span>
+											</div>
+										</section>
+
 										@if (mechanicBlockParameters(block).length) {
 											<div class="admin-spell-detail-page__mechanic-parameters">
 												@for (
@@ -948,12 +1012,39 @@
 																					{ growth: $event }
 																				)
 																			"
-																		></p-select>
-																	</span>
+																	></p-select>
+																</span>
 
-																	<span class="admin-spell-detail-page__field">
-																		<span>Режим влияний</span>
-																		<p-select
+																<span class="admin-spell-detail-page__field">
+																	<span>Старт расчёта</span>
+																	<p-inputnumber
+																		[ngModel]="autoValue.startLevel"
+																		[min]="0"
+																		(ngModelChange)="
+																			updateSelectedAutoParameter(
+																				parameter.id,
+																				{ startLevel: $event ?? 0 }
+																			)
+																		"
+																	></p-inputnumber>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Минимум</span>
+																	<p-inputnumber
+																		[ngModel]="autoValue.minimum"
+																		(ngModelChange)="
+																			updateSelectedAutoParameter(
+																				parameter.id,
+																				{ minimum: $event ?? 0 }
+																			)
+																		"
+																	></p-inputnumber>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span>Режим влияний</span>
+																	<p-select
 																			[options]="autoValueSourceModeOptions"
 																			optionLabel="label"
 																			optionValue="value"
@@ -1493,14 +1584,24 @@
 								<section class="admin-spell-detail-page__text-preview">
 									<div class="admin-spell-detail-page__text-section-head">
 										<h3>Итоговый текст</h3>
-										<p-button
-											label="Из механик"
-											icon="pi pi-sync"
-											size="small"
-											severity="secondary"
-											variant="outlined"
-											(onClick)="addSpellMechanicTextBlocks()"
-										></p-button>
+										<div class="admin-spell-detail-page__text-actions">
+											<p-selectbutton
+												[options]="spellTextPreviewModeOptions"
+												[ngModel]="spellTextPreviewMode()"
+												optionLabel="label"
+												optionValue="value"
+												size="small"
+												(ngModelChange)="updateSpellTextPreviewMode($event)"
+											></p-selectbutton>
+											<p-button
+												label="Из механик"
+												icon="pi pi-sync"
+												size="small"
+												severity="secondary"
+												variant="outlined"
+												(onClick)="addSpellMechanicTextBlocks()"
+											></p-button>
+										</div>
 									</div>
 
 									@if (spellTextPreview(); as preview) {
@@ -1818,7 +1919,7 @@
 					<span>Статус выполнения</span>
 					<p-tag
 						[value]="runtimePreviewStatusLabel(preview.status)"
-						[severity]="preview.status === 'COMPLETED' ? 'success' : 'warn'"
+						[severity]="runtimePreviewStatusSeverity(preview.status)"
 					></p-tag>
 				</div>
 

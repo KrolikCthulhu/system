@@ -87,7 +87,8 @@ interface MechanicDraft {
 type MechanicTextTemplateSegment =
 	| { kind: 'text'; text: string }
 	| { kind: 'parameter'; parameterId: string }
-	| { kind: 'actionResult'; actionId: string; resultName: string };
+	| { kind: 'actionResult'; actionId: string; resultName: string }
+	| { kind: 'applicationText' };
 
 interface MechanicTextTemplateDocument {
 	version: 1;
@@ -684,6 +685,16 @@ export class AdminSpellMechanicsPageComponent {
 					name: parameter.name || 'Параметр',
 					searchText: `${parameter.name} параметр входное значение`
 				}))
+		),
+		...createSingleOptionGroup(
+			'Системные',
+			[
+				{
+					id: encodeTextTemplateInsert({ kind: 'applicationText' }),
+					name: 'Текст применения',
+					searchText: 'применение видимость путь эффекта цель точка область'
+				}
+			]
 		),
 		...createSingleOptionGroup(
 			'Результаты шагов',
@@ -2373,6 +2384,10 @@ export class AdminSpellMechanicsPageComponent {
 			);
 		}
 
+		if (segment.kind === 'applicationText') {
+			return 'Текст применения';
+		}
+
 		const action = collectMechanicActions(this.mechanicActions()).find(
 			item => item.id === segment.actionId
 		);
@@ -2387,6 +2402,10 @@ export class AdminSpellMechanicsPageComponent {
 
 		if (segment.kind === 'actionResult') {
 			return 'Результат';
+		}
+
+		if (segment.kind === 'applicationText') {
+			return 'Системный';
 		}
 
 		return 'Текст';
@@ -3417,6 +3436,10 @@ function isTextTemplateSegment(
 		return typeof value['parameterId'] === 'string';
 	}
 
+	if (value['kind'] === 'applicationText') {
+		return true;
+	}
+
 	return (
 		value['kind'] === 'actionResult' &&
 		typeof value['actionId'] === 'string' &&
@@ -3440,6 +3463,10 @@ function formatTextTemplatePreview(
 				return `[${parameter?.name ?? 'Параметр не найден'}]`;
 			}
 
+			if (segment.kind === 'applicationText') {
+				return '[Текст применения]';
+			}
+
 			const action = actions.find(item => item.id === segment.actionId);
 			return `[${action?.name ?? 'Шаг не найден'}: ${segment.resultName}]`;
 		})
@@ -3451,6 +3478,10 @@ function encodeTextTemplateInsert(
 ) {
 	if (segment.kind === 'parameter') {
 		return `parameter:${segment.parameterId}`;
+	}
+
+	if (segment.kind === 'applicationText') {
+		return 'applicationText';
 	}
 
 	return `actionResult:${segment.actionId}:${encodeURIComponent(segment.resultName)}`;
@@ -3466,6 +3497,10 @@ function decodeTextTemplateInsert(
 			actionId,
 			resultName: decodeURIComponent(resultName)
 		};
+	}
+
+	if (value === 'applicationText') {
+		return { kind: 'applicationText' };
 	}
 
 	return {

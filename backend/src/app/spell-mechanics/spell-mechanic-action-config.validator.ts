@@ -57,6 +57,7 @@ export function validateSpellMechanicActionConfig(
 			return toInputJsonObject(config);
 		case 'valueChange':
 			validateOptionalSource(config, 'target', ['mechanicParameter', 'caster', 'spellTarget', 'actionResult'], path);
+			validateOptionalSource(config, 'systemValue', ['mechanicParameter', 'actionResult', 'constant'], path);
 			validateOptionalUuidString(config, 'systemValueId', path);
 			validateOptionalEnum(config, 'operation', valueChangeOperations, path);
 			validateOptionalSource(config, 'amount', ['mechanicParameter', 'actionResult', 'constant'], path);

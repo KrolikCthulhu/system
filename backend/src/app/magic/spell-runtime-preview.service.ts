@@ -85,6 +85,7 @@ interface RuntimeContext {
 	effects: RuntimeEffect[];
 	logs: string[];
 	halted: boolean;
+	blocked: boolean;
 }
 
 const runtimeSpellSelect = {
@@ -98,7 +99,9 @@ const runtimeSpellSelect = {
 			skillLinks: {
 				select: {
 					skillId: true,
-					skill: { select: { id: true, name: true, sortOrder: true } }
+					skill: {
+						select: { id: true, name: true, sortOrder: true, systemValueId: true }
+					}
 				}
 			},
 			damageTypeLinks: {
@@ -199,8 +202,11 @@ export class SpellRuntimePreviewService {
 			pendingChoices: [],
 			effects: [],
 			logs: [],
-			halted: false
+			halted: false,
+			blocked: false
 		};
+
+		this.checkSpellCastingAvailability(spell, context);
 
 		for (const block of spell.mechanicBlocks.filter(item => item.isActive)) {
 			if (context.halted) {
@@ -216,11 +222,13 @@ export class SpellRuntimePreviewService {
 				name: spell.name,
 				formulaName: `${spell.action.name} + ${spell.essence.name} + ${spell.gesture.name}`
 			},
-			status: context.pendingRolls.length
-				? 'WAITING_FOR_ROLLS'
-				: context.pendingChoices.length
-					? 'WAITING_FOR_CHOICE'
-					: 'COMPLETED',
+			status: context.blocked
+				? 'BLOCKED'
+				: context.pendingRolls.length
+					? 'WAITING_FOR_ROLLS'
+					: context.pendingChoices.length
+						? 'WAITING_FOR_CHOICE'
+						: 'COMPLETED',
 			pendingRolls: context.pendingRolls,
 			pendingChoices: context.pendingChoices,
 			effects: context.effects,
@@ -228,6 +236,39 @@ export class SpellRuntimePreviewService {
 			trace: context.trace,
 			logs: context.logs
 		};
+	}
+
+	private checkSpellCastingAvailability(spell: RuntimeSpell, context: RuntimeContext) {
+		const linkedUnderstandingSkills = spell.essence.skillLinks
+			.map(link => link.skill)
+			.filter(skill => skill.name.toLocaleLowerCase('ru').includes('понимание'));
+
+		if (
+			linkedUnderstandingSkills.length &&
+			linkedUnderstandingSkills.some(
+				skill => (context.inputValues[skill.systemValueId] ?? 0) > 0
+			)
+		) {
+			return;
+		}
+
+		const message = 'Нельзя кастовать: требуется хотя бы одно связанное Понимание выше 0.';
+
+		context.blocked = true;
+		context.halted = true;
+		context.logs.push(message);
+		context.trace.push({
+			id: randomUUID(),
+			blockId: spell.id,
+			blockName: spell.name,
+			actionId: 'spell-casting-availability',
+			actionName: 'Проверка доступности',
+			actionKind: 'guard',
+			status: 'executed',
+			message,
+			results: {},
+			children: []
+		});
 	}
 
 	private async executeBlock(
@@ -574,6 +615,12 @@ export class SpellRuntimePreviewService {
 		const config = toRecord(action.config);
 		const amount = toNumber(this.resolveSource(null, block, config['amount'], context));
 		const operation = requireString(config, 'operation', action.name);
+		const resolvedSystemValue = this.resolveSource(
+			null,
+			block,
+			config['systemValue'],
+			context
+		);
 		const effect: RuntimeEffect = {
 			kind: 'valueChange',
 			blockId: block.id,
@@ -581,7 +628,8 @@ export class SpellRuntimePreviewService {
 			actionId: action.id,
 			actionName: action.name,
 			target: this.resolveSource(null, block, config['target'], context),
-			systemValueId: stringValue(config['systemValueId']),
+			systemValueId:
+				stringValue(resolvedSystemValue) ?? stringValue(config['systemValueId']),
 			systemValueName: stringValue(config['systemValueName']),
 			operation,
 			amount

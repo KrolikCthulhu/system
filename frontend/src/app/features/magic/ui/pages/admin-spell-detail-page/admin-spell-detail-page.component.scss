@@ -188,6 +188,40 @@
 	overflow-wrap: anywhere;
 }
 
+.admin-spell-detail-page__mechanic-application {
+	display: grid;
+	gap: 0.5rem;
+	margin: 0 0.75rem;
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-detail-page__mechanic-section-head {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__mechanic-section-head h3 {
+	margin: 0;
+	font-size: 0.9375rem;
+	line-height: 1.25;
+}
+
+.admin-spell-detail-page__mechanic-section-head span {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	text-align: right;
+}
+
+.admin-spell-detail-page__mechanic-application-grid {
+	display: grid;
+	grid-template-columns: max-content max-content;
+	align-items: end;
+	gap: 0.75rem;
+}
+
 .admin-spell-detail-page__mechanic-parameters {
 	display: grid;
 	grid-template-columns: repeat(2, minmax(0, 1fr));
