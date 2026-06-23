@@ -3,6 +3,7 @@ import { RollConsequence } from '../../roll-consequences/domain/roll-consequence
 
 export interface SkillCategory {
 	id: string;
+	slug: string;
 	name: string;
 	description: string;
 	isActive: boolean;
@@ -10,6 +11,7 @@ export interface SkillCategory {
 
 export interface Skill {
 	id: string;
+	slug: string;
 	name: string;
 	categoryId: string;
 	description: string;

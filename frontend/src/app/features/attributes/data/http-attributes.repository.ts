@@ -1,7 +1,8 @@
-import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
-import { Observable, catchError, map, throwError } from 'rxjs';
+import { Observable, catchError, map } from 'rxjs';
 import { environment } from '../../../infrastructure/config/environment';
+import { handleApiError } from '../../../shared/http/api-error.util';
 import {
 	Attribute,
 	AttributesAdminCatalog,
@@ -39,7 +40,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			})
 			.pipe(
 				map(mapAttributesAdminCatalogDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -50,7 +51,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			})
 			.pipe(
 				map(mapAttributeDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -63,7 +64,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			})
 			.pipe(
 				map(mapAttributeDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -78,7 +79,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			)
 			.pipe(
 				map(mapAttributeDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -87,7 +88,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			.delete<void>(`${this.baseUrl}/admin/attributes/${id}`, {
 				withCredentials: true
 			})
-			.pipe(catchError(error => this.handleHttpError(error)));
+			.pipe(catchError(handleApiError));
 	}
 
 	createCharacteristic(
@@ -101,7 +102,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			)
 			.pipe(
 				map(mapCharacteristicDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -118,7 +119,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			)
 			.pipe(
 				map(mapCharacteristicDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -133,7 +134,7 @@ export class HttpAttributesRepository implements AttributesRepository {
 			)
 			.pipe(
 				map(mapCharacteristicDto),
-				catchError(error => this.handleHttpError(error))
+				catchError(handleApiError)
 			);
 	}
 
@@ -142,30 +143,6 @@ export class HttpAttributesRepository implements AttributesRepository {
 			.delete<void>(`${this.baseUrl}/admin/attributes/characteristics/${id}`, {
 				withCredentials: true
 			})
-			.pipe(catchError(error => this.handleHttpError(error)));
+			.pipe(catchError(handleApiError));
 	}
-
-	private handleHttpError(error: unknown) {
-		return throwError(() => new Error(extractApiErrorMessage(error)));
-	}
-}
-
-function extractApiErrorMessage(error: unknown): string {
-	if (error instanceof HttpErrorResponse) {
-		const message = error.error?.message;
-
-		if (Array.isArray(message)) {
-			return message.join('\n');
-		}
-
-		if (typeof message === 'string' && message.trim()) {
-			return message;
-		}
-
-		if (error.status === 0) {
-			return 'API is unavailable.';
-		}
-	}
-
-	return 'Request failed.';
 }

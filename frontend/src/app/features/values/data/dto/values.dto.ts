@@ -20,9 +20,11 @@ export interface SystemValueLinkDto {
 
 export interface SystemValueDto {
 	id: string;
+	slug: string;
 	name: string;
 	kind: SystemValueKindDto;
 	groupLabel: string;
+	displaySection: string;
 	contextLabel: string;
 	description: string;
 	isSystemManaged: boolean;
@@ -43,9 +45,11 @@ export interface UpdateSystemValueCalculationDto {
 export interface CreateManualSystemValueDto {
 	name: string;
 	description?: string;
+	displaySection?: string;
 }
 
 export interface UpdateSystemValueDto {
 	name?: string;
 	description?: string;
+	displaySection?: string;
 }

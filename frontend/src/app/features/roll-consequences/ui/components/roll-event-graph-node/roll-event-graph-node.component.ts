@@ -58,6 +58,7 @@ import {
 						<div><b>Накопитель</b><span>{{ data()?.accumulatorValueName ?? 'не выбрано' }}</span></div>
 						<div><b>Порог</b><span>{{ data()?.thresholdValueName ?? 'не выбрано' }}</span></div>
 						<div><b>Переполнение</b><span>{{ data()?.overflowValueName ?? 'не выбрано' }}</span></div>
+						<div><b>Режим</b><span>{{ overflowModeLabel() }}</span></div>
 					</div>
 				}
 
@@ -248,7 +249,7 @@ export class RollEventGraphNodeComponent extends CustomNodeComponent<RollEventGr
 			case 'eventInput':
 				return 'Событие';
 			case 'valueSource':
-				return 'Значение';
+				return 'Значение системы';
 			case 'constant':
 				return 'Число';
 			case 'operation':
@@ -345,6 +346,12 @@ export class RollEventGraphNodeComponent extends CustomNodeComponent<RollEventGr
 				return '<=';
 		}
 	}
+
+	protected overflowModeLabel() {
+		return this.data()?.overflowMode === 'multiple'
+			? 'за каждый порог'
+			: 'один раз';
+	}
 }
 
 function eventInputLabel(key: RollEventGraphNodeData['eventInputKey']) {
@@ -353,6 +360,8 @@ function eventInputLabel(key: RollEventGraphNodeData['eventInputKey']) {
 			return 'Количество кубов';
 		case 'successes':
 			return 'Успехи';
+		case 'sixes':
+			return 'Выпавшие шестерки';
 		case 'ones':
 			return 'Выпавшие единицы';
 		case 'ignoredOnes':

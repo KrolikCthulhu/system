@@ -4,25 +4,28 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConfirmationService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
-import { Button } from 'primeng/button';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
 import { Tag } from 'primeng/tag';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
-import {
-	ROLL_CONSEQUENCES_REPOSITORY,
-	RollConsequencesRepository
-} from '../../../../roll-consequences/data/roll-consequences-repository.port';
+import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import { RollConsequence } from '../../../../roll-consequences/domain/roll-consequences.models';
 import { RollEventGraphDefinition } from '../../../../roll-consequences/domain/roll-event-graph.models';
 import { RollEventGraphEditorComponent } from '../../../../roll-consequences/ui/components/roll-event-graph-editor/roll-event-graph-editor.component';
 import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
+import {
+	createConsequenceHandlerItem,
+	createGlobalHandlerItem,
+	EventHandlerItem,
+	GameEventHandler
+} from '../../../domain/game-events.models';
+import { AdminEventsFacade } from '../../../state/admin-events.facade';
 
 interface EventHandlerGroup {
 	label: string;
-	items: RollConsequence[];
+	items: EventHandlerItem[];
 }
 
 @Component({
@@ -32,12 +35,12 @@ interface EventHandlerGroup {
 		CommonModule,
 		FormsModule,
 		Breadcrumb,
-		Button,
 		ConfirmDialog,
 		IconField,
 		InputIcon,
 		InputText,
 		Tag,
+		EditorActionsBarComponent,
 		RollEventGraphEditorComponent
 	],
 	templateUrl: './admin-events-page.component.html',
@@ -45,9 +48,7 @@ interface EventHandlerGroup {
 	providers: [ConfirmationService, UnsavedChangesGuard]
 })
 export class AdminEventsPageComponent {
-	private readonly repository = inject<RollConsequencesRepository>(
-		ROLL_CONSEQUENCES_REPOSITORY
-	);
+	private readonly eventsFacade = inject(AdminEventsFacade);
 	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly destroyRef = inject(DestroyRef);
@@ -60,30 +61,38 @@ export class AdminEventsPageComponent {
 	protected readonly loading = signal(true);
 	protected readonly saving = signal(false);
 	protected readonly errorMessage = signal<string | null>(null);
-	protected readonly selectedHandlerId = signal<string | null>(null);
+	protected readonly selectedHandlerKey = signal<string | null>(null);
 	protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
+	protected readonly globalHandlers = signal<GameEventHandler[]>([]);
 	protected readonly consequences = signal<RollConsequence[]>([]);
 	protected readonly graphDraft = signal<RollEventGraphDefinition | null>(null);
 	protected readonly availableValues = this.valuesCatalogFacade.values;
 	private readonly savedGraphSignature = signal('');
 
 	protected readonly selectedHandler = computed(() => {
-		const selectedId = this.selectedHandlerId();
-		return selectedId
-			? this.consequences().find(consequence => consequence.id === selectedId) ??
-					null
+		const selectedKey = this.selectedHandlerKey();
+		return selectedKey
+			? this.allHandlers().find(handler => handler.key === selectedKey) ?? null
 			: null;
 	});
+	protected readonly allHandlers = computed<EventHandlerItem[]>(() => [
+		...this.globalHandlers().map(createGlobalHandlerItem),
+		...this.consequences().map(createConsequenceHandlerItem)
+	]);
 	protected readonly hasChanges = computed(
 		() => graphSignature(this.graphDraft()) !== this.savedGraphSignature()
 	);
 	protected readonly handlerGroups = computed<EventHandlerGroup[]>(() => {
 		const query = this.searchQuery().trim().toLowerCase();
-		const items = this.consequences().filter(consequence => {
+		const items = this.allHandlers().filter(handler => {
 			const haystack =
-				`${consequence.name} ${consequence.description} Совершён бросок Последствие броска`.toLowerCase();
+				`${handler.name} ${handler.description} Совершён бросок ${handler.subtitle}`.toLowerCase();
 
 			return !query || haystack.includes(query);
+		}).sort((first, second) => {
+			const typeOrder = first.type === second.type ? 0 : first.type === 'global' ? -1 : 1;
+			const orderDiff = first.sortOrder - second.sortOrder;
+			return typeOrder || orderDiff || first.name.localeCompare(second.name, 'ru');
 		});
 
 		return [
@@ -99,20 +108,20 @@ export class AdminEventsPageComponent {
 		this.loadHandlers();
 
 		effect(() => {
-			const handlers = this.consequences();
+			const handlers = this.allHandlers();
 
 			if (!handlers.length) {
-				this.selectedHandlerId.set(null);
+				this.selectedHandlerKey.set(null);
 				this.graphDraft.set(null);
 				this.savedGraphSignature.set(graphSignature(null));
 				return;
 			}
 
 			if (
-				!this.selectedHandlerId() ||
-				!handlers.some(handler => handler.id === this.selectedHandlerId())
+				!this.selectedHandlerKey() ||
+				!handlers.some(handler => handler.key === this.selectedHandlerKey())
 			) {
-				this.selectHandlerInternal(handlers[0].id);
+				this.selectHandlerInternal(handlers[0].key);
 			}
 		});
 	}
@@ -139,15 +148,15 @@ export class AdminEventsPageComponent {
 		});
 	}
 
-	protected selectHandler(handlerId: string) {
-		if (handlerId === this.selectedHandlerId()) {
+	protected selectHandler(handlerKey: string) {
+		if (handlerKey === this.selectedHandlerKey()) {
 			return;
 		}
 
 		this.unsavedChangesGuard.confirmDiscard({
 			hasChanges: this.hasChanges(),
 			discard: () => this.resetDraft(),
-			proceed: () => this.selectHandlerInternal(handlerId)
+			proceed: () => this.selectHandlerInternal(handlerKey)
 		});
 	}
 
@@ -157,7 +166,7 @@ export class AdminEventsPageComponent {
 
 	protected resetDraft() {
 		const handler = this.selectedHandler();
-		const graph = handler?.rollEventGraph ?? null;
+		const graph = handler?.graph ?? null;
 
 		this.graphDraft.set(graph);
 		this.savedGraphSignature.set(graphSignature(graph));
@@ -173,32 +182,14 @@ export class AdminEventsPageComponent {
 		this.saving.set(true);
 		this.errorMessage.set(null);
 
-		this.repository
-			.update({
-				id: handler.id,
-				name: handler.name,
-				description: handler.description,
-				rollEventGraph: this.graphDraft(),
-				isActive: handler.isActive,
-				sortOrder: handler.sortOrder,
-				values: handler.values.map(value => ({
-					id: value.id,
-					name: value.name,
-					description: value.description,
-					isActive: value.isActive,
-					sortOrder: value.sortOrder
-				}))
-			})
+		this.eventsFacade
+			.saveHandlerGraph(handler, this.graphDraft())
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
 				next: saved => {
-					this.consequences.update(consequences =>
-						consequences.map(consequence =>
-							consequence.id === saved.id ? saved : consequence
-						)
-					);
-					this.graphDraft.set(saved.rollEventGraph);
-					this.savedGraphSignature.set(graphSignature(saved.rollEventGraph));
+					this.applySavedHandler(saved);
+					this.graphDraft.set(saved.graph);
+					this.savedGraphSignature.set(graphSignature(saved.graph));
 					this.saving.set(false);
 				},
 				error: error => {
@@ -220,33 +211,29 @@ export class AdminEventsPageComponent {
 		return isActive ? 'success' : 'secondary';
 	}
 
-	private selectHandlerInternal(handlerId: string) {
-		const handler = this.consequences().find(item => item.id === handlerId);
+	private selectHandlerInternal(handlerKey: string) {
+		const handler = this.allHandlers().find(item => item.key === handlerKey);
 
 		if (!handler) {
 			return;
 		}
 
-		this.selectedHandlerId.set(handler.id);
-		this.graphDraft.set(handler.rollEventGraph);
-		this.savedGraphSignature.set(graphSignature(handler.rollEventGraph));
+		this.selectedHandlerKey.set(handler.key);
+		this.graphDraft.set(handler.graph);
+		this.savedGraphSignature.set(graphSignature(handler.graph));
 	}
 
 	private loadHandlers() {
 		this.loading.set(true);
 		this.errorMessage.set(null);
 
-		this.repository
-			.loadCatalog()
+		this.eventsFacade
+			.loadRollPerformedHandlers()
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
-				next: catalog => {
-					this.consequences.set(
-						[...catalog.consequences].sort((first, second) => {
-							const orderDiff = first.sortOrder - second.sortOrder;
-							return orderDiff || first.name.localeCompare(second.name, 'ru');
-						})
-					);
+				next: ({ globalHandlers, consequences }) => {
+					this.globalHandlers.set(globalHandlers);
+					this.consequences.set(consequences);
 					this.loading.set(false);
 				},
 				error: error => {
@@ -258,6 +245,19 @@ export class AdminEventsPageComponent {
 					this.loading.set(false);
 				}
 			});
+	}
+
+	private applySavedHandler(saved: EventHandlerItem) {
+		const next = this.eventsFacade.replaceSavedHandler(
+			{
+				globalHandlers: this.globalHandlers(),
+				consequences: this.consequences()
+			},
+			saved
+		);
+
+		this.globalHandlers.set([...next.globalHandlers]);
+		this.consequences.set([...next.consequences]);
 	}
 }
 

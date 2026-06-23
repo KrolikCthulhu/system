@@ -1,0 +1,1 @@
+ALTER TYPE "SpellMechanicActionKind" ADD VALUE 'EFFECT_SCALE';

@@ -1,0 +1,87 @@
+<div class="navigation-tree">
+	@for (group of groups(); track group.label) {
+		<div class="navigation-tree__group">
+			<button
+				type="button"
+				class="navigation-tree__group-title"
+				[class.navigation-tree__group-title--active]="
+					group.id && group.id === selectedGroupId()
+				"
+				[attr.aria-expanded]="!isGroupCollapsed(group.label)"
+				(click)="selectOrToggleGroup(group)"
+			>
+				<i
+					class="pi pi-chevron-right navigation-tree__group-icon"
+					[class.navigation-tree__group-icon--expanded]="
+						!isGroupCollapsed(group.label)
+					"
+					aria-hidden="true"
+					(click)="toggleGroup(group, $event)"
+				></i>
+				<span>{{ group.label }}</span>
+				<span class="navigation-tree__group-count">{{ group.count }}</span>
+			</button>
+
+			<div
+				class="navigation-tree__item-list"
+				[class.navigation-tree__item-list--collapsed]="
+					isGroupCollapsed(group.label)
+				"
+			>
+				@for (item of group.items; track item.id) {
+					<button
+						type="button"
+						class="navigation-tree__item"
+						[class.navigation-tree__item--active]="item.id === selectedItemId()"
+						(click)="selectItem(item)"
+					>
+						<span>{{ item.label }}</span>
+					</button>
+				}
+
+				@for (subgroup of group.subgroups; track subgroup.label) {
+					<div class="navigation-tree__subgroup">
+						<button
+							type="button"
+							class="navigation-tree__subgroup-title"
+							[attr.aria-expanded]="
+								!isSubgroupCollapsed(group.label, subgroup.label)
+							"
+							(click)="toggleSubgroup(group, subgroup)"
+						>
+							<i
+								class="pi pi-chevron-right navigation-tree__subgroup-icon"
+								[class.navigation-tree__subgroup-icon--expanded]="
+									!isSubgroupCollapsed(group.label, subgroup.label)
+								"
+								aria-hidden="true"
+							></i>
+							<span>{{ subgroup.label }}</span>
+							<small>{{ subgroup.items.length }}</small>
+						</button>
+
+						<div
+							class="navigation-tree__subgroup-list"
+							[class.navigation-tree__subgroup-list--collapsed]="
+								isSubgroupCollapsed(group.label, subgroup.label)
+							"
+						>
+							@for (item of subgroup.items; track item.id) {
+								<button
+									type="button"
+									class="navigation-tree__item"
+									[class.navigation-tree__item--active]="
+										item.id === selectedItemId()
+									"
+									(click)="selectItem(item)"
+								>
+									<span>{{ item.label }}</span>
+								</button>
+							}
+						</div>
+					</div>
+				}
+			</div>
+		</div>
+	}
+</div>

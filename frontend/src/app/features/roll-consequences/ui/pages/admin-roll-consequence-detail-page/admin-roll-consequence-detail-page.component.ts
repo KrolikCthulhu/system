@@ -19,6 +19,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { SignalFormDraft } from '../../../../../shared/forms/signal-form-draft';
+import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import { SystemValuesCatalogFacade } from '../../../../values/state/system-values-catalog.facade';
 import {
 	ROLL_CONSEQUENCES_REPOSITORY,
@@ -71,6 +72,7 @@ type ConsequenceForm = FormGroup<{
 		Tabs,
 		Textarea,
 		ToggleSwitch,
+		EditorActionsBarComponent,
 		RollEventGraphEditorComponent
 	],
 	templateUrl: './admin-roll-consequence-detail-page.component.html',

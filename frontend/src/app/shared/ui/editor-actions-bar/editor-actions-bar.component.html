@@ -1,0 +1,15 @@
+<div class="editor-actions-bar">
+	<p-button
+		[label]="resetLabel()"
+		severity="secondary"
+		variant="outlined"
+		[disabled]="isResetDisabled"
+		(onClick)="resetClick.emit()"
+	></p-button>
+	<p-button
+		[label]="saveLabel()"
+		[loading]="saving()"
+		[disabled]="isSaveDisabled"
+		(onClick)="saveClick.emit()"
+	></p-button>
+</div>

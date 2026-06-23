@@ -10,7 +10,7 @@ import { MenuItem } from 'primeng/api';
 })
 export class NavigationSidebarComponent {
 	readonly eyebrow = input<string>('');
-	readonly title = input.required<string>();
+	readonly title = input<string>('');
 	readonly navigationItems = input.required<MenuItem[]>();
 
 	protected readonly expandedIndexes = signal<Record<number, boolean>>({});

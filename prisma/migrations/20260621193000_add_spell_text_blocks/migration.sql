@@ -1,0 +1,1 @@
+ALTER TABLE "spells" ADD COLUMN "text_blocks" JSONB NOT NULL DEFAULT '[]';

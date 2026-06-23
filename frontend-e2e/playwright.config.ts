@@ -22,14 +22,27 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
-  /* Run your local dev server before starting the tests */
-  webServer: {
-    command: 'npx nx run frontend:serve',
-    url: 'http://localhost:4200',
-    reuseExistingServer: true,
-    cwd: workspaceRoot,
-  },
+  /* Run local dev servers before starting the tests */
+  webServer: [
+    {
+      command: 'npx nx run backend:serve',
+      url: `${process.env['E2E_API_BASE_URL'] || 'http://localhost:4000'}/health`,
+      reuseExistingServer: true,
+      cwd: workspaceRoot,
+    },
+    {
+      command: 'npx nx run frontend:serve',
+      url: 'http://localhost:4200',
+      reuseExistingServer: true,
+      cwd: workspaceRoot,
+    },
+  ],
   projects: [
+    {
+      name: 'chrome',
+      use: { ...devices['Desktop Chrome'], channel: 'chrome' },
+    },
+
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },

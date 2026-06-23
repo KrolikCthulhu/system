@@ -1,0 +1,160 @@
+<section class="admin-damage-types-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-damage-types-page__header">
+		<div class="admin-damage-types-page__section-pad">
+			<p-breadcrumb
+				class="admin-damage-types-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-damage-types-page__workspace">
+		<aside class="admin-damage-types-page__panel admin-damage-types-page__sidebar">
+			<div class="admin-damage-types-page__panel-heading admin-damage-types-page__section-pad">
+				<h2 class="admin-damage-types-page__panel-title">Типы урона</h2>
+				<p-button
+					label="Новый тип"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createDamageType()"
+				></p-button>
+			</div>
+
+			<div class="admin-damage-types-page__search-row admin-damage-types-page__section-pad">
+				<p-iconfield class="admin-damage-types-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск типа урона"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-damage-types-page__state">Загрузка типов урона...</div>
+			} @else if (errorMessage() && !draft()) {
+				<div class="admin-damage-types-page__state admin-damage-types-page__state--error">
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div class="admin-damage-types-page__item-list admin-damage-types-page__section-pad">
+					<div class="admin-damage-types-page__list-title">Типы урона</div>
+
+					@for (damageType of filteredDamageTypes(); track damageType.id) {
+						<button
+							type="button"
+							class="admin-damage-types-page__item"
+							[class.admin-damage-types-page__item--active]="
+								damageType.id === selectedDamageTypeId()
+							"
+							(click)="selectDamageType(damageType)"
+						>
+							<span>{{ damageType.name }}</span>
+							@if (!damageType.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-damage-types-page__empty-list">
+							Типов урона пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section class="admin-damage-types-page__panel admin-damage-types-page__editor">
+				<div
+					class="admin-damage-types-page__panel-heading admin-damage-types-page__panel-heading--split admin-damage-types-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-damage-types-page__panel-title">{{ title() }}</h2>
+					</div>
+
+					<div class="admin-damage-types-page__heading-actions">
+						<p-tag value="Тип урона" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedDamageType()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div class="admin-damage-types-page__editor-body admin-damage-types-page__section-pad">
+					@if (errorMessage()) {
+						<div class="admin-damage-types-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-damage-types-page__form-grid">
+						<span class="admin-damage-types-page__field">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-damage-types-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-damage-types-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+
+						<span class="admin-damage-types-page__field admin-damage-types-page__field--wide">
+							<span>Описание</span>
+							<textarea
+								pTextarea
+								rows="5"
+								[value]="currentDraft.description"
+								(input)="updateDraftDescription($any($event.target).value)"
+							></textarea>
+						</span>
+					</div>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section class="admin-damage-types-page__panel admin-damage-types-page__editor">
+				<div class="admin-damage-types-page__state">
+					Выбери тип урона слева или создай новый.
+				</div>
+			</section>
+		}
+	</div>
+</section>

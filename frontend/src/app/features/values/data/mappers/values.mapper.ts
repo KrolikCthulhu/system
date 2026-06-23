@@ -5,9 +5,11 @@ import { SystemValueDto, SystemValuesCatalogDto } from '../dto/values.dto';
 export function mapSystemValueDto(dto: SystemValueDto): SystemValue {
 	return {
 		id: dto.id,
+		slug: dto.slug,
 		name: dto.name,
 		kind: dto.kind as SystemValueSourceType,
 		groupLabel: dto.groupLabel,
+		displaySection: dto.displaySection,
 		contextLabel: dto.contextLabel,
 		description: dto.description,
 		isSystemManaged: dto.isSystemManaged,

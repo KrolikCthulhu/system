@@ -149,55 +149,16 @@
 					{{ errorMessage() }}
 				</div>
 			} @else {
-				<div class="admin-values-page__group-list admin-values-page__section-pad">
-					@for (group of valueGroups(); track group.label) {
-						<div class="admin-values-page__group">
-							<button
-								type="button"
-								class="admin-values-page__group-title"
-								[attr.aria-expanded]="!isGroupCollapsed(group.label)"
-								(click)="toggleGroup(group.label)"
-							>
-								<i
-									class="pi pi-chevron-right admin-values-page__group-icon"
-									[class.admin-values-page__group-icon--expanded]="
-										!isGroupCollapsed(group.label)
-									"
-									aria-hidden="true"
-								></i>
-								<span>{{ group.label }}</span>
-								<span class="admin-values-page__group-count">
-									{{ group.items.length }}
-								</span>
-							</button>
-
-							<div
-								class="admin-values-page__value-list"
-								[class.admin-values-page__value-list--collapsed]="
-									isGroupCollapsed(group.label)
-								"
-							>
-								@for (value of group.items; track value.id) {
-									<button
-										type="button"
-										class="admin-values-page__value-item"
-										[class.admin-values-page__value-item--active]="
-											value.id === selectedValueId()
-										"
-										(click)="selectValue(value.id)"
-									>
-										<div class="admin-values-page__value-copy">
-											<strong>{{ value.name }}</strong>
-											@if (value.contextLabel) {
-												<span>{{ value.contextLabel }}</span>
-											}
-										</div>
-									</button>
-								}
-							</div>
-						</div>
-					}
-				</div>
+				<app-navigation-tree
+					class="admin-values-page__navigation-tree"
+					[groups]="valueGroups()"
+					[selectedItemId]="selectedValueId()"
+					[collapsedGroups]="collapsedGroups()"
+					[collapsedSubgroups]="collapsedSubgroups()"
+					(itemSelect)="selectValue($event)"
+					(groupToggle)="toggleGroup($event)"
+					(subgroupToggle)="toggleSubgroup($event.groupLabel, $event.subgroupLabel)"
+				></app-navigation-tree>
 			}
 		</aside>
 
@@ -254,6 +215,29 @@
 									(input)="setValueNameDraft($any($event.target).value)"
 								/>
 							</div>
+							<div class="admin-values-page__metadata-field">
+								<label
+									class="admin-values-page__field-label"
+									for="system-value-section"
+								>
+									Раздел
+								</label>
+								<input
+									id="system-value-section"
+									pInputText
+									type="text"
+									placeholder="Например: Ресурсы персонажа"
+									list="system-value-section-suggestions"
+									[value]="valueSectionDraft()"
+									[readonly]="!canEditMetadata(value)"
+									(input)="setValueSectionDraft($any($event.target).value)"
+								/>
+								<datalist id="system-value-section-suggestions">
+									@for (section of sectionSuggestions(); track section) {
+										<option [value]="section"></option>
+									}
+								</datalist>
+							</div>
 							@if (!canEditMetadata(value)) {
 								<div class="admin-values-page__metadata-hint">
 									@if (value.isSystemManaged) {
@@ -267,20 +251,11 @@
 					</app-system-value-calculation-editor>
 				</div>
 
-				<div class="admin-values-page__editor-actions admin-values-page__section-pad">
-					<p-button
-						label="Сбросить"
-						severity="secondary"
-						variant="outlined"
-						[disabled]="!hasChanges()"
-						(onClick)="resetDraft()"
-					></p-button>
-					<p-button
-						label="Сохранить"
-						[disabled]="!hasChanges()"
-						(onClick)="saveDraft()"
-					></p-button>
-				</div>
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
 			</section>
 		} @else {
 			<section class="admin-values-page__panel admin-values-page__editor">

@@ -1,0 +1,350 @@
+<section class="admin-spells-page">
+	<header class="admin-spells-page__header">
+		<p-breadcrumb [model]="breadcrumbs"></p-breadcrumb>
+	</header>
+
+	<div class="admin-spells-page__workspace">
+		<aside class="admin-spells-page__sidebar">
+			<div class="admin-spells-page__sidebar-head">
+				<h2>Заклинания</h2>
+			</div>
+
+			<div class="admin-spells-page__filters">
+				<p-iconfield class="admin-spells-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск заклинания"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+
+				<div class="admin-spells-page__filter-status">
+					<div>
+						<span class="admin-spells-page__filter-title">Фильтры</span>
+						@if (activeFilterCount()) {
+							<span class="admin-spells-page__filter-applied">
+								{{ activeFilterCount() }} применено
+							</span>
+						} @else {
+							<span class="admin-spells-page__filter-applied">
+								Не применены
+							</span>
+						}
+					</div>
+					<p-button
+						label="Сбросить"
+						size="small"
+						text
+						[disabled]="!activeFilterCount()"
+						(click)="resetFilters()"
+					></p-button>
+				</div>
+
+				<section class="admin-spells-page__filter-group">
+					<button
+						type="button"
+						class="admin-spells-page__filter-toggle"
+						[attr.aria-expanded]="!isFilterGroupCollapsed('status')"
+						(click)="toggleFilterGroup('status')"
+					>
+						<i
+							class="pi pi-chevron-right admin-spells-page__filter-chevron"
+							[class.admin-spells-page__filter-chevron--open]="
+								!isFilterGroupCollapsed('status')
+							"
+							aria-hidden="true"
+						></i>
+						<span>Статус</span>
+						<small>{{ selectedStatuses().size || statusOptions().length }}</small>
+					</button>
+					@if (!isFilterGroupCollapsed('status')) {
+						<div class="admin-spells-page__filter-options">
+							@for (option of statusOptions(); track option.value; let i = $index) {
+								<label
+									class="admin-spells-page__filter-option"
+									[class.admin-spells-page__filter-option--selected]="
+										isStatusSelected(option.value)
+									"
+									[attr.for]="'spell-filter-status-' + i"
+								>
+									<p-checkbox
+										[inputId]="'spell-filter-status-' + i"
+										[binary]="true"
+										[ngModel]="isStatusSelected(option.value)"
+										(ngModelChange)="toggleStatusFilter(option.value)"
+									></p-checkbox>
+									<span>{{ option.label }}</span>
+									<small>{{ option.count }}</small>
+								</label>
+							}
+						</div>
+					}
+				</section>
+
+				<section class="admin-spells-page__filter-group">
+					<button
+						type="button"
+						class="admin-spells-page__filter-toggle"
+						[attr.aria-expanded]="!isFilterGroupCollapsed('activity')"
+						(click)="toggleFilterGroup('activity')"
+					>
+						<i
+							class="pi pi-chevron-right admin-spells-page__filter-chevron"
+							[class.admin-spells-page__filter-chevron--open]="
+								!isFilterGroupCollapsed('activity')
+							"
+							aria-hidden="true"
+						></i>
+						<span>Активность</span>
+						<small>{{ selectedActivity().size || activityFilterOptions().length }}</small>
+					</button>
+					@if (!isFilterGroupCollapsed('activity')) {
+						<div class="admin-spells-page__filter-options">
+							@for (option of activityFilterOptions(); track option.value; let i = $index) {
+								<label
+									class="admin-spells-page__filter-option"
+									[class.admin-spells-page__filter-option--selected]="
+										isActivitySelected(option.value)
+									"
+									[attr.for]="'spell-filter-activity-' + i"
+								>
+									<p-checkbox
+										[inputId]="'spell-filter-activity-' + i"
+										[binary]="true"
+										[ngModel]="isActivitySelected(option.value)"
+										(ngModelChange)="toggleActivityFilter(option.value)"
+									></p-checkbox>
+									<span>{{ option.label }}</span>
+									<small>{{ option.count }}</small>
+								</label>
+							}
+						</div>
+					}
+				</section>
+
+				<section class="admin-spells-page__filter-group">
+					<button
+						type="button"
+						class="admin-spells-page__filter-toggle"
+						[attr.aria-expanded]="!isFilterGroupCollapsed('actions')"
+						(click)="toggleFilterGroup('actions')"
+					>
+						<i
+							class="pi pi-chevron-right admin-spells-page__filter-chevron"
+							[class.admin-spells-page__filter-chevron--open]="
+								!isFilterGroupCollapsed('actions')
+							"
+							aria-hidden="true"
+						></i>
+						<span>Действия</span>
+						<small>{{ selectedActions().size || actionOptions().length }}</small>
+					</button>
+					@if (!isFilterGroupCollapsed('actions')) {
+						<div class="admin-spells-page__filter-options">
+							@for (option of actionOptions(); track option.value; let i = $index) {
+								<label
+									class="admin-spells-page__filter-option"
+									[class.admin-spells-page__filter-option--selected]="
+										isActionSelected(option.value)
+									"
+									[attr.for]="'spell-filter-action-' + i"
+								>
+									<p-checkbox
+										[inputId]="'spell-filter-action-' + i"
+										[binary]="true"
+										[ngModel]="isActionSelected(option.value)"
+										(ngModelChange)="toggleActionFilter(option.value)"
+									></p-checkbox>
+									<span>{{ option.label }}</span>
+									<small>{{ option.count }}</small>
+								</label>
+							}
+						</div>
+					}
+				</section>
+
+				<section class="admin-spells-page__filter-group">
+					<button
+						type="button"
+						class="admin-spells-page__filter-toggle"
+						[attr.aria-expanded]="!isFilterGroupCollapsed('essences')"
+						(click)="toggleFilterGroup('essences')"
+					>
+						<i
+							class="pi pi-chevron-right admin-spells-page__filter-chevron"
+							[class.admin-spells-page__filter-chevron--open]="
+								!isFilterGroupCollapsed('essences')
+							"
+							aria-hidden="true"
+						></i>
+						<span>Сущности</span>
+						<small>{{ selectedEssences().size || essenceOptions().length }}</small>
+					</button>
+					@if (!isFilterGroupCollapsed('essences')) {
+						<div class="admin-spells-page__filter-options">
+							@for (option of essenceOptions(); track option.value; let i = $index) {
+								<label
+									class="admin-spells-page__filter-option"
+									[class.admin-spells-page__filter-option--selected]="
+										isEssenceSelected(option.value)
+									"
+									[attr.for]="'spell-filter-essence-' + i"
+								>
+									<p-checkbox
+										[inputId]="'spell-filter-essence-' + i"
+										[binary]="true"
+										[ngModel]="isEssenceSelected(option.value)"
+										(ngModelChange)="toggleEssenceFilter(option.value)"
+									></p-checkbox>
+									<span>{{ option.label }}</span>
+									<small>{{ option.count }}</small>
+								</label>
+							}
+						</div>
+					}
+				</section>
+
+				<section class="admin-spells-page__filter-group">
+					<button
+						type="button"
+						class="admin-spells-page__filter-toggle"
+						[attr.aria-expanded]="!isFilterGroupCollapsed('gestures')"
+						(click)="toggleFilterGroup('gestures')"
+					>
+						<i
+							class="pi pi-chevron-right admin-spells-page__filter-chevron"
+							[class.admin-spells-page__filter-chevron--open]="
+								!isFilterGroupCollapsed('gestures')
+							"
+							aria-hidden="true"
+						></i>
+						<span>Жесты</span>
+						<small>{{ selectedGestures().size || gestureOptions().length }}</small>
+					</button>
+					@if (!isFilterGroupCollapsed('gestures')) {
+						<div class="admin-spells-page__filter-options">
+							@for (option of gestureOptions(); track option.value; let i = $index) {
+								<label
+									class="admin-spells-page__filter-option"
+									[class.admin-spells-page__filter-option--selected]="
+										isGestureSelected(option.value)
+									"
+									[attr.for]="'spell-filter-gesture-' + i"
+								>
+									<p-checkbox
+										[inputId]="'spell-filter-gesture-' + i"
+										[binary]="true"
+										[ngModel]="isGestureSelected(option.value)"
+										(ngModelChange)="toggleGestureFilter(option.value)"
+									></p-checkbox>
+									<span>{{ option.label }}</span>
+									<small>{{ option.count }}</small>
+								</label>
+							}
+						</div>
+					}
+				</section>
+			</div>
+
+		</aside>
+
+		<main class="admin-spells-page__list">
+			@if (errorMessage()) {
+				<div class="admin-spells-page__state admin-spells-page__state--error">
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<p-treetable
+					class="admin-spells-page__tree p-treetable-sm"
+					[value]="loading() ? skeletonNodes : treeNodes()"
+					[scrollable]="true"
+					[virtualScroll]="true"
+					[virtualScrollItemSize]="36"
+					scrollHeight="flex"
+					[tableStyle]="{ 'min-width': '52rem' }"
+				>
+					<ng-template #header>
+						<tr>
+							<th>Формула</th>
+							<th>Название</th>
+							<th>Статус</th>
+							<th>Активность</th>
+							<th>Действия</th>
+						</tr>
+					</ng-template>
+
+					<ng-template #body let-rowNode let-rowData="rowData">
+						<tr
+							[ttRow]="rowNode"
+							[ngClass]="rowStatusClass(rowData)"
+						>
+							@if (rowData.kind === 'skeleton') {
+								<td><p-skeleton></p-skeleton></td>
+								<td><p-skeleton></p-skeleton></td>
+								<td><p-skeleton></p-skeleton></td>
+								<td><p-skeleton></p-skeleton></td>
+								<td><p-skeleton></p-skeleton></td>
+							} @else {
+								<td>
+									<div class="admin-spells-page__tree-name">
+										<p-treetable-toggler
+											[rowNode]="rowNode"
+										></p-treetable-toggler>
+										<span>{{ rowData.name }}</span>
+										@if (rowData.count !== null) {
+											<span class="admin-spells-page__tree-count">
+												{{ rowData.count }}
+											</span>
+										}
+									</div>
+								</td>
+								<td>{{ rowData.title }}</td>
+								<td>
+									@if (rowData.status) {
+										<p-tag
+											[value]="statusLabel(rowData.status)"
+											[severity]="statusSeverity(rowData.status)"
+										></p-tag>
+									}
+								</td>
+								<td>
+									@if (rowData.kind === 'formula') {
+										<p-toggleswitch
+											[disabled]="
+												!canToggleActivity(rowData.formula) ||
+												isActivitySaving(rowData.formula)
+											"
+											[ngModel]="rowData.isActive"
+											(ngModelChange)="
+												toggleSpellActivity(rowData.formula, $event)
+											"
+										></p-toggleswitch>
+									}
+								</td>
+								<td>
+									@if (rowData.formula; as formula) {
+										<p-button
+											[label]="formula.spell ? 'Редактировать' : 'Заполнить'"
+											size="small"
+											text
+											(click)="editFormula(formula)"
+										></p-button>
+									}
+								</td>
+							}
+						</tr>
+					</ng-template>
+
+					<ng-template #emptymessage>
+						<tr>
+							<td colspan="5">Заклинаний по фильтру не найдено.</td>
+						</tr>
+					</ng-template>
+				</p-treetable>
+			}
+		</main>
+	</div>
+</section>

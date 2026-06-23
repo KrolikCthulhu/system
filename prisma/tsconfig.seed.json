@@ -1,0 +1,16 @@
+{
+	"extends": "../tsconfig.base.json",
+	"compilerOptions": {
+		"module": "CommonJS",
+		"moduleResolution": "node",
+		"target": "ES2022",
+		"types": ["node"]
+	},
+	"include": [
+		"seed.ts",
+		"seed-e2e.ts",
+		"seed/**/*.ts",
+		"content/**/*.ts",
+		"../backend/src/app/shared/**/*.ts"
+	]
+}

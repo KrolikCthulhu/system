@@ -135,19 +135,14 @@
 				</p-tabpanels>
 			</p-tabs>
 
-			<div class="admin-attribute-detail-page__actions">
-				<p-button
-					label="Сбросить"
-					severity="secondary"
-					variant="outlined"
-					(onClick)="cancelAttribute()"
-				></p-button>
-				<p-button
-					label="Сохранить"
-					[disabled]="isSaveDisabled()"
-					(onClick)="saveAttribute()"
-				></p-button>
-			</div>
+			<app-editor-actions-bar
+				[hasChanges]="true"
+				[saving]="saving()"
+				[saveDisabled]="isSaveDisabled()"
+				[resetDisabled]="false"
+				(resetClick)="cancelAttribute()"
+				(saveClick)="saveAttribute()"
+			></app-editor-actions-bar>
 		</section>
 	} @else {
 		<section

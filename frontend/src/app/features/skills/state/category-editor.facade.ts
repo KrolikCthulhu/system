@@ -60,6 +60,7 @@ export class CategoryEditorFacade {
 
 				this.catalogFacade.prependCategory({
 					id,
+					slug: '',
 					name: 'Новая категория',
 					description: '',
 					isActive: true

@@ -79,6 +79,20 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminRollConsequencesPageComponent)
 					},
 					{
+						path: 'damage-types',
+						loadComponent: () =>
+							import(
+								'../../features/damage-types/ui/pages/admin-damage-types-page/admin-damage-types-page.component'
+							).then(m => m.AdminDamageTypesPageComponent)
+					},
+					{
+						path: 'conditions',
+						loadComponent: () =>
+							import(
+								'../../features/conditions/ui/pages/admin-conditions-page/admin-conditions-page.component'
+							).then(m => m.AdminConditionsPageComponent)
+					},
+					{
 						path: 'values',
 						loadComponent: () =>
 							import(
@@ -91,6 +105,49 @@ export const adminRoutes: Route[] = [
 							import(
 								'../../features/events/ui/pages/admin-events-page/admin-events-page.component'
 							).then(m => m.AdminEventsPageComponent)
+					},
+					{
+						path: 'magic-words',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-magic-words-page/admin-magic-words-page.component'
+							).then(m => m.AdminMagicWordsPageComponent)
+					},
+					{
+						path: 'spell-mechanics',
+						loadComponent: () =>
+							import(
+								'../../features/spell-mechanics/ui/pages/admin-spell-mechanics-page/admin-spell-mechanics-page.component'
+							).then(m => m.AdminSpellMechanicsPageComponent)
+					},
+					{
+						path: 'progression-presets',
+						loadComponent: () =>
+							import(
+								'../../features/progression-presets/ui/pages/admin-progression-presets-page/admin-progression-presets-page.component'
+							).then(m => m.AdminProgressionPresetsPageComponent)
+					},
+					{
+						path: 'spells/formula/:actionId/:essenceId/:gestureId',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-spell-detail-page/admin-spell-detail-page.component'
+							).then(m => m.AdminSpellDetailPageComponent)
+					},
+					{
+						path: 'spells/:spellId',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-spell-detail-page/admin-spell-detail-page.component'
+							).then(m => m.AdminSpellDetailPageComponent)
+					},
+					{
+						path: 'spells',
+						pathMatch: 'full',
+						loadComponent: () =>
+							import(
+								'../../features/magic/ui/pages/admin-spells-page/admin-spells-page.component'
+							).then(m => m.AdminSpellsPageComponent)
 					}
 				]
 			},

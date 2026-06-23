@@ -9,6 +9,7 @@ import {
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { GameEventDispatcherService } from '../game-events/game-event-dispatcher.service';
+import { GameEventHandlersService } from '../game-events/game-event-handlers.service';
 import {
 	RuntimeSystemValue,
 	SystemValueRuntimeService
@@ -25,6 +26,7 @@ export class CharacterSheetSandboxService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly dispatcher: GameEventDispatcherService,
+		private readonly eventHandlers: GameEventHandlersService,
 		private readonly systemValueRuntime: SystemValueRuntimeService
 	) {}
 
@@ -118,25 +120,31 @@ export class CharacterSheetSandboxService {
 			randomInt(1, D6_SIDES_COUNT + 1)
 		);
 		const successes = this.countSuccesses(dice, levelRule);
+		const sixes = dice.filter(value => value === 6).length;
 		const ones = dice.filter(value => value === 1).length;
 		const ignoredOnes = Math.min(ones, levelRule?.ignoreOnesCount ?? 0);
 		const consequenceCount = Math.max(0, ones - ignoredOnes);
-		const handlers = skill.rollConsequence
-			? [
-					{
-						ownerType: 'ROLL_CONSEQUENCE' as const,
-						ownerId: skill.rollConsequence.id,
-						name: skill.rollConsequence.name,
-						graph: skill.rollConsequence.rollEventGraph,
-						isActive: skill.rollConsequence.isActive,
-						sortOrder: skill.rollConsequence.sortOrder
-					}
-			  ]
-			: [];
+		const globalHandlers = await this.eventHandlers.getActiveRollPerformedHandlers();
+		const handlers = [
+			...globalHandlers,
+			...(skill.rollConsequence
+				? [
+						{
+							ownerType: 'ROLL_CONSEQUENCE' as const,
+							ownerId: skill.rollConsequence.id,
+							name: skill.rollConsequence.name,
+							graph: skill.rollConsequence.rollEventGraph,
+							isActive: skill.rollConsequence.isActive,
+							sortOrder: skill.rollConsequence.sortOrder
+						}
+				  ]
+				: [])
+		];
 		const dispatchResult = this.dispatcher.dispatchRollPerformed({
 			payload: {
 				diceCount,
 				successes,
+				sixes,
 				ones,
 				ignoredOnes,
 				consequenceCount,
@@ -160,6 +168,7 @@ export class CharacterSheetSandboxService {
 				diceCount,
 				dice,
 				successes,
+				sixes,
 				ones,
 				ignoredOnes,
 				consequenceCount,

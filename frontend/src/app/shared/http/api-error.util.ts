@@ -1,4 +1,9 @@
 import { HttpErrorResponse } from '@angular/common/http';
+import { throwError } from 'rxjs';
+
+export function handleApiError(error: unknown) {
+	return throwError(() => new Error(extractApiErrorMessage(error)));
+}
 
 export function extractApiErrorMessage(error: unknown): string {
 	if (error instanceof HttpErrorResponse) {

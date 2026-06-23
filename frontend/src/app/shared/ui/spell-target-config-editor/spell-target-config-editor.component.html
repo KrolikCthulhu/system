@@ -1,0 +1,101 @@
+<div class="spell-target-config-editor">
+	<span class="spell-target-config-editor__field">
+		<span>Название</span>
+		<input
+			pInputText
+			type="text"
+			[value]="value().name"
+			(input)="updateValue({ name: $any($event.target).value })"
+		/>
+	</span>
+
+	<span class="spell-target-config-editor__field">
+		<span>Способ выбора</span>
+		<p-select
+			[options]="targetSourceOptions"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().source"
+			(ngModelChange)="updateValue({ source: $event })"
+		></p-select>
+	</span>
+
+	<span class="spell-target-config-editor__field">
+		<span>Отношение</span>
+		<p-select
+			[options]="targetRelationOptions"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().relation"
+			(ngModelChange)="updateValue({ relation: $event })"
+		></p-select>
+	</span>
+
+	<span class="spell-target-config-editor__field">
+		<span>Количество</span>
+		<p-select
+			[options]="targetCountModeOptions"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().countMode"
+			(ngModelChange)="updateValue({ countMode: $event })"
+		></p-select>
+	</span>
+
+	@if (value().countMode === 'upTo' || value().countMode === 'exact') {
+		<span class="spell-target-config-editor__field">
+			<span>Источник количества</span>
+			<p-select
+				[options]="targetCountValueModeOptions"
+				optionLabel="label"
+				optionValue="value"
+				[ngModel]="value().countValueMode"
+				(ngModelChange)="updateValue({ countValueMode: $event })"
+			></p-select>
+		</span>
+
+		@if (value().countValueMode === 'fixed') {
+			<span class="spell-target-config-editor__field">
+				<span>Значение</span>
+				<p-inputnumber
+					[ngModel]="value().countValue"
+					[min]="0"
+					(ngModelChange)="updateValue({ countValue: $event ?? 0 })"
+				></p-inputnumber>
+			</span>
+		} @else if (value().countValueMode === 'formula') {
+			<span class="spell-target-config-editor__field">
+				<span>Формула количества</span>
+				<input
+					pInputText
+					type="text"
+					[value]="value().countFormula"
+					(input)="updateValue({ countFormula: $any($event.target).value })"
+				/>
+			</span>
+		} @else {
+			<span class="spell-target-config-editor__field">
+				<span>Параметр количества</span>
+				<p-select
+					[options]="countParameterOptions()"
+					optionLabel="label"
+					optionValue="value"
+					[showClear]="true"
+					placeholder="Не выбрано"
+					[ngModel]="value().targetCountParameterId || null"
+					(ngModelChange)="
+						updateValue({ targetCountParameterId: $event ?? '' })
+					"
+				></p-select>
+			</span>
+		}
+	}
+
+	<span class="spell-target-config-editor__switch-field">
+		<span>{{ requiredLabel() }}</span>
+		<p-toggleswitch
+			[ngModel]="value().isRequired"
+			(ngModelChange)="updateValue({ isRequired: $event })"
+		></p-toggleswitch>
+	</span>
+</div>

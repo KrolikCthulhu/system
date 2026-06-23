@@ -49,6 +49,7 @@ export function createRollEventGraphNodeState(
 				overflowValueId: null,
 				thresholdSource: 'base',
 				resetMode: 'zero',
+				overflowMode: 'single',
 				overflowIncrement: 1
 			};
 		case 'writeValue':
@@ -89,6 +90,7 @@ export function createRollEventRuntimeNode(
 				: null,
 			thresholdSource: node.thresholdSource ?? 'base',
 			resetMode: node.resetMode ?? 'zero',
+			overflowMode: node.overflowMode ?? 'single',
 			overflowIncrement: node.overflowIncrement ?? 1,
 			constantValue: node.constantValue,
 			operation: node.operation,
@@ -115,6 +117,7 @@ export function serializeRollEventGraphNode(
 		thresholdValueId: data?.thresholdValueId ?? null,
 		thresholdSource: data?.thresholdSource,
 		resetMode: data?.resetMode,
+		overflowMode: data?.overflowMode,
 		overflowIncrement: data?.overflowIncrement,
 		constantValue: data?.constantValue,
 		operation: data?.operation,
@@ -183,6 +186,7 @@ function normalizeNode(node: RollEventGraphNodeState): RollEventGraphNodeState {
 		normalized.thresholdValueId = node.thresholdValueId ?? null;
 		normalized.thresholdSource = node.thresholdSource ?? 'base';
 		normalized.resetMode = node.resetMode ?? 'zero';
+		normalized.overflowMode = node.overflowMode ?? 'single';
 		normalized.overflowIncrement = node.overflowIncrement ?? 1;
 	}
 

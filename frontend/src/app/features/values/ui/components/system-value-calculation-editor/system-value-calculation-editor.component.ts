@@ -84,7 +84,7 @@ const COMPARISON_OPTIONS = [
 
 const GRAPH_NODE_TYPES: GraphNodeType[] = [
 	{ kind: 'characterInput', label: 'Ввод персонажа' },
-	{ kind: 'source', label: 'Источник' },
+	{ kind: 'source', label: 'Значение системы' },
 	{ kind: 'constant', label: 'Число' },
 	{ kind: 'operation', label: 'Операция' },
 	{ kind: 'comparison', label: 'Сравнение' },

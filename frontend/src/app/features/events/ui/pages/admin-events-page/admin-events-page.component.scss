@@ -315,14 +315,6 @@
 	color: var(--p-red-500);
 }
 
-.admin-events-page__editor-actions {
-	display: flex;
-	justify-content: flex-end;
-	gap: 0.5rem;
-	padding: 0.75rem;
-	border-top: 1px solid var(--p-content-border-color);
-}
-
 @media (max-width: 1100px) {
 	.admin-events-page__workspace {
 		grid-template-columns: 1fr;

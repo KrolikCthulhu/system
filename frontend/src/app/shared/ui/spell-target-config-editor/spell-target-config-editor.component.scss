@@ -1,0 +1,29 @@
+.spell-target-config-editor {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.spell-target-config-editor__field,
+.spell-target-config-editor__switch-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.spell-target-config-editor__field input,
+.spell-target-config-editor__field p-select,
+.spell-target-config-editor__field p-inputnumber {
+	width: 100%;
+}
+
+.spell-target-config-editor__switch-field {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 2.75rem;
+}

@@ -9,6 +9,9 @@ import {
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
+import { createCharacterInputGraph } from '../shared/system-value-graph.factory';
+import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateSkillCategoryDto } from './dto/create-skill-category.dto';
 import { CreateSkillDto } from './dto/create-skill.dto';
 import { UpdateSkillCategoryActiveDto } from './dto/update-skill-category-active.dto';
@@ -21,6 +24,7 @@ import { UpdateSkillLevelDto } from './dto/update-skill-level.dto';
 const D6_SIDES_COUNT = 6;
 const skillSelect = {
 	id: true,
+	slug: true,
 	name: true,
 	categoryId: true,
 	description: true,
@@ -32,6 +36,7 @@ const skillSelect = {
 	systemValue: {
 		select: {
 			id: true,
+			slug: true,
 			calculationGraph: true
 		}
 	},
@@ -70,12 +75,14 @@ export class SkillsService {
 		return {
 			categories: categories.map(category => ({
 				id: category.id,
+				slug: category.slug,
 				name: category.name,
 				description: category.description ?? '',
 				isActive: category.isActive
 			})),
 			skills: skills.map(skill => ({
 				id: skill.id,
+				slug: skill.slug,
 				name: skill.name,
 				categoryId: skill.categoryId,
 				description: skill.description ?? '',
@@ -138,13 +145,14 @@ export class SkillsService {
 		this.validateSkillLevels(dto.defaultLevel, dto.maxLevel);
 
 		try {
-			const skill = await this.prisma.$transaction(async tx => {
+			const skillId = await this.prisma.$transaction(async tx => {
 				const id = randomUUID();
 				const description = dto.description || null;
 
 				await tx.systemValue.create({
 					data: {
 						id,
+						slug: createSlug(dto.name),
 						name: dto.name,
 						description,
 						primaryOwnerType: SystemValueOwnerType.SKILL,
@@ -160,10 +168,10 @@ export class SkillsService {
 					}
 				});
 
-				return tx.skill.create({
-					select: skillSelect,
+				await tx.skill.create({
 					data: {
 						id,
+						slug: createSlug(dto.name),
 						name: dto.name,
 						categoryId: dto.categoryId,
 						description,
@@ -175,11 +183,14 @@ export class SkillsService {
 						systemValueId: id
 					}
 				});
+
+				return id;
 			});
+			const skill = await this.loadSkill(skillId);
 
 			return this.mapSkill(skill);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось создать навык.');
+			rethrowPrismaError(error, 'Не удалось создать навык.');
 		}
 	}
 
@@ -204,9 +215,14 @@ export class SkillsService {
 		);
 
 		try {
-			const skill = await this.prisma.$transaction(async tx => {
+			await this.prisma.$transaction(async tx => {
 				const updatedSkill = await tx.skill.update({
-					select: skillSelect,
+					select: {
+						id: true,
+						name: true,
+						description: true,
+						systemValueId: true
+					},
 					where: { id },
 					data: {
 						name: dto.name,
@@ -225,22 +241,19 @@ export class SkillsService {
 					}
 				});
 
-				if (updatedSkill.systemValue) {
-					await tx.systemValue.update({
-						where: { id: updatedSkill.systemValue.id },
-						data: {
-							name: updatedSkill.name,
-							description: updatedSkill.description
-						}
-					});
-				}
-
-				return updatedSkill;
+				await tx.systemValue.update({
+					where: { id: updatedSkill.systemValueId },
+					data: {
+						name: updatedSkill.name,
+						description: updatedSkill.description
+					}
+				});
 			});
+			const skill = await this.loadSkill(id);
 
 			return this.mapSkill(skill);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось обновить навык.');
+			rethrowPrismaError(error, 'Не удалось обновить навык.');
 		}
 	}
 
@@ -281,13 +294,14 @@ export class SkillsService {
 			const category = await this.prisma.skillCategory.create({
 				data: {
 					name: dto.name,
+					slug: createSlug(dto.name),
 					description: dto.description || null
 				}
 			});
 
 			return this.mapCategory(category);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось создать категорию.');
+			rethrowPrismaError(error, 'Не удалось создать категорию.');
 		}
 	}
 
@@ -305,7 +319,7 @@ export class SkillsService {
 
 			return this.mapCategory(category);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось обновить категорию.');
+			rethrowPrismaError(error, 'Не удалось обновить категорию.');
 		}
 	}
 
@@ -412,6 +426,13 @@ export class SkillsService {
 		}
 	}
 
+	private loadSkill(id: string) {
+		return this.prisma.skill.findUniqueOrThrow({
+			select: skillSelect,
+			where: { id }
+		});
+	}
+
 	private async ensureLevelExists(id: string) {
 		const level = await this.prisma.skillLevel.findUnique({ where: { id } });
 
@@ -458,19 +479,6 @@ export class SkillsService {
 		}
 	}
 
-	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		) {
-			throw new BadRequestException('Значение должно быть уникальным.');
-		}
-
-		throw error instanceof Error
-			? error
-			: new BadRequestException(fallbackMessage);
-	}
-
 	private calculateExpectedSuccessPerDie(params: {
 		canRoll: boolean;
 		successMin: number | null;
@@ -500,6 +508,7 @@ export class SkillsService {
 
 	private mapSkill(skill: {
 		id: string;
+		slug: string;
 		name: string;
 		categoryId: string;
 		description: string | null;
@@ -510,12 +519,14 @@ export class SkillsService {
 		usesDefaultLevelRules: boolean;
 		systemValue: {
 			id: string;
+			slug: string;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 		isActive: boolean;
 	}) {
 		return {
 			id: skill.id,
+			slug: skill.slug,
 			name: skill.name,
 			categoryId: skill.categoryId,
 			description: skill.description ?? '',
@@ -533,6 +544,7 @@ export class SkillsService {
 		id: string;
 		systemValue: {
 			id: string;
+			slug: string;
 			calculationGraph: Prisma.JsonValue | null;
 		};
 	}) {
@@ -540,18 +552,21 @@ export class SkillsService {
 
 		return {
 			id: systemValue.id,
+			slug: systemValue.slug,
 			calculationGraph: systemValue.calculationGraph
 		};
 	}
 
 	private mapCategory(category: {
 		id: string;
+		slug: string;
 		name: string;
 		description: string | null;
 		isActive: boolean;
 	}) {
 		return {
 			id: category.id,
+			slug: category.slug,
 			name: category.name,
 			description: category.description ?? '',
 			isActive: category.isActive
@@ -583,22 +598,4 @@ export class SkillsService {
 			isActive: level.isActive
 		};
 	}
-}
-
-function createCharacterInputGraph() {
-	return {
-		nodes: [
-			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
-			{ id: 'result', kind: 'result', x: 420, y: 120 }
-		],
-		edges: [
-			{
-				id: 'character-input:out -> result:in',
-				source: 'character-input',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
 }

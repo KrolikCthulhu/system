@@ -15,6 +15,11 @@ import { UpdateAttributeActiveDto } from './dto/update-attribute-active.dto';
 import { UpdateAttributeDto } from './dto/update-attribute.dto';
 import { UpdateCharacteristicActiveDto } from './dto/update-characteristic-active.dto';
 import { UpdateCharacteristicDto } from './dto/update-characteristic.dto';
+import {
+	createAvailablePoolGraph,
+	createCharacterInputGraph
+} from '../shared/system-value-graph.factory';
+import { rethrowPrismaError } from '../shared/prisma-error.util';
 
 const attributeSelect = {
 	id: true,
@@ -80,7 +85,7 @@ export class AttributesService {
 
 	async createAttribute(dto: CreateAttributeDto) {
 		try {
-			const attribute = await this.prisma.$transaction(async tx => {
+			const attributeId = await this.prisma.$transaction(async tx => {
 				const id = randomUUID();
 				const description = this.toNullableString(dto.description) ?? null;
 
@@ -104,8 +109,7 @@ export class AttributesService {
 					}
 				});
 
-				return tx.attribute.create({
-					select: attributeSelect,
+				await tx.attribute.create({
 					data: {
 						id,
 						name: dto.name,
@@ -115,19 +119,22 @@ export class AttributesService {
 						systemValueId: id
 					}
 				});
+
+				return id;
 			});
 
 			if (dto.poolPenaltyValueId) {
-				return this.mapAttribute(
-					await this.prisma.$transaction(tx =>
-						this.ensureAvailablePoolValue(tx, attribute.id)
-					)
+				await this.prisma.$transaction(tx =>
+					this.ensureAvailablePoolValue(tx, attributeId)
 				);
 			}
 
+			const attribute = await this.loadAttribute(attributeId);
 			return this.mapAttribute(attribute);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to create attribute.');
+			rethrowPrismaError(error, 'Failed to create attribute.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
@@ -135,9 +142,13 @@ export class AttributesService {
 		await this.ensureAttributeExists(id);
 
 		try {
-			const attribute = await this.prisma.$transaction(async tx => {
+			await this.prisma.$transaction(async tx => {
 				const updatedAttribute = await tx.attribute.update({
-					select: attributeSelect,
+					select: {
+						id: true,
+						poolPenaltyValueId: true,
+						availablePoolValueId: true
+					},
 					where: { id },
 					data: {
 						name: dto.name,
@@ -160,24 +171,27 @@ export class AttributesService {
 				});
 
 				if (updatedAttribute.poolPenaltyValueId || updatedAttribute.availablePoolValueId) {
-					return this.ensureAvailablePoolValue(tx, updatedAttribute.id);
+					await this.ensureAvailablePoolValue(tx, updatedAttribute.id);
 				}
-
-				return updatedAttribute;
 			});
+			const attribute = await this.loadAttribute(id);
 
 			return this.mapAttribute(attribute);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to update attribute.');
+			rethrowPrismaError(error, 'Failed to update attribute.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
 	async updateAttributeActive(id: string, dto: UpdateAttributeActiveDto) {
 		await this.ensureAttributeExists(id);
 
-		const attribute = await this.prisma.$transaction(async tx => {
+		await this.prisma.$transaction(async tx => {
 			const updatedAttribute = await tx.attribute.update({
-				select: attributeSelect,
+				select: {
+					availablePoolValueId: true
+				},
 				where: { id },
 				data: {
 					isActive: dto.isActive,
@@ -195,9 +209,8 @@ export class AttributesService {
 					data: { isActive: dto.isActive }
 				});
 			}
-
-			return updatedAttribute;
 		});
+		const attribute = await this.loadAttribute(id);
 
 		return this.mapAttribute(attribute);
 	}
@@ -238,7 +251,7 @@ export class AttributesService {
 		this.validateCharacteristicRange(dto.minValue, dto.maxValue, dto.defaultValue);
 
 		try {
-			const characteristic = await this.prisma.$transaction(async tx => {
+			const characteristicId = await this.prisma.$transaction(async tx => {
 				const id = randomUUID();
 				const description = this.toNullableString(dto.description) ?? null;
 
@@ -262,8 +275,7 @@ export class AttributesService {
 					}
 				});
 
-				return tx.characteristic.create({
-					select: characteristicSelect,
+				await tx.characteristic.create({
 					data: {
 						id,
 						name: dto.name,
@@ -276,11 +288,16 @@ export class AttributesService {
 						systemValueId: id
 					}
 				});
+
+				return id;
 			});
+			const characteristic = await this.loadCharacteristic(characteristicId);
 
 			return this.mapCharacteristic(characteristic);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to create characteristic.');
+			rethrowPrismaError(error, 'Failed to create characteristic.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
@@ -301,9 +318,15 @@ export class AttributesService {
 		);
 
 		try {
-			const characteristic = await this.prisma.$transaction(async tx => {
+			await this.prisma.$transaction(async tx => {
 				const updatedCharacteristic = await tx.characteristic.update({
-					select: characteristicSelect,
+					select: {
+						id: true,
+						name: true,
+						description: true,
+						sortOrder: true,
+						systemValueId: true
+					},
 					where: { id },
 					data: {
 						name: dto.name,
@@ -316,23 +339,22 @@ export class AttributesService {
 					}
 				});
 
-				if (updatedCharacteristic.systemValue) {
-					await tx.systemValue.update({
-						where: { id: updatedCharacteristic.systemValue.id },
-						data: {
-							name: updatedCharacteristic.name,
-							description: updatedCharacteristic.description,
-							sortOrder: updatedCharacteristic.sortOrder
-						}
-					});
-				}
-
-				return updatedCharacteristic;
+				await tx.systemValue.update({
+					where: { id: updatedCharacteristic.systemValueId },
+					data: {
+						name: updatedCharacteristic.name,
+						description: updatedCharacteristic.description,
+						sortOrder: updatedCharacteristic.sortOrder
+					}
+				});
 			});
+			const characteristic = await this.loadCharacteristic(id);
 
 			return this.mapCharacteristic(characteristic);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Failed to update characteristic.');
+			rethrowPrismaError(error, 'Failed to update characteristic.', {
+				uniqueMessage: 'Value must be unique.'
+			});
 		}
 	}
 
@@ -389,6 +411,20 @@ export class AttributesService {
 		}
 	}
 
+	private loadAttribute(id: string) {
+		return this.prisma.attribute.findUniqueOrThrow({
+			select: attributeSelect,
+			where: { id }
+		});
+	}
+
+	private loadCharacteristic(id: string) {
+		return this.prisma.characteristic.findUniqueOrThrow({
+			select: characteristicSelect,
+			where: { id }
+		});
+	}
+
 	private async ensureAvailablePoolValue(
 		tx: Prisma.TransactionClient,
 		attributeId: string
@@ -431,11 +467,7 @@ export class AttributesService {
 					isSystemManaged: true
 				}
 			});
-
-			return tx.attribute.findUniqueOrThrow({
-				select: attributeSelect,
-				where: { id: attribute.id }
-			});
+			return;
 		}
 
 		const availablePoolValueId = randomUUID();
@@ -463,8 +495,7 @@ export class AttributesService {
 			}
 		});
 
-		return tx.attribute.update({
-			select: attributeSelect,
+		await tx.attribute.update({
 			where: { id: attribute.id },
 			data: {
 				availablePoolValueId
@@ -505,19 +536,6 @@ export class AttributesService {
 		}
 
 		return this.toNullableString(value);
-	}
-
-	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		) {
-			throw new BadRequestException('Value must be unique.');
-		}
-
-		throw error instanceof Error
-			? error
-			: new BadRequestException(fallbackMessage);
 	}
 
 	private mapAttribute(attribute: {
@@ -596,107 +614,4 @@ export class AttributesService {
 			calculationGraph: systemValue.calculationGraph
 		};
 	}
-}
-
-function createCharacterInputGraph() {
-	return {
-		nodes: [
-			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
-			{ id: 'result', kind: 'result', x: 420, y: 120 }
-		],
-		edges: [
-			{
-				id: 'character-input:out -> result:in',
-				source: 'character-input',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
-}
-
-function createAvailablePoolGraph(
-	attributeValueId: string,
-	penaltyValueId: string | null
-) {
-	return {
-		nodes: [
-			{
-				id: 'attribute-value',
-				kind: 'source',
-				x: 120,
-				y: 80,
-				sourceValueId: attributeValueId
-			},
-			{
-				id: 'penalty-value',
-				kind: penaltyValueId ? 'source' : 'constant',
-				x: 120,
-				y: 220,
-				...(penaltyValueId
-					? { sourceValueId: penaltyValueId }
-					: { constantValue: 0 })
-			},
-			{
-				id: 'zero',
-				kind: 'constant',
-				x: 360,
-				y: 240,
-				constantValue: 0
-			},
-			{
-				id: 'subtract-penalty',
-				kind: 'operation',
-				x: 360,
-				y: 120,
-				operation: 'subtract'
-			},
-			{
-				id: 'clamp-min-zero',
-				kind: 'operation',
-				x: 600,
-				y: 140,
-				operation: 'max'
-			},
-			{ id: 'result', kind: 'result', x: 840, y: 140 }
-		],
-		edges: [
-			{
-				id: 'attribute-value:out -> subtract-penalty:a',
-				source: 'attribute-value',
-				target: 'subtract-penalty',
-				sourceHandle: 'out',
-				targetHandle: 'a'
-			},
-			{
-				id: 'penalty-value:out -> subtract-penalty:b',
-				source: 'penalty-value',
-				target: 'subtract-penalty',
-				sourceHandle: 'out',
-				targetHandle: 'b'
-			},
-			{
-				id: 'subtract-penalty:out -> clamp-min-zero:in',
-				source: 'subtract-penalty',
-				target: 'clamp-min-zero',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			},
-			{
-				id: 'zero:out -> clamp-min-zero:in',
-				source: 'zero',
-				target: 'clamp-min-zero',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			},
-			{
-				id: 'clamp-min-zero:out -> result:in',
-				source: 'clamp-min-zero',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
 }

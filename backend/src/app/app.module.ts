@@ -7,10 +7,18 @@ import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { CharacterSheetSandboxModule } from './character-sheet-sandbox/character-sheet-sandbox.module';
+import { ConditionsModule } from './conditions/conditions.module';
+import { DamageTypesModule } from './damage-types/damage-types.module';
+import { GameEventsModule } from './game-events/game-events.module';
+import { MagicModule } from './magic/magic.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { ProgressionPresetsModule } from './progression-presets/progression-presets.module';
 import { RollConsequencesModule } from './roll-consequences/roll-consequences.module';
 import { SkillsModule } from './skills/skills.module';
+import { SpellMechanicsModule } from './spell-mechanics/spell-mechanics.module';
 import { ValuesModule } from './values/values.module';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
 	imports: [
@@ -36,12 +44,19 @@ import { ValuesModule } from './values/values.module';
 		AuthModule,
 		AttributesModule,
 		CharacterSheetSandboxModule,
+		ConditionsModule,
+		DamageTypesModule,
+		GameEventsModule,
+		MagicModule,
+		ProgressionPresetsModule,
 		RollConsequencesModule,
 		SkillsModule,
+		SpellMechanicsModule,
 		ValuesModule
 	],
-	controllers: [],
+	controllers: [AppController],
 	providers: [
+		AppService,
 		{
 			provide: APP_GUARD,
 			useClass: ThrottlerGuard

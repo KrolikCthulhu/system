@@ -3,7 +3,6 @@ import { Component, computed, effect, inject } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Breadcrumb } from 'primeng/breadcrumb';
-import { Button } from 'primeng/button';
 import { Fluid } from 'primeng/fluid';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
@@ -13,6 +12,7 @@ import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { SystemValueCalculationDefinition } from '../../../../values/domain/system-value-calculation.models';
 import { SystemValueCalculationEditorComponent } from '../../../../values/ui/components/system-value-calculation-editor/system-value-calculation-editor.component';
+import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import { AdminSkillDetailFacade } from '../../../state/admin-skill-detail.facade';
 import { AdminSkillDetailStore } from '../../../state/admin-skill-detail.store';
 
@@ -24,7 +24,7 @@ import { AdminSkillDetailStore } from '../../../state/admin-skill-detail.store';
 		FormsModule,
 		ReactiveFormsModule,
 		Breadcrumb,
-		Button,
+		EditorActionsBarComponent,
 		Fluid,
 		InputNumber,
 		InputText,

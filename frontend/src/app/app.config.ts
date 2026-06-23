@@ -14,8 +14,15 @@ import { AuthFacade } from './features/auth/state/auth.facade';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
+import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
+import { provideConditionsInfrastructure } from './features/conditions/data/provide-conditions-infrastructure';
+import { provideDamageTypesInfrastructure } from './features/damage-types/data/provide-damage-types-infrastructure';
+import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
+import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
+import { provideProgressionPresetsInfrastructure } from './features/progression-presets/data/provide-progression-presets-infrastructure';
 import { provideRollConsequencesInfrastructure } from './features/roll-consequences/data/provide-roll-consequences-infrastructure';
 import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
+import { provideSpellMechanicsInfrastructure } from './features/spell-mechanics/data/provide-spell-mechanics-infrastructure';
 import { provideValuesInfrastructure } from './features/values/data/provide-values-infrastructure';
 
 const appThemePreset = definePreset(Aura, {
@@ -69,7 +76,37 @@ const appThemePreset = definePreset(Aura, {
 		},
 		select: {
 			root: {
-				paddingY: '0.5rem'
+				paddingY: '0.375rem',
+				paddingX: '0.625rem'
+			},
+			list: {
+				header: {
+					padding: '0.375rem 0.5rem 0.25rem'
+				}
+			},
+			option: {
+				padding: '0.375rem 0.625rem'
+			},
+			optionGroup: {
+				padding: '0.375rem 0.625rem 0.25rem'
+			}
+		},
+		multiselect: {
+			root: {
+				paddingY: '0.375rem',
+				paddingX: '0.625rem'
+			},
+			list: {
+				header: {
+					padding: '0.375rem 0.5rem 0.25rem'
+				}
+			},
+			option: {
+				padding: '0.375rem 0.625rem',
+				gap: '0.5rem'
+			},
+			optionGroup: {
+				padding: '0.375rem 0.625rem 0.25rem'
 			}
 		},
 		textarea: {
@@ -85,8 +122,15 @@ export const appConfig: ApplicationConfig = {
 		provideBrowserGlobalErrorListeners(),
 		...provideAuthInfrastructure(),
 		...provideAttributesInfrastructure(),
+		...provideCharacterSheetInfrastructure(),
+		...provideConditionsInfrastructure(),
+		...provideDamageTypesInfrastructure(),
+		...provideGameEventsInfrastructure(),
+		...provideMagicWordsInfrastructure(),
+		...provideProgressionPresetsInfrastructure(),
 		...provideRollConsequencesInfrastructure(),
 		...provideSkillsInfrastructure(),
+		...provideSpellMechanicsInfrastructure(),
 		...provideValuesInfrastructure(),
 		provideAppInitializer(() => inject(AuthFacade).initializeSession()),
 		provideHttpClient(withInterceptors([authInterceptor])),

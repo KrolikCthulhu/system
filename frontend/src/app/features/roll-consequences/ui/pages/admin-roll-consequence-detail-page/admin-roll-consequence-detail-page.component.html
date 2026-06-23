@@ -39,16 +39,16 @@
 							<form class="admin-roll-consequence-detail-page__form" [formGroup]="form">
 								<div class="admin-roll-consequence-detail-page__grid">
 									<div class="admin-roll-consequence-detail-page__field">
-										<label class="admin-roll-consequence-detail-page__field-label" for="consequence-name">
+										<span class="admin-roll-consequence-detail-page__field-label" for="consequence-name">
 											Название
-										</label>
+										</span>
 										<input id="consequence-name" pInputText formControlName="name" />
 									</div>
 
 									<div class="admin-roll-consequence-detail-page__field">
-										<label class="admin-roll-consequence-detail-page__field-label" for="consequence-sort-order">
+										<span class="admin-roll-consequence-detail-page__field-label" for="consequence-sort-order">
 											Порядок отображения
-										</label>
+										</span>
 										<p-inputnumber
 											inputId="consequence-sort-order"
 											formControlName="sortOrder"
@@ -59,9 +59,9 @@
 								</div>
 
 								<div class="admin-roll-consequence-detail-page__switch-row">
-									<label class="admin-roll-consequence-detail-page__field-label" for="consequence-active">
+									<span class="admin-roll-consequence-detail-page__field-label" for="consequence-active">
 										Активно
-									</label>
+									</span>
 									<p-toggleswitch
 										inputId="consequence-active"
 										formControlName="isActive"
@@ -69,9 +69,9 @@
 								</div>
 
 								<div class="admin-roll-consequence-detail-page__field">
-									<label class="admin-roll-consequence-detail-page__field-label" for="consequence-description">
+									<span class="admin-roll-consequence-detail-page__field-label" for="consequence-description">
 										Описание
-									</label>
+									</span>
 									<textarea
 										id="consequence-description"
 										pTextarea
@@ -111,16 +111,16 @@
 											>
 												<div class="admin-roll-consequence-detail-page__grid">
 													<div class="admin-roll-consequence-detail-page__field">
-														<label class="admin-roll-consequence-detail-page__field-label">
+														<span class="admin-roll-consequence-detail-page__field-label">
 															Название
-														</label>
+														</span>
 														<input pInputText formControlName="name" />
 													</div>
 
 													<div class="admin-roll-consequence-detail-page__field">
-														<label class="admin-roll-consequence-detail-page__field-label">
+														<span class="admin-roll-consequence-detail-page__field-label">
 															Порядок
-														</label>
+														</span>
 														<p-inputnumber
 															formControlName="sortOrder"
 															[min]="0"
@@ -130,9 +130,9 @@
 												</div>
 
 												<div class="admin-roll-consequence-detail-page__field">
-													<label class="admin-roll-consequence-detail-page__field-label">
+													<span class="admin-roll-consequence-detail-page__field-label">
 														Описание
-													</label>
+													</span>
 													<textarea
 														pTextarea
 														formControlName="description"
@@ -142,9 +142,9 @@
 
 												<div class="admin-roll-consequence-detail-page__value-actions">
 													<div class="admin-roll-consequence-detail-page__switch-row">
-														<label class="admin-roll-consequence-detail-page__field-label">
+														<span class="admin-roll-consequence-detail-page__field-label">
 															Активно
-														</label>
+														</span>
 														<p-toggleswitch formControlName="isActive" />
 													</div>
 													<p-button
@@ -180,19 +180,14 @@
 				</p-tabpanels>
 			</p-tabs>
 
-			<div class="admin-roll-consequence-detail-page__actions">
-				<p-button
-					label="Сбросить"
-					severity="secondary"
-					variant="outlined"
-					(onClick)="cancel()"
-				></p-button>
-				<p-button
-					label="Сохранить"
-					[disabled]="isSaveDisabled()"
-					(onClick)="save()"
-				></p-button>
-			</div>
+			<app-editor-actions-bar
+				[hasChanges]="true"
+				[saving]="saving()"
+				[saveDisabled]="isSaveDisabled()"
+				[resetDisabled]="false"
+				(resetClick)="cancel()"
+				(saveClick)="save()"
+			></app-editor-actions-bar>
 		</section>
 	}
 </section>

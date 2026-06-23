@@ -1,0 +1,215 @@
+<section class="admin-progression-presets-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-progression-presets-page__header">
+		<div class="admin-progression-presets-page__section-pad">
+			<p-breadcrumb
+				class="admin-progression-presets-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-progression-presets-page__workspace">
+		<aside class="admin-progression-presets-page__panel admin-progression-presets-page__sidebar">
+			<div class="admin-progression-presets-page__panel-heading admin-progression-presets-page__section-pad">
+				<h2 class="admin-progression-presets-page__panel-title">Прогрессии</h2>
+				<p-button
+					label="Новая"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createPreset()"
+				></p-button>
+			</div>
+
+			<div class="admin-progression-presets-page__search-row admin-progression-presets-page__section-pad">
+				<p-iconfield class="admin-progression-presets-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск прогрессии"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-progression-presets-page__state">Загрузка прогрессий...</div>
+			} @else if (errorMessage() && !draft()) {
+				<div class="admin-progression-presets-page__state admin-progression-presets-page__state--error">
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div class="admin-progression-presets-page__item-list admin-progression-presets-page__section-pad">
+					<div class="admin-progression-presets-page__list-title">Пресеты</div>
+
+					@for (preset of filteredPresets(); track preset.id) {
+						<button
+							type="button"
+							class="admin-progression-presets-page__item"
+							[class.admin-progression-presets-page__item--active]="
+								preset.id === selectedPresetId()
+							"
+							(click)="selectPreset(preset)"
+						>
+							<span>{{ preset.name }}</span>
+							@if (!preset.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-progression-presets-page__empty-list">
+							Прогрессий пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section class="admin-progression-presets-page__panel admin-progression-presets-page__editor">
+				<div
+					class="admin-progression-presets-page__panel-heading admin-progression-presets-page__panel-heading--split admin-progression-presets-page__section-pad"
+				>
+					<h2 class="admin-progression-presets-page__panel-title">{{ title() }}</h2>
+
+					<div class="admin-progression-presets-page__heading-actions">
+						<p-tag value="Прогрессия" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedPreset()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div class="admin-progression-presets-page__editor-body admin-progression-presets-page__section-pad">
+					@if (errorMessage()) {
+						<div class="admin-progression-presets-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-progression-presets-page__form-grid">
+						<span class="admin-progression-presets-page__field">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-progression-presets-page__field">
+							<span>Тип прогрессии</span>
+							<p-select
+								[ngModel]="currentDraft.kind"
+								[options]="kindOptions"
+								optionLabel="label"
+								optionValue="value"
+								(ngModelChange)="updateDraftKind($event)"
+							></p-select>
+						</span>
+
+						<span class="admin-progression-presets-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-progression-presets-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+
+						<span class="admin-progression-presets-page__field admin-progression-presets-page__field--wide">
+							<span>Описание</span>
+							<textarea
+								pTextarea
+								rows="3"
+								[value]="currentDraft.description"
+								(input)="updateDraftDescription($any($event.target).value)"
+							></textarea>
+						</span>
+					</div>
+
+					<section class="admin-progression-presets-page__block">
+						<h3>Настройки формулы</h3>
+						<div class="admin-progression-presets-page__config-grid">
+							<span class="admin-progression-presets-page__field">
+								<span>Округление</span>
+								<p-select
+									[ngModel]="currentDraft.config['roundingMode']"
+									[options]="roundingModeOptions"
+									optionLabel="label"
+									optionValue="value"
+									(ngModelChange)="updateDraftRoundingMode($event)"
+								></p-select>
+							</span>
+
+							@for (field of configFields(); track field.key) {
+								<span class="admin-progression-presets-page__field">
+									<span>{{ field.label }}</span>
+									<p-inputnumber
+										[ngModel]="$any(currentDraft.config[field.key])"
+										[showButtons]="false"
+										[min]="field.min"
+										[step]="field.step"
+										[minFractionDigits]="0"
+										[maxFractionDigits]="4"
+										(ngModelChange)="updateDraftConfigValue(field.key, $event)"
+									></p-inputnumber>
+								</span>
+							}
+						</div>
+					</section>
+
+					<section class="admin-progression-presets-page__block">
+						<h3>Предпросмотр</h3>
+						<div class="admin-progression-presets-page__formula">
+							{{ formulaPreview() }}
+						</div>
+						<div class="admin-progression-presets-page__preview-grid">
+							@for (row of previewRows(); track row.x) {
+								<div class="admin-progression-presets-page__preview-cell">
+									<span>x = {{ row.x }}</span>
+									<strong>{{ row.value }}</strong>
+								</div>
+							}
+						</div>
+					</section>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section class="admin-progression-presets-page__panel admin-progression-presets-page__editor">
+				<div class="admin-progression-presets-page__state">
+					Выбери прогрессию слева или создай новую.
+				</div>
+			</section>
+		}
+	</div>
+</section>

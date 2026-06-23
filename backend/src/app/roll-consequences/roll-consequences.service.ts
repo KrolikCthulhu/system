@@ -1,14 +1,12 @@
-import {
-	BadRequestException,
-	Injectable,
-	NotFoundException
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import {
 	Prisma,
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
+import { createCharacterInputGraph } from '../shared/system-value-graph.factory';
+import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { CreateRollConsequenceDto } from './dto/create-roll-consequence.dto';
 import { RollConsequenceValueDto } from './dto/roll-consequence-value.dto';
 import { UpdateRollConsequenceActiveDto } from './dto/update-roll-consequence-active.dto';
@@ -76,9 +74,9 @@ export class RollConsequencesService {
 
 	async create(dto: CreateRollConsequenceDto) {
 		try {
-			const consequence = await this.prisma.$transaction(async tx => {
+			const consequenceId = await this.prisma.$transaction(async tx => {
 				const created = await tx.rollConsequence.create({
-					select: rollConsequenceSelect,
+					select: { id: true },
 					data: {
 						name: dto.name,
 						description: dto.description || null,
@@ -93,13 +91,14 @@ export class RollConsequencesService {
 
 				await this.syncValues(tx, created.id, dto.values ?? []);
 
-				return created;
+				return created.id;
 			});
-			const values = await this.loadValues([consequence.id]);
+			const consequence = await this.loadConsequence(consequenceId);
+			const values = await this.loadValues([consequenceId]);
 
 			return this.mapConsequence(consequence, values.get(consequence.id) ?? []);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось создать последствие броска.');
+			rethrowPrismaError(error, 'Не удалось создать последствие броска.');
 		}
 	}
 
@@ -107,9 +106,8 @@ export class RollConsequencesService {
 		await this.ensureExists(id);
 
 		try {
-			const consequence = await this.prisma.$transaction(async tx => {
-				const updated = await tx.rollConsequence.update({
-					select: rollConsequenceSelect,
+			await this.prisma.$transaction(async tx => {
+				await tx.rollConsequence.update({
 					where: { id },
 					data: {
 						name: dto.name,
@@ -129,14 +127,13 @@ export class RollConsequencesService {
 				if (dto.values) {
 					await this.syncValues(tx, id, dto.values);
 				}
-
-				return updated;
 			});
+			const consequence = await this.loadConsequence(id);
 			const values = await this.loadValues([id]);
 
 			return this.mapConsequence(consequence, values.get(id) ?? []);
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось обновить последствие броска.');
+			rethrowPrismaError(error, 'Не удалось обновить последствие броска.');
 		}
 	}
 
@@ -324,36 +321,13 @@ export class RollConsequencesService {
 		}
 	}
 
-	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		) {
-			throw new BadRequestException('Значение должно быть уникальным.');
-		}
-
-		throw error instanceof Error
-			? error
-			: new BadRequestException(fallbackMessage);
+	private loadConsequence(id: string) {
+		return this.prisma.rollConsequence.findUniqueOrThrow({
+			select: rollConsequenceSelect,
+			where: { id }
+		});
 	}
-}
 
-function createCharacterInputGraph() {
-	return {
-		nodes: [
-			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
-			{ id: 'result', kind: 'result', x: 420, y: 120 }
-		],
-		edges: [
-			{
-				id: 'character-input:out -> result:in',
-				source: 'character-input',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
-	};
 }
 
 function normalizeJsonObject(value: Prisma.JsonValue | null) {

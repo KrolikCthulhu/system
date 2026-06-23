@@ -176,19 +176,14 @@
 				</p-tabpanels>
 			</p-tabs>
 
-			<div class="admin-characteristic-detail-page__actions">
-				<p-button
-					label="Сбросить"
-					severity="secondary"
-					variant="outlined"
-					(onClick)="cancelCharacteristic()"
-				></p-button>
-				<p-button
-					label="Сохранить"
-					[disabled]="isSaveDisabled()"
-					(onClick)="saveCharacteristic()"
-				></p-button>
-			</div>
+			<app-editor-actions-bar
+				[hasChanges]="true"
+				[saving]="saving()"
+				[saveDisabled]="isSaveDisabled()"
+				[resetDisabled]="false"
+				(resetClick)="cancelCharacteristic()"
+				(saveClick)="saveCharacteristic()"
+			></app-editor-actions-bar>
 		</section>
 	} @else {
 		<section

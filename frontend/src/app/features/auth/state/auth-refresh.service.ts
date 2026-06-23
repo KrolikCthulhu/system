@@ -10,7 +10,7 @@ import {
 	throwError
 } from 'rxjs';
 import { environment } from '../../../infrastructure/config/environment';
-import { extractApiErrorMessage } from '../data/auth-http-error.util';
+import { extractApiErrorMessage } from '../../../shared/http/api-error.util';
 import { AuthSessionDto } from '../data/dto/auth.dto';
 import { mapAuthSessionDto } from '../data/mappers/auth.mapper';
 import { AuthSession } from '../domain/auth.models';

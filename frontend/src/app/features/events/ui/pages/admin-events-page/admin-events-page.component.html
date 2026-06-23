@@ -67,18 +67,18 @@
 									isGroupCollapsed(group.label)
 								"
 							>
-								@for (handler of group.items; track handler.id) {
+								@for (handler of group.items; track handler.key) {
 									<button
 										type="button"
 										class="admin-events-page__handler-item"
 										[class.admin-events-page__handler-item--active]="
-											handler.id === selectedHandlerId()
+											handler.key === selectedHandlerKey()
 										"
-										(click)="selectHandler(handler.id)"
+										(click)="selectHandler(handler.key)"
 									>
 										<div class="admin-events-page__handler-copy">
 											<strong>{{ handler.name }}</strong>
-											<span>Последствие броска</span>
+											<span>{{ handler.subtitle }}</span>
 										</div>
 									</button>
 								} @empty {
@@ -101,7 +101,7 @@
 					<div>
 						<h2 class="admin-events-page__panel-title">{{ handler.name }}</h2>
 						<div class="admin-events-page__subtitle">
-							Обработчик события «Совершён бросок»
+							{{ handler.subtitle }}
 						</div>
 					</div>
 
@@ -123,21 +123,12 @@
 					></app-roll-event-graph-editor>
 				</div>
 
-				<div class="admin-events-page__editor-actions admin-events-page__section-pad">
-					<p-button
-						label="Сбросить"
-						severity="secondary"
-						variant="outlined"
-						[disabled]="!hasChanges() || saving()"
-						(onClick)="resetDraft()"
-					></p-button>
-					<p-button
-						label="Сохранить"
-						[loading]="saving()"
-						[disabled]="!hasChanges()"
-						(onClick)="saveDraft()"
-					></p-button>
-				</div>
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
 			</section>
 		} @else {
 			<section class="admin-events-page__panel admin-events-page__editor">

@@ -37,6 +37,7 @@ import {
 	RollEventGraphNodeData,
 	RollEventGraphNodeKind,
 	RollEventGraphOperation,
+	RollEventThresholdOverflowMode,
 	RollEventThresholdResetMode,
 	RollEventThresholdSource
 } from '../../../domain/roll-event-graph.models';
@@ -48,7 +49,7 @@ interface EventNodeType {
 
 const NODE_TYPES: EventNodeType[] = [
 	{ kind: 'eventInput', label: 'Данные броска' },
-	{ kind: 'valueSource', label: 'Значение' },
+	{ kind: 'valueSource', label: 'Значение системы' },
 	{ kind: 'constant', label: 'Число' },
 	{ kind: 'operation', label: 'Операция' },
 	{ kind: 'comparison', label: 'Сравнение' },
@@ -60,6 +61,7 @@ const NODE_TYPES: EventNodeType[] = [
 const EVENT_INPUT_OPTIONS = [
 	{ label: 'Количество кубов', value: 'diceCount' },
 	{ label: 'Успехи', value: 'successes' },
+	{ label: 'Выпавшие шестерки', value: 'sixes' },
 	{ label: 'Выпавшие единицы', value: 'ones' },
 	{ label: 'Игнорированные единицы', value: 'ignoredOnes' },
 	{ label: 'Количество последствий', value: 'consequenceCount' },
@@ -97,6 +99,17 @@ const RESET_MODE_OPTIONS = [
 	}
 ];
 
+const OVERFLOW_MODE_OPTIONS = [
+	{
+		label: 'Один раз за событие',
+		value: 'single' as RollEventThresholdOverflowMode
+	},
+	{
+		label: 'За каждый полный порог',
+		value: 'multiple' as RollEventThresholdOverflowMode
+	}
+];
+
 @Component({
 	selector: 'app-roll-event-graph-editor',
 	standalone: true,
@@ -130,6 +143,7 @@ export class RollEventGraphEditorComponent {
 	protected readonly comparisonOptions = COMPARISON_OPTIONS;
 	protected readonly thresholdSourceOptions = THRESHOLD_SOURCE_OPTIONS;
 	protected readonly resetModeOptions = RESET_MODE_OPTIONS;
+	protected readonly overflowModeOptions = OVERFLOW_MODE_OPTIONS;
 	protected readonly connectionSettings: ConnectionSettings = {
 		marker: { type: 'arrow-closed' },
 		validator: connection => this.isConnectionValid(connection)
@@ -352,6 +366,13 @@ export class RollEventGraphEditorComponent {
 
 	protected updateSelectedResetMode(resetMode: RollEventThresholdResetMode) {
 		this.patchSelectedGraphNodeData({ resetMode });
+		this.emitDraft();
+	}
+
+	protected updateSelectedOverflowMode(
+		overflowMode: RollEventThresholdOverflowMode
+	) {
+		this.patchSelectedGraphNodeData({ overflowMode });
 		this.emitDraft();
 	}
 

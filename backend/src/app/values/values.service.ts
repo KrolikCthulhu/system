@@ -8,15 +8,20 @@ import {
 	SystemValueOwnerType
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
+import { createCharacterInputGraph } from '../shared/system-value-graph.factory';
+import { rethrowPrismaError } from '../shared/prisma-error.util';
+import { createSlug } from '../shared/slug.util';
 import { CreateManualSystemValueDto } from './dto/create-manual-system-value.dto';
 import { UpdateSystemValueDto } from './dto/update-system-value.dto';
 
 const systemValueSelect = {
 	id: true,
+	slug: true,
 	name: true,
 	description: true,
 	primaryOwnerType: true,
 	primaryOwnerId: true,
+	displaySection: true,
 	calculationGraph: true,
 	isSystemManaged: true,
 	isActive: true,
@@ -68,9 +73,11 @@ export class ValuesService {
 				select: systemValueSelect,
 				data: {
 					name: dto.name.trim(),
+					slug: createSlug(dto.name),
 					description: dto.description?.trim() || null,
 					primaryOwnerType: SystemValueOwnerType.MANUAL,
 					primaryOwnerId: null,
+					displaySection: dto.displaySection?.trim() || null,
 					calculationGraph: createCharacterInputGraph()
 				}
 			});
@@ -81,7 +88,7 @@ export class ValuesService {
 				characteristicsByAttributeId: new Map()
 			});
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось создать значение системы.');
+			rethrowPrismaError(error, 'Не удалось создать значение системы.');
 		}
 	}
 
@@ -187,6 +194,9 @@ export class ValuesService {
 					...(dto.name !== undefined ? { name: dto.name.trim() } : {}),
 					...(dto.description !== undefined
 						? { description: dto.description.trim() || null }
+						: {}),
+					...(dto.displaySection !== undefined
+						? { displaySection: dto.displaySection.trim() || null }
 						: {})
 				}
 			});
@@ -197,7 +207,7 @@ export class ValuesService {
 				characteristicsByAttributeId: new Map()
 			});
 		} catch (error) {
-			this.rethrowPrismaError(error, 'Не удалось обновить значение системы.');
+			rethrowPrismaError(error, 'Не удалось обновить значение системы.');
 		}
 	}
 
@@ -236,9 +246,11 @@ export class ValuesService {
 	) {
 		return {
 			id: value.id,
+			slug: value.slug,
 			name: value.name,
 			kind: mapOwnerType(value.primaryOwnerType),
-			groupLabel: groupLabel(value.primaryOwnerType),
+			groupLabel: value.displaySection?.trim() || groupLabel(value.primaryOwnerType),
+			displaySection: value.displaySection ?? '',
 			contextLabel: this.contextLabel(value, context),
 			description: value.description ?? '',
 			isSystemManaged: value.isSystemManaged,
@@ -308,18 +320,6 @@ export class ValuesService {
 		return 0;
 	}
 
-	private rethrowPrismaError(error: unknown, fallbackMessage: string): never {
-		if (
-			error instanceof Prisma.PrismaClientKnownRequestError &&
-			error.code === 'P2002'
-		) {
-			throw new BadRequestException('Значение должно быть уникальным.');
-		}
-
-		throw error instanceof Error
-			? error
-			: new BadRequestException(fallbackMessage);
-	}
 }
 
 function mapOwnerType(type: SystemValueOwnerType) {
@@ -356,23 +356,5 @@ function createEmptyGraph() {
 	return {
 		nodes: [{ id: 'result', kind: 'result', x: 420, y: 180 }],
 		edges: []
-	};
-}
-
-function createCharacterInputGraph() {
-	return {
-		nodes: [
-			{ id: 'character-input', kind: 'characterInput', x: 120, y: 120 },
-			{ id: 'result', kind: 'result', x: 420, y: 120 }
-		],
-		edges: [
-			{
-				id: 'character-input:out -> result:in',
-				source: 'character-input',
-				target: 'result',
-				sourceHandle: 'out',
-				targetHandle: 'in'
-			}
-		]
 	};
 }
