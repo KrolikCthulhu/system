@@ -325,7 +325,7 @@ export function targetConfigText(target: TargetConfigLike) {
 	if (target.countMode === 'one') {
 		switch (target.relation) {
 			case 'enemy':
-				return `по одной вражеской цели${area}`;
+				return `по одному вражескому существу${area}`;
 			case 'ally':
 				return `по одному союзнику${area}`;
 			case 'self':

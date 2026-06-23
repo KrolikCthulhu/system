@@ -1,14 +1,19 @@
-import { randomUUID } from 'crypto';
 import { readdirSync } from 'fs';
 import { join } from 'path';
 import { MagicWordType, Prisma, SpellStatus } from '../__generated__/index.js';
 import type {
 	GroupedContentDocument,
 	MagicWordRef,
-	SpellContent,
-	SpellTextBlockContent
+	SpellContent
 } from '../content/content-types';
 import { readContent } from './content';
+import {
+	assertSpellAuthoringFormat,
+	compileSpellParameterValues,
+	compileSpellTargetConfigs,
+	compileSpellTextBlock,
+	createSpellContentReferenceResolver
+} from './spells/compile-spell-content';
 
 type SpellContentModule = GroupedContentDocument<{ spells: SpellContent[] }>;
 
@@ -18,19 +23,6 @@ type MechanicLookup = {
 };
 
 const SPELL_CONTENT_DIR = 'spells';
-const UUID_PATTERN =
-	/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-const FORBIDDEN_AUTHORING_KEYS = new Set([
-	'id',
-	'actionId',
-	'essenceId',
-	'gestureId',
-	'mechanicId',
-	'parameterId',
-	'targetConfigId',
-	'targetCountParameterId',
-	'mechanicBlockId'
-]);
 
 export async function seedSpells(tx: Prisma.TransactionClient) {
 	const files = readdirSync(join(__dirname, '..', 'content', SPELL_CONTENT_DIR))
@@ -74,7 +66,7 @@ async function seedSpell(
 		gestureId: gesture.id,
 		name: seed.name,
 		description: seed.description?.trim() || null,
-		targetConfigs: seed.targetConfigs,
+		targetConfigs: compileSpellTargetConfigs(seed),
 		textBlocks: [],
 		status,
 		isActive: status === SpellStatus.READY,
@@ -94,6 +86,7 @@ async function seedSpell(
 	await tx.spellMechanicBlock.deleteMany({ where: { spellId: spell.id } });
 
 	const mechanicBlocksBySlug = new Map<string, string>();
+	const resolver = await createSpellContentReferenceResolver(tx, seed);
 
 	for (const [index, blockSeed] of seed.mechanicBlocks.entries()) {
 		const mechanic = await findMechanic(tx, blockSeed.mechanicRef.slug);
@@ -102,9 +95,10 @@ async function seedSpell(
 			data: {
 				spellId: spell.id,
 				mechanicId: mechanic.id,
-				parameterValues: resolveParameterValues(
+				parameterValues: compileSpellParameterValues(
 					blockSeed.parameters,
-					mechanic.parameterSlugs
+					mechanic.parameterSlugs,
+					resolver
 				),
 				config: (blockSeed.config ?? {}) as Prisma.InputJsonValue,
 				isActive: blockSeed.isActive ?? true,
@@ -119,7 +113,7 @@ async function seedSpell(
 		where: { id: spell.id },
 		data: {
 			textBlocks: seed.textBlocks.map((block, index) =>
-				resolveTextBlock(block, index, mechanicBlocksBySlug)
+				compileSpellTextBlock(block, index, mechanicBlocksBySlug)
 			)
 		}
 	});
@@ -173,117 +167,10 @@ async function findMechanic(
 	};
 }
 
-function resolveParameterValues(
-	values: Record<string, unknown>,
-	parameterSlugs: Set<string>
-): Prisma.InputJsonObject {
-	const result: Record<string, Prisma.InputJsonValue> = {};
-
-	for (const [slug, value] of Object.entries(values)) {
-		if (!parameterSlugs.has(slug)) {
-			throw new Error(`Spell parameter content reference not found: ${slug}`);
-		}
-
-		result[slug] = resolveParameterValue(value, parameterSlugs);
-	}
-
-	return result as Prisma.InputJsonObject;
-}
-
-function resolveParameterValue(
-	value: unknown,
-	parameterSlugs: Set<string>
-): Prisma.InputJsonValue {
-	if (Array.isArray(value)) {
-		return value.map(item => resolveParameterValue(item, parameterSlugs));
-	}
-
-	if (!isRecord(value)) {
-		return value as Prisma.InputJsonValue;
-	}
-
-	const result: Record<string, Prisma.InputJsonValue> = {};
-
-	for (const [key, item] of Object.entries(value)) {
-		result[key] = resolveParameterValue(item, parameterSlugs);
-	}
-
-	return result as Prisma.InputJsonObject;
-}
-
-function resolveTextBlock(
-	block: SpellTextBlockContent,
-	index: number,
-	mechanicBlocksBySlug: Map<string, string>
-): Prisma.InputJsonObject {
-	if (block.kind === 'text') {
-		return {
-			id: randomUUID(),
-			kind: block.kind,
-			text: block.text,
-			mechanicBlockId: '',
-			isActive: block.isActive ?? true,
-			sortOrder: block.sortOrder ?? index
-		};
-	}
-
-	const mechanicBlockId = mechanicBlocksBySlug.get(block.mechanic);
-
-	if (!mechanicBlockId) {
-		throw new Error(`Spell text block mechanic reference not found: ${block.mechanic}`);
-	}
-
-	return {
-		id: randomUUID(),
-		kind: block.kind,
-		text: block.text ?? '',
-		mechanicBlockId,
-		isActive: block.isActive ?? true,
-		sortOrder: block.sortOrder ?? index
-	};
-}
-
 function toMagicWordType(type: keyof typeof MagicWordType) {
 	return MagicWordType[type];
 }
 
 function toSpellStatus(status: keyof typeof SpellStatus) {
 	return SpellStatus[status];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-	return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-function assertSpellAuthoringFormat(value: unknown, path: string) {
-	if (typeof value === 'string') {
-		if (UUID_PATTERN.test(value)) {
-			throw new Error(
-				`Spell content must use slug references, UUID found at ${path}.`
-			);
-		}
-
-		return;
-	}
-
-	if (Array.isArray(value)) {
-		value.forEach((item, index) =>
-			assertSpellAuthoringFormat(item, `${path}[${index}]`)
-		);
-		return;
-	}
-
-	if (!isRecord(value)) {
-		return;
-	}
-
-	for (const [key, item] of Object.entries(value)) {
-		if (FORBIDDEN_AUTHORING_KEYS.has(key)) {
-			throw new Error(
-				`Spell content must not contain internal id field "${key}" at ${path}.`
-			);
-		}
-
-		assertSpellAuthoringFormat(item, `${path}.${key}`);
-	}
 }

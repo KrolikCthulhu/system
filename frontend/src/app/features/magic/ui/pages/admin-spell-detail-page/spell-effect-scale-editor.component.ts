@@ -18,6 +18,7 @@ import {
 	SpellEffectScaleConfig,
 	SpellEffectScaleItemConfig,
 	SpellEffectScaleMode,
+	SpellEffectScaleRequirement,
 	SpellNestedMechanicBlockConfig
 } from '../../../domain/spell.models';
 import {
@@ -41,6 +42,14 @@ interface CommandOption {
 	value: string;
 }
 
+const EFFECT_SCALE_REQUIREMENT_OPTIONS: Array<{
+	label: string;
+	value: SpellEffectScaleRequirement;
+}> = [
+	{ label: 'Без проверки', value: 'automatic' },
+	{ label: 'По успехам', value: 'successes' }
+];
+
 @Component({
 	selector: 'app-spell-effect-scale-editor',
 	standalone: true,
@@ -59,6 +68,7 @@ interface CommandOption {
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SpellEffectScaleEditorComponent {
+	protected readonly requirementOptions = EFFECT_SCALE_REQUIREMENT_OPTIONS;
 	readonly config = input.required<SpellEffectScaleConfig>();
 	readonly mechanicOptions = input.required<CommandOption[]>();
 	readonly modeOptions = input.required<
@@ -115,6 +125,7 @@ export class SpellEffectScaleEditorComponent {
 
 		const nextItem: SpellEffectScaleItemConfig = {
 			id: crypto.randomUUID(),
+			requirement: 'successes',
 			threshold,
 			name: `${threshold}+ успехов`,
 			description: '',
@@ -154,10 +165,22 @@ export class SpellEffectScaleEditorComponent {
 	}
 
 	protected itemThresholdLabel(item: SpellEffectScaleItemConfig) {
+		if (item.requirement === 'automatic') {
+			return 'Без проверки';
+		}
+
 		return item.isOpenEnded ? `${item.threshold}+` : `${item.threshold}`;
 	}
 
 	protected itemTitle(item: SpellEffectScaleItemConfig) {
+		if (item.name.trim()) {
+			return item.name;
+		}
+
+		if (item.requirement === 'automatic') {
+			return 'Базовый эффект';
+		}
+
 		return item.name.trim() || `${this.itemThresholdLabel(item)} успехов`;
 	}
 }

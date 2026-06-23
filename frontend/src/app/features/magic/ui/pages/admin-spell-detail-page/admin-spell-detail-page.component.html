@@ -3,6 +3,26 @@
 		[style]="{ width: '28rem' }"
 		[breakpoints]="{ '960px': '95vw' }"
 	></p-confirmdialog>
+	<p-popover
+		#autoHelpPopover
+		styleClass="admin-spell-detail-page__help-popover"
+		appendTo="body"
+	>
+		@if (activeAutoHelp(); as help) {
+			<div class="admin-spell-detail-page__help-panel">
+				<strong>{{ help.title }}</strong>
+				<p>{{ help.description }}</p>
+				<ul>
+					@for (item of help.items; track item.term) {
+						<li>
+							<span>{{ item.term }}</span>
+							<small>{{ item.description }}</small>
+						</li>
+					}
+				</ul>
+			</div>
+		}
+	</p-popover>
 
 	<header class="admin-spell-detail-page__header">
 		<p-breadcrumb
@@ -276,7 +296,17 @@
 														@if (areaAutoParameterValue(dimension.key); as autoValue) {
 															<div class="admin-spell-detail-page__auto-editor admin-spell-detail-page__area-auto-editor">
 																<span class="admin-spell-detail-page__field">
-																	<span>Поведение</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Поведение
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: поведение"
+																			(click)="showAutoHelp($event, 'character', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-select
 																		[options]="autoValueCharacterOptions"
 																		optionLabel="label"
@@ -291,7 +321,17 @@
 																</span>
 
 																<span class="admin-spell-detail-page__field">
-																	<span>Размер значения</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Размер значения
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: размер значения"
+																			(click)="showAutoHelp($event, 'scale', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-select
 																		[options]="autoValueScaleOptions"
 																		optionLabel="label"
@@ -306,22 +346,17 @@
 																</span>
 
 																<span class="admin-spell-detail-page__field">
-																	<span>Рост</span>
-																	<p-select
-																		[options]="autoValueGrowthOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.growth"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				growth: $event
-																			})
-																		"
-																	></p-select>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span>Старт расчёта</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Старт расчёта
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: старт расчёта"
+																			(click)="showAutoHelp($event, 'startLevel', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-inputnumber
 																		[ngModel]="autoValue.startLevel"
 																		[min]="0"
@@ -334,7 +369,17 @@
 																</span>
 
 																<span class="admin-spell-detail-page__field">
-																	<span>Минимум</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Минимум
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: минимум"
+																			(click)="showAutoHelp($event, 'minimum', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-inputnumber
 																		[ngModel]="autoValue.minimum"
 																		(ngModelChange)="
@@ -346,7 +391,65 @@
 																</span>
 
 																<span class="admin-spell-detail-page__field">
-																	<span>Режим влияний</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Диапазон
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: диапазон"
+																			(click)="showAutoHelp($event, 'rangeMode', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
+																	<p-select
+																		[options]="autoValueRangeModeOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.rangeMode"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				rangeMode: $event
+																			})
+																		"
+																	></p-select>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field-label">
+																		Максимум
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: максимум"
+																			(click)="showAutoHelp($event, 'maximum', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
+																	<p-inputnumber
+																		[ngModel]="autoValue.maximum"
+																		[disabled]="autoValue.rangeMode === 'none'"
+																		(ngModelChange)="
+																			updateAreaAutoParameter(dimension.key, {
+																				maximum: $event
+																			})
+																		"
+																	></p-inputnumber>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field-label">
+																		Режим влияний
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: режим влияний"
+																			(click)="showAutoHelp($event, 'sourceMode', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-select
 																		[options]="autoValueSourceModeOptions"
 																		optionLabel="label"
@@ -374,160 +477,241 @@
 
 																	@for (source of autoValue.sources; track source.id) {
 																		<div class="admin-spell-detail-page__auto-source-row">
-																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind">
-																				<span>Что влияет</span>
-																				<p-select
-																					[options]="autoValueSourceKindOptions"
-																					optionLabel="label"
-																					optionValue="value"
-																					[ngModel]="source.sourceKind"
-																					(ngModelChange)="
-																						updateAreaAutoSource(
-																							dimension.key,
-																							source.id,
-																							{
-																								sourceKind: $event,
-																								sourceKey: defaultAreaAutoSourceKey($event)
-																							}
+																			<div class="admin-spell-detail-page__auto-source-row-head">
+																				<strong>{{ autoSourceSummary(source) }}</strong>
+																				<p-button
+																					[icon]="
+																						isAutoSourceCollapsed(
+																							'area:' + dimension.key,
+																							source
+																						)
+																							? 'pi pi-plus'
+																							: 'pi pi-minus'
+																					"
+																					severity="secondary"
+																					text
+																					rounded
+																					[ariaLabel]="
+																						isAutoSourceCollapsed(
+																							'area:' + dimension.key,
+																							source
+																						)
+																							? 'Развернуть влияние'
+																							: 'Свернуть влияние'
+																					"
+																					(onClick)="
+																						toggleAutoSourceCollapsed(
+																							'area:' + dimension.key,
+																							source
 																						)
 																					"
-																				></p-select>
-																			</span>
+																				></p-button>
+																			</div>
 
-																			@if (shouldShowAutoSourceKey(source)) {
-																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
-																					<span>{{ autoSourceKeyLabel(source) }}</span>
+																			@if (!isAutoSourceCollapsed('area:' + dimension.key, source)) {
+																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind">
+																					<span class="admin-spell-detail-page__field-label">
+																						Что влияет
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: что влияет"
+																							(click)="showAutoHelp($event, 'sourceKind', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
 																					<p-select
-																						[options]="areaAutoSourceKeyOptions(source)"
+																						[options]="autoValueSourceKindOptions"
 																						optionLabel="label"
 																						optionValue="value"
-																						[filter]="true"
-																						[showClear]="true"
-																						[ngModel]="source.sourceKey || null"
+																						[ngModel]="source.sourceKind"
 																						(ngModelChange)="
 																							updateAreaAutoSource(
 																								dimension.key,
 																								source.id,
-																								{ sourceKey: $event ?? '' }
+																								{
+																									sourceKind: $event,
+																									sourceKey: defaultAreaAutoSourceKey($event)
+																								}
 																							)
 																						"
 																					></p-select>
 																				</span>
-																			} @else {
-																				<div class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
-																					<span>Значение</span>
-																					<div class="admin-spell-detail-page__auto-source-static">
-																						x
+
+																				@if (shouldShowAutoSourceKey(source)) {
+																					<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
+																						<span class="admin-spell-detail-page__field-label">
+																							{{ autoSourceKeyLabel(source) }}
+																							<button
+																								type="button"
+																								class="admin-spell-detail-page__hint-button"
+																								aria-label="Справка: значение источника"
+																								(click)="showAutoHelp($event, 'sourceKey', autoHelpPopover)"
+																							>
+																								<i class="pi pi-question-circle"></i>
+																							</button>
+																						</span>
+																						<p-select
+																							[options]="areaAutoSourceKeyOptionGroups(source)"
+																							[group]="true"
+																							optionGroupLabel="label"
+																							optionGroupChildren="items"
+																							optionLabel="label"
+																							optionValue="value"
+																							[filter]="true"
+																							[showClear]="true"
+																							[ngModel]="source.sourceKey || null"
+																							(ngModelChange)="
+																								updateAreaAutoSource(
+																									dimension.key,
+																									source.id,
+																									{ sourceKey: $event ?? '' }
+																								)
+																							"
+																						></p-select>
+																					</span>
+																				} @else {
+																					<div class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
+																						<span>Значение</span>
+																						<div class="admin-spell-detail-page__auto-source-static">
+																							x
+																						</div>
 																					</div>
-																				</div>
-																			}
+																				}
 
-																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target">
-																				<span>Влияет на</span>
-																				<p-select
-																					[options]="autoValueSourceTargetOptions"
-																					optionLabel="label"
-																					optionValue="value"
-																					[ngModel]="source.target"
-																					[disabled]="!canEditAutoSourceTarget(autoValue)"
-																					(ngModelChange)="
-																						updateAreaAutoSource(
-																							dimension.key,
-																							source.id,
-																							{ target: $event }
-																						)
-																					"
-																				></p-select>
-																			</span>
-
-																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve">
-																				<span>Кривая</span>
-																				<p-select
-																					[options]="autoValueSourceCurveOptions"
-																					optionLabel="label"
-																					optionValue="value"
-																					[ngModel]="source.curve"
-																					(ngModelChange)="
-																						updateAreaAutoSource(
-																							dimension.key,
-																							source.id,
-																							{ curve: $event }
-																						)
-																					"
-																				></p-select>
-																			</span>
-
-																			<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight">
-																				<span>Вес</span>
-																				<p-inputnumber
-																					[ngModel]="source.weight"
-																					[step]="0.1"
-																					[min]="0"
-																					(ngModelChange)="
-																						updateAreaAutoSource(
-																							dimension.key,
-																							source.id,
-																							{ weight: $event ?? 0 }
-																						)
-																					"
-																				></p-inputnumber>
-																			</span>
-
-																			@if (canDeleteAutoSource(autoValue)) {
-																				<div class="admin-spell-detail-page__auto-source-cell--action">
-																					<p-button
-																						icon="pi pi-trash"
-																						severity="danger"
-																						text
-																						rounded
-																						(onClick)="
-																							deleteAreaAutoSource(
+																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target">
+																					<span class="admin-spell-detail-page__field-label">
+																						Влияет на
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: влияет на"
+																							(click)="showAutoHelp($event, 'sourceTarget', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
+																					<p-select
+																						[options]="autoValueSourceTargetOptions"
+																						optionLabel="label"
+																						optionValue="value"
+																						[ngModel]="source.target"
+																						[disabled]="!canEditAutoSourceTarget(autoValue)"
+																						(ngModelChange)="
+																							updateAreaAutoSource(
 																								dimension.key,
-																								source.id
+																								source.id,
+																								{ target: $event }
 																							)
 																						"
-																					></p-button>
-																				</div>
-																			} @else {
-																				<div class="admin-spell-detail-page__auto-source-cell--action"></div>
+																					></p-select>
+																				</span>
+
+																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve">
+																					<span class="admin-spell-detail-page__field-label">
+																						Кривая
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: кривая"
+																							(click)="showAutoHelp($event, 'sourceCurve', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
+																					<p-select
+																						[options]="autoValueSourceCurveOptions"
+																						optionLabel="label"
+																						optionValue="value"
+																						[ngModel]="source.curve"
+																						(ngModelChange)="
+																							updateAreaAutoSource(
+																								dimension.key,
+																								source.id,
+																								{ curve: $event }
+																							)
+																						"
+																					></p-select>
+																				</span>
+
+																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight">
+																					<span class="admin-spell-detail-page__field-label">
+																						Вес
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: вес"
+																							(click)="showAutoHelp($event, 'sourceWeight', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
+																					<div class="admin-spell-detail-page__weight-control">
+																						<p-slider
+																							[ngModel]="source.weight"
+																							[min]="0"
+																							[max]="3"
+																							[step]="0.1"
+																							(ngModelChange)="
+																								updateAreaAutoSource(
+																									dimension.key,
+																									source.id,
+																									{ weight: $event }
+																								)
+																							"
+																						></p-slider>
+																						<p-inputnumber
+																							[ngModel]="source.weight"
+																							[step]="0.1"
+																							[min]="0"
+																							[max]="3"
+																							(ngModelChange)="
+																								updateAreaAutoSource(
+																									dimension.key,
+																									source.id,
+																									{ weight: $event ?? 0 }
+																								)
+																							"
+																						></p-inputnumber>
+																					</div>
+																				</span>
+
+																				@if (canDeleteAutoSource(autoValue)) {
+																					<div class="admin-spell-detail-page__auto-source-cell--action">
+																						<p-button
+																							icon="pi pi-trash"
+																							severity="danger"
+																							text
+																							rounded
+																							(onClick)="
+																								deleteAreaAutoSource(
+																									dimension.key,
+																									source.id
+																								)
+																							"
+																						></p-button>
+																					</div>
+																				} @else {
+																					<div class="admin-spell-detail-page__auto-source-cell--action"></div>
+																				}
 																			}
 																		</div>
 																	}
 																</div>
 
 																<span class="admin-spell-detail-page__field">
-																	<span>Влияние сущности</span>
-																	<p-select
-																		[options]="autoValueEssenceInfluenceOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.essenceInfluence"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				essenceInfluence: $event
-																			})
-																		"
-																	></p-select>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span>Профиль сущности</span>
-																	<p-select
-																		[options]="essenceProfileSourceOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.essenceProfileKey"
-																		[disabled]="autoValue.essenceInfluence === 'none'"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				essenceProfileKey: $event
-																			})
-																		"
-																	></p-select>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span>Округление</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Округление
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: округление"
+																			(click)="showAutoHelp($event, 'rounding', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-select
 																		[options]="roundingModeOptions"
 																		optionLabel="label"
@@ -765,22 +949,95 @@
 												) {
 													<div
 														class="admin-spell-detail-page__parameter-card"
+														[class.admin-spell-detail-page__parameter-card--collapsed]="
+															!isMechanicParameterExpanded(block, parameter)
+														"
 														[class.admin-spell-detail-page__parameter-card--wide]="
 															parameter.kind === 'target' ||
 															supportsProgression(parameter)
 														"
 													>
-														<div class="admin-spell-detail-page__parameter-card-head">
-															<div>
-																<strong>{{ parameter.name }}</strong>
-																<p-tag
-																	[value]="parameterKindLabel(parameter.kind)"
-																	severity="secondary"
-																></p-tag>
+														<button
+															type="button"
+															class="admin-spell-detail-page__parameter-card-head"
+															[attr.aria-expanded]="
+																isMechanicParameterExpanded(block, parameter)
+															"
+															(click)="
+																toggleMechanicParameterExpanded(block, parameter)
+															"
+														>
+															<div class="admin-spell-detail-page__parameter-card-title">
+																<span>
+																	<strong>{{ parameter.name }}</strong>
+																	<p-tag
+																		[value]="parameterKindLabel(parameter.kind)"
+																		severity="secondary"
+																	></p-tag>
+																</span>
+
+																@if (supportsProgression(parameter)) {
+																	@if (
+																		numericParameterPreview(block, parameter);
+																		as headerPreview
+																	) {
+																		<div
+																			class="admin-spell-detail-page__parameter-head-preview"
+																		>
+																			@if (
+																				casterLevelMatrixPreview(
+																					block,
+																					parameter
+																				);
+																				as headerMatrixPreview
+																			) {
+																				@for (
+																					item of headerMatrixPreview.columnRanges;
+																					track item.level
+																				) {
+																					<span>
+																						{{ item.level }}:
+																						<strong>{{ item.label }}</strong>
+																					</span>
+																				}
+																				<span
+																					class="admin-spell-detail-page__parameter-head-preview-range"
+																				>
+																					диапазон:
+																					<strong>
+																						{{ headerMatrixPreview.minValue }}–{{
+																							headerMatrixPreview.maxValue
+																						}}
+																					</strong>
+																				</span>
+																			} @else {
+																				@for (
+																					item of headerPreview.values;
+																					track item.x
+																				) {
+																					<span>
+																						{{ item.x }}:
+																						<strong>{{ item.value }}</strong>
+																					</span>
+																				}
+																			}
+																		</div>
+																	}
+																}
 															</div>
 
-														</div>
+															<i
+																class="pi admin-spell-detail-page__parameter-card-toggle"
+																[class.pi-plus]="
+																	!isMechanicParameterExpanded(block, parameter)
+																"
+																[class.pi-minus]="
+																	isMechanicParameterExpanded(block, parameter)
+																"
+															></i>
+														</button>
 
+														@if (isMechanicParameterExpanded(block, parameter)) {
 														@if (supportsProgression(parameter)) {
 															<div class="admin-spell-detail-page__numeric-mode">
 																<span>Режим значения</span>
@@ -922,7 +1179,17 @@
 																	}
 
 																	<span class="admin-spell-detail-page__field">
-																		<span>Округление</span>
+																		<span class="admin-spell-detail-page__field-label">
+																			Округление
+																			<button
+																				type="button"
+																				class="admin-spell-detail-page__hint-button"
+																				aria-label="Справка: округление"
+																				(click)="showAutoHelp($event, 'rounding', autoHelpPopover)"
+																			>
+																				<i class="pi pi-question-circle"></i>
+																			</button>
+																		</span>
 																		<p-select
 																			[options]="roundingModeOptions"
 																			optionLabel="label"
@@ -968,7 +1235,17 @@
 															) {
 																<div class="admin-spell-detail-page__auto-editor">
 																	<span class="admin-spell-detail-page__field">
-																		<span>Поведение</span>
+																		<span class="admin-spell-detail-page__field-label">
+																			Поведение
+																			<button
+																				type="button"
+																				class="admin-spell-detail-page__hint-button"
+																				aria-label="Справка: поведение"
+																				(click)="showAutoHelp($event, 'character', autoHelpPopover)"
+																			>
+																				<i class="pi pi-question-circle"></i>
+																			</button>
+																		</span>
 																		<p-select
 																			[options]="autoValueCharacterOptions"
 																			optionLabel="label"
@@ -984,7 +1261,17 @@
 																	</span>
 
 																	<span class="admin-spell-detail-page__field">
-																		<span>Размер значения</span>
+																		<span class="admin-spell-detail-page__field-label">
+																			Размер значения
+																			<button
+																				type="button"
+																				class="admin-spell-detail-page__hint-button"
+																				aria-label="Справка: размер значения"
+																				(click)="showAutoHelp($event, 'scale', autoHelpPopover)"
+																			>
+																				<i class="pi pi-question-circle"></i>
+																			</button>
+																		</span>
 																		<p-select
 																			[options]="autoValueScaleOptions"
 																			optionLabel="label"
@@ -999,24 +1286,18 @@
 																		></p-select>
 																	</span>
 
-																	<span class="admin-spell-detail-page__field">
-																		<span>Рост</span>
-																		<p-select
-																			[options]="autoValueGrowthOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="autoValue.growth"
-																			(ngModelChange)="
-																				updateSelectedAutoParameter(
-																					parameter.id,
-																					{ growth: $event }
-																				)
-																			"
-																	></p-select>
-																</span>
-
 																<span class="admin-spell-detail-page__field">
-																	<span>Старт расчёта</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Старт расчёта
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: старт расчёта"
+																			(click)="showAutoHelp($event, 'startLevel', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-inputnumber
 																		[ngModel]="autoValue.startLevel"
 																		[min]="0"
@@ -1030,7 +1311,17 @@
 																</span>
 
 																<span class="admin-spell-detail-page__field">
-																	<span>Минимум</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Минимум
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: минимум"
+																			(click)="showAutoHelp($event, 'minimum', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-inputnumber
 																		[ngModel]="autoValue.minimum"
 																		(ngModelChange)="
@@ -1043,7 +1334,67 @@
 																</span>
 
 																<span class="admin-spell-detail-page__field">
-																	<span>Режим влияний</span>
+																	<span class="admin-spell-detail-page__field-label">
+																		Диапазон
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: диапазон"
+																			(click)="showAutoHelp($event, 'rangeMode', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
+																	<p-select
+																		[options]="autoValueRangeModeOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		[ngModel]="autoValue.rangeMode"
+																		(ngModelChange)="
+																			updateSelectedAutoParameter(
+																				parameter.id,
+																				{ rangeMode: $event }
+																			)
+																		"
+																	></p-select>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field-label">
+																		Максимум
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: максимум"
+																			(click)="showAutoHelp($event, 'maximum', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
+																	<p-inputnumber
+																		[ngModel]="autoValue.maximum"
+																		[disabled]="autoValue.rangeMode === 'none'"
+																		(ngModelChange)="
+																			updateSelectedAutoParameter(
+																				parameter.id,
+																				{ maximum: $event }
+																			)
+																		"
+																	></p-inputnumber>
+																</span>
+
+																<span class="admin-spell-detail-page__field">
+																	<span class="admin-spell-detail-page__field-label">
+																		Режим влияний
+																		<button
+																			type="button"
+																			class="admin-spell-detail-page__hint-button"
+																			aria-label="Справка: режим влияний"
+																			(click)="showAutoHelp($event, 'sourceMode', autoHelpPopover)"
+																		>
+																			<i class="pi pi-question-circle"></i>
+																		</button>
+																	</span>
 																	<p-select
 																			[options]="autoValueSourceModeOptions"
 																			optionLabel="label"
@@ -1102,10 +1453,52 @@
 
 																		@for (source of autoValue.sources; track source.id) {
 																			<div class="admin-spell-detail-page__auto-source-row">
+																				<div class="admin-spell-detail-page__auto-source-row-head">
+																					<strong>{{ autoSourceSummary(source) }}</strong>
+																					<p-button
+																						[icon]="
+																							isAutoSourceCollapsed(
+																								'mechanic:' + parameter.id,
+																								source
+																							)
+																								? 'pi pi-plus'
+																								: 'pi pi-minus'
+																						"
+																						severity="secondary"
+																						text
+																						rounded
+																						[ariaLabel]="
+																							isAutoSourceCollapsed(
+																								'mechanic:' + parameter.id,
+																								source
+																							)
+																								? 'Развернуть влияние'
+																								: 'Свернуть влияние'
+																						"
+																						(onClick)="
+																							toggleAutoSourceCollapsed(
+																								'mechanic:' + parameter.id,
+																								source
+																							)
+																						"
+																					></p-button>
+																				</div>
+
+																				@if (!isAutoSourceCollapsed('mechanic:' + parameter.id, source)) {
 																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind"
 																				>
-																					<span>Что влияет</span>
+																					<span class="admin-spell-detail-page__field-label">
+																						Что влияет
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: что влияет"
+																							(click)="showAutoHelp($event, 'sourceKind', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
 																					<p-select
 																						[options]="autoValueSourceKindOptions"
 																						optionLabel="label"
@@ -1131,11 +1524,24 @@
 																					<span
 																						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
 																					>
-																						<span>{{ autoSourceKeyLabel(source) }}</span>
+																						<span class="admin-spell-detail-page__field-label">
+																							{{ autoSourceKeyLabel(source) }}
+																							<button
+																								type="button"
+																								class="admin-spell-detail-page__hint-button"
+																								aria-label="Справка: значение источника"
+																								(click)="showAutoHelp($event, 'sourceKey', autoHelpPopover)"
+																							>
+																								<i class="pi pi-question-circle"></i>
+																							</button>
+																						</span>
 																						<p-select
 																							[options]="
 																								autoSourceKeyOptions(block, source)
 																							"
+																							[group]="true"
+																							optionGroupLabel="label"
+																							optionGroupChildren="items"
 																							optionLabel="label"
 																							optionValue="value"
 																							[filter]="true"
@@ -1166,7 +1572,17 @@
 																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target"
 																				>
-																					<span>Влияет на</span>
+																					<span class="admin-spell-detail-page__field-label">
+																						Влияет на
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: влияет на"
+																							(click)="showAutoHelp($event, 'sourceTarget', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
 																					<p-select
 																						[options]="autoValueSourceTargetOptions"
 																						optionLabel="label"
@@ -1188,7 +1604,17 @@
 																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve"
 																				>
-																					<span>Кривая</span>
+																					<span class="admin-spell-detail-page__field-label">
+																						Кривая
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: кривая"
+																							(click)="showAutoHelp($event, 'sourceCurve', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
 																					<p-select
 																						[options]="autoValueSourceCurveOptions"
 																						optionLabel="label"
@@ -1207,19 +1633,45 @@
 																				<span
 																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight"
 																				>
-																					<span>Вес</span>
-																					<p-inputnumber
-																						[ngModel]="source.weight"
-																						[step]="0.1"
-																						[min]="0"
-																						(ngModelChange)="
-																							updateSelectedAutoSource(
-																								parameter.id,
-																								source.id,
-																								{ weight: $event ?? 0 }
-																							)
-																						"
-																					></p-inputnumber>
+																					<span class="admin-spell-detail-page__field-label">
+																						Вес
+																						<button
+																							type="button"
+																							class="admin-spell-detail-page__hint-button"
+																							aria-label="Справка: вес"
+																							(click)="showAutoHelp($event, 'sourceWeight', autoHelpPopover)"
+																						>
+																							<i class="pi pi-question-circle"></i>
+																						</button>
+																					</span>
+																					<div class="admin-spell-detail-page__weight-control">
+																						<p-slider
+																							[ngModel]="source.weight"
+																							[min]="0"
+																							[max]="3"
+																							[step]="0.1"
+																							(ngModelChange)="
+																								updateSelectedAutoSource(
+																									parameter.id,
+																									source.id,
+																									{ weight: $event }
+																								)
+																							"
+																						></p-slider>
+																						<p-inputnumber
+																							[ngModel]="source.weight"
+																							[step]="0.1"
+																							[min]="0"
+																							[max]="3"
+																							(ngModelChange)="
+																								updateSelectedAutoSource(
+																									parameter.id,
+																									source.id,
+																									{ weight: $event ?? 0 }
+																								)
+																							"
+																						></p-inputnumber>
+																					</div>
 																				</span>
 
 																				@if (canDeleteAutoSource(autoValue)) {
@@ -1244,44 +1696,10 @@
 																						class="admin-spell-detail-page__auto-source-cell--action"
 																					></div>
 																				}
+																				}
 																			</div>
 																		}
 																	</div>
-
-																	<span class="admin-spell-detail-page__field">
-																		<span>Влияние сущности</span>
-																		<p-select
-																			[options]="autoValueEssenceInfluenceOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="autoValue.essenceInfluence"
-																			(ngModelChange)="
-																				updateSelectedAutoParameter(
-																					parameter.id,
-																					{ essenceInfluence: $event }
-																				)
-																			"
-																		></p-select>
-																	</span>
-
-																	<span class="admin-spell-detail-page__field">
-																		<span>Профиль сущности</span>
-																		<p-select
-																			[options]="essenceProfileSourceOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="autoValue.essenceProfileKey"
-																			[disabled]="
-																				autoValue.essenceInfluence === 'none'
-																			"
-																			(ngModelChange)="
-																				updateSelectedAutoParameter(
-																					parameter.id,
-																					{ essenceProfileKey: $event }
-																				)
-																			"
-																		></p-select>
-																	</span>
 
 																	<span class="admin-spell-detail-page__field">
 																		<span>Округление</span>
@@ -1517,8 +1935,104 @@
 																			</span>
 																		}
 																	</div>
+																	@if (
+																		casterLevelMatrixPreview(block, parameter);
+																		as matrixPreview
+																	) {
+																		<div
+																			class="admin-spell-detail-page__caster-level-matrix"
+																		>
+																			<button
+																				type="button"
+																				class="admin-spell-detail-page__caster-level-matrix-head"
+																				[attr.aria-expanded]="
+																					isCasterLevelMatrixExpanded(
+																						block,
+																						parameter
+																					)
+																				"
+																				(click)="
+																					toggleCasterLevelMatrix(
+																						block,
+																						parameter
+																					)
+																				"
+																			>
+																				<span>
+																					<strong>
+																						Зависимость от Уровня Заклинателя
+																					</strong>
+																					<small>
+																						диапазон:
+																						{{ matrixPreview.minValue }}–{{
+																							matrixPreview.maxValue
+																						}}
+																					</small>
+																				</span>
+																				<i
+																					class="pi"
+																					[class.pi-plus]="
+																						!isCasterLevelMatrixExpanded(
+																							block,
+																							parameter
+																						)
+																					"
+																					[class.pi-minus]="
+																						isCasterLevelMatrixExpanded(
+																							block,
+																							parameter
+																						)
+																					"
+																				></i>
+																			</button>
+
+																			@if (
+																				isCasterLevelMatrixExpanded(
+																					block,
+																					parameter
+																				)
+																			) {
+																				<div
+																					class="admin-spell-detail-page__caster-level-matrix-table-wrap"
+																				>
+																					<table
+																						class="admin-spell-detail-page__caster-level-matrix-table"
+																					>
+																						<thead>
+																							<tr>
+																								<th>УЗ</th>
+																								@for (
+																									level of matrixPreview.columns;
+																									track level
+																								) {
+																									<th>Нав. {{ level }}</th>
+																								}
+																							</tr>
+																						</thead>
+																						<tbody>
+																							@for (
+																								row of matrixPreview.rows;
+																								track row.casterLevel
+																							) {
+																								<tr>
+																									<th>{{ row.casterLevel }}</th>
+																									@for (
+																										value of row.values;
+																										track $index
+																									) {
+																										<td>{{ value }}</td>
+																									}
+																								</tr>
+																							}
+																						</tbody>
+																					</table>
+																				</div>
+																			}
+																		</div>
+																	}
 																</div>
 															}
+														}
 														}
 													</div>
 												}
@@ -1604,9 +2118,35 @@
 										</div>
 									</div>
 
-									@if (spellTextPreview(); as preview) {
+									@if (spellTextPreviewBlocks().length) {
 										<div class="admin-spell-detail-page__text-preview-content">
-											{{ preview }}
+											@for (part of spellTextPreviewBlocks(); track $index) {
+												@if (part.kind === 'paragraph') {
+													<p>{{ part.text }}</p>
+												} @else {
+													<div class="admin-spell-detail-page__effect-scale-text">
+														<p>{{ part.intro }}</p>
+														<table>
+															<thead>
+																<tr>
+																	<th>Условие</th>
+																	<th>Эффект</th>
+																	<th>Описание</th>
+																</tr>
+															</thead>
+															<tbody>
+																@for (item of part.items; track item.id) {
+																	<tr>
+																		<td>{{ effectScaleRequirementText(item) }}</td>
+																		<td>{{ item.name }}</td>
+																		<td>{{ item.description }}</td>
+																	</tr>
+																}
+															</tbody>
+														</table>
+													</div>
+												}
+											}
 										</div>
 									} @else {
 										<div class="admin-spell-detail-page__empty-block">
@@ -2059,7 +2599,13 @@
 										class="admin-spell-detail-page__runtime-choice-option"
 										(click)="chooseRuntimePendingChoice(choice, option.id)"
 									>
-										<strong>{{ option.threshold }}+ {{ option.name }}</strong>
+										<strong>
+											{{
+												option.requirement === 'automatic'
+													? 'Без проверки'
+													: option.threshold + '+ ' + option.name
+											}}
+										</strong>
 										@if (option.description) {
 											<span>{{ option.description }}</span>
 										}

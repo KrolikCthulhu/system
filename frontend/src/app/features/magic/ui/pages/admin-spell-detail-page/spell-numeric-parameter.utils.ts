@@ -38,6 +38,7 @@ export type AutoValueSourceTarget =
 	| 'essenceBonus';
 export type AutoValueSourceCurve = 'weak' | 'smooth' | 'fast' | 'saturation' | 'explosive';
 export type AutoValueEssenceInfluence = 'none' | 'light' | 'medium' | 'strong';
+export type AutoValueRangeMode = 'none' | 'scale';
 export type EssenceProfileKey =
 	| 'damage'
 	| 'range'
@@ -71,6 +72,8 @@ export interface SpellAutoParameterValue {
 	growth: AutoValueGrowth;
 	startLevel: number;
 	minimum: number;
+	maximum: number | null;
+	rangeMode: AutoValueRangeMode;
 	sourceMode: AutoValueSourceMode;
 	sources: SpellAutoParameterSource[];
 	essenceInfluence: AutoValueEssenceInfluence;
@@ -92,6 +95,11 @@ export interface NumericParameterPreview {
 	sources: string[];
 	rounding: string;
 	values: Array<{ x: number; value: string }>;
+}
+
+export interface AutoParameterEvaluationOptions {
+	sourceValueOverrides?: ReadonlyMap<string, number>;
+	scaleMaxX?: number;
 }
 
 export interface ConfigField {
@@ -213,16 +221,6 @@ export const AUTO_VALUE_SOURCE_CURVE_OPTIONS: Array<{
 	{ label: 'Взрывная', value: 'explosive' }
 ];
 
-export const AUTO_VALUE_ESSENCE_INFLUENCE_OPTIONS: Array<{
-	label: string;
-	value: AutoValueEssenceInfluence;
-}> = [
-	{ label: 'Нет', value: 'none' },
-	{ label: 'Лёгкое', value: 'light' },
-	{ label: 'Среднее', value: 'medium' },
-	{ label: 'Сильное', value: 'strong' }
-];
-
 export function createProgressionParameterValue(
 	preset: ProgressionPreset | null
 ): SpellProgressionParameterValue {
@@ -257,9 +255,11 @@ export function createAutoParameterValue(): SpellAutoParameterValue {
 		growth: 'smooth',
 		startLevel: 0,
 		minimum: 0,
+		maximum: null,
+		rangeMode: 'none',
 		sourceMode: 'simple',
 		sources: [createAutoParameterSource()],
-		essenceInfluence: 'light',
+		essenceInfluence: 'none',
 		essenceProfileKey: 'damage',
 		roundingMode: 'round'
 	};
@@ -764,6 +764,8 @@ export function isAutoParameterValue(value: unknown): value is SpellAutoParamete
 		isAutoValueGrowth(value['growth']) &&
 		typeof value['startLevel'] === 'number' &&
 		typeof value['minimum'] === 'number' &&
+		(value['maximum'] === null || typeof value['maximum'] === 'number') &&
+		isAutoValueRangeMode(value['rangeMode']) &&
 		isAutoValueSourceMode(value['sourceMode']) &&
 		Array.isArray(value['sources']) &&
 		value['sources'].every(isAutoParameterSource) &&
@@ -808,7 +810,6 @@ export function isAutoSourceMechanicParameter(parameter: SpellMechanicParameter)
 	return (
 		parameter.kind === 'skill' ||
 		parameter.kind === 'number' ||
-		parameter.kind === 'formula' ||
 		parameter.kind === 'systemValue'
 	);
 }
@@ -889,6 +890,10 @@ function isAutoValueEssenceInfluence(
 		value === 'medium' ||
 		value === 'strong'
 	);
+}
+
+function isAutoValueRangeMode(value: unknown): value is AutoValueRangeMode {
+	return value === 'none' || value === 'scale';
 }
 
 function isEssenceProfileKey(value: unknown): value is EssenceProfileKey {
@@ -1215,18 +1220,12 @@ export function autoParameterFormulaLabel(
 ) {
 	const config = autoParameterConfig(value);
 	const groups = autoSourceFormulaGroups(value, sourceNames);
-	const essenceWeight = autoEssenceInfluenceWeight(value.essenceInfluence);
-	const profile = autoEssenceProfileLabel(value.essenceProfileKey, sourceNames);
 	const base = [`${config.base}`, ...groups.base];
 	const growth =
 		groups.growth.length > 0
 			? `(${groups.growth.join(' + ')}) * ${config.powerMultiplier}`
 			: '0';
 	const parts = [base.join(' + '), growth];
-
-	if (essenceWeight > 0) {
-		parts.push(`${profile} * ${essenceWeight}`);
-	}
 
 	if (groups.essenceBonus.length > 0) {
 		parts.push(...groups.essenceBonus);
@@ -1252,8 +1251,16 @@ export function autoParameterFormulaLabel(
 		value.minimum > 0
 			? `max(${formatPreviewNumber(value.minimum)}, ${limitedExpression})`
 			: limitedExpression;
+	const startExpression =
+		value.startLevel > 0
+			? `если x < ${formatPreviewNumber(value.startLevel)}: ${formatPreviewNumber(value.minimum)}; иначе ${boundedExpression}`
+			: boundedExpression;
+	const rangeExpression =
+		value.rangeMode === 'scale' && value.maximum !== null && value.maximum > value.minimum
+			? `масштабировать ${startExpression} в диапазон ${formatPreviewNumber(value.minimum)}–${formatPreviewNumber(value.maximum)}`
+			: startExpression;
 
-	return `${boundedExpression}; ${roundingLabel(value.roundingMode)}`;
+	return `${rangeExpression}; ${roundingLabel(value.roundingMode)}`;
 }
 
 export function autoParameterSourceLabels(
@@ -1262,26 +1269,71 @@ export function autoParameterSourceLabels(
 ) {
 	const sources = value.sources.map(source => autoSourceLabel(source, sourceNames));
 
-	if (value.essenceInfluence !== 'none') {
-		sources.push(autoEssenceProfileLabel(value.essenceProfileKey, sourceNames));
-	}
-
 	return Array.from(new Set(sources));
 }
 
-export function evaluateAutoParameterValue(value: SpellAutoParameterValue, x: number) {
+export function evaluateAutoParameterValue(
+	value: SpellAutoParameterValue,
+	x: number,
+	options: AutoParameterEvaluationOptions = {}
+) {
+	const raw = evaluateAutoParameterRawValue(value, x, options.sourceValueOverrides);
+	const ranged = applyAutoParameterRange(value, raw, options);
+
+	return applyRoundingMode(ranged, value.roundingMode);
+}
+
+function evaluateAutoParameterRawValue(
+	value: SpellAutoParameterValue,
+	x: number,
+	sourceValueOverrides?: ReadonlyMap<string, number>
+) {
+	if (x < value.startLevel) {
+		return value.minimum;
+	}
+
 	const config = autoParameterConfig(value);
-	const groups = autoSourceValueGroups(value, x);
+	const groups = autoSourceValueGroups(value, x, sourceValueOverrides);
 	const base = config.base + groups.base;
 	const power = groups.growth * config.powerMultiplier;
-	const essence = autoEssenceInfluenceWeight(value.essenceInfluence) * x;
-	const multiplied = (base + power + essence + groups.essenceBonus) * (1 + groups.multiplier);
+	const multiplied = (base + power + groups.essenceBonus) * (1 + groups.multiplier);
 	const limitBase =
-		config.limitMax === null && groups.maximum > 0 ? config.base : config.limitMax;
+		config.limitMax === null && hasAutoMaximumSource(value) ? config.base : config.limitMax;
 	const limit = limitBase === null ? null : limitBase + groups.maximum;
 	const limited = limit === null ? multiplied : Math.min(multiplied, limit);
 
-	return Math.max(value.minimum, applyRoundingMode(limited, value.roundingMode));
+	return Math.max(value.minimum, limited);
+}
+
+function applyAutoParameterRange(
+	value: SpellAutoParameterValue,
+	raw: number,
+	options: AutoParameterEvaluationOptions
+) {
+	if (value.rangeMode !== 'scale' || value.maximum === null || value.maximum <= value.minimum) {
+		return raw;
+	}
+
+	const maxX = Math.max(value.startLevel + 1, options.scaleMaxX ?? 6);
+	const minRaw = evaluateAutoParameterRawValue(
+		value,
+		value.startLevel,
+		options.sourceValueOverrides
+	);
+	const maxRaw = evaluateAutoParameterRawValue(value, maxX, options.sourceValueOverrides);
+
+	if (maxRaw === minRaw) {
+		return value.minimum;
+	}
+
+	const ratio = (raw - minRaw) / (maxRaw - minRaw);
+	const clampedRatio = Math.min(1, Math.max(0, ratio));
+
+	return value.minimum + (value.maximum - value.minimum) * clampedRatio;
+}
+
+function hasAutoMaximumSource(value: SpellAutoParameterValue) {
+	return value.sources.some(source => source.target === 'maximum');
 }
 
 function autoParameterConfig(value: SpellAutoParameterValue) {
@@ -1365,7 +1417,11 @@ function autoSourceFormulaGroups(
 	return groups;
 }
 
-function autoSourceValueGroups(value: SpellAutoParameterValue, x: number) {
+function autoSourceValueGroups(
+	value: SpellAutoParameterValue,
+	x: number,
+	sourceValueOverrides: ReadonlyMap<string, number> = new Map()
+) {
 	const groups: Record<AutoValueSourceTarget, number> = {
 		growth: 0,
 		multiplier: 0,
@@ -1375,10 +1431,12 @@ function autoSourceValueGroups(value: SpellAutoParameterValue, x: number) {
 	};
 
 	for (const source of value.sources) {
+		const sourceValue = sourceValueOverrides.get(source.id) ?? x;
+
 		groups[source.target] +=
 			applyAutoSourceCurve(
 				source.curve,
-				autoEffectiveSourceValue(source, x, value.startLevel)
+				autoEffectiveSourceValue(source, sourceValue, value.startLevel)
 			) * source.weight;
 	}
 
@@ -1427,19 +1485,6 @@ function autoGrowthFormulaLabel(growth: AutoValueGrowth, source: string) {
 
 function autoSourceCurveFormulaLabel(curve: AutoValueSourceCurve, source: string) {
 	return autoGrowthFormulaLabel(curve, source);
-}
-
-function autoEssenceInfluenceWeight(influence: AutoValueEssenceInfluence) {
-	switch (influence) {
-		case 'none':
-			return 0;
-		case 'light':
-			return 1;
-		case 'medium':
-			return 2;
-		case 'strong':
-			return 4;
-	}
 }
 
 function autoSourceLabel(

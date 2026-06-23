@@ -82,15 +82,28 @@
 				</div>
 
 				<div class="spell-effect-scale-editor__item-main">
-					<span class="spell-effect-scale-editor__field" data-testid="effect-scale-threshold-field">
-						<span>Успехов от</span>
-						<p-inputnumber
-							fluid
-							[ngModel]="item.threshold"
-							[min]="0"
-							(ngModelChange)="updateItem(item.id, { threshold: $event ?? 0 })"
-						></p-inputnumber>
+					<span class="spell-effect-scale-editor__field" data-testid="effect-scale-requirement-field">
+						<span>Требование</span>
+						<p-select
+							[options]="requirementOptions"
+							optionLabel="label"
+							optionValue="value"
+							[ngModel]="item.requirement"
+							(ngModelChange)="updateItem(item.id, { requirement: $event })"
+						></p-select>
 					</span>
+
+					@if (item.requirement === 'successes') {
+						<span class="spell-effect-scale-editor__field" data-testid="effect-scale-threshold-field">
+							<span>Успехов от</span>
+							<p-inputnumber
+								fluid
+								[ngModel]="item.threshold"
+								[min]="0"
+								(ngModelChange)="updateItem(item.id, { threshold: $event ?? 0 })"
+							></p-inputnumber>
+						</span>
+					}
 
 					<span class="spell-effect-scale-editor__field" data-testid="effect-scale-name-field">
 						<span>Название</span>
@@ -102,13 +115,15 @@
 						/>
 					</span>
 
-					<span class="spell-effect-scale-editor__inline-switch" data-testid="effect-scale-open-ended-field">
-						<span>Верхняя строка</span>
-						<p-toggleswitch
-							[ngModel]="item.isOpenEnded"
-							(ngModelChange)="updateItem(item.id, { isOpenEnded: $event })"
-						></p-toggleswitch>
-					</span>
+					@if (item.requirement === 'successes') {
+						<span class="spell-effect-scale-editor__inline-switch" data-testid="effect-scale-open-ended-field">
+							<span>Верхняя строка</span>
+							<p-toggleswitch
+								[ngModel]="item.isOpenEnded"
+								(ngModelChange)="updateItem(item.id, { isOpenEnded: $event })"
+							></p-toggleswitch>
+						</span>
+					}
 
 					<span
 						class="spell-effect-scale-editor__field spell-effect-scale-editor__field--wide"

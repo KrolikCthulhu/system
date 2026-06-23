@@ -266,6 +266,7 @@ export interface SpellRuntimePendingChoiceDto {
 	sourceValue: number;
 	options: Array<{
 		id: string;
+		requirement: 'automatic' | 'successes';
 		threshold: number;
 		name: string;
 		description: string;
