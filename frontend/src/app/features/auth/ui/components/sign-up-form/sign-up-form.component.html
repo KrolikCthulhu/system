@@ -76,16 +76,16 @@
 					fluid
 					inputId="register-password-check"
 					placeholder="Повтори пароль"
-					formControlName="password"
-					[invalid]="hasError('password')"
+					formControlName="passwordCheck"
+					[invalid]="hasError('passwordCheck')"
 					[feedback]="false"
 					[toggleMask]="true"
 				></p-password>
 			</p-iconfield>
 
-			@if (hasError('password')) {
+			@if (hasError('passwordCheck')) {
 				<p-message severity="error" size="small" variant="simple">
-					Minimum 8 characters.
+					Пароль не совпадает.
 				</p-message>
 			}
 		</div>
