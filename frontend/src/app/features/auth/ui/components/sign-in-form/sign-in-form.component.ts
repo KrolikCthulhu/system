@@ -13,6 +13,8 @@ import { InputText } from 'primeng/inputtext';
 import { Message } from 'primeng/message';
 import { Password } from 'primeng/password';
 import { SignInCommand } from '../../../state/auth.commands';
+import { InputIconModule } from 'primeng/inputicon';
+import { IconFieldModule } from 'primeng/iconfield';
 
 @Component({
 	selector: 'app-sign-in-form',
@@ -22,7 +24,9 @@ import { SignInCommand } from '../../../state/auth.commands';
 		FloatLabel,
 		InputText,
 		Message,
-		Password
+		Password,
+		IconFieldModule,
+		InputIconModule
 	],
 	templateUrl: './sign-in-form.component.html',
 	styleUrl: './sign-in-form.component.scss'

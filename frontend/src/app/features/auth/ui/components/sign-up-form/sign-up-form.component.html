@@ -1,57 +1,87 @@
 <form [formGroup]="form" class="auth-form" (ngSubmit)="submit()">
 	<div class="auth-form__fields">
 		<div class="auth-form__field">
-			<p-floatlabel variant="in">
+			<label for="register-username">Имя пользователя</label>
+			<p-iconfield>
+				<p-inputicon class="pi pi-user" />
 				<input
 					pInputText
 					fluid
-					id="register-email"
-					type="email"
-					formControlName="email"
-					[invalid]="hasError('email')"
-				/>
-				<label for="register-email">Email</label>
-			</p-floatlabel>
-
-			@if (hasError('email')) {
-				<p-message severity="error" size="small" variant="simple">
-					Please enter a valid email.
-				</p-message>
-			}
-		</div>
-
-		<div class="auth-form__field">
-			<p-floatlabel variant="in">
-				<input
-					pInputText
-					fluid
+					placeholder="Выбери имя пользователя"
+					size="large"
 					id="register-username"
 					type="text"
 					formControlName="username"
 					[invalid]="hasError('username')"
 				/>
-				<label for="register-username">Username</label>
-			</p-floatlabel>
+			</p-iconfield>
 
 			@if (hasError('username')) {
 				<p-message severity="error" size="small" variant="simple">
-					Use 3 to 32 letters, digits, or underscores.
+					Введи от 3 до 32 символов: букв, цифр или знаков подчеркивания
 				</p-message>
 			}
 		</div>
 
 		<div class="auth-form__field">
-			<p-floatlabel variant="in">
+			<label for="register-email">Email</label>
+			<p-iconfield>
+				<p-inputicon class="pi pi-envelope" />
+				<input
+					pInputText
+					fluid
+					placeholder="Введи email"
+					size="large"
+					id="register-email"
+					type="email"
+					formControlName="email"
+					[invalid]="hasError('email')"
+				/>
+			</p-iconfield>
+
+			@if (hasError('email')) {
+				<p-message severity="error" size="small" variant="simple">
+					Пожалуйста, введи корректный адрес электронной почты
+				</p-message>
+			}
+		</div>
+
+		<div class="auth-form__field">
+			<label for="register-password">Пароль</label>
+			<p-iconfield>
+				<p-inputicon class="pi pi-lock" />
 				<p-password
 					fluid
 					inputId="register-password"
+					placeholder="Создай пароль"
 					formControlName="password"
 					[invalid]="hasError('password')"
 					[feedback]="true"
 					[toggleMask]="true"
 				></p-password>
-				<label for="register-password">Password</label>
-			</p-floatlabel>
+			</p-iconfield>
+
+			@if (hasError('password')) {
+				<p-message severity="error" size="small" variant="simple">
+					Минимум 8 символов
+				</p-message>
+			}
+		</div>
+
+		<div class="auth-form__field">
+			<label for="register-password-check">Подтверждение пароля</label>
+			<p-iconfield>
+				<p-inputicon class="pi pi-lock" />
+				<p-password
+					fluid
+					inputId="register-password-check"
+					placeholder="Повтори пароль"
+					formControlName="password"
+					[invalid]="hasError('password')"
+					[feedback]="false"
+					[toggleMask]="true"
+				></p-password>
+			</p-iconfield>
 
 			@if (hasError('password')) {
 				<p-message severity="error" size="small" variant="simple">
@@ -62,10 +92,12 @@
 	</div>
 
 	<p-button
+		fluid
 		type="submit"
-		label="Create account"
+		label="Создать аккаунт"
 		icon="pi pi-user-plus"
-		[loading]="pending()"
+		size="large"
 		[disabled]="pending()"
+		[loading]="pending()"
 	></p-button>
 </form>

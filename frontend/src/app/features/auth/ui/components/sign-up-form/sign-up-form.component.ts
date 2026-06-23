@@ -13,6 +13,8 @@ import { InputText } from 'primeng/inputtext';
 import { Message } from 'primeng/message';
 import { Password } from 'primeng/password';
 import { SignUpCommand } from '../../../state/auth.commands';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_]+$/;
 
@@ -24,7 +26,9 @@ const USERNAME_PATTERN = /^[A-Za-z0-9_]+$/;
 		FloatLabel,
 		InputText,
 		Message,
-		Password
+		Password,
+		IconFieldModule,
+		InputIconModule
 	],
 	templateUrl: './sign-up-form.component.html',
 	styleUrl: './sign-up-form.component.scss'

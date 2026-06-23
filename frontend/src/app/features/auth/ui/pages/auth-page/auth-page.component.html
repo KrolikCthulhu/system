@@ -1,4 +1,4 @@
-<main class="auth-page">
+<!-- <main class="auth-page">
 	<p-card class="auth-block" [style]="cardStyle">
 		<div class="auth-switch">
 			<p-button
@@ -41,11 +41,136 @@
 	</p-card>
 
 	<div class="auth-measure">
-		<div #signInMeasure class="auth-measure__content">
+		<div class="auth-measure__content">
 			<app-sign-in-form [pending]="false"></app-sign-in-form>
 		</div>
-		<div #signUpMeasure class="auth-measure__content">
+		<div class="auth-measure__content">
 			<app-sign-up-form [pending]="false"></app-sign-up-form>
 		</div>
+	</div>
+</main> -->
+
+<main class="auth-page">
+	<div class="auth-card">
+		<div class="auth-postcard">
+			<img
+				class="auth-postcard__img"
+				src="/assets/auth-logo.svg"
+				alt="dots icon"
+			/>
+
+			<div class="auth-postcard__title">
+				<div class="title-text">Твое приключение</div>
+
+				<div class="title-last-line">
+					<div class="shiny-img">
+						<img src="/assets/shiny-line.svg" alt="dots icon" />
+						<img src="/assets/shiny-star.svg" alt="dots icon" />
+					</div>
+
+					<div class="title-text">начинается</div>
+
+					<div class="shiny-img">
+						<img src="/assets/shiny-star.svg" alt="dots icon" />
+						<img src="/assets/shiny-line.svg" alt="dots icon" />
+					</div>
+				</div>
+			</div>
+
+			<div class="auth-postcard__subtitle">
+				<div class="subtitle-text">Создай своего героя. Собери свой отряд.</div>
+
+				<div class="subtitle-text">Напиши свою легенду.</div>
+			</div>
+		</div>
+
+		@if (mode() === 'sign-in') {
+			<div class="auth-card-content">
+				<div class="auth-block">
+					<div class="auth-block__title">
+						<div class="title-text">С возвращением</div>
+
+						<div class="auth-divider">
+							<img src="/assets/shiny-line.svg" alt="dots icon" />
+							<img src="/assets/shiny-star.svg" alt="dots icon" />
+							<img src="/assets/shiny-line.svg" alt="dots icon" />
+						</div>
+
+						<div class="subtitle-text auth-block-subtitle-text">
+							Войди, чтобы продолжить приключение
+						</div>
+					</div>
+
+					<div class="auth-content">
+						<app-sign-in-form
+							[pending]="pending()"
+							(submitted)="handleSignIn($event)"
+						></app-sign-in-form>
+
+						<div class="auth-divider">
+							<img
+								class="auth-divider__line"
+								src="/assets/auth-thin-line.svg"
+								alt="dots icon"
+							/>
+
+							<div>или</div>
+
+							<img
+								class="auth-divider__line"
+								src="/assets/auth-thin-line.svg"
+								alt="dots icon"
+							/>
+						</div>
+
+						<p-button
+							fluid
+							label="Создать аккаунт"
+							icon="pi pi-user-plus"
+							size="large"
+							[disabled]="pending()"
+							variant="outlined"
+							severity="secondary"
+							(onClick)="setMode('register')"
+						></p-button>
+					</div>
+				</div>
+			</div>
+		}
+
+		@if (mode() === 'register') {
+			<div class="auth-card-content">
+				<div class="auth-block">
+					<div class="auth-block__title">
+						<p-button
+							class="back-to-auth-button"
+							label="Вернуться к входу"
+							icon="pi pi-arrow-left"
+							link
+							(onClick)="setMode('sign-in')"
+						/>
+
+						<div class="title-text">Создать аккаунт</div>
+
+						<div class="auth-divider">
+							<img src="/assets/shiny-line.svg" alt="dots icon" />
+							<img src="/assets/shiny-star.svg" alt="dots icon" />
+							<img src="/assets/shiny-line.svg" alt="dots icon" />
+						</div>
+
+						<div class="subtitle-text auth-block-subtitle-text">
+							Присоединяйся к приключению. Твоя история начинается здесь.
+						</div>
+					</div>
+
+					<div class="reg-content">
+						<app-sign-up-form
+							[pending]="pending()"
+							(submitted)="handleSignIn($event)"
+						></app-sign-up-form>
+					</div>
+				</div>
+			</div>
+		}
 	</div>
 </main>
