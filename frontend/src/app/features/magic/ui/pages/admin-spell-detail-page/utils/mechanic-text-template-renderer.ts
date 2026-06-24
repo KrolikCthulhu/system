@@ -1,8 +1,8 @@
 import {
 	SpellMechanic,
 	SpellMechanicParameterKind
-} from '../../../../spell-mechanics/domain/spell-mechanics.models';
-import type { SpellMechanicApplicationConfig } from '../../../domain/spell.models';
+} from '../../../../../spell-mechanics/domain/spell-mechanics.models';
+import type { SpellMechanicApplicationConfig } from '../../../../domain/spell.models';
 
 type MechanicTextTemplateSegment =
 	| { kind: 'text'; text: string }
@@ -48,7 +48,9 @@ export function renderMechanicTextTemplate<TValue>(
 			}
 
 			if (segment.kind === 'applicationText') {
-				return application ? renderApplicationText(application) : '[Применение]';
+				return application
+					? renderApplicationText(application)
+					: '[Применение]';
 			}
 
 			return `[${segment.resultName}]`;
@@ -74,7 +76,9 @@ export function renderApplicationText(config: SpellMechanicApplicationConfig) {
 	return parts.join(', а ');
 }
 
-function parseMechanicTextTemplate(template: string): MechanicTextTemplateSegment[] {
+function parseMechanicTextTemplate(
+	template: string
+): MechanicTextTemplateSegment[] {
 	if (!template.trim()) {
 		return [];
 	}

@@ -1,0 +1,195 @@
+<div class="admin-spell-detail-page__text-panel">
+	<section class="admin-spell-detail-page__text-preview">
+		<div class="admin-spell-detail-page__text-section-head">
+			<h3>Итоговый текст</h3>
+			<div class="admin-spell-detail-page__text-actions">
+				<p-selectbutton
+					[options]="previewModeOptions()"
+					[ngModel]="previewMode()"
+					optionLabel="label"
+					optionValue="value"
+					size="small"
+					(ngModelChange)="previewModeChange.emit($event)"
+				></p-selectbutton>
+				<p-button
+					label="Из механик"
+					icon="pi pi-sync"
+					size="small"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="syncFromMechanics.emit()"
+				></p-button>
+			</div>
+		</div>
+
+		@if (previewParts().length) {
+			<div class="admin-spell-detail-page__text-preview-content">
+				@for (part of previewParts(); track $index) {
+					@if (part.kind === 'paragraph') {
+						<p>{{ part.text }}</p>
+					} @else {
+						<div class="admin-spell-detail-page__effect-scale-text">
+							<p>{{ part.intro }}</p>
+							<table>
+								<thead>
+									<tr>
+										<th>Условие</th>
+										<th>Эффект</th>
+										<th>Описание</th>
+									</tr>
+								</thead>
+								<tbody>
+									@for (item of part.items; track item.id) {
+										<tr>
+											<td>{{ effectScaleRequirementText()(item) }}</td>
+											<td>{{ item.name }}</td>
+											<td>{{ item.description }}</td>
+										</tr>
+									}
+								</tbody>
+							</table>
+						</div>
+					}
+				}
+			</div>
+		} @else {
+			<div class="admin-spell-detail-page__empty-block">
+				Текст пока не собран.
+			</div>
+		}
+	</section>
+
+	<section class="admin-spell-detail-page__text-builder">
+		<div class="admin-spell-detail-page__text-section-head">
+			<h3>Блоки текста</h3>
+			<div class="admin-spell-detail-page__text-actions">
+				<p-button
+					label="Текст"
+					icon="pi pi-plus"
+					size="small"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="addTextBlock.emit('text')"
+				></p-button>
+				<p-button
+					label="Механика"
+					icon="pi pi-plus"
+					size="small"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="addTextBlock.emit('mechanicText')"
+				></p-button>
+			</div>
+		</div>
+
+		<div class="admin-spell-detail-page__text-blocks">
+			@for (block of textBlocks(); track block.id; let blockIndex = $index) {
+				<div class="admin-spell-detail-page__text-block">
+					<div class="admin-spell-detail-page__text-block-toolbar">
+						<span class="admin-spell-detail-page__field">
+							<span>Тип блока</span>
+							<p-select
+								[options]="blockKindOptions()"
+								optionLabel="label"
+								optionValue="value"
+								[ngModel]="block.kind"
+								(ngModelChange)="
+									updateTextBlock.emit({
+										blockId: block.id,
+										patch: { kind: $event }
+									})
+								"
+							></p-select>
+						</span>
+
+						<span class="admin-spell-detail-page__inline-switch">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="block.isActive"
+								(ngModelChange)="
+									updateTextBlock.emit({
+										blockId: block.id,
+										patch: { isActive: $event }
+									})
+								"
+							></p-toggleswitch>
+						</span>
+
+						<div class="admin-spell-detail-page__text-block-actions">
+							<p-button
+								icon="pi pi-arrow-up"
+								severity="secondary"
+								text
+								rounded
+								[disabled]="isFirstBlock(blockIndex)"
+								(onClick)="
+									moveTextBlock.emit({ index: blockIndex, direction: -1 })
+								"
+							></p-button>
+							<p-button
+								icon="pi pi-arrow-down"
+								severity="secondary"
+								text
+								rounded
+								[disabled]="isLastBlock(blockIndex)"
+								(onClick)="
+									moveTextBlock.emit({ index: blockIndex, direction: 1 })
+								"
+							></p-button>
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(onClick)="deleteTextBlock.emit(block.id)"
+							></p-button>
+						</div>
+					</div>
+
+					@if (block.kind === 'mechanicText') {
+						<span class="admin-spell-detail-page__field">
+							<span>Механика</span>
+							<p-select
+								[options]="mechanicOptions()"
+								optionLabel="label"
+								optionValue="value"
+								placeholder="Не выбрано"
+								[showClear]="true"
+								[ngModel]="block.mechanicBlockId || null"
+								(ngModelChange)="
+									updateTextBlock.emit({
+										blockId: block.id,
+										patch: { mechanicBlockId: $event || '' }
+									})
+								"
+							></p-select>
+						</span>
+					} @else {
+						<span class="admin-spell-detail-page__field">
+							<span>Текст</span>
+							<textarea
+								pTextarea
+								rows="3"
+								[value]="block.text"
+								(input)="
+									updateTextBlock.emit({
+										blockId: block.id,
+										patch: { text: $any($event.target).value }
+									})
+								"
+							></textarea>
+						</span>
+					}
+
+					<div class="admin-spell-detail-page__text-block-preview">
+						{{ blockPreview()(block) }}
+					</div>
+				</div>
+			} @empty {
+				<div class="admin-spell-detail-page__empty-block">
+					Добавь текстовый блок или собери текст из механик.
+				</div>
+			}
+		</div>
+	</section>
+</div>

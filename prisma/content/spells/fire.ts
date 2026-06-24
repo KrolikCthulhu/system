@@ -71,31 +71,43 @@ export default {
 						"dalnost": {
 							"mode": "auto",
 							"character": "scalable",
-							"scale": "large",
+							"scale": "tiny",
 							"growth": "smooth",
 							"startLevel": 1,
 							"minimum": 0,
+							"maximum": null,
+							"rangeMode": "none",
+							"finalScale": 0.5,
 							"sourceMode": "advanced",
 							"sources": [
 								{
-									"sourceKind": "systemValue",
-									"sourceKey": "uroven-zaklinatelya",
-									"target": "base",
-									"weight": 1,
+									"sourceKind": "mechanicParameter",
+									"sourceKey": "navyk-ataki",
+									"transform": "value",
+									"transformSourceKey": "",
+									"transformDivisor": 2,
+									"target": "growth",
+									"weight": 2.4,
 									"curve": "smooth"
 								},
 								{
-									"sourceKind": "mechanicParameter",
-									"sourceKey": "navyk-ataki",
+									"sourceKind": "systemValue",
+									"sourceKey": "uroven-zaklinatelya",
+									"transform": "aboveSource",
+									"transformSourceKey": "navyk-ataki",
+									"transformDivisor": 2,
 									"target": "growth",
-									"weight": 1,
+									"weight": 0.27,
 									"curve": "smooth"
 								},
 								{
 									"sourceKind": "essenceProfile",
 									"sourceKey": "range",
+									"transform": "value",
+									"transformSourceKey": "",
+									"transformDivisor": 2,
 									"target": "multiplier",
-									"weight": 0.4,
+									"weight": 0.25,
 									"curve": "weak"
 								}
 							],
@@ -106,32 +118,64 @@ export default {
 						"dopolnitelnyy-uron": {
 							"mode": "auto",
 							"character": "elemental",
-							"scale": "small",
+							"scale": "tiny",
 							"growth": "smooth",
 							"startLevel": 1,
 							"minimum": 0,
+							"maximum": 6,
+							"rangeMode": "none",
+							"finalScale": 1,
 							"sourceMode": "advanced",
 							"sources": [
 								{
 									"sourceKind": "mechanicParameter",
 									"sourceKey": "navyk-ataki",
+									"transform": "aboveStart",
+									"transformSourceKey": "",
+									"transformDivisor": 2,
 									"target": "growth",
-									"weight": 1,
-									"curve": "fast"
+									"weight": 0.7,
+									"curve": "smooth"
 								},
 								{
 									"sourceKind": "systemValue",
 									"sourceKey": "uroven-zaklinatelya",
-									"target": "maximum",
+									"transform": "divide",
+									"transformSourceKey": "",
+									"transformDivisor": 8,
+									"target": "growth",
 									"weight": 0.5,
 									"curve": "smooth"
 								},
 								{
 									"sourceKind": "essenceProfile",
 									"sourceKey": "damage",
+									"transform": "value",
+									"transformSourceKey": "",
+									"transformDivisor": 2,
 									"target": "multiplier",
 									"weight": 0.3,
 									"curve": "weak"
+								},
+								{
+									"sourceKind": "mechanicParameter",
+									"sourceKey": "navyk-ataki",
+									"transform": "value",
+									"transformSourceKey": "",
+									"transformDivisor": 2,
+									"target": "maximum",
+									"weight": 0.8,
+									"curve": "smooth"
+								},
+								{
+									"sourceKind": "systemValue",
+									"sourceKey": "uroven-zaklinatelya",
+									"transform": "divide",
+									"transformSourceKey": "",
+									"transformDivisor": 10,
+									"target": "maximum",
+									"weight": 1,
+									"curve": "smooth"
 								}
 							],
 							"essenceInfluence": "medium",

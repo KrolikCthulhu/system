@@ -20,11 +20,11 @@ import {
 	SpellEffectScaleMode,
 	SpellEffectScaleRequirement,
 	SpellNestedMechanicBlockConfig
-} from '../../../domain/spell.models';
+} from '../../../../../domain/spell.models';
 import {
 	SpellMechanicParameter,
 	SpellMechanicParameterKind
-} from '../../../../spell-mechanics/domain/spell-mechanics.models';
+} from '../../../../../../spell-mechanics/domain/spell-mechanics.models';
 
 interface SelectOption {
 	id: string;
@@ -71,19 +71,26 @@ export class SpellEffectScaleEditorComponent {
 	protected readonly requirementOptions = EFFECT_SCALE_REQUIREMENT_OPTIONS;
 	readonly config = input.required<SpellEffectScaleConfig>();
 	readonly mechanicOptions = input.required<CommandOption[]>();
-	readonly modeOptions = input.required<
-		Array<{ label: string; value: SpellEffectScaleMode }>
-	>();
+	readonly modeOptions =
+		input.required<Array<{ label: string; value: SpellEffectScaleMode }>>();
 	readonly mechanicParameters =
-		input.required<(block: SpellNestedMechanicBlockConfig) => SpellMechanicParameter[]>();
+		input.required<
+			(block: SpellNestedMechanicBlockConfig) => SpellMechanicParameter[]
+		>();
 	readonly usesParameterSelect =
 		input.required<(kind: SpellMechanicParameterKind) => boolean>();
 	readonly parameterOptions =
-		input.required<(parameter: SpellMechanicParameter) => SelectOptionGroup[]>();
+		input.required<
+			(parameter: SpellMechanicParameter) => SelectOptionGroup[]
+		>();
 	readonly parameterValue =
-		input.required<(block: SpellNestedMechanicBlockConfig, parameterId: string) => string>();
+		input.required<
+			(block: SpellNestedMechanicBlockConfig, parameterId: string) => string
+		>();
 	readonly staticParameterValue =
-		input.required<(block: SpellNestedMechanicBlockConfig, parameterId: string) => string>();
+		input.required<
+			(block: SpellNestedMechanicBlockConfig, parameterId: string) => string
+		>();
 
 	readonly configChange = output<SpellEffectScaleConfig>();
 	readonly nestedMechanicAdd = output<{ itemId: string }>();
@@ -134,10 +141,7 @@ export class SpellEffectScaleEditorComponent {
 		};
 
 		this.updateConfig({
-			items: [
-				...items,
-				nextItem
-			]
+			items: [...items, nextItem]
 		});
 		this.selectedItemId.set(nextItem.id);
 	}

@@ -1,0 +1,76 @@
+<div class="admin-spell-detail-page__numeric-preview">
+	<div class="admin-spell-detail-page__numeric-preview-row">
+		<span>Формула</span>
+		<strong>{{ preview().formula }}</strong>
+	</div>
+	<div class="admin-spell-detail-page__numeric-preview-row">
+		<span>Данные</span>
+		<strong>
+			@if (preview().sources.length) {
+				{{ preview().sources.join(', ') }}
+			} @else {
+				Не используются
+			}
+		</strong>
+	</div>
+	<div class="admin-spell-detail-page__numeric-preview-row">
+		<span>Округление</span>
+		<strong>{{ preview().rounding }}</strong>
+	</div>
+	<div class="admin-spell-detail-page__numeric-preview-values">
+		@for (item of preview().values; track item.x) {
+			<span>
+				{{ item.x }}:
+				<strong>{{ item.value }}</strong>
+			</span>
+		}
+	</div>
+
+	@if (casterLevelMatrix(); as matrixPreview) {
+		<div class="admin-spell-detail-page__caster-level-matrix">
+			<button
+				type="button"
+				class="admin-spell-detail-page__caster-level-matrix-head"
+				[attr.aria-expanded]="casterLevelMatrixExpanded()"
+				(click)="casterLevelMatrixToggle.emit()"
+			>
+				<span>
+					<strong>Зависимость от Уровня Заклинателя</strong>
+					<small>
+						диапазон: {{ matrixPreview.minValue }}–{{ matrixPreview.maxValue }}
+					</small>
+				</span>
+				<i
+					class="pi"
+					[class.pi-plus]="!casterLevelMatrixExpanded()"
+					[class.pi-minus]="casterLevelMatrixExpanded()"
+				></i>
+			</button>
+
+			@if (casterLevelMatrixExpanded()) {
+				<div class="admin-spell-detail-page__caster-level-matrix-table-wrap">
+					<table class="admin-spell-detail-page__caster-level-matrix-table">
+						<thead>
+							<tr>
+								<th>УЗ</th>
+								@for (level of matrixPreview.columns; track level) {
+									<th>Нав. {{ level }}</th>
+								}
+							</tr>
+						</thead>
+						<tbody>
+							@for (row of matrixPreview.rows; track row.casterLevel) {
+								<tr>
+									<th>{{ row.casterLevel }}</th>
+									@for (value of row.values; track $index) {
+										<td>{{ value }}</td>
+									}
+								</tr>
+							}
+						</tbody>
+					</table>
+				</div>
+			}
+		</div>
+	}
+</div>

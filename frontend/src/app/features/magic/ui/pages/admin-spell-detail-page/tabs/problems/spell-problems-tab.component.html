@@ -1,0 +1,34 @@
+<div class="admin-spell-detail-page__problems-panel">
+	<div class="admin-spell-detail-page__problems-head">
+		<h3>Проблемы</h3>
+		<span>{{ problems().length }}</span>
+	</div>
+
+	@if (problems().length) {
+		<div class="admin-spell-detail-page__problems-table">
+			<div
+				class="admin-spell-detail-page__problems-row admin-spell-detail-page__problems-row--head"
+			>
+				<span>Механика</span>
+				<span>Проблема</span>
+				<span>Действие</span>
+			</div>
+
+			@for (problem of problems(); track problem.blockIndex + problem.issue) {
+				<div class="admin-spell-detail-page__problems-row">
+					<strong>{{ problem.mechanicName }}</strong>
+					<span>{{ problem.issue }}</span>
+					<p-button
+						label="Перейти"
+						size="small"
+						severity="secondary"
+						variant="outlined"
+						(onClick)="selectProblem.emit(problem)"
+					></p-button>
+				</div>
+			}
+		</div>
+	} @else {
+		<div class="admin-spell-detail-page__empty-block">Проблем нет.</div>
+	}
+</div>

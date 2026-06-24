@@ -1,0 +1,24 @@
+<app-spell-effect-scale-editor
+	[config]="config()"
+	[mechanicOptions]="mechanicOptions()"
+	[modeOptions]="modeOptions()"
+	[mechanicParameters]="mechanicParameters()"
+	[usesParameterSelect]="usesParameterSelect()"
+	[parameterOptions]="parameterOptions()"
+	[parameterValue]="parameterValue()"
+	[staticParameterValue]="staticParameterValue()"
+	(configChange)="updateConfig()(block(), $event)"
+	(nestedMechanicAdd)="addNestedMechanic()(block(), $event.itemId)"
+	(nestedMechanicChange)="
+		updateNestedMechanic()(
+			block(),
+			$event.itemId,
+			$event.nestedBlockId,
+			$event.mechanicId
+		)
+	"
+	(nestedMechanicDelete)="
+		deleteNestedMechanic()(block(), $event.itemId, $event.nestedBlockId)
+	"
+	(nestedParameterChange)="updateNestedParameterValue($event)"
+></app-spell-effect-scale-editor>

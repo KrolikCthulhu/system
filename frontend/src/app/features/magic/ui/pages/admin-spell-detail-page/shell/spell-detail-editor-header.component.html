@@ -1,0 +1,28 @@
+<header class="admin-spell-detail-page__editor-head">
+	<div>
+		<h2>{{ title() }}</h2>
+		<p>{{ formulaName() }}</p>
+	</div>
+
+	<div class="admin-spell-detail-page__editor-actions">
+		<p-button
+			label="Проверить"
+			icon="pi pi-play"
+			size="small"
+			severity="secondary"
+			variant="outlined"
+			[disabled]="!canRunPreview()"
+			(onClick)="runPreview.emit()"
+		></p-button>
+		<p-tag [value]="statusLabel()" [severity]="statusSeverity()"></p-tag>
+		@if (canDelete()) {
+			<p-button
+				icon="pi pi-trash"
+				severity="danger"
+				text
+				rounded
+				(onClick)="deleteSpell.emit()"
+			></p-button>
+		}
+	</div>
+</header>

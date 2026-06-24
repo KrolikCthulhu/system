@@ -1,0 +1,37 @@
+<span class="admin-spell-detail-page__field">
+	@if (showValueLabel()) {
+		<span>Значение</span>
+	}
+
+	@if (usesSelect()) {
+		<p-select
+			[options]="options()"
+			[group]="true"
+			optionGroupLabel="label"
+			optionGroupChildren="items"
+			optionLabel="name"
+			optionValue="id"
+			appendTo="body"
+			[filter]="true"
+			filterBy="name,searchText"
+			filterPlaceHolder="Поиск"
+			[showClear]="true"
+			placeholder="Не выбрано"
+			[ngModel]="selectValue()"
+			(ngModelChange)="selectValueChange.emit($event)"
+		>
+			<ng-template let-group #group>
+				<div class="admin-spell-detail-page__option-group">
+					{{ group.label }}
+				</div>
+			</ng-template>
+		</p-select>
+	} @else {
+		<input
+			pInputText
+			type="text"
+			[value]="plainValue()"
+			(input)="plainValueChange.emit($any($event.target).value)"
+		/>
+	}
+</span>

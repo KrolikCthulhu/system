@@ -1,0 +1,59 @@
+<aside class="admin-spell-detail-page__mechanics-sidebar">
+	<div class="admin-spell-detail-page__mechanics-sidebar-head">
+		<h3>Механики</h3>
+		<p-button
+			label="Механика"
+			icon="pi pi-plus"
+			size="small"
+			severity="secondary"
+			variant="outlined"
+			(onClick)="addMechanic.emit()"
+		></p-button>
+	</div>
+
+	<div class="admin-spell-detail-page__mechanics-list">
+		@for (item of items(); track item.id) {
+			<div
+				class="admin-spell-detail-page__mechanics-list-item"
+				[class.admin-spell-detail-page__mechanics-list-item--active]="
+					selectedIndex() === item.index
+				"
+				[class.admin-spell-detail-page__mechanics-list-item--invalid]="
+					item.invalid
+				"
+			>
+				<button
+					type="button"
+					class="admin-spell-detail-page__mechanics-list-button"
+					(click)="selectMechanic.emit(item.index)"
+				>
+					<span>{{ item.name }}</span>
+					<small>{{ item.preview }}</small>
+				</button>
+
+				<div class="admin-spell-detail-page__mechanics-order">
+					<p-button
+						icon="pi pi-arrow-up"
+						severity="secondary"
+						text
+						rounded
+						[disabled]="item.first"
+						(onClick)="moveMechanic.emit({ index: item.index, direction: -1 })"
+					></p-button>
+					<p-button
+						icon="pi pi-arrow-down"
+						severity="secondary"
+						text
+						rounded
+						[disabled]="item.last"
+						(onClick)="moveMechanic.emit({ index: item.index, direction: 1 })"
+					></p-button>
+				</div>
+			</div>
+		} @empty {
+			<div class="admin-spell-detail-page__empty-block">
+				Механики пока не добавлены.
+			</div>
+		}
+	</div>
+</aside>

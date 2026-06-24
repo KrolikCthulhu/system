@@ -1,0 +1,50 @@
+<div
+	class="admin-spell-detail-page__parameter-card"
+	[class.admin-spell-detail-page__parameter-card--collapsed]="!expanded()"
+>
+	<button
+		type="button"
+		class="admin-spell-detail-page__parameter-card-head"
+		[attr.aria-expanded]="expanded()"
+		(click)="expandedToggle.emit()"
+	>
+		<div class="admin-spell-detail-page__parameter-card-title">
+			<span>
+				<strong>{{ name() }}</strong>
+				<p-tag [value]="kindLabel()" severity="secondary"></p-tag>
+			</span>
+
+			@if (preview(); as headerPreview) {
+				@if (headerPreview.items.length) {
+					<div class="admin-spell-detail-page__parameter-head-preview">
+						@for (item of headerPreview.items; track item.level) {
+							<span>
+								{{ item.level }}:
+								<strong>{{ item.label }}</strong>
+							</span>
+						}
+
+						@if (headerPreview.rangeLabel) {
+							<span
+								class="admin-spell-detail-page__parameter-head-preview-range"
+							>
+								диапазон:
+								<strong>{{ headerPreview.rangeLabel }}</strong>
+							</span>
+						}
+					</div>
+				}
+			}
+		</div>
+
+		<i
+			class="pi admin-spell-detail-page__parameter-card-toggle"
+			[class.pi-plus]="!expanded()"
+			[class.pi-minus]="expanded()"
+		></i>
+	</button>
+
+	@if (expanded()) {
+		<ng-content></ng-content>
+	}
+</div>

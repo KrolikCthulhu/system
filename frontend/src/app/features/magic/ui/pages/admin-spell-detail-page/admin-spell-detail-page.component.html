@@ -34,42 +34,23 @@
 	@if (loading()) {
 		<div class="admin-spell-detail-page__state">Загрузка заклинания...</div>
 	} @else if (errorMessage() && !draft()) {
-		<div class="admin-spell-detail-page__state admin-spell-detail-page__state--error">
+		<div
+			class="admin-spell-detail-page__state admin-spell-detail-page__state--error"
+		>
 			{{ errorMessage() }}
 		</div>
 	} @else if (draft(); as currentDraft) {
 		<section class="admin-spell-detail-page__editor">
-			<header class="admin-spell-detail-page__editor-head">
-				<div>
-					<h2>{{ currentDraft.name || 'Новое заклинание' }}</h2>
-					<p>{{ currentDraft.formulaName }}</p>
-				</div>
-
-				<div class="admin-spell-detail-page__editor-actions">
-					<p-button
-						label="Проверить"
-						icon="pi pi-play"
-						size="small"
-						severity="secondary"
-						variant="outlined"
-						[disabled]="!currentDraft.id || hasChanges()"
-						(onClick)="runRuntimePreview()"
-					></p-button>
-					<p-tag
-						[value]="statusLabel(currentDraft.status)"
-						[severity]="statusSeverity(currentDraft.status)"
-					></p-tag>
-					@if (currentDraft.id) {
-						<p-button
-							icon="pi pi-trash"
-							severity="danger"
-							text
-							rounded
-							(click)="deleteSpell()"
-						></p-button>
-					}
-				</div>
-			</header>
+			<app-spell-detail-editor-header
+				[title]="currentDraft.name || 'Новое заклинание'"
+				[formulaName]="currentDraft.formulaName"
+				[statusLabel]="statusLabel(currentDraft.status)"
+				[statusSeverity]="statusSeverity(currentDraft.status)"
+				[canRunPreview]="!!currentDraft.id && !hasChanges()"
+				[canDelete]="!!currentDraft.id"
+				(runPreview)="runRuntimePreview()"
+				(deleteSpell)="deleteSpell()"
+			></app-spell-detail-editor-header>
 
 			<div class="admin-spell-detail-page__editor-body">
 				@if (errorMessage()) {
@@ -259,7 +240,10 @@
 									<div class="admin-spell-detail-page__area-head">
 										<div>
 											<h3>{{ areaShape.name }}</h3>
-											<span>{{ areaShape.description || 'Форма области от выбранного жеста.' }}</span>
+											<span>{{
+												areaShape.description ||
+													'Форма области от выбранного жеста.'
+											}}</span>
 										</div>
 										<p-tag
 											[value]="areaShape.kind"
@@ -269,9 +253,16 @@
 
 									@if (areaDimensions().length) {
 										<div class="admin-spell-detail-page__area-dimensions">
-											@for (dimension of areaDimensions(); track dimension.key) {
-												<section class="admin-spell-detail-page__area-dimension">
-													<div class="admin-spell-detail-page__area-dimension-head">
+											@for (
+												dimension of areaDimensions();
+												track dimension.key
+											) {
+												<section
+													class="admin-spell-detail-page__area-dimension"
+												>
+													<div
+														class="admin-spell-detail-page__area-dimension-head"
+													>
 														<div>
 															<strong>{{ dimension.label }}</strong>
 															<p-tag
@@ -292,439 +283,79 @@
 														></p-selectbutton>
 													</div>
 
-													@if (areaParameterValueMode(dimension.key) === 'auto') {
-														@if (areaAutoParameterValue(dimension.key); as autoValue) {
-															<div class="admin-spell-detail-page__auto-editor admin-spell-detail-page__area-auto-editor">
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Поведение
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: поведение"
-																			(click)="showAutoHelp($event, 'character', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-select
-																		[options]="autoValueCharacterOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.character"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				character: $event
-																			})
-																		"
-																	></p-select>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Размер значения
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: размер значения"
-																			(click)="showAutoHelp($event, 'scale', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-select
-																		[options]="autoValueScaleOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.scale"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				scale: $event
-																			})
-																		"
-																	></p-select>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Старт расчёта
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: старт расчёта"
-																			(click)="showAutoHelp($event, 'startLevel', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-inputnumber
-																		[ngModel]="autoValue.startLevel"
-																		[min]="0"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				startLevel: $event ?? 0
-																			})
-																		"
-																	></p-inputnumber>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Минимум
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: минимум"
-																			(click)="showAutoHelp($event, 'minimum', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-inputnumber
-																		[ngModel]="autoValue.minimum"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				minimum: $event ?? 0
-																			})
-																		"
-																	></p-inputnumber>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Диапазон
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: диапазон"
-																			(click)="showAutoHelp($event, 'rangeMode', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-select
-																		[options]="autoValueRangeModeOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.rangeMode"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				rangeMode: $event
-																			})
-																		"
-																	></p-select>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Максимум
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: максимум"
-																			(click)="showAutoHelp($event, 'maximum', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-inputnumber
-																		[ngModel]="autoValue.maximum"
-																		[disabled]="autoValue.rangeMode === 'none'"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				maximum: $event
-																			})
-																		"
-																	></p-inputnumber>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Режим влияний
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: режим влияний"
-																			(click)="showAutoHelp($event, 'sourceMode', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-select
-																		[options]="autoValueSourceModeOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.sourceMode"
-																		(ngModelChange)="
-																			updateAreaAutoSourceMode(dimension.key, $event)
-																		"
-																	></p-select>
-																</span>
-
-																<div class="admin-spell-detail-page__auto-sources">
-																	<div class="admin-spell-detail-page__auto-sources-head">
-																		<strong>Влияния</strong>
-																		@if (autoValue.sourceMode === 'advanced') {
-																			<p-button
-																				label="Влияние"
-																				icon="pi pi-plus"
-																				severity="secondary"
-																				variant="outlined"
-																				(onClick)="addAreaAutoSource(dimension.key)"
-																			></p-button>
-																		}
-																	</div>
-
-																	@for (source of autoValue.sources; track source.id) {
-																		<div class="admin-spell-detail-page__auto-source-row">
-																			<div class="admin-spell-detail-page__auto-source-row-head">
-																				<strong>{{ autoSourceSummary(source) }}</strong>
-																				<p-button
-																					[icon]="
-																						isAutoSourceCollapsed(
-																							'area:' + dimension.key,
-																							source
-																						)
-																							? 'pi pi-plus'
-																							: 'pi pi-minus'
-																					"
-																					severity="secondary"
-																					text
-																					rounded
-																					[ariaLabel]="
-																						isAutoSourceCollapsed(
-																							'area:' + dimension.key,
-																							source
-																						)
-																							? 'Развернуть влияние'
-																							: 'Свернуть влияние'
-																					"
-																					(onClick)="
-																						toggleAutoSourceCollapsed(
-																							'area:' + dimension.key,
-																							source
-																						)
-																					"
-																				></p-button>
-																			</div>
-
-																			@if (!isAutoSourceCollapsed('area:' + dimension.key, source)) {
-																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind">
-																					<span class="admin-spell-detail-page__field-label">
-																						Что влияет
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: что влияет"
-																							(click)="showAutoHelp($event, 'sourceKind', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<p-select
-																						[options]="autoValueSourceKindOptions"
-																						optionLabel="label"
-																						optionValue="value"
-																						[ngModel]="source.sourceKind"
-																						(ngModelChange)="
-																							updateAreaAutoSource(
-																								dimension.key,
-																								source.id,
-																								{
-																									sourceKind: $event,
-																									sourceKey: defaultAreaAutoSourceKey($event)
-																								}
-																							)
-																						"
-																					></p-select>
-																				</span>
-
-																				@if (shouldShowAutoSourceKey(source)) {
-																					<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
-																						<span class="admin-spell-detail-page__field-label">
-																							{{ autoSourceKeyLabel(source) }}
-																							<button
-																								type="button"
-																								class="admin-spell-detail-page__hint-button"
-																								aria-label="Справка: значение источника"
-																								(click)="showAutoHelp($event, 'sourceKey', autoHelpPopover)"
-																							>
-																								<i class="pi pi-question-circle"></i>
-																							</button>
-																						</span>
-																						<p-select
-																							[options]="areaAutoSourceKeyOptionGroups(source)"
-																							[group]="true"
-																							optionGroupLabel="label"
-																							optionGroupChildren="items"
-																							optionLabel="label"
-																							optionValue="value"
-																							[filter]="true"
-																							[showClear]="true"
-																							[ngModel]="source.sourceKey || null"
-																							(ngModelChange)="
-																								updateAreaAutoSource(
-																									dimension.key,
-																									source.id,
-																									{ sourceKey: $event ?? '' }
-																								)
-																							"
-																						></p-select>
-																					</span>
-																				} @else {
-																					<div class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value">
-																						<span>Значение</span>
-																						<div class="admin-spell-detail-page__auto-source-static">
-																							x
-																						</div>
-																					</div>
-																				}
-
-																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target">
-																					<span class="admin-spell-detail-page__field-label">
-																						Влияет на
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: влияет на"
-																							(click)="showAutoHelp($event, 'sourceTarget', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<p-select
-																						[options]="autoValueSourceTargetOptions"
-																						optionLabel="label"
-																						optionValue="value"
-																						[ngModel]="source.target"
-																						[disabled]="!canEditAutoSourceTarget(autoValue)"
-																						(ngModelChange)="
-																							updateAreaAutoSource(
-																								dimension.key,
-																								source.id,
-																								{ target: $event }
-																							)
-																						"
-																					></p-select>
-																				</span>
-
-																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve">
-																					<span class="admin-spell-detail-page__field-label">
-																						Кривая
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: кривая"
-																							(click)="showAutoHelp($event, 'sourceCurve', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<p-select
-																						[options]="autoValueSourceCurveOptions"
-																						optionLabel="label"
-																						optionValue="value"
-																						[ngModel]="source.curve"
-																						(ngModelChange)="
-																							updateAreaAutoSource(
-																								dimension.key,
-																								source.id,
-																								{ curve: $event }
-																							)
-																						"
-																					></p-select>
-																				</span>
-
-																				<span class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight">
-																					<span class="admin-spell-detail-page__field-label">
-																						Вес
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: вес"
-																							(click)="showAutoHelp($event, 'sourceWeight', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<div class="admin-spell-detail-page__weight-control">
-																						<p-slider
-																							[ngModel]="source.weight"
-																							[min]="0"
-																							[max]="3"
-																							[step]="0.1"
-																							(ngModelChange)="
-																								updateAreaAutoSource(
-																									dimension.key,
-																									source.id,
-																									{ weight: $event }
-																								)
-																							"
-																						></p-slider>
-																						<p-inputnumber
-																							[ngModel]="source.weight"
-																							[step]="0.1"
-																							[min]="0"
-																							[max]="3"
-																							(ngModelChange)="
-																								updateAreaAutoSource(
-																									dimension.key,
-																									source.id,
-																									{ weight: $event ?? 0 }
-																								)
-																							"
-																						></p-inputnumber>
-																					</div>
-																				</span>
-
-																				@if (canDeleteAutoSource(autoValue)) {
-																					<div class="admin-spell-detail-page__auto-source-cell--action">
-																						<p-button
-																							icon="pi pi-trash"
-																							severity="danger"
-																							text
-																							rounded
-																							(onClick)="
-																								deleteAreaAutoSource(
-																									dimension.key,
-																									source.id
-																								)
-																							"
-																						></p-button>
-																					</div>
-																				} @else {
-																					<div class="admin-spell-detail-page__auto-source-cell--action"></div>
-																				}
-																			}
-																		</div>
-																	}
-																</div>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Округление
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: округление"
-																			(click)="showAutoHelp($event, 'rounding', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-select
-																		[options]="roundingModeOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.roundingMode"
-																		(ngModelChange)="
-																			updateAreaAutoParameter(dimension.key, {
-																				roundingMode: $event
-																			})
-																		"
-																	></p-select>
-																</span>
-															</div>
+													@if (
+														areaParameterValueMode(dimension.key) === 'auto'
+													) {
+														@if (
+															areaAutoParameterValue(dimension.key);
+															as autoValue
+														) {
+															<app-spell-auto-parameter-editor
+																[value]="autoValue"
+																[scope]="'area:' + dimension.key"
+																[characterOptions]="autoValueCharacterOptions"
+																[scaleOptions]="autoValueScaleOptions"
+																[rangeModeOptions]="autoValueRangeModeOptions"
+																[sourceModeOptions]="autoValueSourceModeOptions"
+																[sourceKindOptions]="autoValueSourceKindOptions"
+																[sourceTargetOptions]="
+																	autoValueSourceTargetOptions
+																"
+																[sourceCurveOptions]="
+																	autoValueSourceCurveOptions
+																"
+																[sourceTransformOptions]="
+																	autoValueSourceTransformOptions
+																"
+																[roundingModeOptions]="roundingModeOptions"
+																[sourceKeyOptions]="
+																	areaAutoSourceKeyOptionGroupsRenderer
+																"
+																[transformSourceOptions]="
+																	autoTransformSourceOptionsRenderer
+																"
+																[defaultSourceKey]="
+																	defaultAreaAutoSourceKeyRenderer
+																"
+																[sourceKeyLabel]="autoSourceKeyLabelRenderer"
+																[sourceSummary]="autoSourceSummaryRenderer"
+																[isSourceCollapsed]="
+																	isAutoSourceCollapsedRenderer
+																"
+																(parameterPatch)="
+																	updateAreaAutoParameter(dimension.key, $event)
+																"
+																(sourceModeChange)="
+																	updateAreaAutoSourceMode(
+																		dimension.key,
+																		$event
+																	)
+																"
+																(sourceAdd)="addAreaAutoSource(dimension.key)"
+																(sourcePatch)="
+																	updateAreaAutoSource(
+																		dimension.key,
+																		$event.sourceId,
+																		$event.patch
+																	)
+																"
+																(sourceDelete)="
+																	deleteAreaAutoSource(dimension.key, $event)
+																"
+																(sourceCollapseToggle)="
+																	toggleAutoSourceCollapsed(
+																		'area:' + dimension.key,
+																		$event
+																	)
+																"
+																(helpClick)="
+																	showAutoHelp(
+																		$event.event,
+																		$event.key,
+																		autoHelpPopover
+																	)
+																"
+															></app-spell-auto-parameter-editor>
 														}
 													} @else {
 														<span class="admin-spell-detail-page__field">
@@ -732,7 +363,9 @@
 															<input
 																pInputText
 																type="text"
-																[value]="areaStaticParameterValue(dimension.key)"
+																[value]="
+																	areaStaticParameterValue(dimension.key)
+																"
 																(input)="
 																	updateAreaStaticParameterValue(
 																		dimension.key,
@@ -744,12 +377,18 @@
 													}
 
 													@if (areaNumericPreview(dimension.key); as preview) {
-														<div class="admin-spell-detail-page__numeric-preview">
-															<div class="admin-spell-detail-page__numeric-preview-row">
+														<div
+															class="admin-spell-detail-page__numeric-preview"
+														>
+															<div
+																class="admin-spell-detail-page__numeric-preview-row"
+															>
 																<span>Формула</span>
 																<strong>{{ preview.formula }}</strong>
 															</div>
-															<div class="admin-spell-detail-page__numeric-preview-row">
+															<div
+																class="admin-spell-detail-page__numeric-preview-row"
+															>
 																<span>Данные</span>
 																<strong>
 																	@if (preview.sources.length) {
@@ -759,11 +398,15 @@
 																	}
 																</strong>
 															</div>
-															<div class="admin-spell-detail-page__numeric-preview-row">
+															<div
+																class="admin-spell-detail-page__numeric-preview-row"
+															>
 																<span>Округление</span>
 																<strong>{{ preview.rounding }}</strong>
 															</div>
-															<div class="admin-spell-detail-page__numeric-preview-values">
+															<div
+																class="admin-spell-detail-page__numeric-preview-values"
+															>
 																@for (item of preview.values; track item.x) {
 																	<span>
 																		{{ item.x }}:
@@ -794,152 +437,34 @@
 							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--mechanics"
 						>
 							<div class="admin-spell-detail-page__mechanics-layout">
-								<aside class="admin-spell-detail-page__mechanics-sidebar">
-									<div class="admin-spell-detail-page__mechanics-sidebar-head">
-										<h3>Механики</h3>
-										<p-button
-											label="Механика"
-											icon="pi pi-plus"
-											size="small"
-											severity="secondary"
-											variant="outlined"
-											(onClick)="addMechanicBlock()"
-										></p-button>
-									</div>
-
-									<div class="admin-spell-detail-page__mechanics-list">
-										@for (
-											block of currentDraft.mechanicBlocks;
-											track block.id;
-											let blockIndex = $index
-										) {
-											<div
-												class="admin-spell-detail-page__mechanics-list-item"
-												[class.admin-spell-detail-page__mechanics-list-item--active]="
-													selectedMechanicBlockIndex() === blockIndex
-												"
-												[class.admin-spell-detail-page__mechanics-list-item--invalid]="
-													mechanicReadinessStatus(block).issues.length
-												"
-											>
-												<button
-													type="button"
-													class="admin-spell-detail-page__mechanics-list-button"
-													(click)="selectMechanicBlock(blockIndex)"
-												>
-													<span>
-														{{
-															mechanicBlockMechanic(block)?.name ||
-																'Механика не найдена'
-														}}
-													</span>
-													<small>{{ mechanicBlockTextPreview(block) }}</small>
-												</button>
-
-												<div class="admin-spell-detail-page__mechanics-order">
-													<p-button
-														icon="pi pi-arrow-up"
-														severity="secondary"
-														text
-														rounded
-														[disabled]="isFirstMechanicBlock(blockIndex)"
-														(onClick)="moveMechanicBlock(blockIndex, -1)"
-													></p-button>
-													<p-button
-														icon="pi pi-arrow-down"
-														severity="secondary"
-														text
-														rounded
-														[disabled]="isLastMechanicBlock(blockIndex)"
-														(onClick)="moveMechanicBlock(blockIndex, 1)"
-													></p-button>
-												</div>
-											</div>
-										} @empty {
-											<div class="admin-spell-detail-page__empty-block">
-												Механики пока не добавлены.
-											</div>
-										}
-									</div>
-								</aside>
+								<app-spell-mechanic-block-list
+									[items]="mechanicBlockListItems()"
+									[selectedIndex]="selectedMechanicBlockIndex()"
+									(addMechanic)="addMechanicBlock()"
+									(selectMechanic)="selectMechanicBlock($event)"
+									(moveMechanic)="
+										moveMechanicBlock($event.index, $event.direction)
+									"
+								></app-spell-mechanic-block-list>
 
 								<section class="admin-spell-detail-page__mechanics-editor">
 									@if (selectedMechanicBlock(); as block) {
-										<div class="admin-spell-detail-page__mechanic-editor-head">
-											<span class="admin-spell-detail-page__field">
-												<span>Механика</span>
-												<p-select
-													[options]="mechanicOptions()"
-													optionLabel="label"
-													optionValue="value"
-													[ngModel]="block.mechanicId"
-													(ngModelChange)="
-														updateSelectedMechanicBlockMechanic($event)
-													"
-												></p-select>
-											</span>
-
-											<span class="admin-spell-detail-page__inline-switch">
-												<span>Активно</span>
-												<p-toggleswitch
-													[ngModel]="block.isActive"
-													(ngModelChange)="
-														updateSelectedMechanicBlockActive($event)
-													"
-												></p-toggleswitch>
-											</span>
-
-											<p-button
-												icon="pi pi-trash"
-												severity="danger"
-												text
-												rounded
-												(onClick)="deleteSelectedMechanicBlock()"
-											></p-button>
-										</div>
-
-										<div class="admin-spell-detail-page__mechanic-preview">
-											{{ mechanicBlockTextPreview(block) }}
-										</div>
-
-										<section class="admin-spell-detail-page__mechanic-application">
-											<div class="admin-spell-detail-page__mechanic-section-head">
-												<h3>Ограничения применения</h3>
-												<span>{{ mechanicApplicationText(block) }}</span>
-											</div>
-
-											<div class="admin-spell-detail-page__mechanic-application-grid">
-												<span class="admin-spell-detail-page__inline-switch">
-													<span>Нужна видимость</span>
-													<p-toggleswitch
-														[ngModel]="
-															mechanicApplicationConfig(block)
-																.visibilityRequired
-														"
-														(ngModelChange)="
-															updateSelectedMechanicApplication({
-																visibilityRequired: $event
-															})
-														"
-													></p-toggleswitch>
-												</span>
-
-												<span class="admin-spell-detail-page__inline-switch">
-													<span>Свободный путь</span>
-													<p-toggleswitch
-														[ngModel]="
-															mechanicApplicationConfig(block)
-																.lineOfEffectRequired
-														"
-														(ngModelChange)="
-															updateSelectedMechanicApplication({
-																lineOfEffectRequired: $event
-															})
-														"
-													></p-toggleswitch>
-												</span>
-											</div>
-										</section>
+										<app-spell-mechanic-block-summary
+											[mechanicId]="block.mechanicId"
+											[isActive]="block.isActive"
+											[mechanicOptions]="mechanicOptions()"
+											[previewText]="mechanicBlockTextPreview(block)"
+											[applicationText]="mechanicApplicationText(block)"
+											[applicationConfig]="mechanicApplicationConfig(block)"
+											(mechanicChange)="
+												updateSelectedMechanicBlockMechanic($event)
+											"
+											(activeChange)="updateSelectedMechanicBlockActive($event)"
+											(deleteBlock)="deleteSelectedMechanicBlock()"
+											(applicationChange)="
+												updateSelectedMechanicApplication($event)
+											"
+										></app-spell-mechanic-block-summary>
 
 										@if (mechanicBlockParameters(block).length) {
 											<div class="admin-spell-detail-page__mechanic-parameters">
@@ -947,117 +472,32 @@
 													parameter of mechanicBlockParameters(block);
 													track parameter.id
 												) {
-													<div
-														class="admin-spell-detail-page__parameter-card"
-														[class.admin-spell-detail-page__parameter-card--collapsed]="
-															!isMechanicParameterExpanded(block, parameter)
+													<app-spell-mechanic-parameter-card-shell
+														[name]="parameter.name"
+														[kindLabel]="parameterKindLabel(parameter.kind)"
+														[expanded]="
+															isMechanicParameterExpanded(block, parameter)
 														"
-														[class.admin-spell-detail-page__parameter-card--wide]="
-															parameter.kind === 'target' ||
+														[preview]="
 															supportsProgression(parameter)
+																? parameterHeaderPreview(block, parameter)
+																: null
+														"
+														(expandedToggle)="
+															toggleMechanicParameterExpanded(block, parameter)
 														"
 													>
-														<button
-															type="button"
-															class="admin-spell-detail-page__parameter-card-head"
-															[attr.aria-expanded]="
-																isMechanicParameterExpanded(block, parameter)
-															"
-															(click)="
-																toggleMechanicParameterExpanded(block, parameter)
-															"
-														>
-															<div class="admin-spell-detail-page__parameter-card-title">
-																<span>
-																	<strong>{{ parameter.name }}</strong>
-																	<p-tag
-																		[value]="parameterKindLabel(parameter.kind)"
-																		severity="secondary"
-																	></p-tag>
-																</span>
-
-																@if (supportsProgression(parameter)) {
-																	@if (
-																		numericParameterPreview(block, parameter);
-																		as headerPreview
-																	) {
-																		<div
-																			class="admin-spell-detail-page__parameter-head-preview"
-																		>
-																			@if (
-																				casterLevelMatrixPreview(
-																					block,
-																					parameter
-																				);
-																				as headerMatrixPreview
-																			) {
-																				@for (
-																					item of headerMatrixPreview.columnRanges;
-																					track item.level
-																				) {
-																					<span>
-																						{{ item.level }}:
-																						<strong>{{ item.label }}</strong>
-																					</span>
-																				}
-																				<span
-																					class="admin-spell-detail-page__parameter-head-preview-range"
-																				>
-																					диапазон:
-																					<strong>
-																						{{ headerMatrixPreview.minValue }}–{{
-																							headerMatrixPreview.maxValue
-																						}}
-																					</strong>
-																				</span>
-																			} @else {
-																				@for (
-																					item of headerPreview.values;
-																					track item.x
-																				) {
-																					<span>
-																						{{ item.x }}:
-																						<strong>{{ item.value }}</strong>
-																					</span>
-																				}
-																			}
-																		</div>
-																	}
-																}
-															</div>
-
-															<i
-																class="pi admin-spell-detail-page__parameter-card-toggle"
-																[class.pi-plus]="
-																	!isMechanicParameterExpanded(block, parameter)
-																"
-																[class.pi-minus]="
-																	isMechanicParameterExpanded(block, parameter)
-																"
-															></i>
-														</button>
-
-														@if (isMechanicParameterExpanded(block, parameter)) {
 														@if (supportsProgression(parameter)) {
-															<div class="admin-spell-detail-page__numeric-mode">
-																<span>Режим значения</span>
-																<p-selectbutton
-																	[options]="parameterValueModeOptions"
-																	optionLabel="label"
-																	optionValue="value"
-																	size="small"
-																	[allowEmpty]="false"
-																	[ngModel]="
-																		parameterValueMode(block, parameter.id)
-																	"
-																	(ngModelChange)="
-																		updateSelectedMechanicBlockParameterMode(
-																			parameter.id,
-																			$event
-																		)
-																	"
-																></p-selectbutton>
-															</div>
+															<app-spell-numeric-parameter-mode-switch
+																[mode]="parameterValueMode(block, parameter.id)"
+																[options]="parameterValueModeOptions"
+																(modeChange)="
+																	updateSelectedMechanicBlockParameterMode(
+																		parameter.id,
+																		$event
+																	)
+																"
+															></app-spell-numeric-parameter-mode-switch>
 														}
 
 														@if (
@@ -1066,840 +506,267 @@
 																'progression'
 														) {
 															@if (
-																progressionParameterValue(
-																	block,
-																	parameter.id
-																);
+																progressionParameterValue(block, parameter.id);
 																as progressionValue
 															) {
-																<div
-																	class="admin-spell-detail-page__progression-config"
-																>
-																	<span class="admin-spell-detail-page__field">
-																		<span>От чего зависит</span>
-																		<p-select
-																			[options]="progressionSourceKindOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="
-																				progressionValue.sourceKind
-																			"
-																			(ngModelChange)="
-																				updateSelectedProgressionSourceKind(
-																					block,
-																					parameter.id,
-																					$event
-																				)
-																			"
-																		></p-select>
-																	</span>
-
-																	@if (
+																<app-spell-progression-parameter-editor
+																	[value]="progressionValue"
+																	[sourceKindOptions]="
+																		progressionSourceKindOptions
+																	"
+																	[showSourceKey]="
 																		shouldShowProgressionSourceKey(
 																			progressionValue
 																		)
-																	) {
-																		<span class="admin-spell-detail-page__field">
-																			<span>
-																				{{
-																					progressionSourceKeyLabel(
-																						progressionValue
-																					)
-																				}}
-																			</span>
-																			<p-select
-																				[options]="
-																					progressionSourceKeyOptions(
-																						block,
-																						progressionValue
-																					)
-																				"
-																				optionLabel="label"
-																				optionValue="value"
-																				[ngModel]="
-																					progressionValue.sourceKey
-																				"
-																				(ngModelChange)="
-																					updateSelectedProgressionParameter(
-																						parameter.id,
-																						{ sourceKey: $event }
-																					)
-																				"
-																			></p-select>
-																		</span>
-																	}
-
-																	<span class="admin-spell-detail-page__field">
-																		<span>Пресет</span>
-																		<p-select
-																			[options]="progressionPresetOptions()"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="
-																				progressionValue.presetId
-																			"
-																			placeholder="Не выбран"
-																			[showClear]="true"
-																			(ngModelChange)="
-																				updateSelectedProgressionPreset(
-																					parameter.id,
-																					$event
-																				)
-																			"
-																		></p-select>
-																	</span>
-
-																	@for (
-																		field of progressionConfigFields(
+																	"
+																	[sourceKeyLabel]="
+																		progressionSourceKeyLabel(progressionValue)
+																	"
+																	[sourceKeyOptions]="
+																		progressionSourceKeyOptions(
+																			block,
 																			progressionValue
-																		);
-																		track field.key
-																	) {
-																		<span class="admin-spell-detail-page__field">
-																			<span>{{ field.label }}</span>
-																			<p-inputnumber
-																				[ngModel]="
-																					$any(
-																						progressionValue.config[
-																							field.key
-																						]
-																					)
-																				"
-																				[min]="field.min"
-																				[step]="field.step"
-																				(ngModelChange)="
-																					updateSelectedProgressionConfig(
-																						parameter.id,
-																						field.key,
-																						$event
-																					)
-																				"
-																			></p-inputnumber>
-																		</span>
-																	}
-
-																	<span class="admin-spell-detail-page__field">
-																		<span class="admin-spell-detail-page__field-label">
-																			Округление
-																			<button
-																				type="button"
-																				class="admin-spell-detail-page__hint-button"
-																				aria-label="Справка: округление"
-																				(click)="showAutoHelp($event, 'rounding', autoHelpPopover)"
-																			>
-																				<i class="pi pi-question-circle"></i>
-																			</button>
-																		</span>
-																		<p-select
-																			[options]="roundingModeOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="
-																				$any(
-																					progressionValue.config[
-																						'roundingMode'
-																					]
-																				)
-																			"
-																			(ngModelChange)="
-																				updateSelectedProgressionRoundingMode(
-																					parameter.id,
-																					$event
-																				)
-																			"
-																		></p-select>
-																	</span>
-
-																	<p-button
-																		label="Открыть в редакторе формулы"
-																		icon="pi pi-sitemap"
-																		severity="secondary"
-																		variant="outlined"
-																		(onClick)="
-																			openProgressionAsFormulaGraphEditor(
-																				block,
-																				parameter.id
-																			)
-																		"
-																	></p-button>
-																</div>
+																		)
+																	"
+																	[presetOptions]="progressionPresetOptions()"
+																	[configFields]="
+																		progressionConfigFields(progressionValue)
+																	"
+																	[roundingModeOptions]="roundingModeOptions"
+																	(sourceKindChange)="
+																		updateSelectedProgressionSourceKind(
+																			block,
+																			parameter.id,
+																			$event
+																		)
+																	"
+																	(sourceKeyChange)="
+																		updateSelectedProgressionParameter(
+																			parameter.id,
+																			{ sourceKey: $event }
+																		)
+																	"
+																	(presetChange)="
+																		updateSelectedProgressionPreset(
+																			parameter.id,
+																			$event ?? ''
+																		)
+																	"
+																	(configChange)="
+																		updateSelectedProgressionConfig(
+																			parameter.id,
+																			$event.key,
+																			$event.value
+																		)
+																	"
+																	(roundingModeChange)="
+																		updateSelectedProgressionRoundingMode(
+																			parameter.id,
+																			$event
+																		)
+																	"
+																	(roundingHelpClick)="
+																		showAutoHelp(
+																			$event,
+																			'rounding',
+																			autoHelpPopover
+																		)
+																	"
+																	(openFormulaEditor)="
+																		openProgressionAsFormulaGraphEditor(
+																			block,
+																			parameter.id
+																		)
+																	"
+																></app-spell-progression-parameter-editor>
 															}
 														} @else if (
 															supportsProgression(parameter) &&
-															parameterValueMode(block, parameter.id) ===
-																'auto'
+															parameterValueMode(block, parameter.id) === 'auto'
 														) {
 															@if (
 																autoParameterValue(block, parameter.id);
 																as autoValue
 															) {
-																<div class="admin-spell-detail-page__auto-editor">
-																	<span class="admin-spell-detail-page__field">
-																		<span class="admin-spell-detail-page__field-label">
-																			Поведение
-																			<button
-																				type="button"
-																				class="admin-spell-detail-page__hint-button"
-																				aria-label="Справка: поведение"
-																				(click)="showAutoHelp($event, 'character', autoHelpPopover)"
-																			>
-																				<i class="pi pi-question-circle"></i>
-																			</button>
-																		</span>
-																		<p-select
-																			[options]="autoValueCharacterOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="autoValue.character"
-																			(ngModelChange)="
-																				updateSelectedAutoParameter(
-																					parameter.id,
-																					{ character: $event }
-																				)
-																			"
-																		></p-select>
-																	</span>
-
-																	<span class="admin-spell-detail-page__field">
-																		<span class="admin-spell-detail-page__field-label">
-																			Размер значения
-																			<button
-																				type="button"
-																				class="admin-spell-detail-page__hint-button"
-																				aria-label="Справка: размер значения"
-																				(click)="showAutoHelp($event, 'scale', autoHelpPopover)"
-																			>
-																				<i class="pi pi-question-circle"></i>
-																			</button>
-																		</span>
-																		<p-select
-																			[options]="autoValueScaleOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="autoValue.scale"
-																			(ngModelChange)="
-																				updateSelectedAutoParameter(
-																					parameter.id,
-																					{ scale: $event }
-																				)
-																			"
-																		></p-select>
-																	</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Старт расчёта
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: старт расчёта"
-																			(click)="showAutoHelp($event, 'startLevel', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-inputnumber
-																		[ngModel]="autoValue.startLevel"
-																		[min]="0"
-																		(ngModelChange)="
-																			updateSelectedAutoParameter(
-																				parameter.id,
-																				{ startLevel: $event ?? 0 }
-																			)
-																		"
-																	></p-inputnumber>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Минимум
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: минимум"
-																			(click)="showAutoHelp($event, 'minimum', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-inputnumber
-																		[ngModel]="autoValue.minimum"
-																		(ngModelChange)="
-																			updateSelectedAutoParameter(
-																				parameter.id,
-																				{ minimum: $event ?? 0 }
-																			)
-																		"
-																	></p-inputnumber>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Диапазон
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: диапазон"
-																			(click)="showAutoHelp($event, 'rangeMode', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-select
-																		[options]="autoValueRangeModeOptions"
-																		optionLabel="label"
-																		optionValue="value"
-																		[ngModel]="autoValue.rangeMode"
-																		(ngModelChange)="
-																			updateSelectedAutoParameter(
-																				parameter.id,
-																				{ rangeMode: $event }
-																			)
-																		"
-																	></p-select>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Максимум
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: максимум"
-																			(click)="showAutoHelp($event, 'maximum', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-inputnumber
-																		[ngModel]="autoValue.maximum"
-																		[disabled]="autoValue.rangeMode === 'none'"
-																		(ngModelChange)="
-																			updateSelectedAutoParameter(
-																				parameter.id,
-																				{ maximum: $event }
-																			)
-																		"
-																	></p-inputnumber>
-																</span>
-
-																<span class="admin-spell-detail-page__field">
-																	<span class="admin-spell-detail-page__field-label">
-																		Режим влияний
-																		<button
-																			type="button"
-																			class="admin-spell-detail-page__hint-button"
-																			aria-label="Справка: режим влияний"
-																			(click)="showAutoHelp($event, 'sourceMode', autoHelpPopover)"
-																		>
-																			<i class="pi pi-question-circle"></i>
-																		</button>
-																	</span>
-																	<p-select
-																			[options]="autoValueSourceModeOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="autoValue.sourceMode"
-																			(ngModelChange)="
-																				updateSelectedAutoSourceMode(
-																					parameter.id,
-																					$event
-																				)
-																			"
-																		></p-select>
-																	</span>
-
-																	<div class="admin-spell-detail-page__auto-sources">
-																		<div class="admin-spell-detail-page__auto-sources-head">
-																			<strong>Влияния</strong>
-																			<div
-																				class="admin-spell-detail-page__auto-sources-actions"
-																			>
-																				<p-select
-																					[options]="autoPresetOptions(parameter)"
-																					[group]="true"
-																					optionGroupLabel="label"
-																					optionGroupChildren="items"
-																					optionLabel="label"
-																					optionValue="value"
-																					styleClass="admin-spell-detail-page__auto-preset-select"
-																					[panelStyle]="autoPresetPanelStyle"
-																					[ngModel]="null"
-																					placeholder="Выбрать схему"
-																					(ngModelChange)="
-																						applySelectedAutoPreset(
-																							block,
-																							parameter,
-																							$event
-																						)
-																					"
-																				></p-select>
-
-																				@if (autoValue.sourceMode === 'advanced') {
-																					<p-button
-																						label="Влияние"
-																						icon="pi pi-plus"
-																						severity="secondary"
-																						variant="outlined"
-																						(onClick)="
-																							addSelectedAutoSource(
-																								parameter.id
-																							)
-																						"
-																					></p-button>
-																				}
-																			</div>
-																		</div>
-
-																		@for (source of autoValue.sources; track source.id) {
-																			<div class="admin-spell-detail-page__auto-source-row">
-																				<div class="admin-spell-detail-page__auto-source-row-head">
-																					<strong>{{ autoSourceSummary(source) }}</strong>
-																					<p-button
-																						[icon]="
-																							isAutoSourceCollapsed(
-																								'mechanic:' + parameter.id,
-																								source
-																							)
-																								? 'pi pi-plus'
-																								: 'pi pi-minus'
-																						"
-																						severity="secondary"
-																						text
-																						rounded
-																						[ariaLabel]="
-																							isAutoSourceCollapsed(
-																								'mechanic:' + parameter.id,
-																								source
-																							)
-																								? 'Развернуть влияние'
-																								: 'Свернуть влияние'
-																						"
-																						(onClick)="
-																							toggleAutoSourceCollapsed(
-																								'mechanic:' + parameter.id,
-																								source
-																							)
-																						"
-																					></p-button>
-																				</div>
-
-																				@if (!isAutoSourceCollapsed('mechanic:' + parameter.id, source)) {
-																				<span
-																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind"
-																				>
-																					<span class="admin-spell-detail-page__field-label">
-																						Что влияет
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: что влияет"
-																							(click)="showAutoHelp($event, 'sourceKind', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<p-select
-																						[options]="autoValueSourceKindOptions"
-																						optionLabel="label"
-																						optionValue="value"
-																						[ngModel]="source.sourceKind"
-																						(ngModelChange)="
-																							updateSelectedAutoSource(
-																								parameter.id,
-																								source.id,
-																								{
-																									sourceKind: $event,
-																									sourceKey: defaultAutoSourceKey(
-																										block,
-																										$event
-																									)
-																								}
-																							)
-																						"
-																					></p-select>
-																				</span>
-
-																				@if (shouldShowAutoSourceKey(source)) {
-																					<span
-																						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
-																					>
-																						<span class="admin-spell-detail-page__field-label">
-																							{{ autoSourceKeyLabel(source) }}
-																							<button
-																								type="button"
-																								class="admin-spell-detail-page__hint-button"
-																								aria-label="Справка: значение источника"
-																								(click)="showAutoHelp($event, 'sourceKey', autoHelpPopover)"
-																							>
-																								<i class="pi pi-question-circle"></i>
-																							</button>
-																						</span>
-																						<p-select
-																							[options]="
-																								autoSourceKeyOptions(block, source)
-																							"
-																							[group]="true"
-																							optionGroupLabel="label"
-																							optionGroupChildren="items"
-																							optionLabel="label"
-																							optionValue="value"
-																							[filter]="true"
-																							[showClear]="true"
-																							[ngModel]="source.sourceKey || null"
-																							(ngModelChange)="
-																								updateSelectedAutoSource(
-																									parameter.id,
-																									source.id,
-																									{ sourceKey: $event ?? '' }
-																								)
-																							"
-																						></p-select>
-																					</span>
-																				} @else {
-																					<div
-																						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
-																					>
-																						<span>Значение</span>
-																						<div
-																							class="admin-spell-detail-page__auto-source-static"
-																						>
-																							x
-																						</div>
-																					</div>
-																				}
-
-																				<span
-																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target"
-																				>
-																					<span class="admin-spell-detail-page__field-label">
-																						Влияет на
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: влияет на"
-																							(click)="showAutoHelp($event, 'sourceTarget', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<p-select
-																						[options]="autoValueSourceTargetOptions"
-																						optionLabel="label"
-																						optionValue="value"
-																						[ngModel]="source.target"
-																						[disabled]="
-																							!canEditAutoSourceTarget(autoValue)
-																						"
-																						(ngModelChange)="
-																							updateSelectedAutoSource(
-																								parameter.id,
-																								source.id,
-																								{ target: $event }
-																							)
-																						"
-																					></p-select>
-																				</span>
-
-																				<span
-																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve"
-																				>
-																					<span class="admin-spell-detail-page__field-label">
-																						Кривая
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: кривая"
-																							(click)="showAutoHelp($event, 'sourceCurve', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<p-select
-																						[options]="autoValueSourceCurveOptions"
-																						optionLabel="label"
-																						optionValue="value"
-																						[ngModel]="source.curve"
-																						(ngModelChange)="
-																							updateSelectedAutoSource(
-																								parameter.id,
-																								source.id,
-																								{ curve: $event }
-																							)
-																						"
-																					></p-select>
-																				</span>
-
-																				<span
-																					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight"
-																				>
-																					<span class="admin-spell-detail-page__field-label">
-																						Вес
-																						<button
-																							type="button"
-																							class="admin-spell-detail-page__hint-button"
-																							aria-label="Справка: вес"
-																							(click)="showAutoHelp($event, 'sourceWeight', autoHelpPopover)"
-																						>
-																							<i class="pi pi-question-circle"></i>
-																						</button>
-																					</span>
-																					<div class="admin-spell-detail-page__weight-control">
-																						<p-slider
-																							[ngModel]="source.weight"
-																							[min]="0"
-																							[max]="3"
-																							[step]="0.1"
-																							(ngModelChange)="
-																								updateSelectedAutoSource(
-																									parameter.id,
-																									source.id,
-																									{ weight: $event }
-																								)
-																							"
-																						></p-slider>
-																						<p-inputnumber
-																							[ngModel]="source.weight"
-																							[step]="0.1"
-																							[min]="0"
-																							[max]="3"
-																							(ngModelChange)="
-																								updateSelectedAutoSource(
-																									parameter.id,
-																									source.id,
-																									{ weight: $event ?? 0 }
-																								)
-																							"
-																						></p-inputnumber>
-																					</div>
-																				</span>
-
-																				@if (canDeleteAutoSource(autoValue)) {
-																					<div
-																						class="admin-spell-detail-page__auto-source-cell--action"
-																					>
-																						<p-button
-																							icon="pi pi-trash"
-																							severity="danger"
-																							text
-																							rounded
-																							(onClick)="
-																								deleteSelectedAutoSource(
-																									parameter.id,
-																									source.id
-																								)
-																							"
-																						></p-button>
-																					</div>
-																				} @else {
-																					<div
-																						class="admin-spell-detail-page__auto-source-cell--action"
-																					></div>
-																				}
-																				}
-																			</div>
-																		}
-																	</div>
-
-																	<span class="admin-spell-detail-page__field">
-																		<span>Округление</span>
-																		<p-select
-																			[options]="roundingModeOptions"
-																			optionLabel="label"
-																			optionValue="value"
-																			[ngModel]="autoValue.roundingMode"
-																			(ngModelChange)="
-																				updateSelectedAutoParameter(
-																					parameter.id,
-																					{ roundingMode: $event }
-																				)
-																			"
-																		></p-select>
-																	</span>
-																</div>
+																<app-spell-auto-parameter-editor
+																	[value]="autoValue"
+																	[scope]="'mechanic:' + parameter.id"
+																	[characterOptions]="autoValueCharacterOptions"
+																	[scaleOptions]="autoValueScaleOptions"
+																	[rangeModeOptions]="autoValueRangeModeOptions"
+																	[sourceModeOptions]="
+																		autoValueSourceModeOptions
+																	"
+																	[sourceKindOptions]="
+																		autoValueSourceKindOptions
+																	"
+																	[sourceTargetOptions]="
+																		autoValueSourceTargetOptions
+																	"
+																	[sourceCurveOptions]="
+																		autoValueSourceCurveOptions
+																	"
+																	[sourceTransformOptions]="
+																		autoValueSourceTransformOptions
+																	"
+																	[roundingModeOptions]="roundingModeOptions"
+																	[sourceKeyOptions]="
+																		mechanicAutoSourceKeyOptionsRenderer(block)
+																	"
+																	[transformSourceOptions]="
+																		autoTransformSourceOptionsRenderer
+																	"
+																	[defaultSourceKey]="
+																		defaultAutoSourceKeyRenderer(block)
+																	"
+																	[sourceKeyLabel]="autoSourceKeyLabelRenderer"
+																	[sourceSummary]="autoSourceSummaryRenderer"
+																	[isSourceCollapsed]="
+																		isAutoSourceCollapsedRenderer
+																	"
+																	[presetOptions]="autoPresetOptions(parameter)"
+																	[presetPanelStyle]="autoPresetPanelStyle"
+																	(parameterPatch)="
+																		updateSelectedAutoParameter(
+																			parameter.id,
+																			$event
+																		)
+																	"
+																	(sourceModeChange)="
+																		updateSelectedAutoSourceMode(
+																			parameter.id,
+																			$event
+																		)
+																	"
+																	(sourceAdd)="
+																		addSelectedAutoSource(parameter.id)
+																	"
+																	(sourcePatch)="
+																		updateSelectedAutoSource(
+																			parameter.id,
+																			$event.sourceId,
+																			$event.patch
+																		)
+																	"
+																	(sourceDelete)="
+																		deleteSelectedAutoSource(
+																			parameter.id,
+																			$event
+																		)
+																	"
+																	(sourceCollapseToggle)="
+																		toggleAutoSourceCollapsed(
+																			'mechanic:' + parameter.id,
+																			$event
+																		)
+																	"
+																	(presetApply)="
+																		applySelectedAutoPreset(
+																			block,
+																			parameter,
+																			$event
+																		)
+																	"
+																	(helpClick)="
+																		showAutoHelp(
+																			$event.event,
+																			$event.key,
+																			autoHelpPopover
+																		)
+																	"
+																></app-spell-auto-parameter-editor>
 															}
 														} @else if (
 															supportsProgression(parameter) &&
 															parameterValueMode(block, parameter.id) ===
 																'formula'
 														) {
-															<div
-																class="admin-spell-detail-page__progression-config"
-															>
-																<p-button
-																	label="Открыть редактор формулы"
-																	icon="pi pi-sitemap"
-																	severity="secondary"
-																	variant="outlined"
-																	(onClick)="
-																		openSelectedFormulaGraphEditor(parameter.id)
-																	"
-																></p-button>
-															</div>
+															<app-spell-formula-parameter-editor
+																(openFormulaEditor)="
+																	openSelectedFormulaGraphEditor(parameter.id)
+																"
+															></app-spell-formula-parameter-editor>
 														} @else {
 															@if (parameter.kind === 'target') {
-																<div class="admin-spell-detail-page__target-parameter">
-																	<div
-																		class="admin-spell-detail-page__target-parameter-grid"
-																	>
-																		<span class="admin-spell-detail-page__field">
-																			<span>Режим цели</span>
-																			<p-select
-																				[options]="
-																					targetTemplateOptionGroupsForParameter(
-																						parameter
-																					)
-																				"
-																				[group]="true"
-																				optionGroupLabel="label"
-																				optionGroupChildren="items"
-																				optionLabel="label"
-																				optionValue="value"
-																				[ngModel]="
-																					mechanicTargetTemplate(
-																						block,
-																						parameter
-																					)
-																				"
-																				(ngModelChange)="
-																					updateMechanicTargetTemplate(
-																						block,
-																						parameter,
-																						$event
-																					)
-																				"
-																			></p-select>
-																		</span>
-
-																		<div class="admin-spell-detail-page__target-preview">
-																			<span>Цель</span>
-																			<strong>
-																				{{
-																					mechanicTargetPreview(
-																						block,
-																						parameter
-																					)
-																				}}
-																			</strong>
-																			<small>
-																				{{
-																					mechanicTargetRuntimeSummary(
-																						block,
-																						parameter
-																					)
-																				}}
-																			</small>
-																		</div>
-																	</div>
-
-																	@if (
+																<app-spell-target-parameter-editor
+																	[templateOptions]="
+																		targetTemplateOptionGroupsForParameter(
+																			parameter
+																		)
+																	"
+																	[template]="
+																		mechanicTargetTemplate(block, parameter)
+																	"
+																	[previewText]="
+																		mechanicTargetPreview(block, parameter)
+																	"
+																	[runtimeSummary]="
+																		mechanicTargetRuntimeSummary(
+																			block,
+																			parameter
+																		)
+																	"
+																	[defaultText]="
 																		parameter.defaultTargetConfig &&
 																		mechanicTargetTemplate(block, parameter) ===
 																			'mechanicDefault'
-																	) {
-																		<div
-																			class="admin-spell-detail-page__target-default-note"
-																		>
-																			<span>Дефолт механики</span>
-																			<strong>
-																				{{
-																					targetConfigText(
-																						parameter.defaultTargetConfig
-																					)
-																				}}
-																			</strong>
-																		</div>
-																	}
-																</div>
-															} @else {
-																<span class="admin-spell-detail-page__field">
-																	@if (supportsProgression(parameter)) {
-																		<span>Значение</span>
-																	}
-																	@if (usesParameterSelect(parameter.kind)) {
-																		<p-select
-																			[options]="parameterOptions(parameter)"
-																			[group]="true"
-																			optionGroupLabel="label"
-																			optionGroupChildren="items"
-																			optionLabel="name"
-																			optionValue="id"
-																			appendTo="body"
-																			[filter]="true"
-																			filterBy="name,searchText"
-																			filterPlaceHolder="Поиск"
-																			[showClear]="true"
-																			placeholder="Не выбрано"
-																			[ngModel]="
-																				parameterValue(
-																					block,
-																					parameter.id
-																				) || null
-																			"
-																			(ngModelChange)="
-																				updateSelectedMechanicBlockParameter(
-																					parameter.id,
-																					$event
+																			? targetConfigText(
+																					parameter.defaultTargetConfig
 																				)
-																			"
-																		>
-																			<ng-template let-group #group>
-																				<div
-																					class="admin-spell-detail-page__option-group"
-																				>
-																					{{ group.label }}
-																				</div>
-																			</ng-template>
-																		</p-select>
-																	} @else {
-																		<input
-																			pInputText
-																			type="text"
-																			[value]="
-																				staticParameterValue(
-																					block,
-																					parameter.id
-																				)
-																			"
-																			(input)="
-																				updateSelectedPlainParameterValue(
-																					parameter,
-																					$any($event.target).value
-																				)
-																			"
-																		/>
-																	}
-																</span>
-															}
-
-															@if (
-																parameter.kind === 'target' &&
-																!mechanicTargetConfig(block, parameter.id)
-															) {
-																<div class="admin-spell-detail-page__empty-block">
-																	Требуется настройка цели.
-																</div>
-															}
-
-															@if (
-																parameter.kind === 'target' &&
-																mechanicTargetConfig(block, parameter.id);
-																as mechanicTarget
-															) {
-																<app-spell-target-config-editor
-																	[value]="mechanicTarget"
-																	requiredLabel="Обязательная"
-																	[countParameterOptions]="
-																		targetCountParameterOptions(block, parameter.id)
+																			: null
 																	"
-																	(valueChange)="
+																	[config]="
+																		mechanicTargetConfig(block, parameter.id)
+																	"
+																	[countParameterOptions]="
+																		targetCountParameterOptions(
+																			block,
+																			parameter.id
+																		)
+																	"
+																	(templateChange)="
+																		updateMechanicTargetTemplate(
+																			block,
+																			parameter,
+																			$event
+																		)
+																	"
+																	(configChange)="
 																		updateMechanicTargetConfig(
 																			block,
 																			parameter.id,
 																			$event
 																		)
 																	"
-																></app-spell-target-config-editor>
+																></app-spell-target-parameter-editor>
+															} @else {
+																<app-spell-static-parameter-editor
+																	[showValueLabel]="
+																		supportsProgression(parameter)
+																	"
+																	[usesSelect]="
+																		usesParameterSelect(parameter.kind)
+																	"
+																	[options]="parameterOptions(parameter)"
+																	[selectValue]="
+																		parameterValue(block, parameter.id) || null
+																	"
+																	[plainValue]="
+																		staticParameterValue(block, parameter.id)
+																	"
+																	(selectValueChange)="
+																		updateSelectedMechanicBlockParameter(
+																			parameter.id,
+																			$event
+																		)
+																	"
+																	(plainValueChange)="
+																		updateSelectedPlainParameterValue(
+																			parameter,
+																			$event
+																		)
+																	"
+																></app-spell-static-parameter-editor>
 															}
 														}
 
@@ -1908,140 +775,32 @@
 																numericParameterPreview(block, parameter);
 																as preview
 															) {
-																<div class="admin-spell-detail-page__numeric-preview">
-																	<div class="admin-spell-detail-page__numeric-preview-row">
-																		<span>Формула</span>
-																		<strong>{{ preview.formula }}</strong>
-																	</div>
-																	<div class="admin-spell-detail-page__numeric-preview-row">
-																		<span>Данные</span>
-																		<strong>
-																			@if (preview.sources.length) {
-																				{{ preview.sources.join(', ') }}
-																			} @else {
-																				Не используются
-																			}
-																		</strong>
-																	</div>
-																	<div class="admin-spell-detail-page__numeric-preview-row">
-																		<span>Округление</span>
-																		<strong>{{ preview.rounding }}</strong>
-																	</div>
-																	<div class="admin-spell-detail-page__numeric-preview-values">
-																		@for (item of preview.values; track item.x) {
-																			<span>
-																				{{ item.x }}:
-																				<strong>{{ item.value }}</strong>
-																			</span>
-																		}
-																	</div>
-																	@if (
-																		casterLevelMatrixPreview(block, parameter);
-																		as matrixPreview
-																	) {
-																		<div
-																			class="admin-spell-detail-page__caster-level-matrix"
-																		>
-																			<button
-																				type="button"
-																				class="admin-spell-detail-page__caster-level-matrix-head"
-																				[attr.aria-expanded]="
-																					isCasterLevelMatrixExpanded(
-																						block,
-																						parameter
-																					)
-																				"
-																				(click)="
-																					toggleCasterLevelMatrix(
-																						block,
-																						parameter
-																					)
-																				"
-																			>
-																				<span>
-																					<strong>
-																						Зависимость от Уровня Заклинателя
-																					</strong>
-																					<small>
-																						диапазон:
-																						{{ matrixPreview.minValue }}–{{
-																							matrixPreview.maxValue
-																						}}
-																					</small>
-																				</span>
-																				<i
-																					class="pi"
-																					[class.pi-plus]="
-																						!isCasterLevelMatrixExpanded(
-																							block,
-																							parameter
-																						)
-																					"
-																					[class.pi-minus]="
-																						isCasterLevelMatrixExpanded(
-																							block,
-																							parameter
-																						)
-																					"
-																				></i>
-																			</button>
-
-																			@if (
-																				isCasterLevelMatrixExpanded(
-																					block,
-																					parameter
-																				)
-																			) {
-																				<div
-																					class="admin-spell-detail-page__caster-level-matrix-table-wrap"
-																				>
-																					<table
-																						class="admin-spell-detail-page__caster-level-matrix-table"
-																					>
-																						<thead>
-																							<tr>
-																								<th>УЗ</th>
-																								@for (
-																									level of matrixPreview.columns;
-																									track level
-																								) {
-																									<th>Нав. {{ level }}</th>
-																								}
-																							</tr>
-																						</thead>
-																						<tbody>
-																							@for (
-																								row of matrixPreview.rows;
-																								track row.casterLevel
-																							) {
-																								<tr>
-																									<th>{{ row.casterLevel }}</th>
-																									@for (
-																										value of row.values;
-																										track $index
-																									) {
-																										<td>{{ value }}</td>
-																									}
-																								</tr>
-																							}
-																						</tbody>
-																					</table>
-																				</div>
-																			}
-																		</div>
-																	}
-																</div>
+																<app-spell-numeric-parameter-preview
+																	[preview]="preview"
+																	[casterLevelMatrix]="
+																		casterLevelMatrixPreview(block, parameter)
+																	"
+																	[casterLevelMatrixExpanded]="
+																		isCasterLevelMatrixExpanded(
+																			block,
+																			parameter
+																		)
+																	"
+																	(casterLevelMatrixToggle)="
+																		toggleCasterLevelMatrix(block, parameter)
+																	"
+																></app-spell-numeric-parameter-preview>
 															}
 														}
-														}
-													</div>
+													</app-spell-mechanic-parameter-card-shell>
 												}
 											</div>
 										}
 
 										@if (isEffectScaleBlock(block)) {
 											@if (effectScaleConfig(block); as scaleConfig) {
-												<app-spell-effect-scale-editor
+												<app-spell-mechanic-effect-scale-section
+													[block]="block"
 													[config]="scaleConfig"
 													[mechanicOptions]="mechanicOptions()"
 													[modeOptions]="effectScaleModeOptions"
@@ -2049,36 +808,23 @@
 													[usesParameterSelect]="effectScaleUsesParameterSelect"
 													[parameterOptions]="effectScaleParameterOptions"
 													[parameterValue]="effectScaleParameterValue"
-													[staticParameterValue]="effectScaleStaticParameterValue"
-													(configChange)="updateEffectScaleConfig(block, $event)"
-													(nestedMechanicAdd)="
-														addEffectScaleNestedMechanic(block, $event.itemId)
+													[staticParameterValue]="
+														effectScaleStaticParameterValue
 													"
-													(nestedMechanicChange)="
-														updateEffectScaleNestedMechanic(
-															block,
-															$event.itemId,
-															$event.nestedBlockId,
-															$event.mechanicId
-														)
+													[updateConfig]="effectScaleConfigChangeHandler"
+													[addNestedMechanic]="
+														effectScaleNestedMechanicAddHandler
 													"
-													(nestedMechanicDelete)="
-														deleteEffectScaleNestedMechanic(
-															block,
-															$event.itemId,
-															$event.nestedBlockId
-														)
+													[updateNestedMechanic]="
+														effectScaleNestedMechanicChangeHandler
 													"
-													(nestedParameterChange)="
-														updateEffectScaleNestedParameter(
-															block,
-															$event.itemId,
-															$event.nestedBlockId,
-															$event.parameterId,
-															$any($event.value)
-														)
+													[deleteNestedMechanic]="
+														effectScaleNestedMechanicDeleteHandler
 													"
-												></app-spell-effect-scale-editor>
+													[updateNestedParameter]="
+														effectScaleNestedParameterChangeHandler
+													"
+												></app-spell-mechanic-effect-scale-section>
 											}
 										}
 									} @else {
@@ -2094,242 +840,38 @@
 							value="text"
 							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--text"
 						>
-							<div class="admin-spell-detail-page__text-panel">
-								<section class="admin-spell-detail-page__text-preview">
-									<div class="admin-spell-detail-page__text-section-head">
-										<h3>Итоговый текст</h3>
-										<div class="admin-spell-detail-page__text-actions">
-											<p-selectbutton
-												[options]="spellTextPreviewModeOptions"
-												[ngModel]="spellTextPreviewMode()"
-												optionLabel="label"
-												optionValue="value"
-												size="small"
-												(ngModelChange)="updateSpellTextPreviewMode($event)"
-											></p-selectbutton>
-											<p-button
-												label="Из механик"
-												icon="pi pi-sync"
-												size="small"
-												severity="secondary"
-												variant="outlined"
-												(onClick)="addSpellMechanicTextBlocks()"
-											></p-button>
-										</div>
-									</div>
-
-									@if (spellTextPreviewBlocks().length) {
-										<div class="admin-spell-detail-page__text-preview-content">
-											@for (part of spellTextPreviewBlocks(); track $index) {
-												@if (part.kind === 'paragraph') {
-													<p>{{ part.text }}</p>
-												} @else {
-													<div class="admin-spell-detail-page__effect-scale-text">
-														<p>{{ part.intro }}</p>
-														<table>
-															<thead>
-																<tr>
-																	<th>Условие</th>
-																	<th>Эффект</th>
-																	<th>Описание</th>
-																</tr>
-															</thead>
-															<tbody>
-																@for (item of part.items; track item.id) {
-																	<tr>
-																		<td>{{ effectScaleRequirementText(item) }}</td>
-																		<td>{{ item.name }}</td>
-																		<td>{{ item.description }}</td>
-																	</tr>
-																}
-															</tbody>
-														</table>
-													</div>
-												}
-											}
-										</div>
-									} @else {
-										<div class="admin-spell-detail-page__empty-block">
-											Текст пока не собран.
-										</div>
-									}
-								</section>
-
-								<section class="admin-spell-detail-page__text-builder">
-									<div class="admin-spell-detail-page__text-section-head">
-										<h3>Блоки текста</h3>
-										<div class="admin-spell-detail-page__text-actions">
-											<p-button
-												label="Текст"
-												icon="pi pi-plus"
-												size="small"
-												severity="secondary"
-												variant="outlined"
-												(onClick)="addSpellTextBlock('text')"
-											></p-button>
-											<p-button
-												label="Механика"
-												icon="pi pi-plus"
-												size="small"
-												severity="secondary"
-												variant="outlined"
-												(onClick)="addSpellTextBlock('mechanicText')"
-											></p-button>
-										</div>
-									</div>
-
-									<div class="admin-spell-detail-page__text-blocks">
-										@for (
-											block of currentDraft.textBlocks;
-											track block.id;
-											let blockIndex = $index
-										) {
-											<div class="admin-spell-detail-page__text-block">
-												<div class="admin-spell-detail-page__text-block-toolbar">
-													<span class="admin-spell-detail-page__field">
-														<span>Тип блока</span>
-														<p-select
-															[options]="spellTextBlockKindOptions"
-															optionLabel="label"
-															optionValue="value"
-															[ngModel]="block.kind"
-															(ngModelChange)="
-																updateSpellTextBlock(block.id, {
-																	kind: $event
-																})
-															"
-														></p-select>
-													</span>
-
-													<span class="admin-spell-detail-page__inline-switch">
-														<span>Активно</span>
-														<p-toggleswitch
-															[ngModel]="block.isActive"
-															(ngModelChange)="
-																updateSpellTextBlock(block.id, {
-																	isActive: $event
-																})
-															"
-														></p-toggleswitch>
-													</span>
-
-													<div class="admin-spell-detail-page__text-block-actions">
-														<p-button
-															icon="pi pi-arrow-up"
-															severity="secondary"
-															text
-															rounded
-															[disabled]="isFirstSpellTextBlock(blockIndex)"
-															(onClick)="moveSpellTextBlock(blockIndex, -1)"
-														></p-button>
-														<p-button
-															icon="pi pi-arrow-down"
-															severity="secondary"
-															text
-															rounded
-															[disabled]="isLastSpellTextBlock(blockIndex)"
-															(onClick)="moveSpellTextBlock(blockIndex, 1)"
-														></p-button>
-														<p-button
-															icon="pi pi-trash"
-															severity="danger"
-															text
-															rounded
-															(onClick)="deleteSpellTextBlock(block.id)"
-														></p-button>
-													</div>
-												</div>
-
-												@if (block.kind === 'mechanicText') {
-													<span class="admin-spell-detail-page__field">
-														<span>Механика</span>
-														<p-select
-															[options]="textMechanicBlockOptions()"
-															optionLabel="label"
-															optionValue="value"
-															placeholder="Не выбрано"
-															[showClear]="true"
-															[ngModel]="block.mechanicBlockId || null"
-															(ngModelChange)="
-																updateSpellTextBlock(block.id, {
-																	mechanicBlockId: $event || ''
-																})
-															"
-														></p-select>
-													</span>
-												} @else {
-													<span class="admin-spell-detail-page__field">
-														<span>Текст</span>
-														<textarea
-															pTextarea
-															rows="3"
-															[value]="block.text"
-															(input)="
-																updateSpellTextBlock(block.id, {
-																	text: $any($event.target).value
-																})
-															"
-														></textarea>
-													</span>
-												}
-
-												<div class="admin-spell-detail-page__text-block-preview">
-													{{ spellTextBlockPreview(block) }}
-												</div>
-											</div>
-										} @empty {
-											<div class="admin-spell-detail-page__empty-block">
-												Добавь текстовый блок или собери текст из механик.
-											</div>
-										}
-									</div>
-								</section>
-							</div>
+							<app-spell-text-tab
+								[previewModeOptions]="spellTextPreviewModeOptions"
+								[previewMode]="spellTextPreviewMode()"
+								[previewParts]="spellTextPreviewBlocks()"
+								[textBlocks]="currentDraft.textBlocks"
+								[blockKindOptions]="spellTextBlockKindOptions"
+								[mechanicOptions]="textMechanicBlockOptions()"
+								[blockPreview]="spellTextBlockPreviewRenderer"
+								[effectScaleRequirementText]="
+									effectScaleRequirementTextRenderer
+								"
+								(previewModeChange)="updateSpellTextPreviewMode($event)"
+								(addTextBlock)="addSpellTextBlock($event)"
+								(syncFromMechanics)="addSpellMechanicTextBlocks()"
+								(updateTextBlock)="
+									updateSpellTextBlock($event.blockId, $event.patch)
+								"
+								(deleteTextBlock)="deleteSpellTextBlock($event)"
+								(moveTextBlock)="
+									moveSpellTextBlock($event.index, $event.direction)
+								"
+							></app-spell-text-tab>
 						</p-tabpanel>
 
 						<p-tabpanel
 							value="problems"
 							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--problems"
 						>
-							<div class="admin-spell-detail-page__problems-panel">
-								<div class="admin-spell-detail-page__problems-head">
-									<h3>Проблемы</h3>
-									<span>{{ mechanicProblems().length }}</span>
-								</div>
-
-								@if (mechanicProblems().length) {
-									<div class="admin-spell-detail-page__problems-table">
-										<div
-											class="admin-spell-detail-page__problems-row admin-spell-detail-page__problems-row--head"
-										>
-											<span>Механика</span>
-											<span>Проблема</span>
-											<span>Действие</span>
-										</div>
-
-										@for (
-											problem of mechanicProblems();
-											track problem.blockIndex + problem.issue
-										) {
-											<div class="admin-spell-detail-page__problems-row">
-												<strong>{{ problem.mechanicName }}</strong>
-												<span>{{ problem.issue }}</span>
-												<p-button
-													label="Перейти"
-													size="small"
-													severity="secondary"
-													variant="outlined"
-													(onClick)="selectMechanicProblem(problem)"
-												></p-button>
-											</div>
-										}
-									</div>
-								} @else {
-									<div class="admin-spell-detail-page__empty-block">
-										Проблем нет.
-									</div>
-								}
-							</div>
+							<app-spell-problems-tab
+								[problems]="mechanicProblems()"
+								(selectProblem)="selectMechanicProblem($event)"
+							></app-spell-problems-tab>
 						</p-tabpanel>
 					</p-tabpanels>
 				</p-tabs>
@@ -2345,78 +887,18 @@
 	}
 </section>
 
-<p-dialog
-	header="Добавление механики"
-	[modal]="true"
-	[draggable]="false"
-	[resizable]="false"
-	[style]="{ width: 'min(96vw, 42rem)' }"
+<app-spell-add-mechanic-dialog
 	[visible]="addMechanicWizardVisible()"
+	[mechanicOptions]="mechanicOptions()"
+	[selectedMechanicId]="selectedWizardMechanicId()"
+	[selectedMechanic]="selectedWizardMechanic()"
+	[requiredParameters]="wizardRequiredParametersRenderer"
+	[parameterDefaultLabel]="wizardParameterDefaultLabelRenderer"
+	[parameterReady]="wizardParameterReadyRenderer"
 	(visibleChange)="setAddMechanicWizardVisible($event)"
->
-	<div class="admin-spell-detail-page__mechanic-wizard">
-		<span class="admin-spell-detail-page__field">
-			<span>Механика</span>
-			<p-select
-				[options]="mechanicOptions()"
-				optionLabel="label"
-				optionValue="value"
-				[ngModel]="selectedWizardMechanicId()"
-				(ngModelChange)="updateWizardMechanic($event)"
-			></p-select>
-		</span>
-
-		@if (selectedWizardMechanic(); as mechanic) {
-			<div class="admin-spell-detail-page__mechanic-wizard-summary">
-				<strong>{{ mechanic.name }}</strong>
-				@if (mechanic.description) {
-					<span>{{ mechanic.description }}</span>
-				}
-			</div>
-
-			@if (wizardRequiredParameters(mechanic).length) {
-				<div class="admin-spell-detail-page__mechanic-wizard-parameters">
-					<div class="admin-spell-detail-page__mechanic-wizard-section-title">
-						Обязательные параметры
-					</div>
-
-					@for (parameter of wizardRequiredParameters(mechanic); track parameter.id) {
-						<div class="admin-spell-detail-page__mechanic-wizard-parameter">
-							<div>
-								<strong>{{ parameter.name }}</strong>
-								<span>{{ wizardParameterDefaultLabel(parameter) }}</span>
-							</div>
-
-							<p-tag
-								[value]="wizardParameterReady(parameter) ? 'Заполнится' : 'Нужно настроить'"
-								[severity]="wizardParameterReady(parameter) ? 'success' : 'warn'"
-							></p-tag>
-						</div>
-					}
-				</div>
-			}
-		} @else {
-			<div class="admin-spell-detail-page__empty-block">
-				Нет доступных активных механик.
-			</div>
-		}
-
-		<div class="admin-spell-detail-page__mechanic-wizard-actions">
-			<p-button
-				label="Отмена"
-				severity="secondary"
-				variant="outlined"
-				(onClick)="setAddMechanicWizardVisible(false)"
-			></p-button>
-			<p-button
-				label="Добавить"
-				icon="pi pi-plus"
-				[disabled]="!selectedWizardMechanic()"
-				(onClick)="confirmAddMechanicBlock()"
-			></p-button>
-		</div>
-	</div>
-</p-dialog>
+	(mechanicChange)="updateWizardMechanic($event)"
+	(confirm)="confirmAddMechanicBlock()"
+></app-spell-add-mechanic-dialog>
 
 <p-dialog
 	header="Редактор формулы параметра"
@@ -2438,232 +920,30 @@
 	}
 </p-dialog>
 
-<p-drawer
-	header="Превью выполнения"
-	position="right"
-	[modal]="true"
-	[style]="{ width: 'min(96vw, 42rem)' }"
+<app-spell-runtime-preview-drawer
 	[visible]="runtimePreviewVisible()"
+	[loading]="runtimePreviewLoading()"
+	[error]="runtimePreviewError()"
+	[preview]="runtimePreview()"
+	[skillLevelOptions]="skillLevelOptions()"
+	[rollKey]="runtimeRollKeyRenderer"
+	[choiceKey]="runtimeChoiceKeyRenderer"
+	[rollDraft]="runtimeRollDraftRenderer"
+	[valueLabel]="runtimeValueLabelRenderer"
+	[statusLabel]="runtimePreviewStatusLabelRenderer"
+	[statusSeverity]="runtimePreviewStatusSeverityRenderer"
+	[effectTitle]="runtimeEffectTitleRenderer"
+	[effectText]="runtimeEffectTextRenderer"
+	[traceSeverity]="runtimeTraceSeverityRenderer"
+	[traceRows]="runtimeTraceRowsRenderer"
 	(visibleChange)="setRuntimePreviewVisible($event)"
->
-	<div class="admin-spell-detail-page__runtime-preview">
-		@if (runtimePreviewError()) {
-			<div class="admin-spell-detail-page__form-error">
-				{{ runtimePreviewError() }}
-			</div>
-		}
-
-		@if (runtimePreview(); as preview) {
-			<div class="admin-spell-detail-page__runtime-toolbar">
-				<div class="admin-spell-detail-page__runtime-title">
-					<span>Статус выполнения</span>
-					<p-tag
-						[value]="runtimePreviewStatusLabel(preview.status)"
-						[severity]="runtimePreviewStatusSeverity(preview.status)"
-					></p-tag>
-				</div>
-
-				<p-button
-					label="Заново"
-					icon="pi pi-refresh"
-					size="small"
-					severity="secondary"
-					variant="outlined"
-					[loading]="runtimePreviewLoading()"
-					(onClick)="runRuntimePreview()"
-				></p-button>
-			</div>
-
-			@if (preview.pendingRolls.length) {
-				<section class="admin-spell-detail-page__runtime-section">
-					<div class="admin-spell-detail-page__runtime-section-head">
-						<h3>Броски</h3>
-						<span>{{ preview.pendingRolls.length }}</span>
-					</div>
-
-					@for (roll of preview.pendingRolls; track runtimeRollKey(roll)) {
-						@let rollDraft = runtimeRollDraft(roll);
-
-						<div class="admin-spell-detail-page__runtime-roll">
-							<div class="admin-spell-detail-page__runtime-roll-head">
-								<div>
-									<strong>{{ roll.actionName }}</strong>
-									<span>{{ roll.blockName }}</span>
-								</div>
-								<p-tag
-									[value]="roll.optional ? 'Опционально' : 'Обязательно'"
-									[severity]="roll.optional ? 'info' : 'warn'"
-								></p-tag>
-							</div>
-
-							<div class="admin-spell-detail-page__runtime-meta">
-								<div>
-									<span>Актор</span>
-									<strong>{{ runtimeValueLabel(roll.actor) }}</strong>
-								</div>
-								<div>
-									<span>Навык</span>
-									<strong>{{ runtimeValueLabel(roll.skill) }}</strong>
-								</div>
-							</div>
-
-							<div class="admin-spell-detail-page__runtime-roll-controls">
-								<span class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-dice-count">
-									<span>Кубы</span>
-									<p-inputnumber
-										[ngModel]="rollDraft.diceCount"
-										[min]="0"
-										[showButtons]="true"
-										[style]="{ width: '5.5rem' }"
-										[inputStyle]="{ width: '3rem' }"
-										(ngModelChange)="updateRuntimeRollDiceCount(roll, $event)"
-									></p-inputnumber>
-								</span>
-
-								<span class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-level">
-									<span>Уровень навыка</span>
-									<p-select
-										[options]="skillLevelOptions()"
-										optionLabel="label"
-										optionValue="value"
-										[ngModel]="rollDraft.skillLevel"
-										(ngModelChange)="updateRuntimeRollSkillLevel(roll, $event)"
-									></p-select>
-								</span>
-
-							</div>
-
-							<div class="admin-spell-detail-page__runtime-roll-submit">
-								<p-button
-									label="Бросить"
-									icon="pi pi-bolt"
-									size="small"
-									[loading]="runtimePreviewLoading()"
-									(onClick)="rollRuntimePendingRoll(roll)"
-								></p-button>
-							</div>
-
-							@if (rollDraft.dice.length) {
-								<div class="admin-spell-detail-page__runtime-roll-result">
-									<div class="admin-spell-detail-page__runtime-dice">
-										@for (die of rollDraft.dice; track $index) {
-											<span>{{ die }}</span>
-										}
-									</div>
-									<div class="admin-spell-detail-page__runtime-result">
-										<span>Успехи</span>
-										<strong>{{ rollDraft.successes }}</strong>
-									</div>
-								</div>
-							}
-						</div>
-					}
-				</section>
-			}
-
-			@if (preview.pendingChoices.length) {
-				<section class="admin-spell-detail-page__runtime-section">
-					<div class="admin-spell-detail-page__runtime-section-head">
-						<h3>Выбор эффекта</h3>
-						<span>{{ preview.pendingChoices.length }}</span>
-					</div>
-
-					@for (choice of preview.pendingChoices; track runtimeChoiceKey(choice)) {
-						<div class="admin-spell-detail-page__runtime-roll">
-							<div class="admin-spell-detail-page__runtime-roll-head">
-								<div>
-									<strong>{{ choice.actionName }}</strong>
-									<span>{{ choice.blockName }}</span>
-								</div>
-								<p-tag
-									value="Требуется выбор"
-									severity="warn"
-								></p-tag>
-							</div>
-
-							<div class="admin-spell-detail-page__runtime-meta">
-								<div>
-									<span>Результат</span>
-									<strong>{{ choice.sourceValue }}</strong>
-								</div>
-								<div>
-									<span>Сохранить как</span>
-									<strong>{{ choice.resultName }}</strong>
-								</div>
-							</div>
-
-							<div class="admin-spell-detail-page__runtime-choice-options">
-								@for (option of choice.options; track option.id) {
-									<button
-										type="button"
-										class="admin-spell-detail-page__runtime-choice-option"
-										(click)="chooseRuntimePendingChoice(choice, option.id)"
-									>
-										<strong>
-											{{
-												option.requirement === 'automatic'
-													? 'Без проверки'
-													: option.threshold + '+ ' + option.name
-											}}
-										</strong>
-										@if (option.description) {
-											<span>{{ option.description }}</span>
-										}
-									</button>
-								}
-							</div>
-						</div>
-					}
-				</section>
-			}
-
-			@if (preview.effects.length) {
-				<section class="admin-spell-detail-page__runtime-section">
-					<div class="admin-spell-detail-page__runtime-section-head">
-						<h3>Эффекты</h3>
-						<span>{{ preview.effects.length }}</span>
-					</div>
-
-					@for (effect of preview.effects; track effect.actionId + effect.kind) {
-						<div class="admin-spell-detail-page__runtime-row">
-							<strong>{{ runtimeEffectTitle(effect) }}</strong>
-							<span>{{ runtimeEffectText(effect) }}</span>
-						</div>
-					}
-				</section>
-			}
-
-			@if (runtimeTraceRows(preview.trace); as traceRows) {
-				@if (traceRows.length) {
-					<section class="admin-spell-detail-page__runtime-section">
-						<div class="admin-spell-detail-page__runtime-section-head">
-							<h3>Ход выполнения</h3>
-							<span>{{ traceRows.length }}</span>
-						</div>
-
-						@for (trace of traceRows; track trace.id) {
-							<div
-								class="admin-spell-detail-page__runtime-row"
-								[class.admin-spell-detail-page__runtime-row--nested]="trace.depth > 0"
-								[style.margin-left.rem]="trace.depth"
-							>
-								<div class="admin-spell-detail-page__runtime-row-head">
-									<strong>{{ trace.actionName }}</strong>
-									<p-tag
-										[value]="trace.status === 'pending' ? 'Ожидает' : 'Готово'"
-										[severity]="runtimeTraceSeverity(trace)"
-									></p-tag>
-								</div>
-								<span>{{ trace.message }}</span>
-							</div>
-						}
-					</section>
-				}
-			}
-		} @else if (!runtimePreviewLoading() && !runtimePreviewError()) {
-			<div class="admin-spell-detail-page__empty-block">
-				Запусти проверку, чтобы увидеть выполнение заклинания.
-			</div>
-		}
-	</div>
-</p-drawer>
+	(rerun)="runRuntimePreview()"
+	(rollDiceCountChange)="
+		updateRuntimeRollDiceCount($event.roll, $event.diceCount)
+	"
+	(rollSkillLevelChange)="
+		updateRuntimeRollSkillLevel($event.roll, $event.skillLevel)
+	"
+	(rollSubmit)="rollRuntimePendingRoll($event)"
+	(choiceSelect)="chooseRuntimePendingChoice($event.choice, $event.optionId)"
+></app-spell-runtime-preview-drawer>

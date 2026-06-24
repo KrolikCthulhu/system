@@ -1,0 +1,272 @@
+<div class="admin-spell-detail-page__auto-sources">
+	<div class="admin-spell-detail-page__auto-sources-head">
+		<strong>Влияния</strong>
+		@if (value().sourceMode === 'advanced') {
+			<p-button
+				label="Влияние"
+				icon="pi pi-plus"
+				severity="secondary"
+				variant="outlined"
+				(onClick)="sourceAdd.emit()"
+			></p-button>
+		}
+	</div>
+
+	@for (source of value().sources; track source.id) {
+		<div class="admin-spell-detail-page__auto-source-row">
+			<div class="admin-spell-detail-page__auto-source-row-head">
+				<strong>{{ sourceSummary()(source) }}</strong>
+				<p-button
+					[icon]="
+						isSourceCollapsed()(scope(), source) ? 'pi pi-plus' : 'pi pi-minus'
+					"
+					severity="secondary"
+					text
+					rounded
+					[ariaLabel]="
+						isSourceCollapsed()(scope(), source)
+							? 'Развернуть влияние'
+							: 'Свернуть влияние'
+					"
+					(onClick)="sourceCollapseToggle.emit(source)"
+				></p-button>
+			</div>
+
+			@if (!isSourceCollapsed()(scope(), source)) {
+				<span
+					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--kind"
+				>
+					<span class="admin-spell-detail-page__field-label">
+						Что влияет
+						<button
+							type="button"
+							class="admin-spell-detail-page__hint-button"
+							aria-label="Справка: что влияет"
+							(click)="showHelp($event, 'sourceKind')"
+						>
+							<i class="pi pi-question-circle"></i>
+						</button>
+					</span>
+					<p-select
+						[options]="sourceKindOptions()"
+						optionLabel="label"
+						optionValue="value"
+						[ngModel]="source.sourceKind"
+						(ngModelChange)="updateSourceKind(source, $event)"
+					></p-select>
+				</span>
+
+				@if (source.sourceKind !== 'manual') {
+					<span
+						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
+					>
+						<span class="admin-spell-detail-page__field-label">
+							{{ sourceKeyLabel()(source) }}
+							<button
+								type="button"
+								class="admin-spell-detail-page__hint-button"
+								aria-label="Справка: значение источника"
+								(click)="showHelp($event, 'sourceKey')"
+							>
+								<i class="pi pi-question-circle"></i>
+							</button>
+						</span>
+						<p-select
+							[options]="sourceKeyOptions()(source)"
+							[group]="true"
+							optionGroupLabel="label"
+							optionGroupChildren="items"
+							optionLabel="label"
+							optionValue="value"
+							[filter]="true"
+							[showClear]="true"
+							[ngModel]="source.sourceKey || null"
+							(ngModelChange)="patchSource(source, { sourceKey: $event ?? '' })"
+						></p-select>
+					</span>
+				} @else {
+					<div
+						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--value"
+					>
+						<span>Значение</span>
+						<div class="admin-spell-detail-page__auto-source-static">x</div>
+					</div>
+				}
+
+				<span
+					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--transform"
+				>
+					<span class="admin-spell-detail-page__field-label">
+						Что взять
+						<button
+							type="button"
+							class="admin-spell-detail-page__hint-button"
+							aria-label="Справка: что взять"
+							(click)="showHelp($event, 'sourceTransform')"
+						>
+							<i class="pi pi-question-circle"></i>
+						</button>
+					</span>
+					<p-select
+						[options]="sourceTransformOptions()"
+						optionLabel="label"
+						optionValue="value"
+						[ngModel]="source.transform"
+						(ngModelChange)="patchSource(source, { transform: $event })"
+					></p-select>
+				</span>
+
+				@if (source.transform === 'aboveSource') {
+					<span
+						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--transform-source"
+					>
+						<span class="admin-spell-detail-page__field-label">
+							Сверх источника
+							<button
+								type="button"
+								class="admin-spell-detail-page__hint-button"
+								aria-label="Справка: сверх источника"
+								(click)="showHelp($event, 'sourceTransformSource')"
+							>
+								<i class="pi pi-question-circle"></i>
+							</button>
+						</span>
+						<p-select
+							[options]="transformSourceOptions()(value(), source)"
+							[group]="true"
+							optionGroupLabel="label"
+							optionGroupChildren="items"
+							optionLabel="label"
+							optionValue="value"
+							[ngModel]="source.transformSourceKey || null"
+							(ngModelChange)="
+								patchSource(source, { transformSourceKey: $event ?? '' })
+							"
+						></p-select>
+					</span>
+				}
+
+				@if (source.transform === 'divide') {
+					<span
+						class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--transform-divisor"
+					>
+						<span class="admin-spell-detail-page__field-label">
+							Делитель
+							<button
+								type="button"
+								class="admin-spell-detail-page__hint-button"
+								aria-label="Справка: делитель"
+								(click)="showHelp($event, 'sourceTransformDivisor')"
+							>
+								<i class="pi pi-question-circle"></i>
+							</button>
+						</span>
+						<p-inputnumber
+							[ngModel]="source.transformDivisor"
+							[min]="1"
+							[step]="1"
+							[inputStyle]="inputNumberInputStyle"
+							(ngModelChange)="
+								patchSource(source, { transformDivisor: $event ?? 1 })
+							"
+						></p-inputnumber>
+					</span>
+				}
+
+				<span
+					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--target"
+				>
+					<span class="admin-spell-detail-page__field-label">
+						Влияет на
+						<button
+							type="button"
+							class="admin-spell-detail-page__hint-button"
+							aria-label="Справка: влияет на"
+							(click)="showHelp($event, 'sourceTarget')"
+						>
+							<i class="pi pi-question-circle"></i>
+						</button>
+					</span>
+					<p-select
+						[options]="sourceTargetOptions()"
+						optionLabel="label"
+						optionValue="value"
+						[ngModel]="source.target"
+						[disabled]="!canEditTarget()"
+						(ngModelChange)="patchSource(source, { target: $event })"
+					></p-select>
+				</span>
+
+				<span
+					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--curve"
+				>
+					<span class="admin-spell-detail-page__field-label">
+						Кривая
+						<button
+							type="button"
+							class="admin-spell-detail-page__hint-button"
+							aria-label="Справка: кривая"
+							(click)="showHelp($event, 'sourceCurve')"
+						>
+							<i class="pi pi-question-circle"></i>
+						</button>
+					</span>
+					<p-select
+						[options]="sourceCurveOptions()"
+						optionLabel="label"
+						optionValue="value"
+						[ngModel]="source.curve"
+						(ngModelChange)="patchSource(source, { curve: $event })"
+					></p-select>
+				</span>
+
+				<span
+					class="admin-spell-detail-page__field admin-spell-detail-page__auto-source-cell--weight"
+				>
+					<span class="admin-spell-detail-page__field-label">
+						Вес
+						<button
+							type="button"
+							class="admin-spell-detail-page__hint-button"
+							aria-label="Справка: вес"
+							(click)="showHelp($event, 'sourceWeight')"
+						>
+							<i class="pi pi-question-circle"></i>
+						</button>
+					</span>
+					<div class="admin-spell-detail-page__weight-control">
+						<p-slider
+							[ngModel]="source.weight"
+							[min]="0"
+							[max]="3"
+							[step]="0.1"
+							(ngModelChange)="patchSource(source, { weight: $event })"
+						></p-slider>
+						<p-inputnumber
+							[ngModel]="source.weight"
+							[step]="0.1"
+							[min]="0"
+							[max]="3"
+							[inputStyle]="inputNumberInputStyle"
+							(ngModelChange)="patchSource(source, { weight: $event ?? 0 })"
+						></p-inputnumber>
+					</div>
+				</span>
+
+				@if (canDelete()) {
+					<div class="admin-spell-detail-page__auto-source-cell--action">
+						<p-button
+							icon="pi pi-trash"
+							severity="danger"
+							text
+							rounded
+							(onClick)="sourceDelete.emit(source.id)"
+						></p-button>
+					</div>
+				} @else {
+					<div class="admin-spell-detail-page__auto-source-cell--action"></div>
+				}
+			}
+		</div>
+	}
+</div>

@@ -1,0 +1,79 @@
+<div class="admin-spell-detail-page__progression-config">
+	<span class="admin-spell-detail-page__field">
+		<span>От чего зависит</span>
+		<p-select
+			[options]="sourceKindOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().sourceKind"
+			(ngModelChange)="sourceKindChange.emit($event)"
+		></p-select>
+	</span>
+
+	@if (showSourceKey()) {
+		<span class="admin-spell-detail-page__field">
+			<span>{{ sourceKeyLabel() }}</span>
+			<p-select
+				[options]="sourceKeyOptions()"
+				optionLabel="label"
+				optionValue="value"
+				[ngModel]="value().sourceKey"
+				(ngModelChange)="sourceKeyChange.emit($event)"
+			></p-select>
+		</span>
+	}
+
+	<span class="admin-spell-detail-page__field">
+		<span>Пресет</span>
+		<p-select
+			[options]="presetOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().presetId"
+			placeholder="Не выбран"
+			[showClear]="true"
+			(ngModelChange)="presetChange.emit($event)"
+		></p-select>
+	</span>
+
+	@for (field of configFields(); track field.key) {
+		<span class="admin-spell-detail-page__field">
+			<span>{{ field.label }}</span>
+			<p-inputnumber
+				[ngModel]="$any(value().config[field.key])"
+				[min]="field.min"
+				[step]="field.step"
+				(ngModelChange)="configChange.emit({ key: field.key, value: $event })"
+			></p-inputnumber>
+		</span>
+	}
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Округление
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: округление"
+				(click)="roundingHelpClick.emit($event)"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-select
+			[options]="roundingModeOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="$any(value().config['roundingMode'])"
+			(ngModelChange)="roundingModeChange.emit($event)"
+		></p-select>
+	</span>
+
+	<p-button
+		label="Открыть в редакторе формулы"
+		icon="pi pi-sitemap"
+		severity="secondary"
+		variant="outlined"
+		(onClick)="openFormulaEditor.emit()"
+	></p-button>
+</div>

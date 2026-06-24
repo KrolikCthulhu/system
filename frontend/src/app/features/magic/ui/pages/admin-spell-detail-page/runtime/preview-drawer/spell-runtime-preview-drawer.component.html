@@ -1,0 +1,252 @@
+<p-drawer
+	header="Превью выполнения"
+	position="right"
+	[modal]="true"
+	[style]="{ width: 'min(96vw, 42rem)' }"
+	[visible]="visible()"
+	(visibleChange)="visibleChange.emit($event)"
+>
+	<div class="admin-spell-detail-page__runtime-preview">
+		@if (error()) {
+			<div class="admin-spell-detail-page__form-error">
+				{{ error() }}
+			</div>
+		}
+
+		@if (preview(); as currentPreview) {
+			<div class="admin-spell-detail-page__runtime-toolbar">
+				<div class="admin-spell-detail-page__runtime-title">
+					<span>Статус выполнения</span>
+					<p-tag
+						[value]="statusLabel()(currentPreview.status)"
+						[severity]="statusSeverity()(currentPreview.status)"
+					></p-tag>
+				</div>
+
+				<p-button
+					label="Заново"
+					icon="pi pi-refresh"
+					size="small"
+					severity="secondary"
+					variant="outlined"
+					[loading]="loading()"
+					(onClick)="rerun.emit()"
+				></p-button>
+			</div>
+
+			@if (currentPreview.pendingRolls.length) {
+				<section class="admin-spell-detail-page__runtime-section">
+					<div class="admin-spell-detail-page__runtime-section-head">
+						<h3>Броски</h3>
+						<span>{{ currentPreview.pendingRolls.length }}</span>
+					</div>
+
+					@for (roll of currentPreview.pendingRolls; track rollKey()(roll)) {
+						@let currentRollDraft = rollDraft()(roll);
+
+						<div class="admin-spell-detail-page__runtime-roll">
+							<div class="admin-spell-detail-page__runtime-roll-head">
+								<div>
+									<strong>{{ roll.actionName }}</strong>
+									<span>{{ roll.blockName }}</span>
+								</div>
+								<p-tag
+									[value]="roll.optional ? 'Опционально' : 'Обязательно'"
+									[severity]="roll.optional ? 'info' : 'warn'"
+								></p-tag>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-meta">
+								<div>
+									<span>Актор</span>
+									<strong>{{ valueLabel()(roll.actor) }}</strong>
+								</div>
+								<div>
+									<span>Навык</span>
+									<strong>{{ valueLabel()(roll.skill) }}</strong>
+								</div>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-roll-controls">
+								<span
+									class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-dice-count"
+								>
+									<span>Кубы</span>
+									<p-inputnumber
+										[ngModel]="currentRollDraft.diceCount"
+										[min]="0"
+										[showButtons]="true"
+										[style]="{ width: '5.5rem' }"
+										[inputStyle]="{ width: '3rem' }"
+										(ngModelChange)="
+											rollDiceCountChange.emit({
+												roll,
+												diceCount: $event
+											})
+										"
+									></p-inputnumber>
+								</span>
+
+								<span
+									class="admin-spell-detail-page__field admin-spell-detail-page__runtime-roll-level"
+								>
+									<span>Уровень навыка</span>
+									<p-select
+										[options]="skillLevelOptions()"
+										optionLabel="label"
+										optionValue="value"
+										[ngModel]="currentRollDraft.skillLevel"
+										(ngModelChange)="
+											rollSkillLevelChange.emit({
+												roll,
+												skillLevel: $event
+											})
+										"
+									></p-select>
+								</span>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-roll-submit">
+								<p-button
+									label="Бросить"
+									icon="pi pi-bolt"
+									size="small"
+									[loading]="loading()"
+									(onClick)="rollSubmit.emit(roll)"
+								></p-button>
+							</div>
+
+							@if (currentRollDraft.dice.length) {
+								<div class="admin-spell-detail-page__runtime-roll-result">
+									<div class="admin-spell-detail-page__runtime-dice">
+										@for (die of currentRollDraft.dice; track $index) {
+											<span>{{ die }}</span>
+										}
+									</div>
+									<div class="admin-spell-detail-page__runtime-result">
+										<span>Успехи</span>
+										<strong>{{ currentRollDraft.successes }}</strong>
+									</div>
+								</div>
+							}
+						</div>
+					}
+				</section>
+			}
+
+			@if (currentPreview.pendingChoices.length) {
+				<section class="admin-spell-detail-page__runtime-section">
+					<div class="admin-spell-detail-page__runtime-section-head">
+						<h3>Выбор эффекта</h3>
+						<span>{{ currentPreview.pendingChoices.length }}</span>
+					</div>
+
+					@for (
+						choice of currentPreview.pendingChoices;
+						track choiceKey()(choice)
+					) {
+						<div class="admin-spell-detail-page__runtime-roll">
+							<div class="admin-spell-detail-page__runtime-roll-head">
+								<div>
+									<strong>{{ choice.actionName }}</strong>
+									<span>{{ choice.blockName }}</span>
+								</div>
+								<p-tag value="Требуется выбор" severity="warn"></p-tag>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-meta">
+								<div>
+									<span>Результат</span>
+									<strong>{{ choice.sourceValue }}</strong>
+								</div>
+								<div>
+									<span>Сохранить как</span>
+									<strong>{{ choice.resultName }}</strong>
+								</div>
+							</div>
+
+							<div class="admin-spell-detail-page__runtime-choice-options">
+								@for (option of choice.options; track option.id) {
+									<button
+										type="button"
+										class="admin-spell-detail-page__runtime-choice-option"
+										(click)="
+											choiceSelect.emit({
+												choice,
+												optionId: option.id
+											})
+										"
+									>
+										<strong>
+											{{
+												option.requirement === 'automatic'
+													? 'Без проверки'
+													: option.threshold + '+ ' + option.name
+											}}
+										</strong>
+										@if (option.description) {
+											<span>{{ option.description }}</span>
+										}
+									</button>
+								}
+							</div>
+						</div>
+					}
+				</section>
+			}
+
+			@if (currentPreview.effects.length) {
+				<section class="admin-spell-detail-page__runtime-section">
+					<div class="admin-spell-detail-page__runtime-section-head">
+						<h3>Эффекты</h3>
+						<span>{{ currentPreview.effects.length }}</span>
+					</div>
+
+					@for (
+						effect of currentPreview.effects;
+						track effect.actionId + effect.kind
+					) {
+						<div class="admin-spell-detail-page__runtime-row">
+							<strong>{{ effectTitle()(effect) }}</strong>
+							<span>{{ effectText()(effect) }}</span>
+						</div>
+					}
+				</section>
+			}
+
+			@if (traceRows()(currentPreview.trace); as rows) {
+				@if (rows.length) {
+					<section class="admin-spell-detail-page__runtime-section">
+						<div class="admin-spell-detail-page__runtime-section-head">
+							<h3>Ход выполнения</h3>
+							<span>{{ rows.length }}</span>
+						</div>
+
+						@for (trace of rows; track trace.id) {
+							<div
+								class="admin-spell-detail-page__runtime-row"
+								[class.admin-spell-detail-page__runtime-row--nested]="
+									trace.depth > 0
+								"
+								[style.margin-left.rem]="trace.depth"
+							>
+								<div class="admin-spell-detail-page__runtime-row-head">
+									<strong>{{ trace.actionName }}</strong>
+									<p-tag
+										[value]="trace.status === 'pending' ? 'Ожидает' : 'Готово'"
+										[severity]="traceSeverity()(trace)"
+									></p-tag>
+								</div>
+								<span>{{ trace.message }}</span>
+							</div>
+						}
+					</section>
+				}
+			}
+		} @else if (!loading() && !error()) {
+			<div class="admin-spell-detail-page__empty-block">
+				Запусти проверку, чтобы увидеть выполнение заклинания.
+			</div>
+		}
+	</div>
+</p-drawer>
