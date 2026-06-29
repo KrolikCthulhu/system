@@ -54,7 +54,27 @@ export class AdminLayoutComponent {
 				{
 					label: 'Состояния',
 					routerLink: '/admin/rules/conditions'
+				}
+			]
+		},
+		{
+			label: 'Бестиарий',
+			expanded: true,
+			items: [
+				{
+					label: 'Существа',
+					routerLink: '/admin/rules/creatures'
 				},
+				{
+					label: 'Типы существ',
+					routerLink: '/admin/rules/creature-types'
+				}
+			]
+		},
+		{
+			label: 'Снаряжение',
+			expanded: true,
+			items: [
 				{
 					label: 'Пресеты брони',
 					routerLink: '/admin/rules/armor-presets'

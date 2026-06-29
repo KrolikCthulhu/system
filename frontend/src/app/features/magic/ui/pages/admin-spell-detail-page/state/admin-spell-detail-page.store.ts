@@ -8,6 +8,10 @@ import {
 	withState
 } from '@ngrx/signals';
 import { Condition } from '../../../../../conditions/domain/conditions.models';
+import {
+	Creature,
+	CreatureCharacteristicOption
+} from '../../../../../creatures/domain/creatures.models';
 import { DamageType } from '../../../../../damage-types/domain/damage-types.models';
 import { ProgressionPreset } from '../../../../../progression-presets/domain/progression-presets.models';
 import {
@@ -44,6 +48,8 @@ interface AdminSpellDetailPageState {
 	skillLevels: SkillLevel[];
 	damageTypes: DamageType[];
 	conditions: Condition[];
+	creatures: Creature[];
+	creatureCharacteristics: CreatureCharacteristicOption[];
 	progressionPresets: ProgressionPreset[];
 	systemValues: SystemValue[];
 	sandboxInputValues: Record<string, number>;
@@ -81,6 +87,8 @@ const initialState: AdminSpellDetailPageState = {
 	skillLevels: [],
 	damageTypes: [],
 	conditions: [],
+	creatures: [],
+	creatureCharacteristics: [],
 	progressionPresets: [],
 	systemValues: [],
 	sandboxInputValues: {},
@@ -180,6 +188,8 @@ export const AdminSpellDetailPageStore = signalStore(
 				skillLevels: SkillLevel[];
 				damageTypes: DamageType[];
 				conditions: Condition[];
+				creatures: Creature[];
+				creatureCharacteristics: CreatureCharacteristicOption[];
 				progressionPresets: ProgressionPreset[];
 				systemValues: SystemValue[];
 			}) {

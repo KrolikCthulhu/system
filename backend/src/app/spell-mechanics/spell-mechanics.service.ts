@@ -4,7 +4,8 @@ import {
 	SpellMechanicActionKind,
 	SpellMechanicParameterDefaultMode,
 	SpellMechanicParameterKind,
-	SpellMechanicNumericRole
+	SpellMechanicNumericRole,
+	SpellMechanicParameterScope
 } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
@@ -19,7 +20,8 @@ import {
 	SpellMechanicParameterDefaultModeDto,
 	SpellMechanicParameterDto,
 	SpellMechanicParameterKindDto,
-	SpellMechanicNumericRoleDto
+	SpellMechanicNumericRoleDto,
+	SpellMechanicParameterScopeDto
 } from './dto/spell-mechanic-parameter.dto';
 import { UpdateSpellMechanicCategoryDto } from './dto/update-spell-mechanic-category.dto';
 import { UpdateSpellMechanicDto } from './dto/update-spell-mechanic.dto';
@@ -56,6 +58,7 @@ const mechanicSelect = {
 			name: true,
 			kind: true,
 			numericRole: true,
+			scope: true,
 			defaultMode: true,
 			staticSkillId: true,
 			staticDamageTypeId: true,
@@ -194,10 +197,7 @@ export class SpellMechanicsService {
 		}
 	}
 
-	private async updateMechanicOnly(
-		id: string,
-		dto: UpdateSpellMechanicDto
-	) {
+	private async updateMechanicOnly(id: string, dto: UpdateSpellMechanicDto) {
 		await this.prisma.spellMechanic.update({
 			where: { id },
 			data: this.toMechanicUpdateData(dto)
@@ -224,11 +224,7 @@ export class SpellMechanicsService {
 				if (dto.parameters.length) {
 					await tx.spellMechanicParameter.createMany({
 						data: dto.parameters.map((parameter, index) =>
-							this.toMechanicParameterCreateManyData(
-								id,
-								parameter,
-								index
-							)
+							this.toMechanicParameterCreateManyData(id, parameter, index)
 						)
 					});
 				}
@@ -242,11 +238,7 @@ export class SpellMechanicsService {
 				if (dto.actions.length) {
 					await tx.spellMechanicAction.createMany({
 						data: dto.actions.map((action, index) =>
-							this.toMechanicActionCreateManyData(
-								id,
-								action,
-								index
-							)
+							this.toMechanicActionCreateManyData(id, action, index)
 						)
 					});
 				}
@@ -381,6 +373,7 @@ export class SpellMechanicsService {
 			name: parameter.name.trim() || 'Параметр',
 			kind: this.toParameterKind(parameter.kind),
 			numericRole: this.toNumericRole(parameter.numericRole, parameter.kind),
+			scope: this.toParameterScope(parameter),
 			defaultMode: this.toParameterDefaultMode(parameter.defaultValue.mode),
 			...defaultRefs,
 			defaultTargetConfig: this.toParameterDefaultTargetConfig(parameter),
@@ -405,6 +398,7 @@ export class SpellMechanicsService {
 			name: parameter.name.trim() || 'Параметр',
 			kind: this.toParameterKind(parameter.kind),
 			numericRole: this.toNumericRole(parameter.numericRole, parameter.kind),
+			scope: this.toParameterScope(parameter),
 			defaultMode: this.toParameterDefaultMode(parameter.defaultValue.mode),
 			...defaultRefs,
 			defaultTargetConfig: this.toParameterDefaultTargetConfig(parameter),
@@ -415,9 +409,7 @@ export class SpellMechanicsService {
 		};
 	}
 
-	private toMechanicParameterDefaultRefs(
-		parameter: SpellMechanicParameterDto
-	) {
+	private toMechanicParameterDefaultRefs(parameter: SpellMechanicParameterDto) {
 		const mode = parameter.defaultValue.mode;
 		const value = parameter.defaultValue.value.trim();
 
@@ -512,7 +504,9 @@ export class SpellMechanicsService {
 		return kinds[kind];
 	}
 
-	private fromActionKind(kind: SpellMechanicActionKind): SpellMechanicActionKindDto {
+	private fromActionKind(
+		kind: SpellMechanicActionKind
+	): SpellMechanicActionKindDto {
 		const kinds = {
 			ROLL: 'roll',
 			CHECK: 'check',
@@ -548,9 +542,7 @@ export class SpellMechanicsService {
 		return kinds[kind];
 	}
 
-	private toParameterDefaultMode(
-		mode: SpellMechanicParameterDefaultModeDto
-	) {
+	private toParameterDefaultMode(mode: SpellMechanicParameterDefaultModeDto) {
 		const modes = {
 			empty: 'EMPTY',
 			static: 'STATIC',
@@ -583,6 +575,25 @@ export class SpellMechanicsService {
 		return roles[role ?? 'custom'];
 	}
 
+	private toParameterScope(parameter: SpellMechanicParameterDto) {
+		if (parameter.scope) {
+			const scopes = {
+				caster: 'CASTER',
+				target: 'TARGET',
+				spell: 'SPELL',
+				effect: 'EFFECT',
+				environment: 'ENVIRONMENT'
+			} satisfies Record<
+				SpellMechanicParameterScopeDto,
+				SpellMechanicParameterScope
+			>;
+
+			return scopes[parameter.scope];
+		}
+
+		return inferParameterScope(parameter);
+	}
+
 	private fromParameterKind(
 		kind: SpellMechanicParameterKind
 	): SpellMechanicParameterKindDto {
@@ -603,7 +614,9 @@ export class SpellMechanicsService {
 		return kinds[kind];
 	}
 
-	private fromNumericRole(role: SpellMechanicNumericRole): SpellMechanicNumericRoleDto {
+	private fromNumericRole(
+		role: SpellMechanicNumericRole
+	): SpellMechanicNumericRoleDto {
 		const roles = {
 			DAMAGE: 'damage',
 			RANGE: 'range',
@@ -614,6 +627,23 @@ export class SpellMechanicsService {
 		} satisfies Record<SpellMechanicNumericRole, SpellMechanicNumericRoleDto>;
 
 		return roles[role];
+	}
+
+	private fromParameterScope(
+		scope: SpellMechanicParameterScope
+	): SpellMechanicParameterScopeDto {
+		const scopes = {
+			CASTER: 'caster',
+			TARGET: 'target',
+			SPELL: 'spell',
+			EFFECT: 'effect',
+			ENVIRONMENT: 'environment'
+		} satisfies Record<
+			SpellMechanicParameterScope,
+			SpellMechanicParameterScopeDto
+		>;
+
+		return scopes[scope];
 	}
 
 	private fromParameterDefaultMode(
@@ -662,6 +692,7 @@ export class SpellMechanicsService {
 				name: parameter.name,
 				kind: this.fromParameterKind(parameter.kind),
 				numericRole: this.fromNumericRole(parameter.numericRole),
+				scope: this.fromParameterScope(parameter.scope),
 				required: parameter.isRequired,
 				configuredBySpell: parameter.configuredBySpell,
 				overrideAllowed: parameter.overrideAllowed,
@@ -711,4 +742,30 @@ export class SpellMechanicsService {
 			''
 		);
 	}
+}
+
+function inferParameterScope(
+	parameter: Pick<SpellMechanicParameterDto, 'kind' | 'name' | 'numericRole'>
+): SpellMechanicParameterScope {
+	const normalized = parameter.name.toLocaleLowerCase('ru');
+
+	if (parameter.kind === 'target') {
+		return SpellMechanicParameterScope.TARGET;
+	}
+
+	if (parameter.kind === 'skill') {
+		if (normalized.includes('защит')) {
+			return SpellMechanicParameterScope.TARGET;
+		}
+
+		if (normalized.includes('атак')) {
+			return SpellMechanicParameterScope.CASTER;
+		}
+	}
+
+	if (parameter.kind === 'damageType' || parameter.kind === 'condition') {
+		return SpellMechanicParameterScope.EFFECT;
+	}
+
+	return SpellMechanicParameterScope.SPELL;
 }

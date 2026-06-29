@@ -9,6 +9,8 @@ import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { CharacterSheetSandboxModule } from './character-sheet-sandbox/character-sheet-sandbox.module';
 import { ConditionsModule } from './conditions/conditions.module';
+import { CreatureTypesModule } from './creature-types/creature-types.module';
+import { CreaturesModule } from './creatures/creatures.module';
 import { DamageTypesModule } from './damage-types/damage-types.module';
 import { GameEventsModule } from './game-events/game-events.module';
 import { MagicModule } from './magic/magic.module';
@@ -47,6 +49,8 @@ import { AppService } from './app.service';
 		AttributesModule,
 		CharacterSheetSandboxModule,
 		ConditionsModule,
+		CreatureTypesModule,
+		CreaturesModule,
 		DamageTypesModule,
 		GameEventsModule,
 		MagicModule,

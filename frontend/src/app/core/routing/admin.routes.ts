@@ -100,6 +100,20 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminArmorPresetsPageComponent)
 					},
 					{
+						path: 'creature-types',
+						loadComponent: () =>
+							import(
+								'../../features/creature-types/ui/pages/admin-creature-types-page/admin-creature-types-page.component'
+							).then(m => m.AdminCreatureTypesPageComponent)
+					},
+					{
+						path: 'creatures',
+						loadComponent: () =>
+							import(
+								'../../features/creatures/ui/pages/admin-creatures-page/admin-creatures-page.component'
+							).then(m => m.AdminCreaturesPageComponent)
+					},
+					{
 						path: 'values',
 						loadComponent: () =>
 							import(

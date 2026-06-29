@@ -1,0 +1,394 @@
+<section class="admin-creatures-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-creatures-page__header">
+		<div class="admin-creatures-page__section-pad">
+			<p-breadcrumb
+				class="admin-creatures-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-creatures-page__workspace">
+		<aside class="admin-creatures-page__panel admin-creatures-page__sidebar">
+			<div
+				class="admin-creatures-page__panel-heading admin-creatures-page__section-pad"
+			>
+				<h2 class="admin-creatures-page__panel-title">Существа</h2>
+				<p-button
+					label="Новое существо"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createCreature()"
+				></p-button>
+			</div>
+
+			<div
+				class="admin-creatures-page__search-row admin-creatures-page__section-pad"
+			>
+				<p-iconfield class="admin-creatures-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск существа"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-creatures-page__state">Загрузка существ...</div>
+			} @else if (errorMessage() && !draft()) {
+				<div
+					class="admin-creatures-page__state admin-creatures-page__state--error"
+				>
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div
+					class="admin-creatures-page__item-list admin-creatures-page__section-pad"
+				>
+					<div class="admin-creatures-page__list-title">Бестиарий</div>
+
+					@for (creature of filteredCreatures(); track creature.id) {
+						<button
+							type="button"
+							class="admin-creatures-page__item"
+							[class.admin-creatures-page__item--active]="
+								creature.id === selectedCreatureId()
+							"
+							(click)="selectCreature(creature)"
+						>
+							<span>
+								<strong>{{ creature.name }}</strong>
+								<small>{{ creature.type.name }}</small>
+							</span>
+							@if (!creature.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-creatures-page__empty-list">
+							Существ пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section class="admin-creatures-page__panel admin-creatures-page__editor">
+				<div
+					class="admin-creatures-page__panel-heading admin-creatures-page__panel-heading--split admin-creatures-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-creatures-page__panel-title">{{ title() }}</h2>
+					</div>
+
+					<div class="admin-creatures-page__heading-actions">
+						<p-tag value="Существо" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedCreature()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div
+					class="admin-creatures-page__editor-body admin-creatures-page__section-pad"
+				>
+					@if (errorMessage()) {
+						<div class="admin-creatures-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-creatures-page__form-grid">
+						<span class="admin-creatures-page__field">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-creatures-page__field">
+							<span>Тип существа</span>
+							<p-select
+								[ngModel]="currentDraft.typeId"
+								[options]="creatureTypes()"
+								optionLabel="name"
+								optionValue="id"
+								appendTo="body"
+								(ngModelChange)="updateDraftType($event)"
+							></p-select>
+						</span>
+
+						<span class="admin-creatures-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-creatures-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+					</div>
+
+					<section class="admin-creatures-page__tiers">
+						<div class="admin-creatures-page__tiers-heading">
+							<h3>Тиры</h3>
+							<span>Варианты существа по опасности</span>
+						</div>
+
+						<div class="admin-creatures-page__tier-list">
+							@for (tier of currentDraft.tiers; track tier.tier) {
+								<div
+									class="admin-creatures-page__tier-card"
+									[class.admin-creatures-page__tier-card--collapsed]="
+										!isTierExpanded(tier.tier)
+									"
+								>
+									<button
+										type="button"
+										class="admin-creatures-page__tier-card-head"
+										[attr.aria-expanded]="isTierExpanded(tier.tier)"
+										(click)="toggleTierExpanded(tier.tier)"
+									>
+										<span class="admin-creatures-page__tier-card-title">
+											<strong>{{ tier.tier }}. {{ tier.name }}</strong>
+											<span>
+												HP {{ tier.hp }},
+												{{ armorSummary(tier.armorPresetId) }},
+												@for (skill of tier.skills; track skill.skillId) {
+													{{ skillName(skill.skillId) }} {{ skill.level }}
+													@if (!$last) {
+														,
+													}
+												}
+											</span>
+										</span>
+
+										<span
+											class="pi admin-creatures-page__tier-card-toggle"
+											[class.pi-plus]="!isTierExpanded(tier.tier)"
+											[class.pi-minus]="isTierExpanded(tier.tier)"
+											aria-hidden="true"
+										></span>
+									</button>
+
+									@if (isTierExpanded(tier.tier)) {
+										<div class="admin-creatures-page__tier-card-body">
+											<section class="admin-creatures-page__tier-section">
+												<h4>Основное</h4>
+												<div class="admin-creatures-page__tier-fields">
+													<span
+														class="admin-creatures-page__field admin-creatures-page__field--wide"
+													>
+														<span>Название тира</span>
+														<input
+															pInputText
+															type="text"
+															[value]="tier.name"
+															(input)="
+																updateTierName(
+																	tier.tier,
+																	$any($event.target).value
+																)
+															"
+														/>
+													</span>
+
+													<span class="admin-creatures-page__field">
+														<span>HP</span>
+														<p-inputnumber
+															[ngModel]="tier.hp"
+															[showButtons]="false"
+															[min]="1"
+															(ngModelChange)="updateTierHp(tier.tier, $event)"
+														></p-inputnumber>
+													</span>
+												</div>
+											</section>
+
+											<section class="admin-creatures-page__tier-section">
+												<h4>Броня</h4>
+												<div class="admin-creatures-page__tier-fields">
+													<span
+														class="admin-creatures-page__field admin-creatures-page__field--wide"
+													>
+														<span>Пресет брони</span>
+														<p-select
+															[ngModel]="tier.armorPresetId"
+															[options]="armorPresets()"
+															optionLabel="name"
+															optionValue="id"
+															appendTo="body"
+															[showClear]="true"
+															(ngModelChange)="
+																updateTierArmor(tier.tier, $event)
+															"
+														></p-select>
+														<small>{{
+															armorSummary(tier.armorPresetId)
+														}}</small>
+													</span>
+												</div>
+											</section>
+
+											<section class="admin-creatures-page__tier-section">
+												<h4>Характеристики</h4>
+												<div class="admin-creatures-page__tier-fields">
+													@for (
+														characteristicValue of tier.characteristics;
+														track characteristicValue.characteristicId
+													) {
+														@if (
+															characteristic(
+																characteristicValue.characteristicId
+															);
+															as characteristicOption
+														) {
+															<span class="admin-creatures-page__field">
+																<span>{{ characteristicOption.name }}</span>
+																<p-inputnumber
+																	[ngModel]="characteristicValue.value"
+																	[showButtons]="false"
+																	[min]="characteristicOption.minValue"
+																	[max]="characteristicOption.maxValue"
+																	(ngModelChange)="
+																		updateTierCharacteristic(
+																			tier.tier,
+																			characteristicValue.characteristicId,
+																			$event
+																		)
+																	"
+																></p-inputnumber>
+															</span>
+														}
+													}
+												</div>
+											</section>
+
+											<section class="admin-creatures-page__tier-section">
+												<div class="admin-creatures-page__tier-section-head">
+													<h4>Навыки</h4>
+													<p-button
+														label="Навык"
+														icon="pi pi-plus"
+														size="small"
+														text
+														(click)="addTierSkill(tier.tier)"
+													></p-button>
+												</div>
+
+												<div class="admin-creatures-page__skill-list">
+													@for (
+														skill of tier.skills;
+														track skill.skillId;
+														let skillIndex = $index
+													) {
+														<div class="admin-creatures-page__skill-row">
+															<span class="admin-creatures-page__field">
+																<span>Навык</span>
+																<p-select
+																	[ngModel]="skill.skillId"
+																	[options]="
+																		skillOptionsForTier(tier, skill.skillId)
+																	"
+																	[fluid]="true"
+																	optionLabel="name"
+																	optionValue="id"
+																	optionGroupLabel="label"
+																	optionGroupChildren="items"
+																	[group]="true"
+																	[filter]="true"
+																	filterBy="name,searchText"
+																	appendTo="body"
+																	(ngModelChange)="
+																		updateTierSkill(
+																			tier.tier,
+																			skillIndex,
+																			$event
+																		)
+																	"
+																></p-select>
+															</span>
+
+															<span
+																class="admin-creatures-page__field admin-creatures-page__field--skill-level"
+															>
+																<span>Уровень</span>
+																<p-inputnumber
+																	[ngModel]="skill.level"
+																	[showButtons]="false"
+																	[fluid]="true"
+																	[min]="0"
+																	[max]="6"
+																	(ngModelChange)="
+																		updateTierSkillLevel(
+																			tier.tier,
+																			skillIndex,
+																			$event
+																		)
+																	"
+																></p-inputnumber>
+															</span>
+
+															<p-button
+																icon="pi pi-trash"
+																severity="danger"
+																text
+																rounded
+																[disabled]="tier.skills.length <= 1"
+																(click)="removeTierSkill(tier.tier, skillIndex)"
+															></p-button>
+														</div>
+													}
+												</div>
+											</section>
+										</div>
+									}
+								</div>
+							}
+						</div>
+					</section>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section class="admin-creatures-page__panel admin-creatures-page__editor">
+				<div class="admin-creatures-page__state">
+					Выбери существо слева или создай новое.
+				</div>
+			</section>
+		}
+	</div>
+</section>

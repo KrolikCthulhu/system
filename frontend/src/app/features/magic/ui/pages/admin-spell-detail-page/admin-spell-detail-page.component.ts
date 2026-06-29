@@ -1,4 +1,4 @@
-﻿import { CommonModule } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import {
 	ChangeDetectionStrategy,
 	Component,
@@ -17,6 +17,7 @@ import { Popover } from 'primeng/popover';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import { CONDITIONS_REPOSITORY } from '../../../../conditions/data/conditions-repository.port';
+import { CREATURES_REPOSITORY } from '../../../../creatures/data/creatures-repository.port';
 import { DAMAGE_TYPES_REPOSITORY } from '../../../../damage-types/data/damage-types-repository.port';
 import { PROGRESSION_PRESETS_REPOSITORY } from '../../../../progression-presets/data/progression-presets-repository.port';
 import { ProgressionPresetRoundingMode } from '../../../../progression-presets/domain/progression-presets.models';
@@ -44,6 +45,7 @@ import {
 	SpellMechanicsEditorContext
 } from './mechanics/spell-mechanics-editor.component';
 import { SpellMainEditorComponent } from './main/spell-main-editor.component';
+import { SpellBalanceTabComponent } from './tabs/balance/spell-balance-tab.component';
 import { SpellProblemsTabComponent } from './tabs/problems/spell-problems-tab.component';
 import { SpellRuntimePreviewDrawerComponent } from './runtime/preview-drawer/spell-runtime-preview-drawer.component';
 import { SpellTextTabComponent } from './tabs/text/spell-text-tab.component';
@@ -279,6 +281,7 @@ const AUTO_VALUE_RANGE_MODE_OPTIONS: Array<{
 		SpellDetailEditorHeaderComponent,
 		SpellMechanicsEditorComponent,
 		SpellMainEditorComponent,
+		SpellBalanceTabComponent,
 		SpellProblemsTabComponent,
 		SpellRuntimePreviewDrawerComponent,
 		SpellTextTabComponent,
@@ -298,6 +301,7 @@ export class AdminSpellDetailPageComponent {
 	private readonly skillsRepository = inject(SKILLS_REPOSITORY);
 	private readonly damageTypesRepository = inject(DAMAGE_TYPES_REPOSITORY);
 	private readonly conditionsRepository = inject(CONDITIONS_REPOSITORY);
+	private readonly creaturesRepository = inject(CREATURES_REPOSITORY);
 	private readonly progressionPresetsRepository = inject(
 		PROGRESSION_PRESETS_REPOSITORY
 	);
@@ -319,6 +323,9 @@ export class AdminSpellDetailPageComponent {
 	protected readonly skillLevels = this.pageStore.skillLevels;
 	protected readonly damageTypes = this.pageStore.damageTypes;
 	protected readonly conditions = this.pageStore.conditions;
+	protected readonly creatures = this.pageStore.creatures;
+	protected readonly creatureCharacteristics =
+		this.pageStore.creatureCharacteristics;
 	protected readonly progressionPresets = this.pageStore.progressionPresets;
 	protected readonly systemValues = this.pageStore.systemValues;
 	protected readonly sandboxInputValues = this.pageStore.sandboxInputValues;
@@ -2760,6 +2767,7 @@ export class AdminSpellDetailPageComponent {
 			skills: this.skillsRepository.loadAdminCatalog(),
 			damageTypes: this.damageTypesRepository.loadCatalog(),
 			conditions: this.conditionsRepository.loadCatalog(),
+			creatures: this.creaturesRepository.loadCatalog(),
 			progressionPresets: this.progressionPresetsRepository.loadCatalog(),
 			systemValues: this.valuesRepository.loadCatalog(),
 			sandboxDraft: this.characterSheetSandboxRepository.loadDraft()
@@ -2773,6 +2781,7 @@ export class AdminSpellDetailPageComponent {
 					skills,
 					damageTypes,
 					conditions,
+					creatures,
 					progressionPresets,
 					systemValues,
 					sandboxDraft
@@ -2785,6 +2794,8 @@ export class AdminSpellDetailPageComponent {
 						skillLevels: skills.levels,
 						damageTypes: damageTypes.damageTypes,
 						conditions: conditions.conditions,
+						creatures: creatures.creatures,
+						creatureCharacteristics: creatures.characteristics,
 						progressionPresets: progressionPresets.presets,
 						systemValues: systemValues.values
 					});

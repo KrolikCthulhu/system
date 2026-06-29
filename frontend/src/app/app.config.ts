@@ -17,6 +17,8 @@ import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
 import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
 import { provideConditionsInfrastructure } from './features/conditions/data/provide-conditions-infrastructure';
+import { provideCreatureTypesInfrastructure } from './features/creature-types/data/provide-creature-types-infrastructure';
+import { provideCreaturesInfrastructure } from './features/creatures/data/provide-creatures-infrastructure';
 import { provideDamageTypesInfrastructure } from './features/damage-types/data/provide-damage-types-infrastructure';
 import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
 import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
@@ -126,6 +128,8 @@ export const appConfig: ApplicationConfig = {
 		...provideAttributesInfrastructure(),
 		...provideCharacterSheetInfrastructure(),
 		...provideConditionsInfrastructure(),
+		...provideCreatureTypesInfrastructure(),
+		...provideCreaturesInfrastructure(),
 		...provideDamageTypesInfrastructure(),
 		...provideGameEventsInfrastructure(),
 		...provideMagicWordsInfrastructure(),

@@ -10,6 +10,7 @@ import {
 	SpellMechanicParameter,
 	SpellMechanicParameterDefaultValueMode,
 	SpellMechanicParameterKind,
+	SpellMechanicParameterScope,
 	SpellMechanicNumericRole,
 	SpellMechanicTargetConfig,
 	SpellMechanicTargetCountMode,
@@ -36,9 +37,7 @@ export function mapSpellMechanicCategoryDto(
 	};
 }
 
-export function mapSpellMechanicDto(
-	dto: SpellMechanicDto
-): SpellMechanic {
+export function mapSpellMechanicDto(dto: SpellMechanicDto): SpellMechanic {
 	return {
 		id: dto.id,
 		categoryId: dto.categoryId,
@@ -66,6 +65,7 @@ function mapSpellMechanicParameterDto(
 		name: dto.name,
 		kind: mapParameterKind(dto.kind),
 		numericRole: mapNumericRole(dto.numericRole),
+		scope: mapParameterScope(dto.scope),
 		required: dto.required,
 		configuredBySpell: dto.configuredBySpell,
 		overrideAllowed: dto.overrideAllowed,
@@ -105,11 +105,17 @@ function isTargetSource(value: string): value is SpellMechanicTargetSource {
 }
 
 function isTargetRelation(value: string): value is SpellMechanicTargetRelation {
-	return value === 'self' || value === 'any' || value === 'enemy' || value === 'ally';
+	return (
+		value === 'self' || value === 'any' || value === 'enemy' || value === 'ally'
+	);
 }
 
-function isTargetCountMode(value: string): value is SpellMechanicTargetCountMode {
-	return value === 'one' || value === 'all' || value === 'upTo' || value === 'exact';
+function isTargetCountMode(
+	value: string
+): value is SpellMechanicTargetCountMode {
+	return (
+		value === 'one' || value === 'all' || value === 'upTo' || value === 'exact'
+	);
 }
 
 function isTargetCountValueMode(
@@ -184,6 +190,27 @@ function mapNumericRole(value: string | undefined): SpellMechanicNumericRole {
 			return 'targetCount';
 		default:
 			return 'custom';
+	}
+}
+
+function mapParameterScope(
+	value: string | undefined
+): SpellMechanicParameterScope {
+	switch (value) {
+		case 'CASTER':
+		case 'caster':
+			return 'caster';
+		case 'TARGET':
+		case 'target':
+			return 'target';
+		case 'EFFECT':
+		case 'effect':
+			return 'effect';
+		case 'ENVIRONMENT':
+		case 'environment':
+			return 'environment';
+		default:
+			return 'spell';
 	}
 }
 

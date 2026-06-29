@@ -70,6 +70,14 @@ enum SpellMechanicNumericRole {
   CUSTOM
 }
 
+enum SpellMechanicParameterScope {
+  CASTER
+  TARGET
+  SPELL
+  EFFECT
+  ENVIRONMENT
+}
+
 enum SpellMechanicActionKind {
   ROLL
   CHECK
@@ -202,6 +210,7 @@ model Skill {
   rollConsequence                RollConsequence?         @relation(fields: [rollConsequenceId], references: [id], onDelete: SetNull)
   magicWordLinks                 MagicWordSkillLink[]
   spellMechanicParameterDefaults SpellMechanicParameter[]
+  creatureTierSkills             CreatureTierSkill[]
   isActive                       Boolean                  @default(true) @map("is_active")
   sortOrder                      Int                      @default(0) @map("sort_order")
   createdAt                      DateTime                 @default(now()) @map("created_at")
@@ -415,6 +424,7 @@ model SpellMechanicParameter {
   name                String
   kind                SpellMechanicParameterKind
   numericRole         SpellMechanicNumericRole          @default(CUSTOM) @map("numeric_role")
+  scope               SpellMechanicParameterScope       @default(SPELL)
   defaultMode         SpellMechanicParameterDefaultMode @default(EMPTY) @map("default_mode")
   staticSkillId       String?                           @map("static_skill_id") @db.Uuid
   staticSkill         Skill?                            @relation(fields: [staticSkillId], references: [id], onDelete: SetNull)
@@ -535,6 +545,21 @@ model Condition {
   @@map("conditions")
 }
 
+model CreatureType {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug      String   @unique @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  creatures Creature[]
+
+  @@index([isActive, sortOrder])
+  @@map("creature_types")
+}
+
 model ArmorPreset {
   id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug       String   @unique @default(cuid())
@@ -546,8 +571,79 @@ model ArmorPreset {
   createdAt  DateTime @default(now()) @map("created_at")
   updatedAt  DateTime @updatedAt @map("updated_at")
 
+  creatureTiers CreatureTier[]
+
   @@index([isActive, sortOrder])
   @@map("armor_presets")
+}
+
+model Creature {
+  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug      String         @unique @default(cuid())
+  name      String         @unique
+  typeId    String         @map("type_id") @db.Uuid
+  type      CreatureType   @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  tiers     CreatureTier[]
+  isActive  Boolean        @default(true) @map("is_active")
+  sortOrder Int            @default(0) @map("sort_order")
+  createdAt DateTime       @default(now()) @map("created_at")
+  updatedAt DateTime       @updatedAt @map("updated_at")
+
+  @@index([typeId, isActive, sortOrder])
+  @@index([isActive, sortOrder])
+  @@map("creatures")
+}
+
+model CreatureTier {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatureId    String              @map("creature_id") @db.Uuid
+  creature      Creature            @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  tier          Int
+  name          String
+  hp            Int                 @default(1)
+  armorPresetId String?             @map("armor_preset_id") @db.Uuid
+  armorPreset   ArmorPreset?        @relation(fields: [armorPresetId], references: [id], onDelete: SetNull)
+  skills          CreatureTierSkill[]
+  characteristics CreatureTierCharacteristic[]
+  isActive      Boolean             @default(true) @map("is_active")
+  sortOrder     Int                 @default(0) @map("sort_order")
+  createdAt     DateTime            @default(now()) @map("created_at")
+  updatedAt     DateTime            @updatedAt @map("updated_at")
+
+  @@unique([creatureId, tier])
+  @@index([armorPresetId])
+  @@index([creatureId, sortOrder])
+  @@map("creature_tiers")
+}
+
+model CreatureTierSkill {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatureTierId String       @map("creature_tier_id") @db.Uuid
+  creatureTier   CreatureTier @relation(fields: [creatureTierId], references: [id], onDelete: Cascade)
+  skillId        String       @map("skill_id") @db.Uuid
+  skill          Skill        @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  level          Int          @default(1)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+
+  @@unique([creatureTierId, skillId])
+  @@index([skillId])
+  @@map("creature_tier_skills")
+}
+
+model CreatureTierCharacteristic {
+  id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatureTierId   String         @map("creature_tier_id") @db.Uuid
+  creatureTier     CreatureTier   @relation(fields: [creatureTierId], references: [id], onDelete: Cascade)
+  characteristicId String         @map("characteristic_id") @db.Uuid
+  characteristic   Characteristic @relation(fields: [characteristicId], references: [id], onDelete: Restrict)
+  value            Int            @default(1)
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+
+  @@unique([creatureTierId, characteristicId], map: "creature_tier_characteristics_creature_tier_id_characteristic_i")
+  @@index([characteristicId])
+  @@map("creature_tier_characteristics")
 }
 
 model ProgressionPreset {
@@ -599,7 +695,8 @@ model Characteristic {
   defaultValue  Int         @default(0) @map("default_value")
   systemValueId String      @unique @map("system_value_id") @db.Uuid
   systemValue   SystemValue @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
-  rollSkills    Skill[]     @relation("SkillRollCharacteristic")
+  rollSkills          Skill[]                        @relation("SkillRollCharacteristic")
+  creatureTierValues  CreatureTierCharacteristic[]
   isActive      Boolean     @default(true) @map("is_active")
   sortOrder     Int         @default(0) @map("sort_order")
   createdAt     DateTime    @default(now()) @map("created_at")

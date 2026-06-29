@@ -1,0 +1,175 @@
+<section class="admin-creature-types-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-creature-types-page__header">
+		<div class="admin-creature-types-page__section-pad">
+			<p-breadcrumb
+				class="admin-creature-types-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-creature-types-page__workspace">
+		<aside
+			class="admin-creature-types-page__panel admin-creature-types-page__sidebar"
+		>
+			<div
+				class="admin-creature-types-page__panel-heading admin-creature-types-page__section-pad"
+			>
+				<h2 class="admin-creature-types-page__panel-title">Типы существ</h2>
+				<p-button
+					label="Новый тип"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createCreatureType()"
+				></p-button>
+			</div>
+
+			<div
+				class="admin-creature-types-page__search-row admin-creature-types-page__section-pad"
+			>
+				<p-iconfield class="admin-creature-types-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск типа"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-creature-types-page__state">
+					Загрузка типов существ...
+				</div>
+			} @else if (errorMessage() && !draft()) {
+				<div
+					class="admin-creature-types-page__state admin-creature-types-page__state--error"
+				>
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div
+					class="admin-creature-types-page__item-list admin-creature-types-page__section-pad"
+				>
+					<div class="admin-creature-types-page__list-title">Типы существ</div>
+
+					@for (
+						creatureType of filteredCreatureTypes();
+						track creatureType.id
+					) {
+						<button
+							type="button"
+							class="admin-creature-types-page__item"
+							[class.admin-creature-types-page__item--active]="
+								creatureType.id === selectedCreatureTypeId()
+							"
+							(click)="selectCreatureType(creatureType)"
+						>
+							<span>{{ creatureType.name }}</span>
+							@if (!creatureType.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-creature-types-page__empty-list">
+							Типов существ пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section
+				class="admin-creature-types-page__panel admin-creature-types-page__editor"
+			>
+				<div
+					class="admin-creature-types-page__panel-heading admin-creature-types-page__panel-heading--split admin-creature-types-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-creature-types-page__panel-title">
+							{{ title() }}
+						</h2>
+					</div>
+
+					<div class="admin-creature-types-page__heading-actions">
+						<p-tag value="Тип существа" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedCreatureType()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div
+					class="admin-creature-types-page__editor-body admin-creature-types-page__section-pad"
+				>
+					@if (errorMessage()) {
+						<div class="admin-creature-types-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-creature-types-page__form-grid">
+						<span
+							class="admin-creature-types-page__field admin-creature-types-page__field--wide"
+						>
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-creature-types-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-creature-types-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+					</div>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section
+				class="admin-creature-types-page__panel admin-creature-types-page__editor"
+			>
+				<div class="admin-creature-types-page__state">
+					Выбери тип существа слева или создай новый.
+				</div>
+			</section>
+		}
+	</div>
+</section>
