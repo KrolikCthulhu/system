@@ -55,6 +55,10 @@ export class AdminLayoutComponent {
 					label: 'Состояния',
 					routerLink: '/admin/rules/conditions'
 				},
+				{
+					label: 'Пресеты брони',
+					routerLink: '/admin/rules/armor-presets'
+				}
 			]
 		},
 		{

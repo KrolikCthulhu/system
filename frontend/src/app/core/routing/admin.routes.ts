@@ -93,6 +93,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminConditionsPageComponent)
 					},
 					{
+						path: 'armor-presets',
+						loadComponent: () =>
+							import(
+								'../../features/armor-presets/ui/pages/admin-armor-presets-page/admin-armor-presets-page.component'
+							).then(m => m.AdminArmorPresetsPageComponent)
+					},
+					{
 						path: 'values',
 						loadComponent: () =>
 							import(

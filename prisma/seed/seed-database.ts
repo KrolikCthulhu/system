@@ -4,6 +4,7 @@ import {
 	seedAttributePoolRules,
 	seedAttributes
 } from './seed-attributes';
+import { seedArmorPresets } from './seed-armor-presets';
 import { seedCharacteristics } from './seed-characteristics';
 import { seedConditions } from './seed-conditions';
 import { seedDamageTypes } from './seed-damage-types';
@@ -55,6 +56,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedGameEventHandlers(tx, { sourceValue });
 	await seedDamageTypes(tx);
 	await seedConditions(tx);
+	await seedArmorPresets(tx);
 	await seedProgressionPresets(tx);
 	const categories = await seedSkillCategories(tx);
 	await seedSkills(tx, {

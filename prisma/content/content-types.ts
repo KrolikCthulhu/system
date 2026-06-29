@@ -10,10 +10,11 @@ export type ContentDocument<TCollections extends Record<string, unknown>> = {
 	schemaVersion: 1;
 } & TCollections;
 
-export type GroupedContentDocument<TCollections extends Record<string, unknown>> =
-	ContentDocument<TCollections> & {
-		group: string;
-	};
+export type GroupedContentDocument<
+	TCollections extends Record<string, unknown>
+> = ContentDocument<TCollections> & {
+	group: string;
+};
 
 export type SlugRef = {
 	slug: string;
@@ -35,6 +36,11 @@ export type NamedContentItem = SortableContentItem & {
 export type DamageTypeContent = SortableContentItem;
 
 export type ConditionContent = SortableContentItem;
+
+export type ArmorPresetContent = SortableContentItem & {
+	points: number;
+	protection: number;
+};
 
 export type ProgressionContent = NamedContentItem & {
 	kind: string;
@@ -125,7 +131,13 @@ export type SpellMechanicParameterContent = SlugRef & {
 		| 'condition'
 		| 'systemValue'
 		| 'text';
-	numericRole?: 'damage' | 'range' | 'duration' | 'area' | 'targetCount' | 'custom';
+	numericRole?:
+		| 'damage'
+		| 'range'
+		| 'duration'
+		| 'area'
+		| 'targetCount'
+		| 'custom';
 	required: boolean;
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;
