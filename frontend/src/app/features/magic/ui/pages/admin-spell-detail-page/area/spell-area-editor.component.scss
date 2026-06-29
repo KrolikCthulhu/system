@@ -1,0 +1,127 @@
+﻿:host {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
+
+.spell-area-editor {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	height: 100%;
+	min-height: 0;
+	overflow-y: auto;
+	padding: 0.75rem;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.spell-area-editor__head,
+.spell-area-editor__dimension-head {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.spell-area-editor__head h3 {
+	margin: 0;
+	color: var(--p-text-color);
+	font-size: var(--text-heading-3-size);
+	line-height: 1.2;
+}
+
+.spell-area-editor__head span {
+	display: block;
+	margin-top: 0.25rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.spell-area-editor__dimensions {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.spell-area-editor__dimension {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	padding: 0.75rem 0;
+	border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.spell-area-editor__dimension-head {
+	align-items: center;
+}
+
+.spell-area-editor__dimension-head div {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	min-width: 0;
+}
+
+.spell-area-editor__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.spell-area-editor__field input {
+	width: 100%;
+}
+
+.spell-area-editor__numeric-preview {
+	display: grid;
+	gap: 0.375rem;
+	padding: 0.5rem 0.625rem;
+	border-radius: 0.375rem;
+	background: var(--p-surface-50);
+	font-size: 0.8125rem;
+}
+
+.spell-area-editor__numeric-preview-row {
+	display: grid;
+	grid-template-columns: 6rem minmax(0, 1fr);
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.spell-area-editor__numeric-preview-row span {
+	color: var(--p-text-muted-color);
+}
+
+.spell-area-editor__numeric-preview-row strong {
+	min-width: 0;
+	overflow-wrap: anywhere;
+}
+
+.spell-area-editor__numeric-preview-values {
+	display: flex;
+	flex-wrap: wrap;
+}
+
+.spell-area-editor__numeric-preview-values span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.25rem 0.4375rem;
+	border-radius: 0.375rem;
+	background: var(--p-surface-50);
+}
+
+.spell-area-editor__empty-block {
+	padding: 1rem;
+	border: 1px dashed var(--p-content-border-color);
+	border-radius: 0.375rem;
+	color: var(--p-text-muted-color);
+	text-align: center;
+}

@@ -50,6 +50,13 @@ export interface SpellDraft {
 	mechanicBlocks: SpellMechanicBlockDraft[];
 }
 
+export interface SpellAreaDimension {
+	key: string;
+	label: string;
+	defaultValue: number;
+	unitLabel: string;
+}
+
 export interface SpellMechanicParameterHeaderPreviewItem {
 	level: number;
 	label: string;

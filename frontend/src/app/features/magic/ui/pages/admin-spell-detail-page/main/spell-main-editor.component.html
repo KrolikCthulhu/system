@@ -1,0 +1,57 @@
+@if (facade.draft(); as draft) {
+	<div class="spell-main-editor">
+		<span class="spell-main-editor__field">
+			<span>Формула</span>
+			<input pInputText type="text" [value]="draft.formulaName" readonly />
+		</span>
+
+		<span class="spell-main-editor__field">
+			<span>Название</span>
+			<input
+				pInputText
+				type="text"
+				[ngModel]="draft.name"
+				(ngModelChange)="facade.updateName($event)"
+			/>
+		</span>
+
+		<span class="spell-main-editor__field">
+			<span>Статус</span>
+			<p-select
+				[options]="facade.statusOptions"
+				optionLabel="label"
+				optionValue="value"
+				[ngModel]="draft.status"
+				(ngModelChange)="facade.updateStatus($event)"
+			></p-select>
+		</span>
+
+		<span class="spell-main-editor__switch-field">
+			<span>Активно</span>
+			<p-toggleswitch
+				[disabled]="!facade.canManageActivity(draft.status)"
+				[ngModel]="draft.isActive"
+				(ngModelChange)="facade.updateActive($event)"
+			></p-toggleswitch>
+		</span>
+
+		<span class="spell-main-editor__field">
+			<span>Порядок отображения</span>
+			<p-inputnumber
+				[ngModel]="draft.sortOrder"
+				[min]="0"
+				(ngModelChange)="facade.updateSortOrder($event)"
+			></p-inputnumber>
+		</span>
+
+		<span class="spell-main-editor__field spell-main-editor__field--wide">
+			<span>Описание</span>
+			<textarea
+				pTextarea
+				rows="8"
+				[ngModel]="draft.description"
+				(ngModelChange)="facade.updateDescription($event)"
+			></textarea>
+		</span>
+	</div>
+}

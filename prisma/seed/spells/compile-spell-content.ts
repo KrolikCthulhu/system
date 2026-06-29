@@ -1,6 +1,15 @@
 import { createHash, randomUUID } from 'crypto';
-import { Prisma } from '../../__generated__/index.js';
-import type { SpellContent, SpellTextBlockContent } from '../../content/content-types';
+import {
+	MagicWordType,
+	Prisma,
+	SpellStatus
+} from '../../__generated__/index.js';
+import type {
+	MagicWordRef,
+	SpellContent,
+	SpellMechanicBlockContent,
+	SpellTextBlockContent
+} from '../../content/content-types';
 
 type TargetConfigLookup = Map<string, string>;
 type SystemValueLookup = Map<string, string>;
@@ -8,12 +17,30 @@ type SkillLookup = Map<string, string>;
 type DamageTypeLookup = Map<string, string>;
 type ConditionLookup = Map<string, string>;
 
+type MechanicLookup = {
+	id: string;
+	parameterSlugs: Set<string>;
+};
+
 export type SpellContentReferenceResolver = {
 	targetConfigsBySlug: TargetConfigLookup;
 	systemValuesBySlug: SystemValueLookup;
 	skillsBySlug: SkillLookup;
 	damageTypesBySlug: DamageTypeLookup;
 	conditionsBySlug: ConditionLookup;
+};
+
+export type CompiledSpellMechanicBlockContent = {
+	contentSlug: string;
+	data: Omit<Prisma.SpellMechanicBlockUncheckedCreateInput, 'spellId'>;
+};
+
+export type CompiledSpellContent = {
+	spellData: Prisma.SpellUncheckedCreateInput;
+	mechanicBlocks: CompiledSpellMechanicBlockContent[];
+	textBlocks: (
+		mechanicBlocksBySlug: Map<string, string>
+	) => Prisma.InputJsonObject[];
 };
 
 const UUID_PATTERN =
@@ -30,6 +57,38 @@ const FORBIDDEN_AUTHORING_KEYS = new Set([
 	'mechanicBlockId'
 ]);
 
+export async function compileSpellContent(
+	tx: Prisma.TransactionClient,
+	seed: SpellContent,
+	sortOrder: number
+): Promise<CompiledSpellContent> {
+	const action = await findMagicWord(tx, seed.formula.action);
+	const essence = await findMagicWord(tx, seed.formula.essence);
+	const gesture = await findMagicWord(tx, seed.formula.gesture);
+	const status = toSpellStatus(seed.status);
+	const resolver = await createSpellContentReferenceResolver(tx, seed);
+
+	return {
+		spellData: {
+			actionId: action.id,
+			essenceId: essence.id,
+			gestureId: gesture.id,
+			name: seed.name,
+			description: seed.description?.trim() || null,
+			targetConfigs: compileSpellTargetConfigs(seed),
+			textBlocks: [],
+			status,
+			isActive: status === SpellStatus.READY,
+			sortOrder
+		},
+		mechanicBlocks: await compileSpellMechanicBlocks(tx, seed, resolver),
+		textBlocks: mechanicBlocksBySlug =>
+			seed.textBlocks.map((block, index) =>
+				compileSpellTextBlock(block, index, mechanicBlocksBySlug)
+			)
+	};
+}
+
 export async function createSpellContentReferenceResolver(
 	tx: Prisma.TransactionClient,
 	seed: SpellContent
@@ -43,7 +102,9 @@ export async function createSpellContentReferenceResolver(
 	};
 }
 
-export function compileSpellTargetConfigs(seed: SpellContent): Prisma.InputJsonValue[] {
+export function compileSpellTargetConfigs(
+	seed: SpellContent
+): Prisma.InputJsonValue[] {
 	return seed.targetConfigs.map((target, index) => {
 		if (!isRecord(target)) {
 			return target;
@@ -53,11 +114,54 @@ export function compileSpellTargetConfigs(seed: SpellContent): Prisma.InputJsonV
 
 		return {
 			...target,
-			id: stableSeedUuid(`spell-target:${seed.formulaName ?? seed.name}:${slug}`),
+			id: stableSeedUuid(
+				`spell-target:${seed.formulaName ?? seed.name}:${slug}`
+			),
 			slug,
-			sortOrder: typeof target['sortOrder'] === 'number' ? target['sortOrder'] : index
+			sortOrder:
+				typeof target['sortOrder'] === 'number' ? target['sortOrder'] : index
 		};
 	}) as Prisma.InputJsonValue[];
+}
+
+export async function compileSpellMechanicBlocks(
+	tx: Prisma.TransactionClient,
+	seed: SpellContent,
+	resolver: SpellContentReferenceResolver
+): Promise<CompiledSpellMechanicBlockContent[]> {
+	const blocks: CompiledSpellMechanicBlockContent[] = [];
+
+	for (const [index, blockSeed] of seed.mechanicBlocks.entries()) {
+		blocks.push(
+			await compileSpellMechanicBlock(tx, blockSeed, index, resolver)
+		);
+	}
+
+	return blocks;
+}
+
+export async function compileSpellMechanicBlock(
+	tx: Prisma.TransactionClient,
+	blockSeed: SpellMechanicBlockContent,
+	index: number,
+	resolver: SpellContentReferenceResolver
+): Promise<CompiledSpellMechanicBlockContent> {
+	const mechanic = await findMechanic(tx, blockSeed.mechanicRef.slug);
+
+	return {
+		contentSlug: blockSeed.mechanicRef.slug,
+		data: {
+			mechanicId: mechanic.id,
+			parameterValues: compileSpellParameterValues(
+				blockSeed.parameters,
+				mechanic.parameterSlugs,
+				resolver
+			),
+			config: (blockSeed.config ?? {}) as Prisma.InputJsonValue,
+			isActive: blockSeed.isActive ?? true,
+			sortOrder: blockSeed.sortOrder ?? index
+		}
+	};
 }
 
 export function compileSpellParameterValues(
@@ -97,7 +201,9 @@ export function compileSpellTextBlock(
 	const mechanicBlockId = mechanicBlocksBySlug.get(block.mechanic);
 
 	if (!mechanicBlockId) {
-		throw new Error(`Spell text block mechanic reference not found: ${block.mechanic}`);
+		throw new Error(
+			`Spell text block mechanic reference not found: ${block.mechanic}`
+		);
 	}
 
 	return {
@@ -163,7 +269,9 @@ function compileSpellParameterValue(
 		const targetId = resolver.targetConfigsBySlug.get(targetSlug);
 
 		if (!targetId) {
-			throw new Error(`Spell target config content reference not found: ${targetSlug}`);
+			throw new Error(
+				`Spell target config content reference not found: ${targetSlug}`
+			);
 		}
 
 		return targetId;
@@ -174,15 +282,30 @@ function compileSpellParameterValue(
 	}
 
 	if (value.kind === 'damageTypeRef') {
-		return resolveLookupRef(value, 'slug', resolver.damageTypesBySlug, 'Damage type');
+		return resolveLookupRef(
+			value,
+			'slug',
+			resolver.damageTypesBySlug,
+			'Damage type'
+		);
 	}
 
 	if (value.kind === 'conditionRef') {
-		return resolveLookupRef(value, 'slug', resolver.conditionsBySlug, 'Condition');
+		return resolveLookupRef(
+			value,
+			'slug',
+			resolver.conditionsBySlug,
+			'Condition'
+		);
 	}
 
 	if (value.kind === 'magicWordLinkedSkill') {
-		return resolveNestedLookupRef(value, 'defaultSkill', resolver.skillsBySlug, 'Skill');
+		return resolveNestedLookupRef(
+			value,
+			'defaultSkill',
+			resolver.skillsBySlug,
+			'Skill'
+		);
 	}
 
 	if (value.kind === 'magicWordLinkedDamageType') {
@@ -261,7 +384,9 @@ async function createSystemValueLookup(
 	return new Map(values.map(value => [value.slug, value.id]));
 }
 
-async function createSkillLookup(tx: Prisma.TransactionClient): Promise<SkillLookup> {
+async function createSkillLookup(
+	tx: Prisma.TransactionClient
+): Promise<SkillLookup> {
 	const values = await tx.skill.findMany({
 		select: {
 			id: true,
@@ -298,6 +423,55 @@ async function createConditionLookup(
 	return new Map(values.map(value => [value.slug, value.id]));
 }
 
+async function findMagicWord(tx: Prisma.TransactionClient, ref: MagicWordRef) {
+	const word = await tx.magicWord.findUnique({
+		select: { id: true },
+		where: {
+			type_slug: {
+				type: toMagicWordType(ref.type),
+				slug: ref.slug
+			}
+		}
+	});
+
+	if (!word) {
+		throw new Error(
+			`Magic word content reference not found: ${ref.type}:${ref.slug}`
+		);
+	}
+
+	return word;
+}
+
+async function findMechanic(
+	tx: Prisma.TransactionClient,
+	slug: string
+): Promise<MechanicLookup> {
+	const mechanic = await tx.spellMechanic.findUnique({
+		select: {
+			id: true,
+			parameters: {
+				select: {
+					id: true,
+					slug: true
+				}
+			}
+		},
+		where: { slug }
+	});
+
+	if (!mechanic) {
+		throw new Error(`Spell mechanic content reference not found: ${slug}`);
+	}
+
+	return {
+		id: mechanic.id,
+		parameterSlugs: new Set(
+			mechanic.parameters.map(parameter => parameter.slug)
+		)
+	};
+}
+
 function createTargetConfigLookup(
 	targetConfigs: Prisma.InputJsonValue[],
 	seed: SpellContent
@@ -324,7 +498,8 @@ function readTargetConfigSlug(
 	index: number,
 	seed: SpellContent
 ) {
-	const slug = typeof target.slug === 'string' && target.slug ? target.slug : '';
+	const slug =
+		typeof target.slug === 'string' && target.slug ? target.slug : '';
 
 	if (!slug) {
 		throw new Error(
@@ -348,6 +523,14 @@ function stableSeedUuid(value: string) {
 		hex.slice(16, 20),
 		hex.slice(20)
 	].join('-');
+}
+
+function toMagicWordType(type: keyof typeof MagicWordType) {
+	return MagicWordType[type];
+}
+
+function toSpellStatus(status: keyof typeof SpellStatus) {
+	return SpellStatus[status];
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
