@@ -1,0 +1,43 @@
+<div class="admin-spell-detail-page__target-parameter">
+	<div class="admin-spell-detail-page__target-parameter-grid">
+		<span class="admin-spell-detail-page__field">
+			<span>Режим цели</span>
+			<p-select
+				[options]="templateOptions()"
+				[group]="true"
+				optionGroupLabel="label"
+				optionGroupChildren="items"
+				optionLabel="label"
+				optionValue="value"
+				[ngModel]="template()"
+				(ngModelChange)="templateChange.emit($event)"
+			></p-select>
+		</span>
+
+		<div class="admin-spell-detail-page__target-preview">
+			<span>Цель</span>
+			<strong>{{ previewText() }}</strong>
+			<small>{{ runtimeSummary() }}</small>
+		</div>
+	</div>
+
+	@if (defaultText(); as currentDefaultText) {
+		<div class="admin-spell-detail-page__target-default-note">
+			<span>Дефолт механики</span>
+			<strong>{{ currentDefaultText }}</strong>
+		</div>
+	}
+</div>
+
+@if (config(); as targetConfig) {
+	<app-spell-target-config-editor
+		[value]="targetConfig"
+		requiredLabel="Обязательная"
+		[countParameterOptions]="countParameterOptions()"
+		(valueChange)="configChange.emit($event)"
+	></app-spell-target-config-editor>
+} @else {
+	<div class="admin-spell-detail-page__empty-block">
+		Требуется настройка цели.
+	</div>
+}

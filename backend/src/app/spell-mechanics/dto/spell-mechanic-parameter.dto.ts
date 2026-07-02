@@ -37,12 +37,22 @@ export const spellMechanicNumericRoles = [
 	'custom'
 ] as const;
 
+export const spellMechanicParameterScopes = [
+	'caster',
+	'target',
+	'spell',
+	'effect',
+	'environment'
+] as const;
+
 export type SpellMechanicParameterKindDto =
 	(typeof spellMechanicParameterKinds)[number];
 export type SpellMechanicParameterDefaultModeDto =
 	(typeof spellMechanicParameterDefaultModes)[number];
 export type SpellMechanicNumericRoleDto =
 	(typeof spellMechanicNumericRoles)[number];
+export type SpellMechanicParameterScopeDto =
+	(typeof spellMechanicParameterScopes)[number];
 
 export class SpellMechanicParameterDefaultValueDto {
 	@IsIn(spellMechanicParameterDefaultModes)
@@ -101,6 +111,10 @@ export class SpellMechanicParameterDto {
 	@IsOptional()
 	@IsIn(spellMechanicNumericRoles)
 	numericRole?: SpellMechanicNumericRoleDto;
+
+	@IsOptional()
+	@IsIn(spellMechanicParameterScopes)
+	scope?: SpellMechanicParameterScopeDto;
 
 	@IsBoolean()
 	required!: boolean;

@@ -1,0 +1,139 @@
+﻿<div class="spell-area-editor">
+	@if (facade.areaShape(); as shape) {
+		<div class="spell-area-editor__head">
+			<div>
+				<h3>{{ shape.name }}</h3>
+				<span>{{
+					shape.description || 'Форма области от выбранного жеста.'
+				}}</span>
+			</div>
+			<p-tag [value]="shape.kind" severity="secondary"></p-tag>
+		</div>
+
+		@if (facade.dimensions().length) {
+			<div class="spell-area-editor__dimensions">
+				@for (dimension of facade.dimensions(); track dimension.key) {
+					<section class="spell-area-editor__dimension">
+						<div class="spell-area-editor__dimension-head">
+							<div>
+								<strong>{{ dimension.label }}</strong>
+								<p-tag
+									[value]="dimension.unitLabel"
+									severity="secondary"
+								></p-tag>
+							</div>
+							<p-selectbutton
+								[options]="facade.parameterValueModeOptions"
+								optionLabel="label"
+								optionValue="value"
+								size="small"
+								[allowEmpty]="false"
+								[ngModel]="valueMode(dimension.key)"
+								(ngModelChange)="facade.updateParameterMode(dimension, $event)"
+							></p-selectbutton>
+						</div>
+
+						@if (valueMode(dimension.key) === 'auto') {
+							@if (autoValue(dimension.key); as autoParameter) {
+								<app-spell-auto-parameter-editor
+									[value]="autoParameter"
+									[scope]="scope(dimension.key)"
+									[characterOptions]="characterOptions"
+									[scaleOptions]="scaleOptions"
+									[rangeModeOptions]="rangeModeOptions"
+									[sourceModeOptions]="sourceModeOptions"
+									[sourceKindOptions]="sourceKindOptions"
+									[sourceTargetOptions]="sourceTargetOptions"
+									[sourceCurveOptions]="sourceCurveOptions"
+									[sourceTransformOptions]="sourceTransformOptions"
+									[roundingModeOptions]="roundingModeOptions"
+									[sourceKeyOptions]="sourceKeyOptions"
+									[transformSourceOptions]="transformSourceOptions"
+									[defaultSourceKey]="defaultSourceKey"
+									[sourceKeyLabel]="sourceKeyLabel"
+									[sourceSummary]="sourceSummary"
+									[isSourceCollapsed]="isSourceCollapsed"
+									(parameterPatch)="
+										facade.updateAutoParameter(dimension.key, $event)
+									"
+									(sourceModeChange)="
+										facade.updateAutoSourceMode(dimension.key, $event)
+									"
+									(sourceAdd)="facade.addAutoSource(dimension.key)"
+									(sourcePatch)="
+										facade.updateAutoSource(
+											dimension.key,
+											$event.sourceId,
+											$event.patch
+										)
+									"
+									(sourceDelete)="
+										facade.deleteAutoSource(dimension.key, $event)
+									"
+									(sourceCollapseToggle)="
+										toggleSourceCollapsed(scope(dimension.key), $event)
+									"
+									(helpClick)="helpClick.emit($event)"
+								></app-spell-auto-parameter-editor>
+							}
+						} @else {
+							<span class="spell-area-editor__field">
+								<span>Значение</span>
+								<input
+									pInputText
+									type="text"
+									[value]="staticValue(dimension.key)"
+									(input)="
+										facade.updateStaticParameterValue(
+											dimension.key,
+											$any($event.target).value
+										)
+									"
+								/>
+							</span>
+						}
+
+						@if (preview(dimension.key); as itemPreview) {
+							<div class="spell-area-editor__numeric-preview">
+								<div class="spell-area-editor__numeric-preview-row">
+									<span>Формула</span>
+									<strong>{{ itemPreview.formula }}</strong>
+								</div>
+								<div class="spell-area-editor__numeric-preview-row">
+									<span>Данные</span>
+									<strong>
+										@if (itemPreview.sources.length) {
+											{{ itemPreview.sources.join(', ') }}
+										} @else {
+											Не используются
+										}
+									</strong>
+								</div>
+								<div class="spell-area-editor__numeric-preview-row">
+									<span>Округление</span>
+									<strong>{{ itemPreview.rounding }}</strong>
+								</div>
+								<div class="spell-area-editor__numeric-preview-values">
+									@for (item of itemPreview.values; track item.x) {
+										<span>
+											{{ item.x }}:
+											<strong>{{ item.value }}</strong>
+										</span>
+									}
+								</div>
+							</div>
+						}
+					</section>
+				}
+			</div>
+		} @else {
+			<div class="spell-area-editor__empty-block">
+				Этот жест не добавляет размерные параметры области.
+			</div>
+		}
+	} @else {
+		<div class="spell-area-editor__empty-block">
+			У выбранного жеста не настроена форма области.
+		</div>
+	}
+</div>

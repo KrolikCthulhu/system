@@ -4,7 +4,8 @@ import {
 	SpellMechanicActionKind,
 	SpellMechanicNumericRole,
 	SpellMechanicParameterDefaultMode,
-	SpellMechanicParameterKind
+	SpellMechanicParameterKind,
+	SpellMechanicParameterScope
 } from '../__generated__/index.js';
 import type {
 	ContentDocument,
@@ -31,15 +32,16 @@ type SeedContext = {
 	systemValuesByName: Map<string, string>;
 };
 
-const spellMechanicsContent = readContent<SpellMechanicsContent>(
-	'magic/mechanics.ts'
-);
+const spellMechanicsContent =
+	readContent<SpellMechanicsContent>('magic/mechanics.ts');
 const SPELL_MECHANIC_CATEGORY_SEEDS = spellMechanicsContent.categories;
 const SPELL_MECHANIC_SEEDS = spellMechanicsContent.mechanics;
 
 export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 	const categories = new Map<string, { id: string }>();
-	const categorySlugs = SPELL_MECHANIC_CATEGORY_SEEDS.map(seed => seedSlug(seed));
+	const categorySlugs = SPELL_MECHANIC_CATEGORY_SEEDS.map(seed =>
+		seedSlug(seed)
+	);
 	const mechanicSlugs = SPELL_MECHANIC_SEEDS.map(seed => seedSlug(seed));
 	const skillsByName = new Map(
 		(
@@ -87,7 +89,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 						name: seed.name,
 						sortOrder: seed.sortOrder
 					}
-			  })
+				})
 			: await tx.spellMechanicCategory.create({
 					select: { id: true },
 					data: {
@@ -95,7 +97,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 						name: seed.name,
 						sortOrder: seed.sortOrder
 					}
-			  });
+				});
 
 		categories.set(seed.name, category);
 	}
@@ -128,11 +130,9 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 						sortOrder: seed.sortOrder,
 						configSchema: seed.configSchema,
 						textTemplate:
-							typeof seed.textTemplate === 'string'
-								? seed.textTemplate
-								: null
+							typeof seed.textTemplate === 'string' ? seed.textTemplate : null
 					}
-			  })
+				})
 			: await tx.spellMechanic.create({
 					select: { id: true },
 					data: {
@@ -143,11 +143,9 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 						sortOrder: seed.sortOrder,
 						configSchema: seed.configSchema,
 						textTemplate:
-							typeof seed.textTemplate === 'string'
-								? seed.textTemplate
-								: null
+							typeof seed.textTemplate === 'string' ? seed.textTemplate : null
 					}
-			  });
+				});
 
 		await tx.spellMechanicParameter.deleteMany({
 			where: { mechanicId: mechanic.id }
@@ -167,6 +165,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 						'numericRole' in parameter ? parameter.numericRole : undefined,
 						parameter.kind
 					),
+					scope: toParameterScope(parameter),
 					defaultMode: toParameterDefaultMode(parameter.defaultValue.mode),
 					staticSkillId:
 						parameter.defaultValue.mode === 'static' &&
@@ -176,7 +175,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 									skillsByName,
 									parameter.defaultValue.value,
 									`Skill seed not found: ${parameter.defaultValue.value}`
-							  )
+								)
 							: null,
 					staticDamageTypeId:
 						parameter.defaultValue.mode === 'static' &&
@@ -186,7 +185,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 									damageTypesByName,
 									parameter.defaultValue.value,
 									`Damage type seed not found: ${parameter.defaultValue.value}`
-							  )
+								)
 							: null,
 					staticConditionId:
 						parameter.defaultValue.mode === 'static' &&
@@ -196,7 +195,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 									conditionsByName,
 									parameter.defaultValue.value,
 									`Condition seed not found: ${parameter.defaultValue.value}`
-							  )
+								)
 							: null,
 					staticSystemValueId:
 						parameter.defaultValue.mode === 'static' &&
@@ -206,7 +205,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 									systemValuesByName,
 									parameter.defaultValue.value,
 									`System value seed not found: ${parameter.defaultValue.value}`
-							  )
+								)
 							: null,
 					staticTextValue:
 						parameter.defaultValue.mode === 'static' &&
@@ -216,8 +215,7 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 							? parameter.defaultValue.value
 							: null,
 					defaultTargetConfig:
-						'defaultTargetConfig' in parameter &&
-						parameter.kind === 'target'
+						'defaultTargetConfig' in parameter && parameter.kind === 'target'
 							? parameter.defaultTargetConfig
 							: null,
 					isRequired: parameter.required,
@@ -309,7 +307,10 @@ export async function seedSpellMechanics(tx: Prisma.TransactionClient) {
 	});
 }
 
-function resolveSeedConfig(value: unknown, context: SeedContext): Prisma.InputJsonValue {
+function resolveSeedConfig(
+	value: unknown,
+	context: SeedContext
+): Prisma.InputJsonValue {
 	if (Array.isArray(value)) {
 		return value.map(item => resolveSeedConfig(item, context));
 	}
@@ -415,7 +416,9 @@ function resolveSeedTextTemplateSegment(
 	context: SeedContext
 ): Record<string, string> {
 	if (!isRecord(value)) {
-		throw new Error('Spell mechanic text template segment seed must be an object.');
+		throw new Error(
+			'Spell mechanic text template segment seed must be an object.'
+		);
 	}
 
 	if (value.kind === 'text') {
@@ -560,7 +563,10 @@ function toParameterKind(kind: SpellMechanicParameterContent['kind']) {
 		condition: 'CONDITION',
 		systemValue: 'SYSTEM_VALUE',
 		text: 'TEXT'
-	} satisfies Record<SpellMechanicParameterContent['kind'], SpellMechanicParameterKind>;
+	} satisfies Record<
+		SpellMechanicParameterContent['kind'],
+		SpellMechanicParameterKind
+	>;
 
 	return kinds[kind];
 }
@@ -603,6 +609,47 @@ function toNumericRole(
 	return roles[role ?? 'custom'];
 }
 
+function toParameterScope(
+	parameter: SpellMechanicParameterContent
+): SpellMechanicParameterScope {
+	if (parameter.scope) {
+		const scopes = {
+			caster: 'CASTER',
+			target: 'TARGET',
+			spell: 'SPELL',
+			effect: 'EFFECT',
+			environment: 'ENVIRONMENT'
+		} satisfies Record<
+			NonNullable<SpellMechanicParameterContent['scope']>,
+			SpellMechanicParameterScope
+		>;
+
+		return scopes[parameter.scope];
+	}
+
+	const normalized = parameter.name.toLocaleLowerCase('ru');
+
+	if (parameter.kind === 'target') {
+		return SpellMechanicParameterScope.TARGET;
+	}
+
+	if (parameter.kind === 'skill') {
+		if (normalized.includes('защит')) {
+			return SpellMechanicParameterScope.TARGET;
+		}
+
+		if (normalized.includes('атак')) {
+			return SpellMechanicParameterScope.CASTER;
+		}
+	}
+
+	if (parameter.kind === 'damageType' || parameter.kind === 'condition') {
+		return SpellMechanicParameterScope.EFFECT;
+	}
+
+	return SpellMechanicParameterScope.SPELL;
+}
+
 function toActionKind(kind: SpellMechanicActionContent['kind']) {
 	const kinds = {
 		roll: 'ROLL',
@@ -616,7 +663,10 @@ function toActionKind(kind: SpellMechanicActionContent['kind']) {
 		conditionRemove: 'CONDITION_REMOVE',
 		text: 'TEXT',
 		custom: 'CUSTOM'
-	} satisfies Record<SpellMechanicActionContent['kind'], SpellMechanicActionKind>;
+	} satisfies Record<
+		SpellMechanicActionContent['kind'],
+		SpellMechanicActionKind
+	>;
 
 	return kinds[kind];
 }

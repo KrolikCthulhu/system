@@ -3,17 +3,17 @@ import {
 	ProgressionPresetConfig,
 	ProgressionPresetKind,
 	ProgressionPresetRoundingMode
-} from '../../../../progression-presets/domain/progression-presets.models';
-import { SystemValue } from '../../../../values/domain/values.models';
+} from '../../../../../progression-presets/domain/progression-presets.models';
+import { SystemValue } from '../../../../../values/domain/values.models';
 import {
 	SpellMechanicNumericRole,
 	SpellMechanicParameter,
 	SpellMechanicParameterKind
-} from '../../../../spell-mechanics/domain/spell-mechanics.models';
+} from '../../../../../spell-mechanics/domain/spell-mechanics.models';
 import {
 	MechanicCalculationGraphState,
 	MechanicCalculationOperation
-} from '../../../../spell-mechanics/ui/mechanic-calculation-graph.models';
+} from '../../../../../spell-mechanics/ui/mechanic-calculation-graph.models';
 export type ProgressionSourceKind = 'manual' | 'skillLevel' | 'essenceProfile';
 export type AutoValueCharacter =
 	| 'stable'
@@ -22,8 +22,13 @@ export type AutoValueCharacter =
 	| 'masterful'
 	| 'limited'
 	| 'extreme';
-export type AutoValueScale = 'small' | 'medium' | 'large' | 'huge';
-export type AutoValueGrowth = 'weak' | 'smooth' | 'fast' | 'saturation' | 'explosive';
+export type AutoValueScale = 'tiny' | 'small' | 'medium' | 'large' | 'huge';
+export type AutoValueGrowth =
+	| 'weak'
+	| 'smooth'
+	| 'fast'
+	| 'saturation'
+	| 'explosive';
 export type AutoValueSourceMode = 'simple' | 'advanced';
 export type AutoValueSourceKind =
 	| 'mechanicParameter'
@@ -36,8 +41,19 @@ export type AutoValueSourceTarget =
 	| 'base'
 	| 'maximum'
 	| 'essenceBonus';
-export type AutoValueSourceCurve = 'weak' | 'smooth' | 'fast' | 'saturation' | 'explosive';
+export type AutoValueSourceCurve =
+	| 'weak'
+	| 'smooth'
+	| 'fast'
+	| 'saturation'
+	| 'explosive';
 export type AutoValueEssenceInfluence = 'none' | 'light' | 'medium' | 'strong';
+export type AutoValueRangeMode = 'none' | 'scale';
+export type AutoValueSourceTransform =
+	| 'value'
+	| 'aboveStart'
+	| 'aboveSource'
+	| 'divide';
 export type EssenceProfileKey =
 	| 'damage'
 	| 'range'
@@ -71,6 +87,9 @@ export interface SpellAutoParameterValue {
 	growth: AutoValueGrowth;
 	startLevel: number;
 	minimum: number;
+	maximum: number | null;
+	rangeMode: AutoValueRangeMode;
+	finalScale: number;
 	sourceMode: AutoValueSourceMode;
 	sources: SpellAutoParameterSource[];
 	essenceInfluence: AutoValueEssenceInfluence;
@@ -82,6 +101,9 @@ export interface SpellAutoParameterSource {
 	id: string;
 	sourceKind: AutoValueSourceKind;
 	sourceKey: string;
+	transform: AutoValueSourceTransform;
+	transformSourceKey: string;
+	transformDivisor: number;
 	target: AutoValueSourceTarget;
 	weight: number;
 	curve: AutoValueSourceCurve;
@@ -92,6 +114,11 @@ export interface NumericParameterPreview {
 	sources: string[];
 	rounding: string;
 	values: Array<{ x: number; value: string }>;
+}
+
+export interface AutoParameterEvaluationOptions {
+	sourceValueOverrides?: ReadonlyMap<string, number>;
+	scaleMaxX?: number;
 }
 
 export interface ConfigField {
@@ -128,7 +155,10 @@ export const PROGRESSION_SOURCE_KIND_OPTIONS: Array<{
 	{ label: 'Ручной x', value: 'manual' }
 ];
 
-export const ESSENCE_PROFILE_SOURCE_OPTIONS: Array<{ label: string; value: EssenceProfileKey }> = [
+export const ESSENCE_PROFILE_SOURCE_OPTIONS: Array<{
+	label: string;
+	value: EssenceProfileKey;
+}> = [
 	{ label: 'Урон', value: 'damage' },
 	{ label: 'Дальность', value: 'range' },
 	{ label: 'Контроль', value: 'control' },
@@ -158,14 +188,21 @@ export const AUTO_VALUE_CHARACTER_OPTIONS: Array<{
 	{ label: 'Экстремальное', value: 'extreme' }
 ];
 
-export const AUTO_VALUE_SCALE_OPTIONS: Array<{ label: string; value: AutoValueScale }> = [
+export const AUTO_VALUE_SCALE_OPTIONS: Array<{
+	label: string;
+	value: AutoValueScale;
+}> = [
+	{ label: 'Очень малый', value: 'tiny' },
 	{ label: 'Малый', value: 'small' },
 	{ label: 'Средний', value: 'medium' },
 	{ label: 'Большой', value: 'large' },
 	{ label: 'Огромный', value: 'huge' }
 ];
 
-export const AUTO_VALUE_GROWTH_OPTIONS: Array<{ label: string; value: AutoValueGrowth }> = [
+export const AUTO_VALUE_GROWTH_OPTIONS: Array<{
+	label: string;
+	value: AutoValueGrowth;
+}> = [
 	{ label: 'Слабый', value: 'weak' },
 	{ label: 'Плавный', value: 'smooth' },
 	{ label: 'Быстрый', value: 'fast' },
@@ -213,14 +250,14 @@ export const AUTO_VALUE_SOURCE_CURVE_OPTIONS: Array<{
 	{ label: 'Взрывная', value: 'explosive' }
 ];
 
-export const AUTO_VALUE_ESSENCE_INFLUENCE_OPTIONS: Array<{
+export const AUTO_VALUE_SOURCE_TRANSFORM_OPTIONS: Array<{
 	label: string;
-	value: AutoValueEssenceInfluence;
+	value: AutoValueSourceTransform;
 }> = [
-	{ label: 'Нет', value: 'none' },
-	{ label: 'Лёгкое', value: 'light' },
-	{ label: 'Среднее', value: 'medium' },
-	{ label: 'Сильное', value: 'strong' }
+	{ label: 'Как есть', value: 'value' },
+	{ label: 'Сверх старта', value: 'aboveStart' },
+	{ label: 'Сверх источника', value: 'aboveSource' },
+	{ label: 'Доля значения', value: 'divide' }
 ];
 
 export function createProgressionParameterValue(
@@ -231,11 +268,15 @@ export function createProgressionParameterValue(
 		sourceKind: 'skillLevel',
 		sourceKey: '',
 		presetId: preset?.id ?? '',
-		config: { ...(preset?.config ?? { base: 0, step: 1, roundingMode: 'round' }) }
+		config: {
+			...(preset?.config ?? { base: 0, step: 1, roundingMode: 'round' })
+		}
 	};
 }
 
-export function createStaticParameterValue(value: string): SpellStaticParameterValue {
+export function createStaticParameterValue(
+	value: string
+): SpellStaticParameterValue {
 	return {
 		mode: 'static',
 		value
@@ -257,9 +298,12 @@ export function createAutoParameterValue(): SpellAutoParameterValue {
 		growth: 'smooth',
 		startLevel: 0,
 		minimum: 0,
+		maximum: null,
+		rangeMode: 'none',
+		finalScale: 1,
 		sourceMode: 'simple',
 		sources: [createAutoParameterSource()],
-		essenceInfluence: 'light',
+		essenceInfluence: 'none',
 		essenceProfileKey: 'damage',
 		roundingMode: 'round'
 	};
@@ -272,6 +316,9 @@ export function createAutoParameterSource(
 		id: crypto.randomUUID(),
 		sourceKind: 'manual',
 		sourceKey: '',
+		transform: 'aboveStart',
+		transformSourceKey: '',
+		transformDivisor: 2,
 		target: 'growth',
 		weight: 1,
 		curve: 'smooth',
@@ -337,7 +384,11 @@ export function createAutoPreset(
 ): Partial<SpellAutoParameterValue> | null {
 	switch (presetId) {
 		case 'role:standard':
-			return createAutoPresetForRole(role, systemValueSourceKey, mechanicParameterSourceKey);
+			return createAutoPresetForRole(
+				role,
+				systemValueSourceKey,
+				mechanicParameterSourceKey
+			);
 		case 'role:growth':
 			return createAutoGrowthPresetForRole(
 				role,
@@ -717,7 +768,9 @@ function essenceProfileKeyForRole(
 	}
 }
 
-export function isStaticParameterValue(value: unknown): value is SpellStaticParameterValue {
+export function isStaticParameterValue(
+	value: unknown
+): value is SpellStaticParameterValue {
 	if (!isRecord(value)) {
 		return false;
 	}
@@ -741,7 +794,9 @@ export function isProgressionParameterValue(
 	);
 }
 
-export function isFormulaParameterValue(value: unknown): value is SpellFormulaParameterValue {
+export function isFormulaParameterValue(
+	value: unknown
+): value is SpellFormulaParameterValue {
 	if (!isRecord(value)) {
 		return false;
 	}
@@ -752,7 +807,9 @@ export function isFormulaParameterValue(value: unknown): value is SpellFormulaPa
 	);
 }
 
-export function isAutoParameterValue(value: unknown): value is SpellAutoParameterValue {
+export function isAutoParameterValue(
+	value: unknown
+): value is SpellAutoParameterValue {
 	if (!isRecord(value)) {
 		return false;
 	}
@@ -764,6 +821,9 @@ export function isAutoParameterValue(value: unknown): value is SpellAutoParamete
 		isAutoValueGrowth(value['growth']) &&
 		typeof value['startLevel'] === 'number' &&
 		typeof value['minimum'] === 'number' &&
+		(value['maximum'] === null || typeof value['maximum'] === 'number') &&
+		isAutoValueRangeMode(value['rangeMode']) &&
+		typeof value['finalScale'] === 'number' &&
 		isAutoValueSourceMode(value['sourceMode']) &&
 		Array.isArray(value['sources']) &&
 		value['sources'].every(isAutoParameterSource) &&
@@ -773,7 +833,9 @@ export function isAutoParameterValue(value: unknown): value is SpellAutoParamete
 	);
 }
 
-function isAutoParameterSource(value: unknown): value is SpellAutoParameterSource {
+function isAutoParameterSource(
+	value: unknown
+): value is SpellAutoParameterSource {
 	if (!isRecord(value)) {
 		return false;
 	}
@@ -782,13 +844,18 @@ function isAutoParameterSource(value: unknown): value is SpellAutoParameterSourc
 		typeof value['id'] === 'string' &&
 		isAutoValueSourceKind(value['sourceKind']) &&
 		typeof value['sourceKey'] === 'string' &&
+		isAutoValueSourceTransform(value['transform']) &&
+		typeof value['transformSourceKey'] === 'string' &&
+		typeof value['transformDivisor'] === 'number' &&
 		isAutoValueSourceTarget(value['target']) &&
 		typeof value['weight'] === 'number' &&
 		isAutoValueSourceCurve(value['curve'])
 	);
 }
 
-export function parameterValueText(value: SpellParameterValue | null | undefined) {
+export function parameterValueText(
+	value: SpellParameterValue | null | undefined
+) {
 	if (typeof value === 'string') {
 		return value;
 	}
@@ -804,17 +871,22 @@ export function supportsNumericParameterKind(kind: SpellMechanicParameterKind) {
 	return kind === 'number' || kind === 'formula';
 }
 
-export function isAutoSourceMechanicParameter(parameter: SpellMechanicParameter) {
+export function isAutoSourceMechanicParameter(
+	parameter: SpellMechanicParameter
+) {
 	return (
 		parameter.kind === 'skill' ||
 		parameter.kind === 'number' ||
-		parameter.kind === 'formula' ||
 		parameter.kind === 'systemValue'
 	);
 }
 
-function isProgressionSourceKind(value: unknown): value is ProgressionSourceKind {
-	return value === 'manual' || value === 'skillLevel' || value === 'essenceProfile';
+function isProgressionSourceKind(
+	value: unknown
+): value is ProgressionSourceKind {
+	return (
+		value === 'manual' || value === 'skillLevel' || value === 'essenceProfile'
+	);
 }
 
 function isAutoValueCharacter(value: unknown): value is AutoValueCharacter {
@@ -830,6 +902,7 @@ function isAutoValueCharacter(value: unknown): value is AutoValueCharacter {
 
 function isAutoValueScale(value: unknown): value is AutoValueScale {
 	return (
+		value === 'tiny' ||
 		value === 'small' ||
 		value === 'medium' ||
 		value === 'large' ||
@@ -860,7 +933,9 @@ function isAutoValueSourceKind(value: unknown): value is AutoValueSourceKind {
 	);
 }
 
-function isAutoValueSourceTarget(value: unknown): value is AutoValueSourceTarget {
+function isAutoValueSourceTarget(
+	value: unknown
+): value is AutoValueSourceTarget {
 	return (
 		value === 'growth' ||
 		value === 'multiplier' ||
@@ -880,6 +955,17 @@ function isAutoValueSourceCurve(value: unknown): value is AutoValueSourceCurve {
 	);
 }
 
+function isAutoValueSourceTransform(
+	value: unknown
+): value is AutoValueSourceTransform {
+	return (
+		value === 'value' ||
+		value === 'aboveStart' ||
+		value === 'aboveSource' ||
+		value === 'divide'
+	);
+}
+
 function isAutoValueEssenceInfluence(
 	value: unknown
 ): value is AutoValueEssenceInfluence {
@@ -889,6 +975,10 @@ function isAutoValueEssenceInfluence(
 		value === 'medium' ||
 		value === 'strong'
 	);
+}
+
+function isAutoValueRangeMode(value: unknown): value is AutoValueRangeMode {
+	return value === 'none' || value === 'scale';
 }
 
 function isEssenceProfileKey(value: unknown): value is EssenceProfileKey {
@@ -908,7 +998,9 @@ function isProgressionRoundingMode(
 	return value === 'floor' || value === 'round' || value === 'ceil';
 }
 
-function isProgressionPresetConfig(value: unknown): value is ProgressionPresetConfig {
+function isProgressionPresetConfig(
+	value: unknown
+): value is ProgressionPresetConfig {
 	if (!isRecord(value)) {
 		return false;
 	}
@@ -970,7 +1062,10 @@ export function getConfigFields(kind: ProgressionPresetKind): ConfigField[] {
 	}
 }
 
-export function buildFormulaLabel(kind: ProgressionPresetKind, config: ProgressionPresetConfig) {
+export function buildFormulaLabel(
+	kind: ProgressionPresetKind,
+	config: ProgressionPresetConfig
+) {
 	switch (kind) {
 		case 'LINEAR':
 			return `${numericConfigValue(config, 'base')} + x * ${numericConfigValue(config, 'step')}`;
@@ -996,7 +1091,10 @@ function evaluateProgression(
 ) {
 	switch (kind) {
 		case 'LINEAR':
-			return numericConfigValue(config, 'base') + x * numericConfigValue(config, 'step');
+			return (
+				numericConfigValue(config, 'base') +
+				x * numericConfigValue(config, 'step')
+			);
 		case 'STEP':
 			return (
 				numericConfigValue(config, 'base') +
@@ -1021,7 +1119,8 @@ function evaluateProgression(
 		case 'SATURATION':
 			return (
 				numericConfigValue(config, 'min') +
-				(numericConfigValue(config, 'max') - numericConfigValue(config, 'min')) *
+				(numericConfigValue(config, 'max') -
+					numericConfigValue(config, 'min')) *
 					(1 - Math.exp(-x * numericConfigValue(config, 'speed')))
 			);
 		case 'PERCENT':
@@ -1054,7 +1153,9 @@ function numericConfigValue(config: ProgressionPresetConfig, key: string) {
 	return typeof value === 'number' ? value : 0;
 }
 
-export function roundingMode(config: ProgressionPresetConfig): ProgressionPresetRoundingMode {
+export function roundingMode(
+	config: ProgressionPresetConfig
+): ProgressionPresetRoundingMode {
 	const mode = config['roundingMode'];
 
 	if (mode === 'floor' || mode === 'round' || mode === 'ceil') {
@@ -1064,7 +1165,9 @@ export function roundingMode(config: ProgressionPresetConfig): ProgressionPreset
 	return 'round';
 }
 
-export function progressionSourceFormulaSourceId(value: SpellProgressionParameterValue) {
+export function progressionSourceFormulaSourceId(
+	value: SpellProgressionParameterValue
+) {
 	switch (value.sourceKind) {
 		case 'skillLevel':
 			return formulaSourceId('skillParameterLevel', value.sourceKey);
@@ -1103,7 +1206,10 @@ function createProgressionExpression(
 		case 'LINEAR':
 			return builder.sum(
 				builder.constant(numericConfigValue(config, 'base')),
-				builder.multiply(x, builder.constant(numericConfigValue(config, 'step')))
+				builder.multiply(
+					x,
+					builder.constant(numericConfigValue(config, 'step'))
+				)
 			);
 		case 'STEP':
 			return builder.sum(
@@ -1112,7 +1218,9 @@ function createProgressionExpression(
 					builder.floor(
 						builder.divide(
 							x,
-							builder.constant(Math.max(1, numericConfigValue(config, 'interval')))
+							builder.constant(
+								Math.max(1, numericConfigValue(config, 'interval'))
+							)
 						)
 					),
 					builder.constant(numericConfigValue(config, 'step'))
@@ -1215,18 +1323,12 @@ export function autoParameterFormulaLabel(
 ) {
 	const config = autoParameterConfig(value);
 	const groups = autoSourceFormulaGroups(value, sourceNames);
-	const essenceWeight = autoEssenceInfluenceWeight(value.essenceInfluence);
-	const profile = autoEssenceProfileLabel(value.essenceProfileKey, sourceNames);
 	const base = [`${config.base}`, ...groups.base];
 	const growth =
 		groups.growth.length > 0
 			? `(${groups.growth.join(' + ')}) * ${config.powerMultiplier}`
 			: '0';
 	const parts = [base.join(' + '), growth];
-
-	if (essenceWeight > 0) {
-		parts.push(`${profile} * ${essenceWeight}`);
-	}
 
 	if (groups.essenceBonus.length > 0) {
 		parts.push(...groups.essenceBonus);
@@ -1239,7 +1341,9 @@ export function autoParameterFormulaLabel(
 	}
 
 	const limitBase =
-		config.limitMax === null && groups.maximum.length > 0 ? config.base : config.limitMax;
+		config.limitMax === null && groups.maximum.length > 0
+			? config.base
+			: config.limitMax;
 	const limitParts = [
 		...(limitBase === null ? [] : [`${limitBase}`]),
 		...groups.maximum
@@ -1252,36 +1356,113 @@ export function autoParameterFormulaLabel(
 		value.minimum > 0
 			? `max(${formatPreviewNumber(value.minimum)}, ${limitedExpression})`
 			: limitedExpression;
+	const startExpression =
+		value.startLevel > 0
+			? `если x < ${formatPreviewNumber(value.startLevel)}: ${formatPreviewNumber(value.minimum)}; иначе ${boundedExpression}`
+			: boundedExpression;
+	const rangeExpression =
+		value.rangeMode === 'scale' &&
+		value.maximum !== null &&
+		value.maximum > value.minimum
+			? `масштабировать ${startExpression} в диапазон ${formatPreviewNumber(value.minimum)}–${formatPreviewNumber(value.maximum)}`
+			: startExpression;
+	const scaledExpression =
+		value.finalScale === 1
+			? rangeExpression
+			: `(${rangeExpression}) * ${formatPreviewNumber(value.finalScale)}`;
 
-	return `${boundedExpression}; ${roundingLabel(value.roundingMode)}`;
+	return `${scaledExpression}; ${roundingLabel(value.roundingMode)}`;
 }
 
 export function autoParameterSourceLabels(
 	value: SpellAutoParameterValue,
 	sourceNames: ReadonlyMap<string, string>
 ) {
-	const sources = value.sources.map(source => autoSourceLabel(source, sourceNames));
-
-	if (value.essenceInfluence !== 'none') {
-		sources.push(autoEssenceProfileLabel(value.essenceProfileKey, sourceNames));
-	}
+	const sources = value.sources.map(source =>
+		autoSourceLabel(source, sourceNames)
+	);
 
 	return Array.from(new Set(sources));
 }
 
-export function evaluateAutoParameterValue(value: SpellAutoParameterValue, x: number) {
+export function evaluateAutoParameterValue(
+	value: SpellAutoParameterValue,
+	x: number,
+	options: AutoParameterEvaluationOptions = {}
+) {
+	const raw = evaluateAutoParameterRawValue(
+		value,
+		x,
+		options.sourceValueOverrides
+	);
+	const ranged = applyAutoParameterRange(value, raw, options);
+	const scaled = ranged * value.finalScale;
+
+	return applyRoundingMode(scaled, value.roundingMode);
+}
+
+function evaluateAutoParameterRawValue(
+	value: SpellAutoParameterValue,
+	x: number,
+	sourceValueOverrides?: ReadonlyMap<string, number>
+) {
+	if (x < value.startLevel) {
+		return value.minimum;
+	}
+
 	const config = autoParameterConfig(value);
-	const groups = autoSourceValueGroups(value, x);
+	const groups = autoSourceValueGroups(value, x, sourceValueOverrides);
 	const base = config.base + groups.base;
 	const power = groups.growth * config.powerMultiplier;
-	const essence = autoEssenceInfluenceWeight(value.essenceInfluence) * x;
-	const multiplied = (base + power + essence + groups.essenceBonus) * (1 + groups.multiplier);
+	const multiplied =
+		(base + power + groups.essenceBonus) * (1 + groups.multiplier);
 	const limitBase =
-		config.limitMax === null && groups.maximum > 0 ? config.base : config.limitMax;
+		config.limitMax === null && hasAutoMaximumSource(value)
+			? config.base
+			: config.limitMax;
 	const limit = limitBase === null ? null : limitBase + groups.maximum;
 	const limited = limit === null ? multiplied : Math.min(multiplied, limit);
 
-	return Math.max(value.minimum, applyRoundingMode(limited, value.roundingMode));
+	return Math.max(value.minimum, limited);
+}
+
+function applyAutoParameterRange(
+	value: SpellAutoParameterValue,
+	raw: number,
+	options: AutoParameterEvaluationOptions
+) {
+	if (
+		value.rangeMode !== 'scale' ||
+		value.maximum === null ||
+		value.maximum <= value.minimum
+	) {
+		return raw;
+	}
+
+	const maxX = Math.max(value.startLevel + 1, options.scaleMaxX ?? 6);
+	const minRaw = evaluateAutoParameterRawValue(
+		value,
+		value.startLevel,
+		options.sourceValueOverrides
+	);
+	const maxRaw = evaluateAutoParameterRawValue(
+		value,
+		maxX,
+		options.sourceValueOverrides
+	);
+
+	if (maxRaw === minRaw) {
+		return value.minimum;
+	}
+
+	const ratio = (raw - minRaw) / (maxRaw - minRaw);
+	const clampedRatio = Math.min(1, Math.max(0, ratio));
+
+	return value.minimum + (value.maximum - value.minimum) * clampedRatio;
+}
+
+function hasAutoMaximumSource(value: SpellAutoParameterValue) {
+	return value.sources.some(source => source.target === 'maximum');
 }
 
 function autoParameterConfig(value: SpellAutoParameterValue) {
@@ -1291,12 +1472,15 @@ function autoParameterConfig(value: SpellAutoParameterValue) {
 	return {
 		base: scale.base,
 		powerMultiplier: scale.powerMultiplier * character.powerMultiplier,
-		limitMax: character.limitMax === null ? null : scale.base + character.limitMax
+		limitMax:
+			character.limitMax === null ? null : scale.base + character.limitMax
 	};
 }
 
 function autoScaleConfig(scale: AutoValueScale) {
 	switch (scale) {
+		case 'tiny':
+			return { base: 0, powerMultiplier: 1 };
 		case 'small':
 			return { base: 2, powerMultiplier: 1 };
 		case 'medium':
@@ -1365,7 +1549,11 @@ function autoSourceFormulaGroups(
 	return groups;
 }
 
-function autoSourceValueGroups(value: SpellAutoParameterValue, x: number) {
+function autoSourceValueGroups(
+	value: SpellAutoParameterValue,
+	x: number,
+	sourceValueOverrides: ReadonlyMap<string, number> = new Map()
+) {
 	const groups: Record<AutoValueSourceTarget, number> = {
 		growth: 0,
 		multiplier: 0,
@@ -1375,10 +1563,26 @@ function autoSourceValueGroups(value: SpellAutoParameterValue, x: number) {
 	};
 
 	for (const source of value.sources) {
+		const sourceValue = sourceValueOverrides.get(source.id) ?? x;
+		const transformSourceValue =
+			source.transformSourceKey.trim().length > 0
+				? autoTransformSourceValue(
+						value,
+						source.transformSourceKey,
+						x,
+						sourceValueOverrides
+					)
+				: x;
+
 		groups[source.target] +=
 			applyAutoSourceCurve(
 				source.curve,
-				autoEffectiveSourceValue(source, x, value.startLevel)
+				autoEffectiveSourceValue(
+					source,
+					sourceValue,
+					value.startLevel,
+					transformSourceValue
+				)
 			) * source.weight;
 	}
 
@@ -1391,10 +1595,12 @@ function autoSourceFormulaLabel(
 	startLevel: number
 ) {
 	const sourceLabel = autoSourceLabel(source, sourceNames);
-	const effectiveSourceLabel =
-		source.sourceKind !== 'essenceProfile' && startLevel > 0
-			? `max(0, ${sourceLabel} - ${formatPreviewNumber(startLevel)})`
-			: sourceLabel;
+	const effectiveSourceLabel = autoSourceTransformFormulaLabel(
+		source,
+		sourceLabel,
+		sourceNames,
+		startLevel
+	);
 
 	return `${autoSourceCurveFormulaLabel(
 		source.curve,
@@ -1405,9 +1611,66 @@ function autoSourceFormulaLabel(
 function autoEffectiveSourceValue(
 	source: SpellAutoParameterSource,
 	value: number,
+	startLevel: number,
+	transformSourceValue: number
+) {
+	switch (source.transform) {
+		case 'value':
+			return value;
+		case 'aboveStart':
+			return source.sourceKind === 'essenceProfile'
+				? value
+				: Math.max(0, value - startLevel);
+		case 'aboveSource':
+			return Math.max(0, value - transformSourceValue);
+		case 'divide':
+			return value / Math.max(1, source.transformDivisor);
+	}
+}
+
+function autoTransformSourceValue(
+	value: SpellAutoParameterValue,
+	sourceKey: string,
+	x: number,
+	sourceValueOverrides: ReadonlyMap<string, number>
+) {
+	const source = value.sources.find(item => item.id === sourceKey);
+
+	const sourceByKey =
+		source ?? value.sources.find(item => item.sourceKey === sourceKey);
+
+	return sourceByKey ? (sourceValueOverrides.get(sourceByKey.id) ?? x) : x;
+}
+
+function autoSourceTransformFormulaLabel(
+	source: SpellAutoParameterSource,
+	sourceLabel: string,
+	sourceNames: ReadonlyMap<string, string>,
 	startLevel: number
 ) {
-	return source.sourceKind === 'essenceProfile' ? value : Math.max(0, value - startLevel);
+	switch (source.transform) {
+		case 'value':
+			return sourceLabel;
+		case 'aboveStart':
+			return source.sourceKind !== 'essenceProfile' && startLevel > 0
+				? `max(0, ${sourceLabel} - ${formatPreviewNumber(startLevel)})`
+				: sourceLabel;
+		case 'aboveSource': {
+			const transformSourceLabel =
+				sourceNames.get(source.transformSourceKey) ??
+				sourceNames.get(
+					formulaSourceId('skillParameterLevel', source.transformSourceKey)
+				) ??
+				sourceNames.get(
+					formulaSourceId('parameter', source.transformSourceKey)
+				) ??
+				'другой источник';
+
+			return `max(0, ${sourceLabel} - ${transformSourceLabel})`;
+		}
+		case 'divide':
+			return `${sourceLabel} / ${formatPreviewNumber(Math.max(1, source.transformDivisor))}`;
+	}
 }
 
 function autoGrowthFormulaLabel(growth: AutoValueGrowth, source: string) {
@@ -1425,21 +1688,11 @@ function autoGrowthFormulaLabel(growth: AutoValueGrowth, source: string) {
 	}
 }
 
-function autoSourceCurveFormulaLabel(curve: AutoValueSourceCurve, source: string) {
+function autoSourceCurveFormulaLabel(
+	curve: AutoValueSourceCurve,
+	source: string
+) {
 	return autoGrowthFormulaLabel(curve, source);
-}
-
-function autoEssenceInfluenceWeight(influence: AutoValueEssenceInfluence) {
-	switch (influence) {
-		case 'none':
-			return 0;
-		case 'light':
-			return 1;
-		case 'medium':
-			return 2;
-		case 'strong':
-			return 4;
-	}
 }
 
 function autoSourceLabel(
@@ -1449,7 +1702,9 @@ function autoSourceLabel(
 	switch (source.sourceKind) {
 		case 'mechanicParameter':
 			return (
-				sourceNames.get(formulaSourceId('skillParameterLevel', source.sourceKey)) ??
+				sourceNames.get(
+					formulaSourceId('skillParameterLevel', source.sourceKey)
+				) ??
 				sourceNames.get(formulaSourceId('parameter', source.sourceKey)) ??
 				'Параметр механики'
 			);
@@ -1468,24 +1723,15 @@ function autoSourceLabel(
 	}
 }
 
-function autoEssenceProfileLabel(
-	key: EssenceProfileKey,
-	sourceNames: ReadonlyMap<string, string>
-) {
-	return (
-		sourceNames.get(formulaSourceId('essenceProfile', key)) ??
-		ESSENCE_PROFILE_SOURCE_OPTIONS.find(option => option.value === key)?.label ??
-		'Профиль сущности'
-	);
-}
-
 export function systemValueSourceLabel(value: SystemValue) {
 	return value.displaySection
 		? `Система: ${value.displaySection}: ${value.name}`
 		: `Система: ${value.name}`;
 }
 
-export function graphRoundingLabel(graph: MechanicCalculationGraphState | null) {
+export function graphRoundingLabel(
+	graph: MechanicCalculationGraphState | null
+) {
 	if (!graph?.nodes.length) {
 		return 'Не задано';
 	}
@@ -1498,7 +1744,9 @@ export function graphRoundingLabel(graph: MechanicCalculationGraphState | null) 
 					node.operation === 'round' ||
 					node.operation === 'ceil')
 		)
-		.map(node => roundingLabel(node.operation as ProgressionPresetRoundingMode));
+		.map(node =>
+			roundingLabel(node.operation as ProgressionPresetRoundingMode)
+		);
 
 	return roundingNodes.length
 		? Array.from(new Set(roundingNodes)).join(', ')
@@ -1569,9 +1817,7 @@ function evaluateIncomingFormulaValue(
 	visited: Set<string>
 ) {
 	const edge = graph.edges.find(
-		item =>
-			item.target === nodeId &&
-			(item.targetHandle ?? 'in') === handleId
+		item => item.target === nodeId && (item.targetHandle ?? 'in') === handleId
 	);
 
 	return edge ? evaluateFormulaNodeValue(edge.source, graph, x, visited) : 0;
@@ -1602,9 +1848,21 @@ function evaluateFormulaNodeValue(
 			case 'constant':
 				return node.constantValue ?? 0;
 			case 'operation':
-				return evaluateFormulaOperationValue(node.id, node.operation, graph, x, visited);
+				return evaluateFormulaOperationValue(
+					node.id,
+					node.operation,
+					graph,
+					x,
+					visited
+				);
 			case 'comparison':
-				return evaluateFormulaComparisonValue(node.id, node.comparison, graph, x, visited);
+				return evaluateFormulaComparisonValue(
+					node.id,
+					node.comparison,
+					graph,
+					x,
+					visited
+				);
 			case 'condition':
 				return evaluateIncomingFormulaValue(
 					node.id,
@@ -1834,12 +2092,11 @@ class FormulaGraphBuilder {
 		};
 	}
 
-	private multiOperation(
-		operation: 'sum' | 'multiply',
-		inputIds: string[]
-	) {
+	private multiOperation(operation: 'sum' | 'multiply', inputIds: string[]) {
 		const operationId = this.addOperationNode(operation);
-		inputIds.forEach(inputId => this.connect(inputId, operationId, 'out', 'in'));
+		inputIds.forEach(inputId =>
+			this.connect(inputId, operationId, 'out', 'in')
+		);
 		return operationId;
 	}
 

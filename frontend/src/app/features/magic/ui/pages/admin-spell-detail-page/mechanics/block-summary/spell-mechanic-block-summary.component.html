@@ -1,0 +1,59 @@
+<div class="admin-spell-detail-page__mechanic-editor-head">
+	<span class="admin-spell-detail-page__field">
+		<span>Механика</span>
+		<p-select
+			[options]="mechanicOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="mechanicId()"
+			(ngModelChange)="mechanicChange.emit($event)"
+		></p-select>
+	</span>
+
+	<span class="admin-spell-detail-page__inline-switch">
+		<span>Активно</span>
+		<p-toggleswitch
+			[ngModel]="isActive()"
+			(ngModelChange)="activeChange.emit($event)"
+		></p-toggleswitch>
+	</span>
+
+	<p-button
+		icon="pi pi-trash"
+		severity="danger"
+		text
+		rounded
+		(onClick)="deleteBlock.emit()"
+	></p-button>
+</div>
+
+<div class="admin-spell-detail-page__mechanic-preview">
+	{{ previewText() }}
+</div>
+
+<section class="admin-spell-detail-page__mechanic-application">
+	<div class="admin-spell-detail-page__mechanic-section-head">
+		<h3>Ограничения применения</h3>
+		<span>{{ applicationText() }}</span>
+	</div>
+
+	<div class="admin-spell-detail-page__mechanic-application-grid">
+		<span class="admin-spell-detail-page__inline-switch">
+			<span>Нужна видимость</span>
+			<p-toggleswitch
+				[ngModel]="applicationConfig().visibilityRequired"
+				(ngModelChange)="applicationChange.emit({ visibilityRequired: $event })"
+			></p-toggleswitch>
+		</span>
+
+		<span class="admin-spell-detail-page__inline-switch">
+			<span>Свободный путь</span>
+			<p-toggleswitch
+				[ngModel]="applicationConfig().lineOfEffectRequired"
+				(ngModelChange)="
+					applicationChange.emit({ lineOfEffectRequired: $event })
+				"
+			></p-toggleswitch>
+		</span>
+	</div>
+</section>

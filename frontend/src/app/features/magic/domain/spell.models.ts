@@ -92,6 +92,7 @@ export interface SpellMechanicApplicationConfig {
 }
 
 export type SpellEffectScaleMode = 'best' | 'choice' | 'all' | 'exact';
+export type SpellEffectScaleRequirement = 'automatic' | 'successes';
 
 export interface SpellEffectScaleConfig {
 	mode: SpellEffectScaleMode;
@@ -101,6 +102,7 @@ export interface SpellEffectScaleConfig {
 
 export interface SpellEffectScaleItemConfig {
 	id: string;
+	requirement: SpellEffectScaleRequirement;
 	threshold: number;
 	name: string;
 	description: string;
@@ -164,6 +166,7 @@ export interface SpellRuntimePendingChoice {
 	sourceValue: number;
 	options: Array<{
 		id: string;
+		requirement: SpellEffectScaleRequirement;
 		threshold: number;
 		name: string;
 		description: string;

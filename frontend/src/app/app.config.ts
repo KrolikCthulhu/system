@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
 import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
+import { provideArmorPresetsInfrastructure } from './features/armor-presets/data/provide-armor-presets-infrastructure';
 import { provideAttributesInfrastructure } from './features/attributes/data/provide-attributes-infrastructure';
 import { AuthFacade } from './features/auth/state/auth.facade';
 import { appRoutes } from './app.routes';
@@ -16,6 +17,8 @@ import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
 import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
 import { provideConditionsInfrastructure } from './features/conditions/data/provide-conditions-infrastructure';
+import { provideCreatureTypesInfrastructure } from './features/creature-types/data/provide-creature-types-infrastructure';
+import { provideCreaturesInfrastructure } from './features/creatures/data/provide-creatures-infrastructure';
 import { provideDamageTypesInfrastructure } from './features/damage-types/data/provide-damage-types-infrastructure';
 import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
 import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
@@ -121,9 +124,12 @@ export const appConfig: ApplicationConfig = {
 	providers: [
 		provideBrowserGlobalErrorListeners(),
 		...provideAuthInfrastructure(),
+		...provideArmorPresetsInfrastructure(),
 		...provideAttributesInfrastructure(),
 		...provideCharacterSheetInfrastructure(),
 		...provideConditionsInfrastructure(),
+		...provideCreatureTypesInfrastructure(),
+		...provideCreaturesInfrastructure(),
 		...provideDamageTypesInfrastructure(),
 		...provideGameEventsInfrastructure(),
 		...provideMagicWordsInfrastructure(),

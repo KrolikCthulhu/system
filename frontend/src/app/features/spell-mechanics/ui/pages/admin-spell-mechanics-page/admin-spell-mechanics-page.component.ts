@@ -57,6 +57,7 @@ import {
 	SpellMechanicParameterDefaultValue,
 	SpellMechanicParameterDefaultValueMode,
 	SpellMechanicParameterKind,
+	SpellMechanicParameterScope,
 	SpellMechanicNumericRole,
 	SpellMechanicTargetConfig
 } from '../../../domain/spell-mechanics.models';
@@ -100,7 +101,10 @@ interface MechanicActionDraft extends Omit<SpellMechanicAction, 'config'> {
 }
 
 interface NestedMechanicActionDraft
-	extends Omit<SpellMechanicAction, 'mechanicId' | 'config' | 'createdAt' | 'updatedAt'> {
+	extends Omit<
+		SpellMechanicAction,
+		'mechanicId' | 'config' | 'createdAt' | 'updatedAt'
+	> {
 	config: SpellMechanicConfigSchema;
 }
 
@@ -256,6 +260,17 @@ const NUMERIC_ROLE_OPTIONS: Array<{
 	{ label: 'Свое', value: 'custom' }
 ];
 
+const PARAMETER_SCOPE_OPTIONS: Array<{
+	label: string;
+	value: SpellMechanicParameterScope;
+}> = [
+	{ label: 'Кастер', value: 'caster' },
+	{ label: 'Цель', value: 'target' },
+	{ label: 'Заклинание', value: 'spell' },
+	{ label: 'Эффект', value: 'effect' },
+	{ label: 'Окружение', value: 'environment' }
+];
+
 const ACTION_KIND_OPTIONS: Array<{
 	label: string;
 	value: SpellMechanicActionKind;
@@ -398,6 +413,7 @@ export class AdminSpellMechanicsPageComponent {
 	protected readonly effectScaleModeOptions = EFFECT_SCALE_MODE_OPTIONS;
 	protected readonly defaultValueModeOptions = DEFAULT_VALUE_MODE_OPTIONS;
 	protected readonly numericRoleOptions = NUMERIC_ROLE_OPTIONS;
+	protected readonly parameterScopeOptions = PARAMETER_SCOPE_OPTIONS;
 	protected readonly savedDraftSignature = signal('');
 	protected readonly loading = signal(true);
 	protected readonly saving = signal(false);
@@ -506,9 +522,7 @@ export class AdminSpellMechanicsPageComponent {
 	);
 	protected readonly scenarioTreeNodes = computed<
 		Array<TreeNode<ScenarioTreeNodeData>>
-	>(() =>
-		createScenarioTreeNodes(this.mechanicActions())
-	);
+	>(() => createScenarioTreeNodes(this.mechanicActions()));
 	protected readonly selectedAction = computed(() => {
 		const branchSelection = this.selectedBranchAction();
 
@@ -667,8 +681,10 @@ export class AdminSpellMechanicsPageComponent {
 					.map(item => [item.id, item.name] as const)
 			)
 	);
-	protected readonly textTemplateSegments = computed(() =>
-		parseTextTemplateDocument(this.mechanicDraft()?.textTemplate ?? '').segments
+	protected readonly textTemplateSegments = computed(
+		() =>
+			parseTextTemplateDocument(this.mechanicDraft()?.textTemplate ?? '')
+				.segments
 	);
 	protected readonly textTemplateInsertOptionGroups = computed<
 		SelectOptionGroup[]
@@ -686,16 +702,13 @@ export class AdminSpellMechanicsPageComponent {
 					searchText: `${parameter.name} параметр входное значение`
 				}))
 		),
-		...createSingleOptionGroup(
-			'Системные',
-			[
-				{
-					id: encodeTextTemplateInsert({ kind: 'applicationText' }),
-					name: 'Текст применения',
-					searchText: 'применение видимость путь эффекта цель точка область'
-				}
-			]
-		),
+		...createSingleOptionGroup('Системные', [
+			{
+				id: encodeTextTemplateInsert({ kind: 'applicationText' }),
+				name: 'Текст применения',
+				searchText: 'применение видимость путь эффекта цель точка область'
+			}
+		]),
 		...createSingleOptionGroup(
 			'Результаты шагов',
 			collectMechanicActions(this.mechanicActions()).flatMap(action =>
@@ -958,9 +971,7 @@ export class AdminSpellMechanicsPageComponent {
 		this.setMechanicActions(nextActions);
 	}
 
-	protected updateSelectedMechanicAction(
-		patch: Partial<MechanicActionDraft>
-	) {
+	protected updateSelectedMechanicAction(patch: Partial<MechanicActionDraft>) {
 		const branchSelection = this.selectedBranchAction();
 
 		if (branchSelection) {
@@ -989,18 +1000,18 @@ export class AdminSpellMechanicsPageComponent {
 						})
 					: kind === 'calculation'
 						? stringifyConfigSchema({ resultName: 'Значение', graph: null })
-					: kind === 'branch'
+						: kind === 'branch'
 							? stringifyConfigSchema({
 									thenActions: [],
 									elseActions: []
 								})
-						: kind === 'effectScale'
-							? stringifyConfigSchema(defaultActionConfig(kind))
-							: kind === 'valueChange'
-								? stringifyConfigSchema({ operation: 'decrease' })
-								: kind === 'conditionAdd' || kind === 'conditionRemove'
-									? stringifyConfigSchema({})
-									: stringifyConfigSchema({});
+							: kind === 'effectScale'
+								? stringifyConfigSchema(defaultActionConfig(kind))
+								: kind === 'valueChange'
+									? stringifyConfigSchema({ operation: 'decrease' })
+									: kind === 'conditionAdd' || kind === 'conditionRemove'
+										? stringifyConfigSchema({})
+										: stringifyConfigSchema({});
 
 		this.updateSelectedMechanicAction({ kind, configText });
 	}
@@ -1150,7 +1161,9 @@ export class AdminSpellMechanicsPageComponent {
 		return parseCalculationActionConfig(action).graph ?? null;
 	}
 
-	protected updateCalculationGraph(graph: MechanicCalculationGraphState | null) {
+	protected updateCalculationGraph(
+		graph: MechanicCalculationGraphState | null
+	) {
 		this.updateSelectedCalculationActionConfig({ graph });
 	}
 
@@ -1197,10 +1210,7 @@ export class AdminSpellMechanicsPageComponent {
 		});
 	}
 
-	protected branchActions(
-		action: MechanicActionDraft,
-		branchName: BranchName
-	) {
+	protected branchActions(action: MechanicActionDraft, branchName: BranchName) {
 		return parseBranchActionConfig(action)[branchName] ?? [];
 	}
 
@@ -1491,31 +1501,35 @@ export class AdminSpellMechanicsPageComponent {
 			return;
 		}
 
-		const nextRootAction = updateNestedActionByPath(rootAction, path, action => {
-			const nextConfig =
-				'configText' in patch && patch.configText !== undefined
-					? (parseConfigSchema(patch.configText) ?? action.config)
-					: 'config' in patch && patch.config !== undefined
-						? patch.config
-						: action.config;
+		const nextRootAction = updateNestedActionByPath(
+			rootAction,
+			path,
+			action => {
+				const nextConfig =
+					'configText' in patch && patch.configText !== undefined
+						? (parseConfigSchema(patch.configText) ?? action.config)
+						: 'config' in patch && patch.config !== undefined
+							? patch.config
+							: action.config;
 
-			return {
-				...action,
-				...('name' in patch && patch.name !== undefined
-					? { name: patch.name }
-					: {}),
-				...('kind' in patch && patch.kind !== undefined
-					? { kind: patch.kind }
-					: {}),
-				...('isActive' in patch && patch.isActive !== undefined
-					? { isActive: patch.isActive }
-					: {}),
-				...('sortOrder' in patch && patch.sortOrder !== undefined
-					? { sortOrder: patch.sortOrder }
-					: {}),
-				config: nextConfig
-			};
-		});
+				return {
+					...action,
+					...('name' in patch && patch.name !== undefined
+						? { name: patch.name }
+						: {}),
+					...('kind' in patch && patch.kind !== undefined
+						? { kind: patch.kind }
+						: {}),
+					...('isActive' in patch && patch.isActive !== undefined
+						? { isActive: patch.isActive }
+						: {}),
+					...('sortOrder' in patch && patch.sortOrder !== undefined
+						? { sortOrder: patch.sortOrder }
+						: {}),
+					config: nextConfig
+				};
+			}
+		);
 
 		this.updateMechanicAction(rootIndex, {
 			configText: nextRootAction.configText
@@ -1565,7 +1579,10 @@ export class AdminSpellMechanicsPageComponent {
 		}
 
 		const selected = this.selectedBranchAction();
-		if (selected?.rootIndex === rootIndex && isPathPrefix(path, selected.path)) {
+		if (
+			selected?.rootIndex === rootIndex &&
+			isPathPrefix(path, selected.path)
+		) {
 			this.selectedBranchAction.set(null);
 			this.selectedActionIndex.set(rootIndex);
 		}
@@ -1852,6 +1869,7 @@ export class AdminSpellMechanicsPageComponent {
 			name: '',
 			kind: 'target',
 			numericRole: 'custom',
+			scope: 'target',
 			required: true,
 			configuredBySpell: true,
 			overrideAllowed: false,
@@ -1891,18 +1909,26 @@ export class AdminSpellMechanicsPageComponent {
 		this.setMechanicSlots(nextSlots);
 	}
 
-	protected updateMechanicSlotKind(index: number, kind: SpellMechanicParameterKind) {
+	protected updateMechanicSlotKind(
+		index: number,
+		kind: SpellMechanicParameterKind
+	) {
+		const currentSlot = this.mechanicSlots()[index];
+
 		this.updateMechanicSlot(index, {
 			kind,
 			numericRole: 'custom',
+			scope: inferParameterScope({
+				kind,
+				name: currentSlot?.name ?? '',
+				numericRole: 'custom'
+			}),
 			defaultValue: createEmptyDefaultValue(),
 			defaultTargetConfig: null
 		});
 	}
 
-	protected updateSelectedMechanicSlot(
-		patch: Partial<SpellMechanicParameter>
-	) {
+	protected updateSelectedMechanicSlot(patch: Partial<SpellMechanicParameter>) {
 		const index = this.selectedSlotIndex();
 
 		if (index === null) {
@@ -2113,9 +2139,15 @@ export class AdminSpellMechanicsPageComponent {
 		);
 	}
 
+	protected slotScopeLabel(scope: SpellMechanicParameterScope) {
+		return (
+			PARAMETER_SCOPE_OPTIONS.find(option => option.value === scope)?.label ??
+			'Заклинание'
+		);
+	}
+
 	protected targetCountParameterOptions(currentSlotId: string) {
-		return this
-			.mechanicSlots()
+		return this.mechanicSlots()
 			.filter(
 				slot =>
 					slot.id !== currentSlotId &&
@@ -2153,18 +2185,17 @@ export class AdminSpellMechanicsPageComponent {
 		const results = [
 			...previousRootActions,
 			...previousBranchActions.map(nestedActionToDraft)
-		]
-			.flatMap(action =>
-				findActionResultNames(action).map(resultName => ({
-					id: encodeSourceValue({
-						kind: 'actionResult',
-						actionId: action.id,
-						resultName
-					}),
-					name: `${action.name || 'Действие'}: ${resultName}`,
-					searchText: `${action.name} ${resultName} результат действия`
-				}))
-			);
+		].flatMap(action =>
+			findActionResultNames(action).map(resultName => ({
+				id: encodeSourceValue({
+					kind: 'actionResult',
+					actionId: action.id,
+					resultName
+				}),
+				name: `${action.name || 'Действие'}: ${resultName}`,
+				searchText: `${action.name} ${resultName} результат действия`
+			}))
+		);
 
 		return createSingleOptionGroup('Результаты предыдущих действий', results);
 	}
@@ -2244,7 +2275,10 @@ export class AdminSpellMechanicsPageComponent {
 		);
 	}
 
-	protected updateTextTemplateInsertSegment(index: number, value: string | null) {
+	protected updateTextTemplateInsertSegment(
+		index: number,
+		value: string | null
+	) {
 		if (!value) {
 			return;
 		}
@@ -2288,7 +2322,9 @@ export class AdminSpellMechanicsPageComponent {
 
 	protected deleteTextTemplateSegment(index: number) {
 		this.updateTextTemplateSegments(
-			this.textTemplateSegments().filter((_, segmentIndex) => segmentIndex !== index)
+			this.textTemplateSegments().filter(
+				(_, segmentIndex) => segmentIndex !== index
+			)
 		);
 	}
 
@@ -2379,8 +2415,9 @@ export class AdminSpellMechanicsPageComponent {
 
 		if (segment.kind === 'parameter') {
 			return (
-				this.mechanicSlots().find(parameter => parameter.id === segment.parameterId)
-					?.name ?? 'Параметр не найден'
+				this.mechanicSlots().find(
+					parameter => parameter.id === segment.parameterId
+				)?.name ?? 'Параметр не найден'
 			);
 		}
 
@@ -2649,6 +2686,7 @@ export class AdminSpellMechanicsPageComponent {
 				name: parameter.name,
 				kind: parameter.kind,
 				numericRole: parameter.numericRole,
+				scope: parameter.scope,
 				required: parameter.required,
 				configuredBySpell: parameter.configuredBySpell,
 				overrideAllowed: parameter.overrideAllowed,
@@ -2909,7 +2947,7 @@ function createEmptyMechanicDraft(categoryId: string): MechanicDraft {
 		categoryId,
 		name: '',
 		description: '',
-			configSchemaText: stringifyConfigSchema({}),
+		configSchemaText: stringifyConfigSchema({}),
 		textTemplate: '',
 		parameters: [],
 		actions: [],
@@ -3041,7 +3079,9 @@ function parseConfigSchema(value: string): SpellMechanicConfigSchema | null {
 	}
 }
 
-function parseActionConfig(action: MechanicActionDraft): SpellMechanicConfigSchema {
+function parseActionConfig(
+	action: MechanicActionDraft
+): SpellMechanicConfigSchema {
 	return parseConfigSchema(action.configText) ?? {};
 }
 
@@ -3049,20 +3089,14 @@ function parseRollActionConfig(action: MechanicActionDraft): RollActionConfig {
 	const config = parseActionConfig(action);
 	return {
 		...config,
-		actor: isActionTargetSource(config['actor'])
-			? config['actor']
-			: undefined,
-		skill: isActionSkillSource(config['skill'])
-			? config['skill']
-			: undefined,
+		actor: isActionTargetSource(config['actor']) ? config['actor'] : undefined,
+		skill: isActionSkillSource(config['skill']) ? config['skill'] : undefined,
 		resultName:
 			typeof config['resultName'] === 'string'
 				? config['resultName']
 				: undefined,
 		optional:
-			typeof config['optional'] === 'boolean'
-				? config['optional']
-				: undefined
+			typeof config['optional'] === 'boolean' ? config['optional'] : undefined
 	};
 }
 
@@ -3094,9 +3128,7 @@ function parseCalculationActionConfig(
 	const config = parseActionConfig(action);
 	return {
 		...config,
-		graph: isMechanicCalculationGraph(config['graph'])
-			? config['graph']
-			: null,
+		graph: isMechanicCalculationGraph(config['graph']) ? config['graph'] : null,
 		resultName:
 			typeof config['resultName'] === 'string'
 				? config['resultName']
@@ -3104,7 +3136,9 @@ function parseCalculationActionConfig(
 	};
 }
 
-function parseBranchActionConfig(action: MechanicActionDraft): BranchActionConfig {
+function parseBranchActionConfig(
+	action: MechanicActionDraft
+): BranchActionConfig {
 	const config = parseActionConfig(action);
 	return {
 		...config,
@@ -3122,7 +3156,9 @@ function parseEffectScaleActionConfig(
 	const config = parseActionConfig(action);
 	return {
 		...config,
-		source: isActionAmountSource(config['source']) ? config['source'] : undefined,
+		source: isActionAmountSource(config['source'])
+			? config['source']
+			: undefined,
 		mode: isEffectScaleMode(config['mode']) ? config['mode'] : 'best',
 		resultName:
 			typeof config['resultName'] === 'string'
@@ -3172,7 +3208,7 @@ function parseConditionActionConfig(
 			: undefined,
 		duration: isActionAmountSource(config['duration'])
 			? config['duration']
-			: undefined,
+			: undefined
 	};
 }
 
@@ -3324,9 +3360,10 @@ function parseNestedAction(
 		id: typeof value['id'] === 'string' ? value['id'] : crypto.randomUUID(),
 		name: typeof value['name'] === 'string' ? value['name'] : '',
 		kind,
-		config: isRecord(value['config']) ? value['config'] : defaultActionConfig(kind),
-		isActive:
-			typeof value['isActive'] === 'boolean' ? value['isActive'] : true,
+		config: isRecord(value['config'])
+			? value['config']
+			: defaultActionConfig(kind),
+		isActive: typeof value['isActive'] === 'boolean' ? value['isActive'] : true,
 		sortOrder:
 			typeof value['sortOrder'] === 'number' ? value['sortOrder'] : index
 	};
@@ -3352,7 +3389,8 @@ function parseEffectScaleItem(
 
 	return {
 		id: typeof value['id'] === 'string' ? value['id'] : crypto.randomUUID(),
-		threshold: typeof value['threshold'] === 'number' ? value['threshold'] : index,
+		threshold:
+			typeof value['threshold'] === 'number' ? value['threshold'] : index,
 		name: typeof value['name'] === 'string' ? value['name'] : '',
 		description:
 			typeof value['description'] === 'string' ? value['description'] : '',
@@ -3376,7 +3414,9 @@ function nestedActionToDraft(
 	};
 }
 
-function parseTextTemplateDocument(value: string): MechanicTextTemplateDocument {
+function parseTextTemplateDocument(
+	value: string
+): MechanicTextTemplateDocument {
 	const trimmed = value.trim();
 
 	if (!trimmed) {
@@ -3405,16 +3445,18 @@ function parseTextTemplateDocument(value: string): MechanicTextTemplateDocument 
 	};
 }
 
-function stringifyTextTemplateDocument(
-	document: MechanicTextTemplateDocument
-) {
+function stringifyTextTemplateDocument(document: MechanicTextTemplateDocument) {
 	return JSON.stringify(document);
 }
 
 function isTextTemplateDocument(
 	value: unknown
 ): value is MechanicTextTemplateDocument {
-	if (!isRecord(value) || value['version'] !== 1 || !Array.isArray(value['segments'])) {
+	if (
+		!isRecord(value) ||
+		value['version'] !== 1 ||
+		!Array.isArray(value['segments'])
+	) {
 		return false;
 	}
 
@@ -3459,7 +3501,9 @@ function formatTextTemplatePreview(
 			}
 
 			if (segment.kind === 'parameter') {
-				const parameter = parameters.find(item => item.id === segment.parameterId);
+				const parameter = parameters.find(
+					item => item.id === segment.parameterId
+				);
 				return `[${parameter?.name ?? 'Параметр не найден'}]`;
 			}
 
@@ -3527,9 +3571,7 @@ function collectMechanicActions(actions: MechanicActionDraft[]) {
 		result.push(action);
 
 		if (action.kind === 'branch') {
-			result.push(
-				...collectNestedMechanicActions(readBranchConfig(action))
-			);
+			result.push(...collectNestedMechanicActions(readBranchConfig(action)));
 		} else if (action.kind === 'effectScale') {
 			result.push(
 				...collectEffectScaleNestedMechanicActions(
@@ -3568,7 +3610,9 @@ function collectNestedMechanicActions(config: BranchActionConfig) {
 	return result;
 }
 
-function collectEffectScaleNestedMechanicActions(config: EffectScaleActionConfig) {
+function collectEffectScaleNestedMechanicActions(
+	config: EffectScaleActionConfig
+) {
 	const result: MechanicActionDraft[] = [];
 
 	for (const action of (config.items ?? []).flatMap(item => item.actions)) {
@@ -3777,8 +3821,7 @@ function findNestedActionByPath(
 		const actions = readNestedActionsByPathSegment(current, segment);
 		nested =
 			actions.find(
-				(action: NestedMechanicActionDraft) =>
-					action.id === segment.actionId
+				(action: NestedMechanicActionDraft) => action.id === segment.actionId
 			) ?? null;
 
 		if (!nested) {
@@ -3851,8 +3894,7 @@ function collectPreviousNestedActions(
 	for (const segment of path) {
 		const actions = readNestedActionsByPathSegment(current, segment);
 		const index = actions.findIndex(
-			(action: NestedMechanicActionDraft) =>
-				action.id === segment.actionId
+			(action: NestedMechanicActionDraft) => action.id === segment.actionId
 		);
 
 		if (index === -1) {
@@ -3902,8 +3944,9 @@ function readNestedActionsByPathSegment(
 	}
 
 	return (
-		readEffectScaleConfig(action).items?.find(item => item.id === segment.itemId)
-			?.actions ?? []
+		readEffectScaleConfig(action).items?.find(
+			item => item.id === segment.itemId
+		)?.actions ?? []
 	);
 }
 
@@ -4072,9 +4115,7 @@ function isActionSkillSource(value: unknown): value is ActionSkillSource {
 	return false;
 }
 
-function isValueChangeOperation(
-	value: unknown
-): value is ValueChangeOperation {
+function isValueChangeOperation(value: unknown): value is ValueChangeOperation {
 	return VALUE_CHANGE_OPERATION_OPTIONS.some(option => option.value === value);
 }
 
@@ -4103,6 +4144,34 @@ function isDefaultValueModeAllowedForKind(
 
 function supportsNumericRole(kind: SpellMechanicParameterKind) {
 	return kind === 'number' || kind === 'formula';
+}
+
+function inferParameterScope(parameter: {
+	kind: SpellMechanicParameterKind;
+	name: string;
+	numericRole: SpellMechanicNumericRole;
+}): SpellMechanicParameterScope {
+	const normalized = parameter.name.toLocaleLowerCase('ru');
+
+	if (parameter.kind === 'target') {
+		return 'target';
+	}
+
+	if (parameter.kind === 'skill') {
+		if (normalized.includes('защит')) {
+			return 'target';
+		}
+
+		if (normalized.includes('атак')) {
+			return 'caster';
+		}
+	}
+
+	if (parameter.kind === 'damageType' || parameter.kind === 'condition') {
+		return 'effect';
+	}
+
+	return 'spell';
 }
 
 function upsertById<T extends { id: string }>(items: T[], item: T) {

@@ -3,8 +3,8 @@ import {
 	SpellTargetCountMode,
 	SpellTargetRelation,
 	SpellTargetSource
-} from '../../../domain/spell.models';
-import { SpellMechanicParameter } from '../../../../spell-mechanics/domain/spell-mechanics.models';
+} from '../../../../domain/spell.models';
+import { SpellMechanicParameter } from '../../../../../spell-mechanics/domain/spell-mechanics.models';
 
 export type TargetTemplateId =
 	| 'mechanicDefault'
@@ -26,20 +26,29 @@ export interface TargetTemplateOptionGroup {
 	items: TargetTemplateOption[];
 }
 
-export const TARGET_SOURCE_OPTIONS: Array<{ label: string; value: SpellTargetSource }> = [
+export const TARGET_SOURCE_OPTIONS: Array<{
+	label: string;
+	value: SpellTargetSource;
+}> = [
 	{ label: 'Сам кастер', value: 'caster' },
 	{ label: 'Выбор', value: 'selected' },
 	{ label: 'Область', value: 'area' }
 ];
 
-export const TARGET_RELATION_OPTIONS: Array<{ label: string; value: SpellTargetRelation }> = [
+export const TARGET_RELATION_OPTIONS: Array<{
+	label: string;
+	value: SpellTargetRelation;
+}> = [
 	{ label: 'Сам', value: 'self' },
 	{ label: 'Любые', value: 'any' },
 	{ label: 'Враги', value: 'enemy' },
 	{ label: 'Союзники', value: 'ally' }
 ];
 
-export const TARGET_COUNT_MODE_OPTIONS: Array<{ label: string; value: SpellTargetCountMode }> = [
+export const TARGET_COUNT_MODE_OPTIONS: Array<{
+	label: string;
+	value: SpellTargetCountMode;
+}> = [
 	{ label: 'Одна', value: 'one' },
 	{ label: 'Все', value: 'all' },
 	{ label: 'До значения', value: 'upTo' },
@@ -183,7 +192,12 @@ export function targetPresetConfig(
 		case 'allEnemiesArea':
 			return createTargetPreset('Все враги в области', 'area', 'enemy', 'all');
 		case 'allAlliesArea':
-			return createTargetPreset('Все союзники в области', 'area', 'ally', 'all');
+			return createTargetPreset(
+				'Все союзники в области',
+				'area',
+				'ally',
+				'all'
+			);
 		case 'anyArea':
 			return createTargetPreset('Любые цели в области', 'area', 'any', 'all');
 		case 'mechanicDefault':
@@ -245,7 +259,9 @@ export function createTargetPreset(
 	};
 }
 
-export function findTargetPresetTemplate(target: SpellTargetConfig): TargetTemplateId | null {
+export function findTargetPresetTemplate(
+	target: SpellTargetConfig
+): TargetTemplateId | null {
 	const presets: TargetTemplateId[] = [
 		'caster',
 		'singleEnemy',
@@ -255,10 +271,12 @@ export function findTargetPresetTemplate(target: SpellTargetConfig): TargetTempl
 		'anyArea'
 	];
 
-	return presets.find(template => {
-		const preset = targetPresetConfig(template);
-		return preset ? targetMatchesTemplate(target, preset) : false;
-	}) ?? null;
+	return (
+		presets.find(template => {
+			const preset = targetPresetConfig(template);
+			return preset ? targetMatchesTemplate(target, preset) : false;
+		}) ?? null
+	);
 }
 
 export function targetMatchesTemplate(
@@ -278,23 +296,23 @@ export function targetMatchesTemplate(
 	);
 }
 
-export function normalizeTargetConfigs(targets: SpellTargetConfig[]): SpellTargetConfig[] {
-	return targets
-		.sort(compareTargetsByOrderAndName)
-		.map((target, index) => ({
-			id: target.id || crypto.randomUUID(),
-			slug: target.slug || target.id || '',
-			name: target.name || `Цель ${index + 1}`,
-			source: target.source,
-			relation: target.relation,
-			countMode: target.countMode,
-			countValueMode: target.countValueMode,
-			countValue: target.countValue,
-			countFormula: target.countFormula,
-			targetCountParameterId: target.targetCountParameterId ?? '',
-			isRequired: target.isRequired,
-			sortOrder: index
-		}));
+export function normalizeTargetConfigs(
+	targets: SpellTargetConfig[]
+): SpellTargetConfig[] {
+	return targets.sort(compareTargetsByOrderAndName).map((target, index) => ({
+		id: target.id || crypto.randomUUID(),
+		slug: target.slug || target.id || '',
+		name: target.name || `Цель ${index + 1}`,
+		source: target.source,
+		relation: target.relation,
+		countMode: target.countMode,
+		countValueMode: target.countValueMode,
+		countValue: target.countValue,
+		countFormula: target.countFormula,
+		targetCountParameterId: target.targetCountParameterId ?? '',
+		isRequired: target.isRequired,
+		sortOrder: index
+	}));
 }
 
 export function targetConfigPreview(target: TargetConfigLike) {
@@ -325,7 +343,7 @@ export function targetConfigText(target: TargetConfigLike) {
 	if (target.countMode === 'one') {
 		switch (target.relation) {
 			case 'enemy':
-				return `по одной вражеской цели${area}`;
+				return `по одному вражескому существу${area}`;
 			case 'ally':
 				return `по одному союзнику${area}`;
 			case 'self':
@@ -366,8 +384,8 @@ function targetCountLabel(target: TargetConfigLike) {
 		return target.relation === 'enemy'
 			? 'одна'
 			: target.relation === 'ally'
-			? 'один'
-			: 'одна';
+				? 'один'
+				: 'одна';
 	}
 
 	if (target.countMode === 'all') {
@@ -378,8 +396,8 @@ function targetCountLabel(target: TargetConfigLike) {
 		target.countValueMode === 'parameter'
 			? 'из параметра'
 			: target.countValueMode === 'formula'
-			? target.countFormula || 'формула'
-			: String(target.countValue);
+				? target.countFormula || 'формула'
+				: String(target.countValue);
 
 	return target.countMode === 'upTo' ? `до ${value}` : `ровно ${value}`;
 }
@@ -468,5 +486,8 @@ function compareTargetsByOrderAndName(
 	first: Pick<SpellTargetConfig, 'sortOrder' | 'name'>,
 	second: Pick<SpellTargetConfig, 'sortOrder' | 'name'>
 ) {
-	return first.sortOrder - second.sortOrder || first.name.localeCompare(second.name, 'ru');
+	return (
+		first.sortOrder - second.sortOrder ||
+		first.name.localeCompare(second.name, 'ru')
+	);
 }

@@ -1,0 +1,91 @@
+:host {
+	display: block;
+	min-width: 0;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+:host:first-child {
+	border-top: 0;
+}
+
+.admin-spell-detail-page__parameter-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 0;
+	padding: 0.5rem 0;
+}
+
+.admin-spell-detail-page__parameter-card--collapsed {
+	gap: 0;
+}
+
+.admin-spell-detail-page__parameter-card-head {
+	position: sticky;
+	top: 0;
+	z-index: 3;
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	width: 100%;
+	min-width: 0;
+	padding: 0.375rem 0;
+	border: 0;
+	background: var(--p-content-background);
+	color: inherit;
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.admin-spell-detail-page__parameter-card-title {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.admin-spell-detail-page__parameter-card-title > span {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	min-width: 0;
+}
+
+.admin-spell-detail-page__parameter-head-preview {
+	display: flex;
+	flex-wrap: nowrap;
+	gap: 0.25rem;
+	min-width: 0;
+	overflow: hidden;
+}
+
+.admin-spell-detail-page__parameter-head-preview span {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+	padding: 0.1875rem 0.375rem;
+	border-radius: 0.375rem;
+	background: var(--p-surface-100);
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	line-height: 1.2;
+}
+
+.admin-spell-detail-page__parameter-head-preview strong {
+	color: var(--p-text-color);
+	font-weight: 600;
+}
+
+.admin-spell-detail-page__parameter-head-preview
+	.admin-spell-detail-page__parameter-head-preview-range {
+	background: var(--p-surface-200);
+}
+
+.admin-spell-detail-page__parameter-card-toggle {
+	flex: 0 0 auto;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}

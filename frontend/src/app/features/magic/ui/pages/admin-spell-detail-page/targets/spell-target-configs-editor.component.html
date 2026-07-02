@@ -1,0 +1,88 @@
+<div class="spell-target-configs-editor">
+	<aside class="spell-target-configs-editor__sidebar">
+		<div class="spell-target-configs-editor__sidebar-head">
+			<h3>Цели</h3>
+			<p-button
+				label="Цель"
+				icon="pi pi-plus"
+				size="small"
+				severity="secondary"
+				variant="outlined"
+				(onClick)="facade.addTargetConfig()"
+			></p-button>
+		</div>
+
+		<div class="spell-target-configs-editor__list">
+			@if (facade.draft(); as draft) {
+				@for (
+					target of draft.targetConfigs;
+					track target.id;
+					let targetIndex = $index
+				) {
+					<div
+						class="spell-target-configs-editor__list-item"
+						[class.spell-target-configs-editor__list-item--active]="
+							facade.selectedIndex() === targetIndex
+						"
+					>
+						<button
+							type="button"
+							class="spell-target-configs-editor__list-button"
+							(click)="facade.selectTargetConfig(targetIndex)"
+						>
+							<span>{{ target.name }}</span>
+							<small>{{ facade.targetConfigPreview(target) }}</small>
+						</button>
+
+						<div class="spell-target-configs-editor__order">
+							<p-button
+								icon="pi pi-arrow-up"
+								severity="secondary"
+								text
+								rounded
+								[disabled]="facade.isFirstTargetConfig(targetIndex)"
+								(onClick)="facade.moveTargetConfig(targetIndex, -1)"
+							></p-button>
+							<p-button
+								icon="pi pi-arrow-down"
+								severity="secondary"
+								text
+								rounded
+								[disabled]="facade.isLastTargetConfig(targetIndex)"
+								(onClick)="facade.moveTargetConfig(targetIndex, 1)"
+							></p-button>
+						</div>
+					</div>
+				} @empty {
+					<div class="spell-target-configs-editor__empty-block">
+						Цели пока не добавлены.
+					</div>
+				}
+			}
+		</div>
+	</aside>
+
+	<section class="spell-target-configs-editor__editor">
+		@if (facade.selectedTargetConfig(); as target) {
+			<div class="spell-target-configs-editor__editor-head">
+				<h3>Редактирование цели</h3>
+				<p-button
+					icon="pi pi-trash"
+					severity="danger"
+					text
+					rounded
+					(onClick)="facade.deleteSelectedTargetConfig()"
+				></p-button>
+			</div>
+
+			<app-spell-target-config-editor
+				[value]="target"
+				(valueChange)="facade.updateSelectedTargetConfig($event)"
+			></app-spell-target-config-editor>
+		} @else {
+			<div class="spell-target-configs-editor__empty-block">
+				Выбери цель слева или добавь новую.
+			</div>
+		}
+	</section>
+</div>

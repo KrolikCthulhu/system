@@ -1,0 +1,193 @@
+<section class="admin-armor-presets-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-armor-presets-page__header">
+		<div class="admin-armor-presets-page__section-pad">
+			<p-breadcrumb
+				class="admin-armor-presets-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-armor-presets-page__workspace">
+		<aside
+			class="admin-armor-presets-page__panel admin-armor-presets-page__sidebar"
+		>
+			<div
+				class="admin-armor-presets-page__panel-heading admin-armor-presets-page__section-pad"
+			>
+				<h2 class="admin-armor-presets-page__panel-title">Пресеты брони</h2>
+				<p-button
+					label="Новый пресет"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createArmorPreset()"
+				></p-button>
+			</div>
+
+			<div
+				class="admin-armor-presets-page__search-row admin-armor-presets-page__section-pad"
+			>
+				<p-iconfield class="admin-armor-presets-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск пресета"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-armor-presets-page__state">
+					Загрузка пресетов брони...
+				</div>
+			} @else if (errorMessage() && !draft()) {
+				<div
+					class="admin-armor-presets-page__state admin-armor-presets-page__state--error"
+				>
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div
+					class="admin-armor-presets-page__item-list admin-armor-presets-page__section-pad"
+				>
+					<div class="admin-armor-presets-page__list-title">Пресеты брони</div>
+
+					@for (armorPreset of filteredArmorPresets(); track armorPreset.id) {
+						<button
+							type="button"
+							class="admin-armor-presets-page__item"
+							[class.admin-armor-presets-page__item--active]="
+								armorPreset.id === selectedArmorPresetId()
+							"
+							(click)="selectArmorPreset(armorPreset)"
+						>
+							<span>{{ armorPreset.name }}</span>
+							<span class="admin-armor-presets-page__item-meta">
+								{{ armorPreset.points }} / {{ armorPreset.protection }}
+							</span>
+							@if (!armorPreset.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-armor-presets-page__empty-list">
+							Пресетов брони пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section
+				class="admin-armor-presets-page__panel admin-armor-presets-page__editor"
+			>
+				<div
+					class="admin-armor-presets-page__panel-heading admin-armor-presets-page__panel-heading--split admin-armor-presets-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-armor-presets-page__panel-title">{{ title() }}</h2>
+					</div>
+
+					<div class="admin-armor-presets-page__heading-actions">
+						<p-tag value="Пресет брони" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedArmorPreset()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div
+					class="admin-armor-presets-page__editor-body admin-armor-presets-page__section-pad"
+				>
+					@if (errorMessage()) {
+						<div class="admin-armor-presets-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-armor-presets-page__form-grid">
+						<span
+							class="admin-armor-presets-page__field admin-armor-presets-page__field--wide"
+						>
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-armor-presets-page__field">
+							<span>Пункты брони</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.points"
+								[showButtons]="true"
+								[min]="0"
+								(ngModelChange)="updateDraftPoints($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-armor-presets-page__field">
+							<span>Защита пункта</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.protection"
+								[showButtons]="true"
+								[min]="0"
+								(ngModelChange)="updateDraftProtection($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-armor-presets-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-armor-presets-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+					</div>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section
+				class="admin-armor-presets-page__panel admin-armor-presets-page__editor"
+			>
+				<div class="admin-armor-presets-page__state">
+					Выбери пресет брони слева или создай новый.
+				</div>
+			</section>
+		}
+	</div>
+</section>

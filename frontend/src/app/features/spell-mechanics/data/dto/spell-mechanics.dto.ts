@@ -48,6 +48,13 @@ export type SpellMechanicNumericRoleDto =
 	| 'targetCount'
 	| 'custom';
 
+export type SpellMechanicParameterScopeDto =
+	| 'caster'
+	| 'target'
+	| 'spell'
+	| 'effect'
+	| 'environment';
+
 export interface SpellMechanicParameterDefaultValueDto {
 	mode: SpellMechanicParameterDefaultValueModeDto;
 	value: string;
@@ -60,6 +67,7 @@ export interface SpellMechanicParameterDto {
 	name: string;
 	kind: SpellMechanicParameterKindDto;
 	numericRole: SpellMechanicNumericRoleDto;
+	scope: SpellMechanicParameterScopeDto;
 	required: boolean;
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;
@@ -155,6 +163,7 @@ export interface SpellMechanicParameterCommandDto {
 	name: string;
 	kind: SpellMechanicParameterKindDto;
 	numericRole?: SpellMechanicNumericRoleDto;
+	scope?: SpellMechanicParameterScopeDto;
 	required: boolean;
 	configuredBySpell: boolean;
 	overrideAllowed: boolean;

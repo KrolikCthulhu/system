@@ -18,12 +18,13 @@ import {
 	SpellEffectScaleConfig,
 	SpellEffectScaleItemConfig,
 	SpellEffectScaleMode,
+	SpellEffectScaleRequirement,
 	SpellNestedMechanicBlockConfig
-} from '../../../domain/spell.models';
+} from '../../../../../domain/spell.models';
 import {
 	SpellMechanicParameter,
 	SpellMechanicParameterKind
-} from '../../../../spell-mechanics/domain/spell-mechanics.models';
+} from '../../../../../../spell-mechanics/domain/spell-mechanics.models';
 
 interface SelectOption {
 	id: string;
@@ -40,6 +41,14 @@ interface CommandOption {
 	label: string;
 	value: string;
 }
+
+const EFFECT_SCALE_REQUIREMENT_OPTIONS: Array<{
+	label: string;
+	value: SpellEffectScaleRequirement;
+}> = [
+	{ label: 'Без проверки', value: 'automatic' },
+	{ label: 'По успехам', value: 'successes' }
+];
 
 @Component({
 	selector: 'app-spell-effect-scale-editor',
@@ -59,21 +68,29 @@ interface CommandOption {
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SpellEffectScaleEditorComponent {
+	protected readonly requirementOptions = EFFECT_SCALE_REQUIREMENT_OPTIONS;
 	readonly config = input.required<SpellEffectScaleConfig>();
 	readonly mechanicOptions = input.required<CommandOption[]>();
-	readonly modeOptions = input.required<
-		Array<{ label: string; value: SpellEffectScaleMode }>
-	>();
+	readonly modeOptions =
+		input.required<Array<{ label: string; value: SpellEffectScaleMode }>>();
 	readonly mechanicParameters =
-		input.required<(block: SpellNestedMechanicBlockConfig) => SpellMechanicParameter[]>();
+		input.required<
+			(block: SpellNestedMechanicBlockConfig) => SpellMechanicParameter[]
+		>();
 	readonly usesParameterSelect =
 		input.required<(kind: SpellMechanicParameterKind) => boolean>();
 	readonly parameterOptions =
-		input.required<(parameter: SpellMechanicParameter) => SelectOptionGroup[]>();
+		input.required<
+			(parameter: SpellMechanicParameter) => SelectOptionGroup[]
+		>();
 	readonly parameterValue =
-		input.required<(block: SpellNestedMechanicBlockConfig, parameterId: string) => string>();
+		input.required<
+			(block: SpellNestedMechanicBlockConfig, parameterId: string) => string
+		>();
 	readonly staticParameterValue =
-		input.required<(block: SpellNestedMechanicBlockConfig, parameterId: string) => string>();
+		input.required<
+			(block: SpellNestedMechanicBlockConfig, parameterId: string) => string
+		>();
 
 	readonly configChange = output<SpellEffectScaleConfig>();
 	readonly nestedMechanicAdd = output<{ itemId: string }>();
@@ -115,6 +132,7 @@ export class SpellEffectScaleEditorComponent {
 
 		const nextItem: SpellEffectScaleItemConfig = {
 			id: crypto.randomUUID(),
+			requirement: 'successes',
 			threshold,
 			name: `${threshold}+ успехов`,
 			description: '',
@@ -123,10 +141,7 @@ export class SpellEffectScaleEditorComponent {
 		};
 
 		this.updateConfig({
-			items: [
-				...items,
-				nextItem
-			]
+			items: [...items, nextItem]
 		});
 		this.selectedItemId.set(nextItem.id);
 	}
@@ -154,10 +169,22 @@ export class SpellEffectScaleEditorComponent {
 	}
 
 	protected itemThresholdLabel(item: SpellEffectScaleItemConfig) {
+		if (item.requirement === 'automatic') {
+			return 'Без проверки';
+		}
+
 		return item.isOpenEnded ? `${item.threshold}+` : `${item.threshold}`;
 	}
 
 	protected itemTitle(item: SpellEffectScaleItemConfig) {
+		if (item.name.trim()) {
+			return item.name;
+		}
+
+		if (item.requirement === 'automatic') {
+			return 'Базовый эффект';
+		}
+
 		return item.name.trim() || `${this.itemThresholdLabel(item)} успехов`;
 	}
 }

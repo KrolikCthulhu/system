@@ -74,7 +74,7 @@ export default {
 					"name": "Навык защиты",
 					"kind": "skill",
 					"required": true,
-					"configuredBySpell": false,
+					"configuredBySpell": true,
 					"overrideAllowed": true,
 					"defaultValue": {
 						"mode": "static",
@@ -304,7 +304,15 @@ export default {
 					},
 					{
 						"kind": "text",
-						"text": ". Цель может защититься. При попадании цель получает урон типа "
+						"text": ". Цель может защититься навыком "
+					},
+					{
+						"kind": "parameter",
+						"parameterSlug": "navyk-zaschity"
+					},
+					{
+						"kind": "text",
+						"text": ". При попадании цель получает урон типа "
 					},
 					{
 						"kind": "parameter",
@@ -817,6 +825,7 @@ export default {
 							"kind": "mechanicParameter",
 							"parameterSlug": "navyk-proverki"
 						},
+						"optional": true,
 						"resultName": "Успехи проверки"
 					},
 					"slug": "proverka-effekta"
@@ -837,6 +846,7 @@ export default {
 						"items": [
 							{
 								"id": "effect-scale-item-0",
+								"requirement": "successes",
 								"threshold": 0,
 								"name": "0 успехов",
 								"description": "",
@@ -844,6 +854,7 @@ export default {
 							},
 							{
 								"id": "effect-scale-item-1",
+								"requirement": "successes",
 								"threshold": 1,
 								"name": "1 успех",
 								"description": "",
@@ -851,6 +862,7 @@ export default {
 							},
 							{
 								"id": "effect-scale-item-2",
+								"requirement": "successes",
 								"threshold": 2,
 								"name": "2 успеха",
 								"description": "",
@@ -858,6 +870,7 @@ export default {
 							},
 							{
 								"id": "effect-scale-item-3",
+								"requirement": "successes",
 								"threshold": 3,
 								"name": "3 успеха",
 								"description": "",
@@ -865,6 +878,7 @@ export default {
 							},
 							{
 								"id": "effect-scale-item-4",
+								"requirement": "successes",
 								"threshold": 4,
 								"name": "4+ успеха",
 								"description": "",

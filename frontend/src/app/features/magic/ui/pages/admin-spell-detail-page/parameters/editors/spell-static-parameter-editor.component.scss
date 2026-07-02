@@ -1,0 +1,21 @@
+.admin-spell-detail-page__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.admin-spell-detail-page__field input,
+.admin-spell-detail-page__field textarea,
+.admin-spell-detail-page__field p-select,
+.admin-spell-detail-page__field p-inputnumber {
+	width: 100%;
+}
+
+.admin-spell-detail-page__option-group {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	font-weight: 600;
+}

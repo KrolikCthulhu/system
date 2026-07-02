@@ -1,4 +1,7 @@
-<section class="spell-effect-scale-editor" data-testid="spell-effect-scale-editor">
+<section
+	class="spell-effect-scale-editor"
+	data-testid="spell-effect-scale-editor"
+>
 	<div class="spell-effect-scale-editor__head">
 		<div>
 			<h3>
@@ -44,7 +47,10 @@
 	</div>
 
 	<div class="spell-effect-scale-editor__layout">
-		<div class="spell-effect-scale-editor__scale-list" data-testid="effect-scale-list">
+		<div
+			class="spell-effect-scale-editor__scale-list"
+			data-testid="effect-scale-list"
+		>
 			@for (item of config().items; track item.id) {
 				<button
 					type="button"
@@ -64,12 +70,17 @@
 					</span>
 				</button>
 			} @empty {
-				<div class="spell-effect-scale-editor__empty">Строки шкалы пока не добавлены.</div>
+				<div class="spell-effect-scale-editor__empty">
+					Строки шкалы пока не добавлены.
+				</div>
 			}
 		</div>
 
 		@if (selectedItem(); as item) {
-			<div class="spell-effect-scale-editor__details" data-testid="effect-scale-details">
+			<div
+				class="spell-effect-scale-editor__details"
+				data-testid="effect-scale-details"
+			>
 				<div class="spell-effect-scale-editor__details-head">
 					<strong>Ступень {{ itemThresholdLabel(item) }}</strong>
 					<p-button
@@ -82,17 +93,41 @@
 				</div>
 
 				<div class="spell-effect-scale-editor__item-main">
-					<span class="spell-effect-scale-editor__field" data-testid="effect-scale-threshold-field">
-						<span>Успехов от</span>
-						<p-inputnumber
-							fluid
-							[ngModel]="item.threshold"
-							[min]="0"
-							(ngModelChange)="updateItem(item.id, { threshold: $event ?? 0 })"
-						></p-inputnumber>
+					<span
+						class="spell-effect-scale-editor__field"
+						data-testid="effect-scale-requirement-field"
+					>
+						<span>Требование</span>
+						<p-select
+							[options]="requirementOptions"
+							optionLabel="label"
+							optionValue="value"
+							[ngModel]="item.requirement"
+							(ngModelChange)="updateItem(item.id, { requirement: $event })"
+						></p-select>
 					</span>
 
-					<span class="spell-effect-scale-editor__field" data-testid="effect-scale-name-field">
+					@if (item.requirement === 'successes') {
+						<span
+							class="spell-effect-scale-editor__field"
+							data-testid="effect-scale-threshold-field"
+						>
+							<span>Успехов от</span>
+							<p-inputnumber
+								fluid
+								[ngModel]="item.threshold"
+								[min]="0"
+								(ngModelChange)="
+									updateItem(item.id, { threshold: $event ?? 0 })
+								"
+							></p-inputnumber>
+						</span>
+					}
+
+					<span
+						class="spell-effect-scale-editor__field"
+						data-testid="effect-scale-name-field"
+					>
 						<span>Название</span>
 						<input
 							pInputText
@@ -102,13 +137,18 @@
 						/>
 					</span>
 
-					<span class="spell-effect-scale-editor__inline-switch" data-testid="effect-scale-open-ended-field">
-						<span>Верхняя строка</span>
-						<p-toggleswitch
-							[ngModel]="item.isOpenEnded"
-							(ngModelChange)="updateItem(item.id, { isOpenEnded: $event })"
-						></p-toggleswitch>
-					</span>
+					@if (item.requirement === 'successes') {
+						<span
+							class="spell-effect-scale-editor__inline-switch"
+							data-testid="effect-scale-open-ended-field"
+						>
+							<span>Верхняя строка</span>
+							<p-toggleswitch
+								[ngModel]="item.isOpenEnded"
+								(ngModelChange)="updateItem(item.id, { isOpenEnded: $event })"
+							></p-toggleswitch>
+						</span>
+					}
 
 					<span
 						class="spell-effect-scale-editor__field spell-effect-scale-editor__field--wide"
@@ -119,12 +159,17 @@
 							pTextarea
 							rows="3"
 							[value]="item.description"
-							(input)="updateItem(item.id, { description: $any($event.target).value })"
+							(input)="
+								updateItem(item.id, { description: $any($event.target).value })
+							"
 						></textarea>
 					</span>
 				</div>
 
-				<div class="spell-effect-scale-editor__nested-head" data-testid="effect-scale-mechanics-head">
+				<div
+					class="spell-effect-scale-editor__nested-head"
+					data-testid="effect-scale-mechanics-head"
+				>
 					<strong>Механики эффекта</strong>
 					<p-button
 						label="Механика"
@@ -139,7 +184,9 @@
 				@for (nestedBlock of item.mechanicBlocks; track nestedBlock.id) {
 					<div
 						class="spell-effect-scale-editor__nested"
-						[attr.data-testid]="'effect-scale-nested-mechanic-' + nestedBlock.id"
+						[attr.data-testid]="
+							'effect-scale-nested-mechanic-' + nestedBlock.id
+						"
 					>
 						<div class="spell-effect-scale-editor__nested-main">
 							<span class="spell-effect-scale-editor__field">
@@ -175,7 +222,10 @@
 
 						@if (mechanicParameters()(nestedBlock).length) {
 							<div class="spell-effect-scale-editor__nested-params">
-								@for (parameter of mechanicParameters()(nestedBlock); track parameter.id) {
+								@for (
+									parameter of mechanicParameters()(nestedBlock);
+									track parameter.id
+								) {
 									<span class="spell-effect-scale-editor__field">
 										<span>{{ parameter.name }}</span>
 										@if (usesParameterSelect()(parameter.kind)) {
@@ -191,7 +241,9 @@
 												filterBy="name,searchText"
 												[showClear]="true"
 												placeholder="Не выбрано"
-												[ngModel]="parameterValue()(nestedBlock, parameter.id) || null"
+												[ngModel]="
+													parameterValue()(nestedBlock, parameter.id) || null
+												"
 												(ngModelChange)="
 													nestedParameterChange.emit({
 														itemId: item.id,
@@ -211,7 +263,9 @@
 											<input
 												pInputText
 												type="text"
-												[value]="staticParameterValue()(nestedBlock, parameter.id)"
+												[value]="
+													staticParameterValue()(nestedBlock, parameter.id)
+												"
 												(input)="
 													nestedParameterChange.emit({
 														itemId: item.id,

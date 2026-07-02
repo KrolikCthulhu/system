@@ -1,0 +1,216 @@
+.admin-spell-detail-page__runtime-preview {
+	display: flex;
+	flex-direction: column;
+	gap: 1rem;
+}
+
+.admin-spell-detail-page__runtime-toolbar,
+.admin-spell-detail-page__runtime-roll-head,
+.admin-spell-detail-page__runtime-row-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__runtime-toolbar {
+	padding-bottom: 0.875rem;
+}
+
+.admin-spell-detail-page__runtime-title {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.admin-spell-detail-page__runtime-title span {
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.admin-spell-detail-page__runtime-section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	padding-top: 0.875rem;
+}
+
+.admin-spell-detail-page__runtime-toolbar
+	+ .admin-spell-detail-page__runtime-section,
+.admin-spell-detail-page__runtime-section
+	+ .admin-spell-detail-page__runtime-section {
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-detail-page__runtime-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__runtime-section-head h3 {
+	margin: 0;
+	font-size: 0.95rem;
+}
+
+.admin-spell-detail-page__runtime-section-head span {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+}
+
+.admin-spell-detail-page__runtime-roll,
+.admin-spell-detail-page__runtime-row {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	padding: 0.75rem 0;
+	background: var(--p-surface-50);
+	border-radius: 0;
+}
+
+.admin-spell-detail-page__runtime-roll {
+	padding: 0.75rem;
+	border-radius: 6px;
+}
+
+.admin-spell-detail-page__runtime-roll-head div,
+.admin-spell-detail-page__runtime-meta div {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	min-width: 0;
+}
+
+.admin-spell-detail-page__runtime-roll-head strong,
+.admin-spell-detail-page__runtime-meta strong {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-spell-detail-page__runtime-roll-head span,
+.admin-spell-detail-page__runtime-meta span {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+}
+
+.admin-spell-detail-page__runtime-meta,
+.admin-spell-detail-page__runtime-roll-controls,
+.admin-spell-detail-page__runtime-roll-result {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.admin-spell-detail-page__runtime-meta {
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-spell-detail-page__runtime-roll-controls {
+	grid-template-columns: minmax(0, 1fr);
+	align-items: end;
+}
+
+.admin-spell-detail-page__runtime-roll-submit {
+	display: flex;
+	justify-content: flex-start;
+	padding-top: 0.25rem;
+}
+
+.admin-spell-detail-page__runtime-roll-dice-count,
+.admin-spell-detail-page__runtime-roll-level {
+	min-width: 0;
+}
+
+.admin-spell-detail-page__runtime-roll-dice-count p-inputnumber,
+.admin-spell-detail-page__runtime-roll-level p-select {
+	width: 100%;
+}
+
+.admin-spell-detail-page__runtime-roll-dice-count p-inputnumber {
+	width: 5.5rem;
+}
+
+.admin-spell-detail-page__runtime-roll-result {
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	padding-top: 0.25rem;
+}
+
+.admin-spell-detail-page__runtime-choice-options {
+	display: grid;
+	gap: 0.5rem;
+}
+
+.admin-spell-detail-page__runtime-choice-option {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	width: 100%;
+	padding: 0.625rem 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 6px;
+	background: var(--p-content-background);
+	color: var(--p-text-color);
+	font: inherit;
+	text-align: left;
+	cursor: pointer;
+}
+
+.admin-spell-detail-page__runtime-choice-option:hover {
+	border-color: var(--p-primary-color);
+	background: var(--p-surface-50);
+}
+
+.admin-spell-detail-page__runtime-choice-option span {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	line-height: 1.25;
+}
+
+.admin-spell-detail-page__runtime-dice {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.25rem;
+}
+
+.admin-spell-detail-page__runtime-dice span {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.75rem;
+	height: 1.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 4px;
+	background: var(--p-surface-0);
+	font-weight: 600;
+}
+
+.admin-spell-detail-page__runtime-result {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	min-width: max-content;
+	font-size: 0.875rem;
+}
+
+.admin-spell-detail-page__runtime-result span,
+.admin-spell-detail-page__runtime-row span {
+	color: var(--p-text-muted-color);
+}
+
+.admin-spell-detail-page__runtime-row {
+	padding: 0.625rem 0;
+	background: transparent;
+	border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-detail-page__runtime-row--nested {
+	padding-left: 0.75rem;
+	border-left: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-detail-page__runtime-row:last-child {
+	border-bottom: 0;
+}

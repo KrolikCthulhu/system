@@ -4,40 +4,29 @@ import {
 	Component,
 	DestroyRef,
 	computed,
-	inject,
-	signal
+	inject
 } from '@angular/core';
-import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { forkJoin } from 'rxjs';
 import { ConfirmationService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
-import { Button } from 'primeng/button';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { Dialog } from 'primeng/dialog';
-import { Drawer } from 'primeng/drawer';
-import { InputNumber } from 'primeng/inputnumber';
-import { InputText } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
-import { SelectButton } from 'primeng/selectbutton';
+import { Popover } from 'primeng/popover';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
-import { Tag } from 'primeng/tag';
-import { Textarea } from 'primeng/textarea';
-import { ToggleSwitch } from 'primeng/toggleswitch';
 import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
-import { SpellTargetConfigEditorComponent } from '../../../../../shared/ui/spell-target-config-editor/spell-target-config-editor.component';
 import { CONDITIONS_REPOSITORY } from '../../../../conditions/data/conditions-repository.port';
-import { Condition } from '../../../../conditions/domain/conditions.models';
+import { CREATURES_REPOSITORY } from '../../../../creatures/data/creatures-repository.port';
 import { DAMAGE_TYPES_REPOSITORY } from '../../../../damage-types/data/damage-types-repository.port';
-import { DamageType } from '../../../../damage-types/domain/damage-types.models';
 import { PROGRESSION_PRESETS_REPOSITORY } from '../../../../progression-presets/data/progression-presets-repository.port';
-import {
-	ProgressionPreset,
-	ProgressionPresetRoundingMode
-} from '../../../../progression-presets/domain/progression-presets.models';
+import { ProgressionPresetRoundingMode } from '../../../../progression-presets/domain/progression-presets.models';
 import { SKILLS_REPOSITORY } from '../../../../skills/data/skills-repository.port';
-import { Skill, SkillCategory, SkillLevel } from '../../../../skills/domain/skills.models';
+import {
+	Skill,
+	SkillCategory,
+	SkillLevel
+} from '../../../../skills/domain/skills.models';
 import { VALUES_REPOSITORY } from '../../../../values/data/values-repository.port';
 import {
 	CHARACTER_INPUT_OVERRIDE_KEY,
@@ -45,13 +34,38 @@ import {
 } from '../../../../values/domain/value-graph.engine';
 import { SystemValue } from '../../../../values/domain/values.models';
 import { CHARACTER_SHEET_SANDBOX_REPOSITORY } from '../../../../character-sheet/data/character-sheet-sandbox-repository.port';
-import {
-	CharacterSheetSandboxDraft
-} from '../../../../character-sheet/domain/character-sheet-sandbox.models';
 import { SPELL_MECHANICS_REPOSITORY } from '../../../../spell-mechanics/data/spell-mechanics-repository.port';
 import { MechanicCalculationGraphEditorComponent } from '../../../../spell-mechanics/ui/components/mechanic-calculation-graph-editor/mechanic-calculation-graph-editor.component';
 import { formatMechanicCalculationFormula } from '../../../../spell-mechanics/ui/mechanic-calculation-graph.formula';
-import { SpellEffectScaleEditorComponent } from './spell-effect-scale-editor.component';
+import { SpellAddMechanicDialogComponent } from './dialogs/add-mechanic/spell-add-mechanic-dialog.component';
+import { SpellAreaEditorComponent } from './area/spell-area-editor.component';
+import { SpellDetailEditorHeaderComponent } from './shell/spell-detail-editor-header.component';
+import {
+	SpellMechanicsEditorComponent,
+	SpellMechanicsEditorContext
+} from './mechanics/spell-mechanics-editor.component';
+import { SpellMainEditorComponent } from './main/spell-main-editor.component';
+import { SpellBalanceTabComponent } from './tabs/balance/spell-balance-tab.component';
+import { SpellProblemsTabComponent } from './tabs/problems/spell-problems-tab.component';
+import { SpellRuntimePreviewDrawerComponent } from './runtime/preview-drawer/spell-runtime-preview-drawer.component';
+import { SpellTextTabComponent } from './tabs/text/spell-text-tab.component';
+import { SpellTargetConfigsEditorComponent } from './targets/spell-target-configs-editor.component';
+import { AdminSpellDetailPageStore } from './state/admin-spell-detail-page.store';
+import {
+	createSpellDraftFromFormula,
+	createSpellDraftFromSpell,
+	normalizeSpellConfig
+} from './mappers/spell-detail-draft.mapper';
+import {
+	MechanicProblemItem,
+	RuntimeTraceRow,
+	SpellDraft,
+	SpellMechanicBlockDraft,
+	SpellParameterValueMode,
+	SpellTextPreviewMode,
+	SpellTextPreviewPart,
+	TagSeverity
+} from './models/spell-detail-page.types';
 import {
 	MechanicCalculationGraphState,
 	MechanicCalculationSourceGroup
@@ -62,20 +76,17 @@ import {
 	SpellMechanicParameterKind
 } from '../../../../spell-mechanics/domain/spell-mechanics.models';
 import { MAGIC_WORDS_REPOSITORY } from '../../../data/magic-words-repository.port';
-import { MagicWord, MagicWordAreaShape } from '../../../domain/magic-word.models';
+import { MagicWord } from '../../../domain/magic-word.models';
 import {
 	PersistedSpellStatus,
-	SPELL_STATUS_OPTIONS,
 	Spell,
 	SpellCatalog,
-	SpellConfig,
 	SpellFormulaCandidate,
 	SpellMechanicApplicationConfig,
 	SpellMechanicBlockConfig,
 	SpellEffectScaleConfig,
 	SpellEffectScaleItemConfig,
 	SpellEffectScaleMode,
-	SpellNestedMechanicBlockConfig,
 	SpellRuntimePendingChoice,
 	SpellRuntimePendingRoll,
 	SpellRuntimePreview,
@@ -84,7 +95,6 @@ import {
 	SpellTextBlock,
 	SpellTextBlockKind,
 	SpellTargetConfig,
-	canManageSpellActivity,
 	spellStatusLabel
 } from '../../../domain/spell.models';
 import {
@@ -96,37 +106,31 @@ import {
 	TargetConfigLike,
 	TargetTemplateId,
 	TargetTemplateOptionGroup,
-	createDefaultTargetConfigs,
-	createTargetConfigDraft,
 	createTargetConfigFromMechanicDefault,
 	createTargetConfigFromTemplate,
 	createTargetPreset,
 	createTargetTemplateOptionGroups,
 	findTargetPresetTemplate,
-	normalizeTargetConfigs,
 	targetConfigPreview,
 	targetConfigText,
 	targetMatchesTemplate,
 	targetRuntimeSummary
-} from './spell-target-config.utils';
-import {
-	renderApplicationText,
-	renderMechanicTextTemplate
-} from './mechanic-text-template-renderer';
+} from './utils/spell-target-config.utils';
+import { renderMechanicTextTemplate } from './utils/mechanic-text-template-renderer';
 import {
 	AUTO_VALUE_CHARACTER_OPTIONS,
-	AUTO_VALUE_ESSENCE_INFLUENCE_OPTIONS,
 	AUTO_VALUE_GROWTH_OPTIONS,
 	AUTO_VALUE_SCALE_OPTIONS,
 	AUTO_VALUE_SOURCE_CURVE_OPTIONS,
 	AUTO_VALUE_SOURCE_KIND_OPTIONS,
 	AUTO_VALUE_SOURCE_MODE_OPTIONS,
 	AUTO_VALUE_SOURCE_TARGET_OPTIONS,
+	AUTO_VALUE_SOURCE_TRANSFORM_OPTIONS,
 	AutoValueSourceKind,
+	AutoValueRangeMode,
 	AutoValueSourceMode,
 	AutoValueSourceTarget,
 	ESSENCE_PROFILE_SOURCE_OPTIONS,
-	NumericParameterPreview,
 	PROGRESSION_SOURCE_KIND_OPTIONS,
 	ProgressionSourceKind,
 	ROUNDING_MODE_OPTIONS,
@@ -136,37 +140,25 @@ import {
 	SpellParameterValue,
 	SpellProgressionParameterValue,
 	autoParameterFormulaLabel,
-	autoParameterSourceLabels,
-	buildFormulaLabel,
 	createAutoParameterSource,
 	createAutoParameterValue,
 	createAutoPreset,
 	createAutoPresetOptions,
 	createAutoSourcesForMode,
 	createFormulaParameterValue,
-	createGraphFromProgression,
 	createProgressionParameterValue,
 	createStaticParameterValue,
-	evaluateAutoParameterValue,
-	evaluateFormulaGraphPreview,
-	evaluateRoundedProgression,
 	formatPreviewNumber,
 	formulaSourceId,
-	getConfigFields,
-	graphRoundingLabel,
-	graphSourceLabels,
 	isAutoParameterValue,
 	isAutoSourceMechanicParameter,
 	isFormulaParameterValue,
 	isProgressionParameterValue,
 	isStaticParameterValue,
 	parameterValueText,
-	progressionSourceFormulaSourceId,
-	roundingLabel,
-	roundingMode,
 	supportsNumericParameterKind,
 	systemValueSourceLabel
-} from './spell-numeric-parameter.utils';
+} from './utils/spell-numeric-parameter.utils';
 
 interface SelectOption {
 	id: string;
@@ -189,15 +181,6 @@ interface CommandSelectOptionGroup {
 	items: CommandSelectOption[];
 }
 
-interface SpellMechanicBlockDraft {
-	id: string;
-	mechanicId: string;
-	parameterValues: Record<string, SpellParameterValue>;
-	config: SpellMechanicBlockConfig;
-	isActive: boolean;
-	sortOrder: number;
-}
-
 interface SerializedSpellMechanicBlock {
 	id: string;
 	mechanicId: string;
@@ -207,58 +190,40 @@ interface SerializedSpellMechanicBlock {
 	sortOrder: number;
 }
 
-type SpellParameterValueMode = 'static' | 'progression' | 'auto' | 'formula';
-type SpellTextPreviewMode = 'game' | 'formula';
-interface FormulaParameterSelection {
-	blockIndex: number;
-	parameterId: string;
-}
-
-interface RuntimeRollDraft {
-	diceCount: number;
-	skillLevel: number;
-	dice: number[];
-	successes: number | null;
-}
-
-interface RuntimeTraceRow extends SpellRuntimeTraceEntry {
-	depth: number;
-}
-
 interface MechanicReadinessStatus {
 	label: string;
 	severity: 'success' | 'warn' | 'danger' | 'secondary';
 	issues: string[];
 }
 
-interface MechanicProblemItem {
-	blockIndex: number;
-	mechanicName: string;
-	issue: string;
-}
+type AutoHelpKey =
+	| 'character'
+	| 'scale'
+	| 'startLevel'
+	| 'minimum'
+	| 'maximum'
+	| 'rangeMode'
+	| 'finalScale'
+	| 'sourceMode'
+	| 'sourceKind'
+	| 'sourceKey'
+	| 'sourceTransform'
+	| 'sourceTransformSource'
+	| 'sourceTransformDivisor'
+	| 'sourceTarget'
+	| 'sourceCurve'
+	| 'sourceWeight'
+	| 'rounding';
 
-interface SpellDraft {
-	id: string | null;
-	actionId: string;
-	essenceId: string;
-	gestureId: string;
-	formulaName: string;
-	name: string;
+interface AutoHelpItem {
+	term: string;
 	description: string;
-	config: SpellConfig;
-	status: PersistedSpellStatus;
-	isActive: boolean;
-	sortOrder: number;
-	targetConfigs: SpellTargetConfig[];
-	textBlocks: SpellTextBlock[];
-	mechanicBlocks: SpellMechanicBlockDraft[];
 }
 
-interface SpellAreaDimension {
-	key: string;
-	label: string;
-	defaultValue: number;
-	unitLabel: string;
+interface AutoHelpContent {
+	title: string;
+	description: string;
+	items: AutoHelpItem[];
 }
 
 const PARAMETER_VALUE_MODE_OPTIONS: Array<{
@@ -269,13 +234,6 @@ const PARAMETER_VALUE_MODE_OPTIONS: Array<{
 	{ label: 'Авто', value: 'auto' },
 	{ label: 'Прогрессия', value: 'progression' },
 	{ label: 'Формула', value: 'formula' }
-];
-
-const EFFECT_SCALE_MODE_OPTIONS: Array<{ label: string; value: SpellEffectScaleMode }> = [
-	{ label: 'Лучший доступный', value: 'best' },
-	{ label: 'Выбор доступного', value: 'choice' },
-	{ label: 'Все доступные', value: 'all' },
-	{ label: 'Точное совпадение', value: 'exact' }
 ];
 
 const SPELL_TEXT_BLOCK_KIND_OPTIONS: Array<{
@@ -294,46 +252,59 @@ const SPELL_TEXT_PREVIEW_MODE_OPTIONS: Array<{
 	{ label: 'Формулы', value: 'formula' }
 ];
 
+const AUTO_VALUE_RANGE_MODE_OPTIONS: Array<{
+	label: string;
+	value: AutoValueRangeMode;
+}> = [
+	{ label: 'Без диапазона', value: 'none' },
+	{ label: 'Масштабировать', value: 'scale' }
+];
+
 @Component({
 	selector: 'app-admin-spell-detail-page',
 	standalone: true,
 	imports: [
 		CommonModule,
-		FormsModule,
 		Breadcrumb,
-		Button,
 		ConfirmDialog,
 		Dialog,
-		Drawer,
-		InputNumber,
-		InputText,
-		Select,
-		SelectButton,
+		Popover,
 		Tab,
 		TabList,
 		TabPanel,
 		TabPanels,
 		Tabs,
-		Tag,
-		Textarea,
-		ToggleSwitch,
 		EditorActionsBarComponent,
-		SpellTargetConfigEditorComponent,
 		MechanicCalculationGraphEditorComponent,
-		SpellEffectScaleEditorComponent
+		SpellAddMechanicDialogComponent,
+		SpellAreaEditorComponent,
+		SpellDetailEditorHeaderComponent,
+		SpellMechanicsEditorComponent,
+		SpellMainEditorComponent,
+		SpellBalanceTabComponent,
+		SpellProblemsTabComponent,
+		SpellRuntimePreviewDrawerComponent,
+		SpellTextTabComponent,
+		SpellTargetConfigsEditorComponent
 	],
 	templateUrl: './admin-spell-detail-page.component.html',
 	styleUrl: './admin-spell-detail-page.component.scss',
 	changeDetection: ChangeDetectionStrategy.OnPush,
-	providers: [ConfirmationService]
+	providers: [ConfirmationService, AdminSpellDetailPageStore]
 })
 export class AdminSpellDetailPageComponent {
+	private readonly pageStore = inject(AdminSpellDetailPageStore);
 	private readonly repository = inject(MAGIC_WORDS_REPOSITORY);
-	private readonly spellMechanicsRepository = inject(SPELL_MECHANICS_REPOSITORY);
+	private readonly spellMechanicsRepository = inject(
+		SPELL_MECHANICS_REPOSITORY
+	);
 	private readonly skillsRepository = inject(SKILLS_REPOSITORY);
 	private readonly damageTypesRepository = inject(DAMAGE_TYPES_REPOSITORY);
 	private readonly conditionsRepository = inject(CONDITIONS_REPOSITORY);
-	private readonly progressionPresetsRepository = inject(PROGRESSION_PRESETS_REPOSITORY);
+	private readonly creaturesRepository = inject(CREATURES_REPOSITORY);
+	private readonly progressionPresetsRepository = inject(
+		PROGRESSION_PRESETS_REPOSITORY
+	);
 	private readonly valuesRepository = inject(VALUES_REPOSITORY);
 	private readonly characterSheetSandboxRepository = inject(
 		CHARACTER_SHEET_SANDBOX_REPOSITORY
@@ -343,44 +314,86 @@ export class AdminSpellDetailPageComponent {
 	private readonly confirmationService = inject(ConfirmationService);
 	private readonly destroyRef = inject(DestroyRef);
 
-	protected readonly statusOptions = SPELL_STATUS_OPTIONS;
-	protected readonly draft = signal<SpellDraft | null>(null);
-	protected readonly spellMechanics = signal<SpellMechanic[]>([]);
-	protected readonly magicWords = signal<MagicWord[]>([]);
-	protected readonly skills = signal<Skill[]>([]);
-	protected readonly skillCategories = signal<SkillCategory[]>([]);
-	protected readonly skillLevels = signal<SkillLevel[]>([]);
-	protected readonly damageTypes = signal<DamageType[]>([]);
-	protected readonly conditions = signal<Condition[]>([]);
-	protected readonly progressionPresets = signal<ProgressionPreset[]>([]);
-	protected readonly systemValues = signal<SystemValue[]>([]);
-	protected readonly sandboxInputValues = signal<Record<string, number>>({});
-	protected readonly selectedMechanicBlockIndex = signal<number | null>(null);
-	protected readonly selectedTargetConfigIndex = signal<number | null>(null);
+	protected readonly draft = this.pageStore.draft;
+	protected readonly originalDraft = this.pageStore.originalDraft;
+	protected readonly spellMechanics = this.pageStore.spellMechanics;
+	protected readonly magicWords = this.pageStore.magicWords;
+	protected readonly skills = this.pageStore.skills;
+	protected readonly skillCategories = this.pageStore.skillCategories;
+	protected readonly skillLevels = this.pageStore.skillLevels;
+	protected readonly damageTypes = this.pageStore.damageTypes;
+	protected readonly conditions = this.pageStore.conditions;
+	protected readonly creatures = this.pageStore.creatures;
+	protected readonly creatureCharacteristics =
+		this.pageStore.creatureCharacteristics;
+	protected readonly progressionPresets = this.pageStore.progressionPresets;
+	protected readonly systemValues = this.pageStore.systemValues;
+	protected readonly sandboxInputValues = this.pageStore.sandboxInputValues;
+	protected readonly selectedMechanicBlockIndex =
+		this.pageStore.selectedMechanicBlockIndex;
+	protected readonly selectedTargetConfigIndex =
+		this.pageStore.selectedTargetConfigIndex;
 	protected readonly selectedFormulaParameter =
-		signal<FormulaParameterSelection | null>(null);
-	protected readonly activeTab = signal<string | number | undefined>('main');
-	protected readonly savedDraftSignature = signal('');
-	protected readonly loading = signal(true);
-	protected readonly saving = signal(false);
-	protected readonly errorMessage = signal<string | null>(null);
-	protected readonly runtimePreviewVisible = signal(false);
-	protected readonly runtimePreviewLoading = signal(false);
-	protected readonly runtimePreviewError = signal<string | null>(null);
-	protected readonly runtimePreview = signal<SpellRuntimePreview | null>(null);
-	protected readonly runtimeRollResults = signal<Record<string, number>>({});
-	protected readonly runtimeChoiceResults = signal<Record<string, string>>({});
-	protected readonly runtimeRollDrafts = signal<Record<string, RuntimeRollDraft>>({});
-	protected readonly addMechanicWizardVisible = signal(false);
-	protected readonly selectedWizardMechanicId = signal<string | null>(null);
+		this.pageStore.selectedFormulaParameter;
+	protected readonly activeTab = this.pageStore.activeTab;
+	protected readonly savedDraftSignature = this.pageStore.savedDraftSignature;
+	protected readonly loading = this.pageStore.loading;
+	protected readonly saving = this.pageStore.saving;
+	protected readonly errorMessage = this.pageStore.errorMessage;
+	protected readonly runtimePreviewVisible =
+		this.pageStore.runtimePreviewVisible;
+	protected readonly runtimePreviewLoading =
+		this.pageStore.runtimePreviewLoading;
+	protected readonly runtimePreviewError = this.pageStore.runtimePreviewError;
+	protected readonly runtimePreview = this.pageStore.runtimePreview;
+	protected readonly runtimeRollResults = this.pageStore.runtimeRollResults;
+	protected readonly runtimeChoiceResults = this.pageStore.runtimeChoiceResults;
+	protected readonly runtimeRollDrafts = this.pageStore.runtimeRollDrafts;
+	protected readonly runtimeRollKeyRenderer = (roll: SpellRuntimePendingRoll) =>
+		this.runtimeRollKey(roll);
+	protected readonly runtimeChoiceKeyRenderer = (
+		choice: SpellRuntimePendingChoice
+	) => this.runtimeChoiceKey(choice);
+	protected readonly runtimeRollDraftRenderer = (
+		roll: SpellRuntimePendingRoll
+	) => this.runtimeRollDraft(roll);
+	protected readonly runtimeValueLabelRenderer = (value: unknown) =>
+		this.runtimeValueLabel(value);
+	protected readonly runtimePreviewStatusLabelRenderer = (
+		status: SpellRuntimePreview['status']
+	) => this.runtimePreviewStatusLabel(status);
+	protected readonly runtimePreviewStatusSeverityRenderer = (
+		status: SpellRuntimePreview['status']
+	) => this.runtimePreviewStatusSeverity(status);
+	protected readonly runtimeEffectTitleRenderer = (
+		effect: SpellRuntimeEffect
+	) => this.runtimeEffectTitle(effect);
+	protected readonly runtimeEffectTextRenderer = (effect: SpellRuntimeEffect) =>
+		this.runtimeEffectText(effect);
+	protected readonly runtimeTraceSeverityRenderer = (trace: RuntimeTraceRow) =>
+		this.runtimeTraceSeverity(trace);
+	protected readonly runtimeTraceRowsRenderer = (
+		trace: SpellRuntimeTraceEntry[]
+	) => this.runtimeTraceRows(trace);
+	protected readonly addMechanicWizardVisible =
+		this.pageStore.addMechanicWizardVisible;
+	protected readonly selectedWizardMechanicId =
+		this.pageStore.selectedWizardMechanicId;
+	protected readonly wizardRequiredParametersRenderer = (
+		mechanic: SpellMechanic
+	) => this.wizardRequiredParameters(mechanic);
+	protected readonly wizardParameterDefaultLabelRenderer = (
+		parameter: SpellMechanicParameter
+	) => this.wizardParameterDefaultLabel(parameter);
+	protected readonly wizardParameterReadyRenderer = (
+		parameter: SpellMechanicParameter
+	) => this.wizardParameterReady(parameter);
 	protected readonly breadcrumbs = computed(() => [
 		{ label: 'Правила системы', routerLink: '/admin/rules/spells' },
 		{ label: 'Заклинания', routerLink: '/admin/rules/spells' },
 		{ label: this.draft()?.name || 'Заклинание' }
 	]);
-	protected readonly hasChanges = computed(
-		() => draftSignature(this.draft()) !== this.savedDraftSignature()
-	);
+	protected readonly hasChanges = this.pageStore.hasChanges;
 	protected readonly mechanicOptions = computed(() =>
 		this.spellMechanics()
 			.filter(mechanic => mechanic.isActive)
@@ -411,72 +424,438 @@ export class AdminSpellDetailPageComponent {
 	});
 	protected readonly selectedMechanicBlock = computed(() => {
 		const index = this.selectedMechanicBlockIndex();
-		return index === null ? null : (this.draft()?.mechanicBlocks[index] ?? null);
+		return index === null
+			? null
+			: (this.draft()?.mechanicBlocks[index] ?? null);
 	});
 	protected readonly selectedWizardMechanic = computed(() => {
 		const mechanicId = this.selectedWizardMechanicId();
 		return mechanicId ? this.findMechanic(mechanicId) : null;
 	});
-	protected readonly selectedTargetConfig = computed(() => {
-		const index = this.selectedTargetConfigIndex();
-		return index === null ? null : (this.draft()?.targetConfigs[index] ?? null);
-	});
-	protected readonly selectedGestureAreaShape = computed(() => {
-		const gestureId = this.draft()?.gestureId;
-
-		return gestureId
-			? (this.magicWords().find(word => word.id === gestureId)?.areaShape ?? null)
-			: null;
-	});
-	protected readonly areaDimensions = computed(() =>
-		createAreaDimensions(this.selectedGestureAreaShape())
-	);
-	protected readonly areaParameterValueModeOptions = PARAMETER_VALUE_MODE_OPTIONS.filter(
-		option => option.value === 'static' || option.value === 'auto'
-	);
 	protected readonly targetSourceOptions = TARGET_SOURCE_OPTIONS;
 	protected readonly targetRelationOptions = TARGET_RELATION_OPTIONS;
 	protected readonly targetCountModeOptions = TARGET_COUNT_MODE_OPTIONS;
-	protected readonly targetCountValueModeOptions = TARGET_COUNT_VALUE_MODE_OPTIONS;
+	protected readonly targetCountValueModeOptions =
+		TARGET_COUNT_VALUE_MODE_OPTIONS;
 	protected readonly targetTemplateOptions = TARGET_TEMPLATE_OPTIONS;
 	protected readonly parameterValueModeOptions = PARAMETER_VALUE_MODE_OPTIONS;
-	protected readonly effectScaleModeOptions = EFFECT_SCALE_MODE_OPTIONS;
 	protected readonly spellTextBlockKindOptions = SPELL_TEXT_BLOCK_KIND_OPTIONS;
-	protected readonly spellTextPreviewModeOptions = SPELL_TEXT_PREVIEW_MODE_OPTIONS;
-	protected readonly spellTextPreviewMode = signal<SpellTextPreviewMode>('game');
-	protected readonly progressionSourceKindOptions = PROGRESSION_SOURCE_KIND_OPTIONS;
-	protected readonly essenceProfileSourceOptions = ESSENCE_PROFILE_SOURCE_OPTIONS;
+	protected readonly spellTextPreviewModeOptions =
+		SPELL_TEXT_PREVIEW_MODE_OPTIONS;
+	protected readonly spellTextPreviewMode = this.pageStore.spellTextPreviewMode;
+	protected readonly spellTextBlockPreviewRenderer = (block: SpellTextBlock) =>
+		this.spellTextBlockPreview(block);
+	protected readonly effectScaleRequirementTextRenderer = (
+		item: SpellEffectScaleItemConfig
+	) => this.effectScaleRequirementText(item);
+	protected readonly collapsedAutoSourceKeys =
+		this.pageStore.collapsedAutoSourceKeys;
+	protected readonly expandedMechanicParameterKeys =
+		this.pageStore.expandedMechanicParameterKeys;
+	protected readonly activeAutoHelpKey = this.pageStore.activeAutoHelpKey;
+	protected readonly activeAutoHelp = computed(
+		() => this.autoHelpContent[this.activeAutoHelpKey()]
+	);
+	protected readonly progressionSourceKindOptions =
+		PROGRESSION_SOURCE_KIND_OPTIONS;
+	protected readonly essenceProfileSourceOptions =
+		ESSENCE_PROFILE_SOURCE_OPTIONS;
 	protected readonly roundingModeOptions = ROUNDING_MODE_OPTIONS;
 	protected readonly autoValueCharacterOptions = AUTO_VALUE_CHARACTER_OPTIONS;
 	protected readonly autoValueScaleOptions = AUTO_VALUE_SCALE_OPTIONS;
 	protected readonly autoValueGrowthOptions = AUTO_VALUE_GROWTH_OPTIONS;
-	protected readonly autoValueSourceModeOptions = AUTO_VALUE_SOURCE_MODE_OPTIONS;
-	protected readonly autoValueSourceKindOptions = AUTO_VALUE_SOURCE_KIND_OPTIONS;
-	protected readonly autoValueSourceTargetOptions = AUTO_VALUE_SOURCE_TARGET_OPTIONS;
-	protected readonly autoValueSourceCurveOptions = AUTO_VALUE_SOURCE_CURVE_OPTIONS;
-	protected readonly autoValueEssenceInfluenceOptions =
-		AUTO_VALUE_ESSENCE_INFLUENCE_OPTIONS;
-	protected readonly effectScaleMechanicParameters = (
-		block: SpellNestedMechanicBlockConfig
-	) => this.mechanicBlockParameters(block as SpellMechanicBlockDraft);
-	protected readonly effectScaleUsesParameterSelect = (
-		kind: SpellMechanicParameterKind
-	) => this.usesParameterSelect(kind);
-	protected readonly effectScaleParameterOptions = (
-		parameter: SpellMechanicParameter
-	) => this.parameterOptions(parameter);
-	protected readonly effectScaleParameterValue = (
-		block: SpellNestedMechanicBlockConfig,
-		parameterId: string
-	) => this.parameterValue(block as SpellMechanicBlockDraft, parameterId);
-	protected readonly effectScaleStaticParameterValue = (
-		block: SpellNestedMechanicBlockConfig,
-		parameterId: string
-	) => this.staticParameterValue(block as SpellMechanicBlockDraft, parameterId);
+	protected readonly autoValueSourceModeOptions =
+		AUTO_VALUE_SOURCE_MODE_OPTIONS;
+	protected readonly autoValueSourceKindOptions =
+		AUTO_VALUE_SOURCE_KIND_OPTIONS;
+	protected readonly autoValueSourceTargetOptions =
+		AUTO_VALUE_SOURCE_TARGET_OPTIONS;
+	protected readonly autoValueSourceCurveOptions =
+		AUTO_VALUE_SOURCE_CURVE_OPTIONS;
+	protected readonly autoValueSourceTransformOptions =
+		AUTO_VALUE_SOURCE_TRANSFORM_OPTIONS;
+	protected readonly autoValueRangeModeOptions = AUTO_VALUE_RANGE_MODE_OPTIONS;
+	protected readonly autoTransformSourceOptionsRenderer = (
+		value: SpellAutoParameterValue,
+		source: SpellAutoParameterSource
+	) => this.autoTransformSourceOptions(value, source);
+	protected readonly autoSourceKeyLabelRenderer = (
+		source: SpellAutoParameterSource
+	) => this.autoSourceKeyLabel(source);
+	protected readonly autoSourceSummaryRenderer = (
+		source: SpellAutoParameterSource
+	) => this.autoSourceSummary(source);
+	protected readonly isAutoSourceCollapsedRenderer = (
+		scope: string,
+		source: SpellAutoParameterSource
+	) => this.isAutoSourceCollapsed(scope, source);
+	protected readonly autoHelpContent: Record<AutoHelpKey, AutoHelpContent> = {
+		character: {
+			title: 'Поведение',
+			description:
+				'Определяет общий характер числа и то, насколько охотно оно растёт от выбранных источников.',
+			items: [
+				{
+					term: 'Стабильное',
+					description:
+						'почти не разгоняется от источников и подходит для предсказуемых значений.'
+				},
+				{
+					term: 'Скалируемое',
+					description:
+						'растёт ровно и понятно, хороший базовый вариант для большинства параметров.'
+				},
+				{
+					term: 'Стихийное',
+					description:
+						'лучше подходит для эффектов, где важны свойства выбранной сущности.'
+				},
+				{
+					term: 'Мастерское',
+					description:
+						'заметнее раскрывается на высоких навыках и хуже ощущается на низких.'
+				},
+				{
+					term: 'Ограниченное',
+					description:
+						'сильнее держит потолок и не даёт значению слишком быстро разгоняться.'
+				},
+				{
+					term: 'Экстремальное',
+					description:
+						'даёт высокий потенциал, но требует сильных источников, чтобы раскрыться.'
+				}
+			]
+		},
+		scale: {
+			title: 'Размер значения',
+			description: 'Задаёт базовый масштаб результата до применения влияний.',
+			items: [
+				{
+					term: 'Очень малый',
+					description:
+						'для бонусов, которые могут начинаться с нуля и расти осторожно.'
+				},
+				{
+					term: 'Малый',
+					description:
+						'для точечных эффектов, небольшого урона, короткой длительности или малого числа целей.'
+				},
+				{
+					term: 'Средний',
+					description:
+						'для обычных заклинаний, где значение должно расти без резких скачков.'
+				},
+				{
+					term: 'Большой',
+					description:
+						'для дальности, области или заметных эффектов, которые должны быть ощутимыми.'
+				},
+				{
+					term: 'Огромный',
+					description:
+						'для параметров, где нужны крупные числа и широкий диапазон роста.'
+				}
+			]
+		},
+		startLevel: {
+			title: 'Старт расчёта',
+			description:
+				'Задаёт уровень, с которого источники начинают давать вклад в формулу.',
+			items: [
+				{ term: '0', description: 'значение считается уже с нулевого уровня.' },
+				{
+					term: '1',
+					description:
+						'на нулевом уровне параметр остаётся на минимуме, рост начинается с первого уровня.'
+				},
+				{
+					term: 'Выше 1',
+					description:
+						'позволяет открыть заметный рост только на более сильном навыке.'
+				}
+			]
+		},
+		minimum: {
+			title: 'Минимум',
+			description:
+				'Нижняя граница итогового значения и значение, которое используется до старта расчёта.',
+			items: [
+				{
+					term: '0',
+					description:
+						'параметр может быть полностью недоступен или не давать эффекта.'
+				},
+				{
+					term: 'Больше 0',
+					description:
+						'заклинание всегда сохраняет базовый минимум, даже при слабых источниках.'
+				}
+			]
+		},
+		maximum: {
+			title: 'Максимум',
+			description:
+				'Верхняя граница параметра. Используется только если включён режим диапазона.',
+			items: [
+				{
+					term: 'Пусто',
+					description:
+						'верхняя граница не задана, формула работает без масштабирования в диапазон.'
+				},
+				{
+					term: 'Число',
+					description:
+						'итоговая прогрессия будет уложена между минимумом и этим максимумом.'
+				}
+			]
+		},
+		rangeMode: {
+			title: 'Диапазон',
+			description:
+				'Определяет, нужно ли приводить итоговую прогрессию к заданному коридору значений.',
+			items: [
+				{
+					term: 'Без диапазона',
+					description:
+						'формула считается напрямую и ограничивается только своим обычным минимумом.'
+				},
+				{
+					term: 'Масштабировать',
+					description:
+						'результат растягивается или сжимается так, чтобы уровни укладывались между минимумом и максимумом.'
+				}
+			]
+		},
+		finalScale: {
+			title: 'Итоговый масштаб',
+			description: 'Умножает уже рассчитанное значение перед округлением.',
+			items: [
+				{
+					term: '100%',
+					description: 'оставляет рассчитанные числа без изменений.'
+				},
+				{
+					term: '50%',
+					description:
+						'сохраняет форму роста, но делает все значения в два раза меньше.'
+				},
+				{
+					term: 'Больше 100%',
+					description:
+						'усиливает готовую прогрессию без изменения вкладов источников.'
+				}
+			]
+		},
+		sourceMode: {
+			title: 'Режим влияний',
+			description:
+				'Определяет, сколько источников участвует в формуле и насколько подробно они настраиваются.',
+			items: [
+				{
+					term: 'Простой',
+					description: 'оставляет одну базовую связь и быстрее настраивается.'
+				},
+				{
+					term: 'Расширенный',
+					description:
+						'позволяет добавить несколько источников и отдельно задать роль каждого источника.'
+				}
+			]
+		},
+		sourceKind: {
+			title: 'Что влияет',
+			description: 'Выбирает тип данных, который будет участвовать в расчёте.',
+			items: [
+				{
+					term: 'Системное значение',
+					description:
+						'берёт общий показатель системы, например уровень заклинателя.'
+				},
+				{
+					term: 'Параметр механики',
+					description:
+						'берёт значение из текущей механики, например выбранный навык атаки.'
+				},
+				{
+					term: 'Профиль сущности',
+					description:
+						'берёт вес свойства сущности: урон, дальность, область, длительность и т.д.'
+				},
+				{
+					term: 'Ручной x',
+					description:
+						'даёт быстрый тестовый источник без привязки к справочникам.'
+				}
+			]
+		},
+		sourceKey: {
+			title: 'Значение источника',
+			description:
+				'Выбирает конкретное значение внутри выбранного типа источника.',
+			items: [
+				{
+					term: 'Для системного значения',
+					description:
+						'указывает конкретный системный показатель, который будет подставлен в формулу.'
+				},
+				{
+					term: 'Для параметра механики',
+					description:
+						'указывает параметр текущей механики, значение которого станет источником расчёта.'
+				},
+				{
+					term: 'Для профиля сущности',
+					description:
+						'указывает, какое свойство сущности будет влиять на итог.'
+				}
+			]
+		},
+		sourceTransform: {
+			title: 'Что взять',
+			description:
+				'Определяет, какая часть выбранного источника попадёт в расчёт.',
+			items: [
+				{
+					term: 'Как есть',
+					description: 'использует полное значение источника без вычитаний.'
+				},
+				{
+					term: 'Сверх старта',
+					description: 'берёт только часть выше начального уровня расчёта.'
+				},
+				{
+					term: 'Сверх источника',
+					description:
+						'берёт разницу между этим источником и другой строкой влияния.'
+				},
+				{
+					term: 'Доля значения',
+					description:
+						'делит источник на заданное число и делает его вклад мягче.'
+				}
+			]
+		},
+		sourceTransformSource: {
+			title: 'Сверх источника',
+			description:
+				'Выбирает строку влияния, которую нужно вычесть из текущего источника.',
+			items: [
+				{
+					term: 'Пример использования',
+					description:
+						'уровень заклинателя может давать бонус только за значение выше выбранного навыка.'
+				},
+				{
+					term: 'Если разница отрицательная',
+					description: 'вклад становится 0 и не уменьшает итоговое значение.'
+				}
+			]
+		},
+		sourceTransformDivisor: {
+			title: 'Делитель',
+			description: 'Ослабляет вклад источника перед применением кривой и веса.',
+			items: [
+				{ term: '2', description: 'примерно половина значения источника.' },
+				{
+					term: '8',
+					description:
+						'каждые восемь пунктов источника дают около одного шага до округления.'
+				}
+			]
+		},
+		sourceTarget: {
+			title: 'Влияет на',
+			description: 'Определяет место источника в формуле.',
+			items: [
+				{
+					term: 'Базовый масштаб',
+					description: 'добавляет вклад к основе значения до основного роста.'
+				},
+				{
+					term: 'Рост',
+					description:
+						'усиливает прогрессию по уровню навыка или другому основному источнику.'
+				},
+				{
+					term: 'Множитель',
+					description: 'умножает итог после базовых добавок и роста.'
+				},
+				{
+					term: 'Максимум',
+					description: 'задаёт или расширяет верхнюю границу значения.'
+				},
+				{
+					term: 'Бонус сущности',
+					description: 'добавляет вклад сущности до финального умножения.'
+				}
+			]
+		},
+		sourceCurve: {
+			title: 'Кривая',
+			description: 'Преобразует значение источника перед применением веса.',
+			items: [
+				{ term: 'Слабая', description: 'даёт мягкий вклад и сдерживает рост.' },
+				{ term: 'Плавная', description: 'растёт ровно и предсказуемо.' },
+				{
+					term: 'Быстрая',
+					description: 'сильнее раскрывается на ранних значениях.'
+				},
+				{
+					term: 'Насыщение',
+					description: 'быстро растёт в начале и постепенно замедляется.'
+				},
+				{
+					term: 'Взрывная',
+					description: 'заметнее награждает высокие значения источника.'
+				}
+			]
+		},
+		sourceWeight: {
+			title: 'Вес',
+			description: 'Задаёт силу выбранной строки влияния.',
+			items: [
+				{
+					term: '0',
+					description: 'отключает вклад, но оставляет строку в настройке.'
+				},
+				{ term: '0.5', description: 'использует половину вклада источника.' },
+				{ term: '1', description: 'использует источник как есть.' },
+				{ term: 'Больше 1', description: 'усиливает вклад источника.' }
+			]
+		},
+		rounding: {
+			title: 'Округление',
+			description:
+				'Определяет, как дробный результат формулы превращается в игровое целое число.',
+			items: [
+				{
+					term: 'Округлить вниз',
+					description: 'всегда берёт меньшее целое значение.'
+				},
+				{ term: 'Округлить', description: 'берёт ближайшее целое значение.' },
+				{
+					term: 'Округлить вверх',
+					description: 'всегда берёт большее целое значение.'
+				}
+			]
+		}
+	};
 	protected readonly autoPresetPanelStyle = {
 		width: '12rem',
 		maxWidth: '12rem',
 		overflowX: 'hidden'
+	};
+	protected readonly mechanicsEditorContext: SpellMechanicsEditorContext = {
+		autoValueRangeModeOptions: this.autoValueRangeModeOptions,
+		updateSelectedProgressionSourceKind: (block, parameterId, sourceKind) =>
+			this.updateSelectedProgressionSourceKind(block, parameterId, sourceKind),
+		autoTransformSourceOptionsRenderer: (value, source) =>
+			this.autoTransformSourceOptions(value, source),
+		updateMechanicTargetTemplate: (block, parameter, templateId) =>
+			this.updateMechanicTargetTemplate(block, parameter, templateId),
+		updateMechanicTargetConfig: (block, parameterId, config) =>
+			this.updateMechanicTargetConfig(block, parameterId, config)
 	};
 	protected readonly progressionPreviewSteps = computed(() =>
 		this.skillLevels()
@@ -512,6 +891,32 @@ export class AdminSpellDetailPageComponent {
 			value: block.id
 		}));
 	});
+	protected readonly spellTextPreviewBlocks = computed(() => {
+		const draft = this.draft();
+
+		if (!draft) {
+			return [];
+		}
+
+		const parts = draft.textBlocks
+			.slice()
+			.sort((left, right) => left.sortOrder - right.sortOrder)
+			.filter(block => block.isActive)
+			.flatMap(block =>
+				this.renderSpellTextBlockParts(block, this.spellTextPreviewMode())
+			)
+			.filter(part => part.kind === 'effectScale' || part.text.trim().length);
+
+		if (this.spellTextPreviewMode() !== 'game') {
+			return parts;
+		}
+
+		const unavailableReason = this.spellCastingUnavailableReason();
+
+		return unavailableReason
+			? [{ kind: 'paragraph' as const, text: unavailableReason }, ...parts]
+			: parts;
+	});
 	protected readonly spellTextPreview = computed(() => {
 		const draft = this.draft();
 
@@ -523,7 +928,9 @@ export class AdminSpellDetailPageComponent {
 			.slice()
 			.sort((left, right) => left.sortOrder - right.sortOrder)
 			.filter(block => block.isActive)
-			.map(block => this.renderSpellTextBlock(block, this.spellTextPreviewMode()))
+			.map(block =>
+				this.renderSpellTextBlock(block, this.spellTextPreviewMode())
+			)
 			.filter(text => text.trim().length)
 			.join('\n\n');
 
@@ -535,16 +942,16 @@ export class AdminSpellDetailPageComponent {
 
 		return unavailableReason ? `${unavailableReason}\n\n${text}`.trim() : text;
 	});
-	protected readonly formulaSourceGroups = computed<MechanicCalculationSourceGroup[]>(
-		() => {
-			const selection = this.selectedFormulaParameter();
-			const block = selection
-				? (this.draft()?.mechanicBlocks[selection.blockIndex] ?? null)
-				: null;
+	protected readonly formulaSourceGroups = computed<
+		MechanicCalculationSourceGroup[]
+	>(() => {
+		const selection = this.selectedFormulaParameter();
+		const block = selection
+			? (this.draft()?.mechanicBlocks[selection.blockIndex] ?? null)
+			: null;
 
-			return this.formulaSourceGroupsForBlock(block);
-		}
-	);
+		return this.formulaSourceGroupsForBlock(block);
+	});
 	protected readonly formulaSourceNames = computed(
 		() =>
 			new Map(
@@ -558,217 +965,18 @@ export class AdminSpellDetailPageComponent {
 		this.loadSpell();
 	}
 
-	protected updateDraftName(name: string) {
-		this.patchDraft({ name });
-	}
+	protected autoTransformSourceOptions(
+		value: SpellAutoParameterValue,
+		currentSource: SpellAutoParameterSource
+	): CommandSelectOptionGroup[] {
+		const options = value.sources
+			.filter(source => source.id !== currentSource.id)
+			.map((source, index) => ({
+				label: `${index + 1}. ${this.autoSourceKindLabel(source.sourceKind)}`,
+				value: source.sourceKey || source.id
+			}));
 
-	protected updateDraftDescription(description: string) {
-		this.patchDraft({ description });
-	}
-
-	protected updateDraftStatus(status: PersistedSpellStatus) {
-		this.draft.update(draft =>
-			draft
-				? {
-						...draft,
-						status,
-						isActive:
-							status === 'DRAFT'
-								? false
-								: draft.status === 'DRAFT'
-									? true
-									: draft.isActive
-					}
-				: draft
-		);
-	}
-
-	protected updateDraftActive(isActive: boolean) {
-		this.patchDraft({ isActive });
-	}
-
-	protected updateDraftSortOrder(sortOrder: number | null) {
-		this.patchDraft({ sortOrder: sortOrder ?? 0 });
-	}
-
-	protected areaParameterValue(dimensionKey: string) {
-		const value = this.draft()?.config.area?.dimensions[dimensionKey];
-		return isSpellParameterValue(value) ? value : createStaticParameterValue('0');
-	}
-
-	protected areaParameterValueMode(dimensionKey: string): SpellParameterValueMode {
-		const value = this.areaParameterValue(dimensionKey);
-
-		if (isAutoParameterValue(value)) {
-			return 'auto';
-		}
-
-		return 'static';
-	}
-
-	protected areaStaticParameterValue(dimensionKey: string) {
-		return parameterValueText(this.areaParameterValue(dimensionKey));
-	}
-
-	protected updateAreaParameterMode(
-		dimension: SpellAreaDimension,
-		mode: SpellParameterValueMode
-	) {
-		const current = this.areaParameterValue(dimension.key);
-		const nextValue =
-			mode === 'auto'
-				? this.createAreaAutoParameterValue(dimension)
-				: createStaticParameterValue(parameterValueText(current));
-
-		this.updateAreaParameterValue(dimension.key, nextValue);
-	}
-
-	protected updateAreaStaticParameterValue(dimensionKey: string, value: string) {
-		this.updateAreaParameterValue(dimensionKey, createStaticParameterValue(value));
-	}
-
-	protected areaAutoParameterValue(dimensionKey: string): SpellAutoParameterValue | null {
-		const value = this.areaParameterValue(dimensionKey);
-		return isAutoParameterValue(value) ? value : null;
-	}
-
-	protected updateAreaAutoParameter(
-		dimensionKey: string,
-		patch: Partial<SpellAutoParameterValue>
-	) {
-		const current = this.areaAutoParameterValue(dimensionKey);
-
-		if (!current) {
-			return;
-		}
-
-		this.updateAreaParameterValue(dimensionKey, {
-			...current,
-			...patch
-		});
-	}
-
-	protected updateAreaAutoSourceMode(
-		dimensionKey: string,
-		sourceMode: AutoValueSourceMode
-	) {
-		const current = this.areaAutoParameterValue(dimensionKey);
-
-		if (!current) {
-			return;
-		}
-
-		this.updateAreaAutoParameter(dimensionKey, {
-			sourceMode,
-			sources: createAutoSourcesForMode(sourceMode, current.sources)
-		});
-	}
-
-	protected addAreaAutoSource(dimensionKey: string) {
-		const current = this.areaAutoParameterValue(dimensionKey);
-
-		if (!current) {
-			return;
-		}
-
-		this.updateAreaAutoParameter(dimensionKey, {
-			sources: [...current.sources, createAutoParameterSource()]
-		});
-	}
-
-	protected updateAreaAutoSource(
-		dimensionKey: string,
-		sourceId: string,
-		patch: Partial<SpellAutoParameterSource>
-	) {
-		const current = this.areaAutoParameterValue(dimensionKey);
-
-		if (!current) {
-			return;
-		}
-
-		this.updateAreaAutoParameter(dimensionKey, {
-			sources: current.sources.map(source =>
-				source.id === sourceId ? { ...source, ...patch } : source
-			)
-		});
-	}
-
-	protected deleteAreaAutoSource(dimensionKey: string, sourceId: string) {
-		const current = this.areaAutoParameterValue(dimensionKey);
-
-		if (!current || current.sources.length <= 1) {
-			return;
-		}
-
-		this.updateAreaAutoParameter(dimensionKey, {
-			sources: current.sources.filter(source => source.id !== sourceId)
-		});
-	}
-
-	protected areaAutoSourceKeyOptions(source: SpellAutoParameterSource) {
-		switch (source.sourceKind) {
-			case 'mechanicParameter':
-				return this.areaMechanicParameterSourceOptions();
-			case 'systemValue':
-				return this.systemValues()
-					.slice()
-					.sort(compareBySectionAndName)
-					.map(value => ({
-						label: systemValueSourceLabel(value),
-						value: value.id
-					}));
-			case 'essenceProfile':
-				return ESSENCE_PROFILE_SOURCE_OPTIONS;
-			case 'manual':
-				return [];
-		}
-	}
-
-	protected defaultAreaAutoSourceKey(sourceKind: AutoValueSourceKind) {
-		switch (sourceKind) {
-			case 'mechanicParameter':
-				return this.areaMechanicParameterSourceOptions()[0]?.value ?? '';
-			case 'systemValue':
-				return (
-					this.systemValues().find(value => value.name === 'Уровень Заклинателя')?.id ??
-					this.systemValues().slice().sort(compareBySectionAndName)[0]?.id ??
-					''
-				);
-			case 'essenceProfile':
-				return 'area';
-			case 'manual':
-				return '';
-		}
-	}
-
-	protected areaNumericPreview(dimensionKey: string): NumericParameterPreview {
-		const value = this.areaParameterValue(dimensionKey);
-		const sourceNames = this.areaSourceNames();
-
-		if (isAutoParameterValue(value)) {
-			return {
-				formula: autoParameterFormulaLabel(value, sourceNames),
-				sources: autoParameterSourceLabels(value, sourceNames),
-				rounding: roundingLabel(value.roundingMode),
-				values: this.progressionPreviewSteps().map(x => ({
-					x,
-					value: formatPreviewNumber(evaluateAutoParameterValue(value, x))
-				}))
-			};
-		}
-
-		const staticValue = parameterValueText(value);
-
-		return {
-			formula: staticValue || '0',
-			sources: [],
-			rounding: 'Не применяется',
-			values: this.progressionPreviewSteps().map(x => ({
-				x,
-				value: staticValue || '0'
-			}))
-		};
+		return createSingleCommandOptionGroup('Влияния', options);
 	}
 
 	protected addSpellTextBlock(kind: SpellTextBlockKind) {
@@ -803,9 +1011,13 @@ export class AdminSpellDetailPageComponent {
 		const missingBlocks = draft.mechanicBlocks
 			.filter(block => !existingMechanicBlockIds.has(block.id))
 			.map((block, index) =>
-				createSpellTextBlockDraft('mechanicText', draft.textBlocks.length + index, {
-					mechanicBlockId: block.id
-				})
+				createSpellTextBlockDraft(
+					'mechanicText',
+					draft.textBlocks.length + index,
+					{
+						mechanicBlockId: block.id
+					}
+				)
 			);
 
 		if (!missingBlocks.length) {
@@ -883,42 +1095,7 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	protected setActiveTab(value: string | number | undefined) {
-		this.activeTab.set(value);
-	}
-
-	protected addTargetConfig() {
-		const draft = this.draft();
-
-		if (!draft) {
-			return;
-		}
-
-		this.patchDraft({
-			targetConfigs: [
-				...draft.targetConfigs,
-				createTargetConfigDraft(draft.targetConfigs.length)
-			]
-		});
-		this.selectedTargetConfigIndex.set(draft.targetConfigs.length);
-	}
-
-	protected selectTargetConfig(index: number) {
-		this.selectedTargetConfigIndex.set(index);
-	}
-
-	protected updateSelectedTargetConfig(patch: Partial<SpellTargetConfig>) {
-		const index = this.selectedTargetConfigIndex();
-		const draft = this.draft();
-
-		if (index === null || !draft?.targetConfigs[index]) {
-			return;
-		}
-
-		this.patchDraft({
-			targetConfigs: draft.targetConfigs.map((target, targetIndex) =>
-				targetIndex === index ? { ...target, ...patch } : target
-			)
-		});
+		this.pageStore.setActiveTab(value);
 	}
 
 	protected updateMechanicTargetConfig(
@@ -941,7 +1118,9 @@ export class AdminSpellDetailPageComponent {
 		templateId: TargetTemplateId
 	) {
 		const draft = this.draft();
-		const blockIndex = draft?.mechanicBlocks.findIndex(item => item.id === block.id);
+		const blockIndex = draft?.mechanicBlocks.findIndex(
+			item => item.id === block.id
+		);
 
 		if (!draft || blockIndex === undefined || blockIndex < 0) {
 			return;
@@ -992,7 +1171,9 @@ export class AdminSpellDetailPageComponent {
 		parameterId: string
 	): SpellTargetConfig | null {
 		const targetId = this.parameterValue(block, parameterId);
-		return this.draft()?.targetConfigs.find(target => target.id === targetId) ?? null;
+		return (
+			this.draft()?.targetConfigs.find(target => target.id === targetId) ?? null
+		);
 	}
 
 	protected mechanicTargetTemplate(
@@ -1025,8 +1206,7 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		currentParameterId: string
 	) {
-		return this
-			.mechanicBlockParameters(block)
+		return this.mechanicBlockParameters(block)
 			.filter(
 				parameter =>
 					parameter.id !== currentParameterId &&
@@ -1041,73 +1221,8 @@ export class AdminSpellDetailPageComponent {
 			}));
 	}
 
-	protected deleteSelectedTargetConfig() {
-		const index = this.selectedTargetConfigIndex();
-
-		if (index !== null) {
-			this.deleteTargetConfig(index);
-		}
-	}
-
-	protected deleteTargetConfig(index: number) {
-		const draft = this.draft();
-
-		if (!draft) {
-			return;
-		}
-
-		this.patchDraft({
-			targetConfigs: draft.targetConfigs
-				.filter((_, targetIndex) => targetIndex !== index)
-				.map((target, targetIndex) => ({ ...target, sortOrder: targetIndex }))
-		});
-		const nextLength = draft.targetConfigs.length - 1;
-		this.selectedTargetConfigIndex.set(
-			nextLength > 0 ? Math.min(index, nextLength - 1) : null
-		);
-	}
-
 	protected updateSpellTextPreviewMode(mode: SpellTextPreviewMode) {
-		this.spellTextPreviewMode.set(mode);
-	}
-
-	protected moveTargetConfig(index: number, direction: -1 | 1) {
-		const draft = this.draft();
-		const nextIndex = index + direction;
-
-		if (!draft || nextIndex < 0 || nextIndex >= draft.targetConfigs.length) {
-			return;
-		}
-
-		const targets = [...draft.targetConfigs];
-		const current = targets[index];
-		const next = targets[nextIndex];
-
-		if (!current || !next) {
-			return;
-		}
-
-		targets[index] = next;
-		targets[nextIndex] = current;
-		this.patchDraft({
-			targetConfigs: targets.map((target, targetIndex) => ({
-				...target,
-				sortOrder: targetIndex
-			}))
-		});
-		this.selectedTargetConfigIndex.set(nextIndex);
-	}
-
-	protected isFirstTargetConfig(index: number) {
-		return index === 0;
-	}
-
-	protected isLastTargetConfig(index: number) {
-		return index === (this.draft()?.targetConfigs.length ?? 0) - 1;
-	}
-
-	protected targetConfigPreview(target: SpellTargetConfig) {
-		return targetConfigPreview(target);
+		this.pageStore.setSpellTextPreviewMode(mode);
 	}
 
 	protected targetConfigText(target: TargetConfigLike) {
@@ -1146,26 +1261,18 @@ export class AdminSpellDetailPageComponent {
 		return targetRuntimeSummary(config);
 	}
 
-	protected addMechanicBlock() {
-		const mechanic = this.spellMechanics()
-			.filter(item => item.isActive)
-			.sort(compareByOrderAndName)[0];
-
-		this.selectedWizardMechanicId.set(mechanic?.id ?? null);
-		this.addMechanicWizardVisible.set(true);
-	}
-
 	protected setAddMechanicWizardVisible(visible: boolean) {
-		this.addMechanicWizardVisible.set(visible);
+		this.pageStore.setAddMechanicWizardVisible(visible);
 	}
 
 	protected updateWizardMechanic(mechanicId: string | null) {
-		this.selectedWizardMechanicId.set(mechanicId);
+		this.pageStore.setSelectedWizardMechanicId(mechanicId);
 	}
 
 	protected confirmAddMechanicBlock() {
-		const mechanic = this.spellMechanics()
-			.find(item => item.id === this.selectedWizardMechanicId());
+		const mechanic = this.spellMechanics().find(
+			item => item.id === this.selectedWizardMechanicId()
+		);
 
 		if (!mechanic) {
 			return;
@@ -1188,60 +1295,16 @@ export class AdminSpellDetailPageComponent {
 			textBlocks: [
 				...draft.textBlocks,
 				createSpellTextBlockDraft('mechanicText', draft.textBlocks.length, {
-					mechanicBlockId: patch.mechanicBlocks[draft.mechanicBlocks.length]?.id ?? ''
+					mechanicBlockId:
+						patch.mechanicBlocks[draft.mechanicBlocks.length]?.id ?? ''
 				})
 			]
 		});
-		this.selectedMechanicBlockIndex.set(draft.mechanicBlocks.length);
-		this.addMechanicWizardVisible.set(false);
-	}
-
-	protected selectMechanicBlock(index: number) {
-		this.selectedMechanicBlockIndex.set(index);
+		this.pageStore.selectAppendedMechanicBlock(draft.mechanicBlocks.length);
 	}
 
 	protected selectMechanicProblem(problem: MechanicProblemItem) {
-		this.activeTab.set('mechanics');
-		this.selectedMechanicBlockIndex.set(problem.blockIndex);
-	}
-
-	protected updateMechanicBlockMechanic(index: number, mechanicId: string) {
-		const mechanic = this.findMechanic(mechanicId);
-
-		if (!mechanic) {
-			return;
-		}
-
-		const draft = this.draft();
-		const existingBlock = draft?.mechanicBlocks[index];
-
-		if (!draft || !existingBlock) {
-			return;
-		}
-
-		this.patchDraft(
-			createMechanicBlockPatch(
-				{
-					...draft,
-					mechanicBlocks: draft.mechanicBlocks.filter(
-						(_, blockIndex) => blockIndex !== index
-					)
-				},
-				mechanic,
-				this.essenceMagicWord(),
-				existingBlock.id,
-				index
-			)
-		);
-		this.selectedMechanicBlockIndex.set(index);
-	}
-
-	protected updateMechanicBlockActive(index: number, isActive: boolean) {
-		const block = this.draft()?.mechanicBlocks[index];
-
-		if (block) {
-			this.updateMechanicBlock(index, { ...block, isActive });
-		}
+		this.pageStore.selectMechanicProblem(problem.blockIndex);
 	}
 
 	protected updateMechanicBlockParameter(
@@ -1272,7 +1335,9 @@ export class AdminSpellDetailPageComponent {
 		mode: SpellParameterValueMode
 	) {
 		const block = this.draft()?.mechanicBlocks[blockIndex];
-		const currentValue = block ? this.rawParameterValue(block, parameterId) : undefined;
+		const currentValue = block
+			? this.rawParameterValue(block, parameterId)
+			: undefined;
 		const nextValue =
 			mode === 'progression'
 				? createProgressionParameterValue(this.firstProgressionPreset())
@@ -1283,22 +1348,6 @@ export class AdminSpellDetailPageComponent {
 						: createStaticParameterValue(parameterValueText(currentValue));
 
 		this.updateMechanicBlockParameter(blockIndex, parameterId, nextValue);
-	}
-
-	protected updateSelectedMechanicBlockMechanic(mechanicId: string) {
-		const index = this.selectedMechanicBlockIndex();
-
-		if (index !== null) {
-			this.updateMechanicBlockMechanic(index, mechanicId);
-		}
-	}
-
-	protected updateSelectedMechanicBlockActive(isActive: boolean) {
-		const index = this.selectedMechanicBlockIndex();
-
-		if (index !== null) {
-			this.updateMechanicBlockActive(index, isActive);
-		}
 	}
 
 	protected updateSelectedMechanicBlockParameter(
@@ -1323,7 +1372,10 @@ export class AdminSpellDetailPageComponent {
 		}
 	}
 
-	protected updateSelectedStaticParameterValue(parameterId: string, value: string) {
+	protected updateSelectedStaticParameterValue(
+		parameterId: string,
+		value: string
+	) {
 		this.updateSelectedMechanicBlockParameter(
 			parameterId,
 			createStaticParameterValue(value)
@@ -1336,7 +1388,9 @@ export class AdminSpellDetailPageComponent {
 	) {
 		this.updateSelectedMechanicBlockParameter(
 			parameter.id,
-			this.supportsProgression(parameter) ? createStaticParameterValue(value) : value
+			this.supportsProgression(parameter)
+				? createStaticParameterValue(value)
+				: value
 		);
 	}
 
@@ -1363,7 +1417,10 @@ export class AdminSpellDetailPageComponent {
 		});
 	}
 
-	protected updateSelectedProgressionPreset(parameterId: string, presetId: string) {
+	protected updateSelectedProgressionPreset(
+		parameterId: string,
+		presetId: string
+	) {
 		const preset = this.progressionPresets().find(item => item.id === presetId);
 
 		this.updateSelectedProgressionParameter(parameterId, {
@@ -1378,7 +1435,9 @@ export class AdminSpellDetailPageComponent {
 		value: number | null
 	) {
 		const block = this.selectedMechanicBlock();
-		const current = block ? this.progressionParameterValue(block, parameterId) : null;
+		const current = block
+			? this.progressionParameterValue(block, parameterId)
+			: null;
 
 		if (!current) {
 			return;
@@ -1397,7 +1456,9 @@ export class AdminSpellDetailPageComponent {
 		roundingModeValue: ProgressionPresetRoundingMode
 	) {
 		const block = this.selectedMechanicBlock();
-		const current = block ? this.progressionParameterValue(block, parameterId) : null;
+		const current = block
+			? this.progressionParameterValue(block, parameterId)
+			: null;
 
 		if (!current) {
 			return;
@@ -1486,29 +1547,27 @@ export class AdminSpellDetailPageComponent {
 	protected autoSourceKeyOptions(
 		block: SpellMechanicBlockDraft,
 		source: SpellAutoParameterSource
-	) {
+	): CommandSelectOptionGroup[] {
 		switch (source.sourceKind) {
 			case 'mechanicParameter':
-				return this.mechanicBlockParameters(block)
-					.filter(isAutoSourceMechanicParameter)
-					.sort(compareByOrderAndName)
-					.map(parameter => ({
-						label: this.mechanicParameterSourceLabel(block, parameter),
-						value: parameterStorageKey(parameter)
-					}));
+				return this.mechanicParameterSourceOptionGroups(block);
 			case 'systemValue':
-				return this.systemValues()
-					.slice()
-					.sort(compareBySectionAndName)
-					.map(value => ({
-						label: systemValueSourceLabel(value),
-						value: value.id
-					}));
+				return this.systemValueSourceOptionGroups();
 			case 'essenceProfile':
-				return ESSENCE_PROFILE_SOURCE_OPTIONS;
+				return createSingleCommandOptionGroup(
+					'Профиль сущности',
+					ESSENCE_PROFILE_SOURCE_OPTIONS
+				);
 			case 'manual':
 				return [];
 		}
+	}
+
+	protected mechanicAutoSourceKeyOptionsRenderer(
+		block: SpellMechanicBlockDraft
+	) {
+		return (source: SpellAutoParameterSource) =>
+			this.autoSourceKeyOptions(block, source);
 	}
 
 	protected autoSourceKeyLabel(source: SpellAutoParameterSource) {
@@ -1524,8 +1583,73 @@ export class AdminSpellDetailPageComponent {
 		}
 	}
 
-	protected shouldShowAutoSourceKey(source: SpellAutoParameterSource) {
-		return source.sourceKind !== 'manual';
+	protected autoSourceSummary(source: SpellAutoParameterSource) {
+		return `${this.autoSourceKindLabel(source.sourceKind)} / ${this.autoSourceTargetLabel(source.target)}`;
+	}
+
+	protected autoSourceKindLabel(sourceKind: AutoValueSourceKind) {
+		return (
+			this.autoValueSourceKindOptions.find(
+				option => option.value === sourceKind
+			)?.label ?? 'Источник'
+		);
+	}
+
+	protected autoSourceTargetLabel(target: AutoValueSourceTarget) {
+		return (
+			this.autoValueSourceTargetOptions.find(option => option.value === target)
+				?.label ?? 'Влияние'
+		);
+	}
+
+	protected autoSourceCollapseKey(
+		scope: string,
+		source: SpellAutoParameterSource
+	) {
+		return `${scope}:${source.id}`;
+	}
+
+	protected isAutoSourceCollapsed(
+		scope: string,
+		source: SpellAutoParameterSource
+	) {
+		return this.pageStore.isAutoSourceCollapsed(
+			this.autoSourceCollapseKey(scope, source)
+		);
+	}
+
+	protected toggleAutoSourceCollapsed(
+		scope: string,
+		source: SpellAutoParameterSource
+	) {
+		this.pageStore.toggleAutoSourceCollapsed(
+			this.autoSourceCollapseKey(scope, source)
+		);
+	}
+
+	protected mechanicParameterCollapseKey(
+		block: SpellMechanicBlockDraft,
+		parameter: SpellMechanicParameter
+	) {
+		return `${block.id}:${parameterStorageKey(parameter)}`;
+	}
+
+	protected isMechanicParameterExpanded(
+		block: SpellMechanicBlockDraft,
+		parameter: SpellMechanicParameter
+	) {
+		return this.pageStore.isMechanicParameterExpanded(
+			this.mechanicParameterCollapseKey(block, parameter)
+		);
+	}
+
+	protected toggleMechanicParameterExpanded(
+		block: SpellMechanicBlockDraft,
+		parameter: SpellMechanicParameter
+	) {
+		this.pageStore.toggleMechanicParameterExpanded(
+			this.mechanicParameterCollapseKey(block, parameter)
+		);
 	}
 
 	protected defaultAutoSourceKey(
@@ -1547,7 +1671,9 @@ export class AdminSpellDetailPageComponent {
 				);
 			case 'systemValue':
 				return (
-					this.systemValues().find(value => value.name === 'Уровень Заклинателя')?.id ??
+					this.systemValues().find(
+						value => value.name === 'Уровень Заклинателя'
+					)?.id ??
 					this.systemValues().slice().sort(compareBySectionAndName)[0]?.id ??
 					''
 				);
@@ -1556,6 +1682,11 @@ export class AdminSpellDetailPageComponent {
 			case 'manual':
 				return '';
 		}
+	}
+
+	protected defaultAutoSourceKeyRenderer(block: SpellMechanicBlockDraft) {
+		return (sourceKind: AutoValueSourceKind) =>
+			this.defaultAutoSourceKey(block, sourceKind);
 	}
 
 	protected deleteSelectedAutoSource(parameterId: string, sourceId: string) {
@@ -1600,103 +1731,6 @@ export class AdminSpellDetailPageComponent {
 		this.updateSelectedAutoParameter(parameter.id, preset);
 	}
 
-	protected canEditAutoSourceTarget(value: SpellAutoParameterValue) {
-		return value.sourceMode === 'advanced';
-	}
-
-	protected canDeleteAutoSource(value: SpellAutoParameterValue) {
-		return value.sourceMode === 'advanced' && value.sources.length > 1;
-	}
-
-	protected openProgressionAsFormulaGraphEditor(
-		block: SpellMechanicBlockDraft,
-		parameterId: string
-	) {
-		const index = this.selectedMechanicBlockIndex();
-		const progressionValue = this.progressionParameterValue(block, parameterId);
-		const preset = progressionValue
-			? this.progressionParameterPreset(progressionValue)
-			: null;
-
-		if (index === null || !progressionValue || !preset) {
-			return;
-		}
-
-		this.updateMechanicBlockParameter(index, parameterId, {
-			mode: 'formula',
-			graph: createGraphFromProgression(
-				preset.kind,
-				progressionValue.config,
-				progressionSourceFormulaSourceId(progressionValue)
-			)
-		});
-		this.openFormulaGraphEditor(index, parameterId);
-	}
-
-	protected deleteSelectedMechanicBlock() {
-		const index = this.selectedMechanicBlockIndex();
-
-		if (index !== null) {
-			this.deleteMechanicBlock(index);
-		}
-	}
-
-	protected deleteMechanicBlock(index: number) {
-		const draft = this.draft();
-
-		if (!draft) {
-			return;
-		}
-
-		this.patchDraft({
-			mechanicBlocks: draft.mechanicBlocks
-				.filter((_, blockIndex) => blockIndex !== index)
-				.map((block, blockIndex) => ({ ...block, sortOrder: blockIndex })),
-			textBlocks: draft.textBlocks
-				.filter(block => block.mechanicBlockId !== draft.mechanicBlocks[index]?.id)
-				.map((block, blockIndex) => ({ ...block, sortOrder: blockIndex }))
-		});
-		const nextLength = draft.mechanicBlocks.length - 1;
-		this.selectedMechanicBlockIndex.set(
-			nextLength > 0 ? Math.min(index, nextLength - 1) : null
-		);
-	}
-
-	protected moveMechanicBlock(index: number, direction: -1 | 1) {
-		const draft = this.draft();
-		const nextIndex = index + direction;
-
-		if (!draft || nextIndex < 0 || nextIndex >= draft.mechanicBlocks.length) {
-			return;
-		}
-
-		const blocks = [...draft.mechanicBlocks];
-		const current = blocks[index];
-		const next = blocks[nextIndex];
-
-		if (!current || !next) {
-			return;
-		}
-
-		blocks[index] = next;
-		blocks[nextIndex] = current;
-		this.patchDraft({
-			mechanicBlocks: blocks.map((block, blockIndex) => ({
-				...block,
-				sortOrder: blockIndex
-			}))
-		});
-		this.selectedMechanicBlockIndex.set(nextIndex);
-	}
-
-	protected isFirstMechanicBlock(index: number) {
-		return index === 0;
-	}
-
-	protected isLastMechanicBlock(index: number) {
-		return index === (this.draft()?.mechanicBlocks.length ?? 0) - 1;
-	}
-
 	protected mechanicBlockMechanic(block: SpellMechanicBlockDraft) {
 		return this.findMechanic(block.mechanicId);
 	}
@@ -1706,196 +1740,17 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	protected isEffectScaleBlock(block: SpellMechanicBlockDraft) {
-		return this.mechanicBlockMechanic(block)?.actions.some(
-			action => action.kind === 'effectScale'
-		) ?? false;
-	}
-
-	protected effectScaleConfig(block: SpellMechanicBlockDraft): SpellEffectScaleConfig {
-		return readSpellEffectScaleConfig(
-			block.config['effectScale']
+		return (
+			this.mechanicBlockMechanic(block)?.actions.some(
+				action => action.kind === 'effectScale'
+			) ?? false
 		);
 	}
 
-	protected updateEffectScaleConfig(
-		block: SpellMechanicBlockDraft,
-		patch: Partial<SpellEffectScaleConfig>
-	) {
-		const index = this.draft()?.mechanicBlocks.findIndex(item => item.id === block.id);
-
-		if (index === undefined || index < 0) {
-			return;
-		}
-
-		const currentBlock = this.draft()?.mechanicBlocks[index];
-
-		if (!currentBlock) {
-			return;
-		}
-
-		this.updateMechanicBlock(index, {
-			...currentBlock,
-			config: {
-				...currentBlock.config,
-				effectScale: {
-					...this.effectScaleConfig(currentBlock),
-					...patch
-				}
-			}
-		});
-	}
-
-	protected updateEffectScaleItem(
-		block: SpellMechanicBlockDraft,
-		itemId: string,
-		patch: Partial<SpellEffectScaleItemConfig>
-	) {
-		const config = this.effectScaleConfig(block);
-
-		this.updateEffectScaleConfig(block, {
-			items: config.items.map(item =>
-				item.id === itemId ? { ...item, ...patch } : item
-			)
-		});
-	}
-
-	protected addEffectScaleItem(block: SpellMechanicBlockDraft) {
-		const config = this.effectScaleConfig(block);
-		const maxThreshold = config.items.reduce(
-			(max, item) => Math.max(max, item.threshold),
-			-1
-		);
-		const threshold = maxThreshold + 1;
-
-		this.updateEffectScaleConfig(block, {
-			items: [
-				...config.items,
-				{
-					id: crypto.randomUUID(),
-					threshold,
-					name: `${threshold}+ успехов`,
-					description: '',
-					isOpenEnded: true,
-					mechanicBlocks: []
-				}
-			]
-		});
-	}
-
-	protected deleteEffectScaleItem(block: SpellMechanicBlockDraft, itemId: string) {
-		const config = this.effectScaleConfig(block);
-		this.updateEffectScaleConfig(block, {
-			items: config.items.filter(item => item.id !== itemId)
-		});
-	}
-
-	protected addEffectScaleNestedMechanic(
-		block: SpellMechanicBlockDraft,
-		itemId: string
-	) {
-		const mechanic = this.spellMechanics()
-			.filter(item => item.isActive)
-			.sort(compareByOrderAndName)[0];
-
-		if (!mechanic) {
-			return;
-		}
-
-		const config = this.effectScaleConfig(block);
-		const item = config.items.find(value => value.id === itemId);
-
-		if (!item) {
-			return;
-		}
-
-		this.updateEffectScaleItem(block, itemId, {
-			mechanicBlocks: [
-				...item.mechanicBlocks,
-				createMechanicBlockDraft(
-					mechanic,
-					item.mechanicBlocks.length,
-					this.essenceMagicWord(),
-					{}
-				)
-			]
-		});
-	}
-
-	protected updateEffectScaleNestedMechanic(
-		block: SpellMechanicBlockDraft,
-		itemId: string,
-		nestedBlockId: string,
-		mechanicId: string
-	) {
-		const mechanic = this.findMechanic(mechanicId);
-		const item = this.effectScaleConfig(block).items.find(value => value.id === itemId);
-
-		if (!mechanic || !item) {
-			return;
-		}
-
-		this.updateEffectScaleItem(block, itemId, {
-			mechanicBlocks: item.mechanicBlocks.map((nestedBlock, index) =>
-				nestedBlock.id === nestedBlockId
-					? createMechanicBlockDraft(
-							mechanic,
-							index,
-							this.essenceMagicWord(),
-							{},
-							nestedBlock.id
-					  )
-					: nestedBlock
-			)
-		});
-	}
-
-	protected updateEffectScaleNestedParameter(
-		block: SpellMechanicBlockDraft,
-		itemId: string,
-		nestedBlockId: string,
-		parameterId: string,
-		value: SpellParameterValue | null
-	) {
-		const item = this.effectScaleConfig(block).items.find(data => data.id === itemId);
-
-		if (!item) {
-			return;
-		}
-
-		this.updateEffectScaleItem(block, itemId, {
-			mechanicBlocks: item.mechanicBlocks.map(nestedBlock =>
-				nestedBlock.id === nestedBlockId
-					? {
-							...nestedBlock,
-							parameterValues: {
-								...nestedBlock.parameterValues,
-								[this.parameterStorageKey(
-									nestedBlock as SpellMechanicBlockDraft,
-									parameterId
-								)]: value ?? ''
-							}
-					  }
-					: nestedBlock
-			)
-		});
-	}
-
-	protected deleteEffectScaleNestedMechanic(
-		block: SpellMechanicBlockDraft,
-		itemId: string,
-		nestedBlockId: string
-	) {
-		const item = this.effectScaleConfig(block).items.find(data => data.id === itemId);
-
-		if (!item) {
-			return;
-		}
-
-		this.updateEffectScaleItem(block, itemId, {
-			mechanicBlocks: item.mechanicBlocks
-				.filter(nestedBlock => nestedBlock.id !== nestedBlockId)
-				.map((nestedBlock, index) => ({ ...nestedBlock, sortOrder: index }))
-		});
+	protected effectScaleConfig(
+		block: SpellMechanicBlockDraft
+	): SpellEffectScaleConfig {
+		return readSpellEffectScaleConfig(block.config['effectScale']);
 	}
 
 	protected mechanicBlockTextPreview(
@@ -1915,11 +1770,7 @@ export class AdminSpellDetailPageComponent {
 			this.mechanicApplicationConfig(block),
 			value =>
 				mode === 'game'
-					? this.gameParameterValueLabel(
-							block,
-							value.value,
-							value.parameter
-						)
+					? this.gameParameterValueLabel(block, value.value, value.parameter)
 					: this.parameterValueLabel(value.kind, value.value)
 		);
 	}
@@ -1935,32 +1786,6 @@ export class AdminSpellDetailPageComponent {
 		);
 	}
 
-	protected mechanicApplicationText(block: SpellMechanicBlockDraft) {
-		return renderApplicationText(this.mechanicApplicationConfig(block));
-	}
-
-	protected updateSelectedMechanicApplication(
-		patch: Partial<SpellMechanicApplicationConfig>
-	) {
-		const index = this.selectedMechanicBlockIndex();
-		const block = index === null ? null : this.draft()?.mechanicBlocks[index];
-
-		if (index === null || !block) {
-			return;
-		}
-
-		this.updateMechanicBlock(index, {
-			...block,
-			config: {
-				...block.config,
-				application: {
-					...this.mechanicApplicationConfig(block),
-					...patch
-				}
-			}
-		});
-	}
-
 	protected renderSpellTextBlock(
 		block: SpellTextBlock,
 		mode: SpellTextPreviewMode = this.spellTextPreviewMode()
@@ -1973,11 +1798,95 @@ export class AdminSpellDetailPageComponent {
 			item => item.id === block.mechanicBlockId
 		);
 
-		return mechanicBlock ? this.mechanicBlockTextPreview(mechanicBlock, mode) : '';
+		return mechanicBlock
+			? this.mechanicBlockTextPreview(mechanicBlock, mode)
+			: '';
+	}
+
+	protected renderSpellTextBlockParts(
+		block: SpellTextBlock,
+		mode: SpellTextPreviewMode = this.spellTextPreviewMode()
+	): SpellTextPreviewPart[] {
+		if (block.kind === 'text') {
+			return [{ kind: 'paragraph', text: block.text }];
+		}
+
+		const mechanicBlock = this.draft()?.mechanicBlocks.find(
+			item => item.id === block.mechanicBlockId
+		);
+
+		if (!mechanicBlock) {
+			return [];
+		}
+
+		if (this.isEffectScaleBlock(mechanicBlock)) {
+			return [
+				{
+					kind: 'effectScale',
+					intro: this.effectScaleTextIntro(mechanicBlock, mode),
+					items: this.effectScaleConfig(mechanicBlock).items
+				}
+			];
+		}
+
+		return [
+			{
+				kind: 'paragraph',
+				text: this.mechanicBlockTextPreview(mechanicBlock, mode)
+			}
+		];
+	}
+
+	protected effectScaleTextIntro(
+		block: SpellMechanicBlockDraft,
+		mode: SpellTextPreviewMode = this.spellTextPreviewMode()
+	) {
+		const skill = this.effectScaleSkillText(block, mode);
+		const config = this.effectScaleConfig(block);
+		const hasAutomaticItem = config.items.some(
+			item => item.requirement === 'automatic'
+		);
+		const automaticText = hasAutomaticItem
+			? ' Пункт без проверки можно выбрать без броска.'
+			: '';
+
+		return `Если цель — объект, совершите проверку навыком ${skill}. По количеству успехов выберите доступный эффект из таблицы.${automaticText}`;
+	}
+
+	protected effectScaleRequirementText(item: SpellEffectScaleItemConfig) {
+		if (item.requirement === 'automatic') {
+			return 'Без проверки';
+		}
+
+		return item.isOpenEnded
+			? `${item.threshold}+ успеха`
+			: `${item.threshold} успех`;
+	}
+
+	private effectScaleSkillText(
+		block: SpellMechanicBlockDraft,
+		mode: SpellTextPreviewMode
+	) {
+		const mechanic = this.mechanicBlockMechanic(block);
+		const parameter = mechanic?.parameters.find(
+			item => item.slug === 'navyk-proverki'
+		);
+		const value = block.parameterValues['navyk-proverki'];
+
+		if (!parameter) {
+			return 'проверки';
+		}
+
+		return mode === 'game'
+			? this.gameParameterValueLabel(block, value, parameter)
+			: this.parameterValueLabel(parameter.kind, value);
 	}
 
 	protected spellTextBlockPreview(block: SpellTextBlock) {
-		const text = this.renderSpellTextBlock(block, this.spellTextPreviewMode()).trim();
+		const text = this.renderSpellTextBlock(
+			block,
+			this.spellTextPreviewMode()
+		).trim();
 		return text || 'Текст пока пустой.';
 	}
 
@@ -2004,16 +1913,19 @@ export class AdminSpellDetailPageComponent {
 
 		const issues = mechanic.parameters
 			.filter(parameter => parameter.required)
-			.filter(parameter => !this.isMechanicParameterConfigured(block, parameter))
+			.filter(
+				parameter => !this.isMechanicParameterConfigured(block, parameter)
+			)
 			.map(parameter => mechanicParameterMissingLabel(parameter));
 		const effectScaleIssues = this.isEffectScaleBlock(block)
 			? this.effectScaleReadinessIssues(block)
 			: [];
 
 		return {
-			label: issues.length || effectScaleIssues.length
-				? [...issues, ...effectScaleIssues][0]
-				: 'Готово',
+			label:
+				issues.length || effectScaleIssues.length
+					? [...issues, ...effectScaleIssues][0]
+					: 'Готово',
 			severity: issues.length || effectScaleIssues.length ? 'warn' : 'success',
 			issues: [...issues, ...effectScaleIssues]
 		};
@@ -2029,7 +1941,11 @@ export class AdminSpellDetailPageComponent {
 
 		for (const item of config.items) {
 			if (!item.name.trim()) {
-				issues.push(`Не назван пункт шкалы ${item.threshold}`);
+				issues.push(
+					`Не назван пункт шкалы ${
+						item.requirement === 'automatic' ? 'без проверки' : item.threshold
+					}`
+				);
 			}
 
 			for (const nestedBlock of item.mechanicBlocks) {
@@ -2051,7 +1967,9 @@ export class AdminSpellDetailPageComponent {
 							this.draft()
 						)
 					) {
-						issues.push(`${item.name}: ${mechanicParameterMissingLabel(parameter)}`);
+						issues.push(
+							`${item.name}: ${mechanicParameterMissingLabel(parameter)}`
+						);
 					}
 				}
 			}
@@ -2099,7 +2017,10 @@ export class AdminSpellDetailPageComponent {
 		return isConfiguredParameterValue(parameter, value, this.draft());
 	}
 
-	protected parameterValue(block: SpellMechanicBlockDraft, parameterId: string) {
+	protected parameterValue(
+		block: SpellMechanicBlockDraft,
+		parameterId: string
+	) {
 		const value = this.rawParameterValue(block, parameterId);
 		return parameterValueText(value);
 	}
@@ -2157,81 +2078,22 @@ export class AdminSpellDetailPageComponent {
 		parameterId: string
 	): SpellAutoParameterValue | null {
 		const value = this.rawParameterValue(block, parameterId);
-		return isAutoParameterValue(value) ? value : null;
-	}
-
-	protected formulaPreview(block: SpellMechanicBlockDraft, parameterId: string) {
-		return formatMechanicCalculationFormula(
-			this.formulaParameterValue(block, parameterId)?.graph,
-			this.formulaSourceNamesForBlock(block)
-		);
-	}
-
-	protected numericParameterPreview(
-		block: SpellMechanicBlockDraft,
-		parameter: SpellMechanicParameter
-	): NumericParameterPreview {
-		const value = this.rawParameterValue(block, parameter.id);
-		const sourceNames = this.formulaSourceNamesForBlock(block);
-
-		if (isProgressionParameterValue(value)) {
-			const preset = this.progressionParameterPreset(value);
-			const sourceName =
-				sourceNames.get(progressionSourceFormulaSourceId(value)) ??
-				'Источник не выбран';
-
-			return {
-				formula: preset
-					? buildFormulaLabel(preset.kind, value.config)
-					: 'Пресет не выбран',
-				sources: [sourceName],
-				rounding: roundingLabel(roundingMode(value.config)),
-				values: this.progressionPreviewSteps().map(x => ({
-					x,
-					value: preset
-						? formatPreviewNumber(
-								evaluateRoundedProgression(preset.kind, value.config, x)
-							)
-						: '0'
-				}))
-			};
-		}
-
-		if (isFormulaParameterValue(value)) {
-			return {
-				formula: formatMechanicCalculationFormula(value.graph, sourceNames),
-				sources: graphSourceLabels(value.graph, sourceNames),
-				rounding: graphRoundingLabel(value.graph),
-				values: this.progressionPreviewSteps().map(x => ({
-					x,
-					value: formatPreviewNumber(evaluateFormulaGraphPreview(value.graph, x))
-				}))
-			};
-		}
-
 		if (isAutoParameterValue(value)) {
-			return {
-				formula: autoParameterFormulaLabel(value, sourceNames),
-				sources: autoParameterSourceLabels(value, sourceNames),
-				rounding: roundingLabel(value.roundingMode),
-				values: this.progressionPreviewSteps().map(x => ({
-					x,
-					value: formatPreviewNumber(evaluateAutoParameterValue(value, x))
-				}))
-			};
+			return value;
 		}
 
-		const staticValue = this.staticParameterValue(block, parameter.id);
+		return isRecord(value) && value['mode'] === 'auto'
+			? normalizeLooseAutoParameterValue(value)
+			: null;
+	}
 
-		return {
-			formula: staticValue || '0',
-			sources: [],
-			rounding: 'Не применяется',
-			values: this.progressionPreviewSteps().map(x => ({
-				x,
-				value: staticValue || '0'
-			}))
-		};
+	private maxActiveSkillLevel() {
+		return Math.max(
+			0,
+			...this.skillLevels()
+				.filter(level => level.isActive)
+				.map(level => level.level)
+		);
 	}
 
 	protected formulaSourceGroupsForBlock(
@@ -2240,7 +2102,9 @@ export class AdminSpellDetailPageComponent {
 		const mechanic = block ? this.mechanicBlockMechanic(block) : null;
 		const parameters = mechanic?.parameters ?? [];
 		const mechanicParameterSources = parameters
-			.filter(parameter => parameter.kind === 'number' || parameter.kind === 'formula')
+			.filter(
+				parameter => parameter.kind === 'number' || parameter.kind === 'formula'
+			)
 			.sort(compareByOrderAndName)
 			.map(parameter => ({
 				id: formulaSourceId('parameter', parameterStorageKey(parameter)),
@@ -2251,7 +2115,10 @@ export class AdminSpellDetailPageComponent {
 			.filter(parameter => parameter.kind === 'skill')
 			.sort(compareByOrderAndName)
 			.map(parameter => ({
-				id: formulaSourceId('skillParameterLevel', parameterStorageKey(parameter)),
+				id: formulaSourceId(
+					'skillParameterLevel',
+					parameterStorageKey(parameter)
+				),
 				name: this.mechanicParameterSourceLabel(block, parameter),
 				searchText: `${parameter.name} уровень навык`
 			}));
@@ -2266,18 +2133,21 @@ export class AdminSpellDetailPageComponent {
 				searchText: `${skill.searchText} уровень навык`
 			}))
 		}));
-		const essenceProfileSources = ESSENCE_PROFILE_SOURCE_OPTIONS.map(option => ({
-			id: formulaSourceId('essenceProfile', option.value),
-			name: `Профиль сущности: ${option.label}`,
-			searchText: `${option.label.toLowerCase()} профиль сущности`
-		}));
+		const essenceProfileSources = ESSENCE_PROFILE_SOURCE_OPTIONS.map(
+			option => ({
+				id: formulaSourceId('essenceProfile', option.value),
+				name: `Профиль сущности: ${option.label}`,
+				searchText: `${option.label.toLowerCase()} профиль сущности`
+			})
+		);
 		const systemValueSources = this.systemValues()
 			.slice()
 			.sort(compareBySectionAndName)
 			.map(value => ({
 				id: formulaSourceId('systemValue', value.id),
 				name: systemValueSourceLabel(value),
-				searchText: `${value.name} ${value.displaySection} значение системы`.toLowerCase()
+				searchText:
+					`${value.name} ${value.displaySection} значение системы`.toLowerCase()
 			}));
 		const manualSources = [
 			{
@@ -2288,7 +2158,10 @@ export class AdminSpellDetailPageComponent {
 		];
 
 		return [
-			...createSingleOptionGroup('Параметры механики', mechanicParameterSources),
+			...createSingleOptionGroup(
+				'Параметры механики',
+				mechanicParameterSources
+			),
 			...createSingleOptionGroup('Навыки из параметров', skillParameterSources),
 			...createSingleOptionGroup('Значения системы', systemValueSources),
 			...staticSkillSources,
@@ -2314,136 +2187,81 @@ export class AdminSpellDetailPageComponent {
 		return block.parameterValues[key];
 	}
 
-	private updateAreaParameterValue(
-		dimensionKey: string,
-		value: SpellParameterValue
-	) {
-		const draft = this.draft();
+	private mechanicParameterSourceOptionGroups(
+		block: SpellMechanicBlockDraft
+	): CommandSelectOptionGroup[] {
+		const parameters = this.mechanicBlockParameters(block)
+			.filter(isAutoSourceMechanicParameter)
+			.sort(compareByOrderAndName);
 
-		if (!draft) {
-			return;
-		}
-
-		const area = normalizeSpellAreaConfig(
-			draft.config.area,
-			this.selectedGestureAreaShape(),
-			draft.gestureId
-		);
-
-		this.patchDraft({
-			config: {
-				...draft.config,
-				area: {
-					...area,
-					dimensions: {
-						...area.dimensions,
-						[dimensionKey]: value
-					}
-				}
+		return [
+			{
+				label: 'Навыки',
+				items: parameters
+					.filter(parameter => parameter.kind === 'skill')
+					.map(parameter => ({
+						label: parameter.name,
+						value: parameterStorageKey(parameter)
+					}))
+			},
+			{
+				label: 'Числа',
+				items: parameters
+					.filter(parameter => parameter.kind === 'number')
+					.map(parameter => ({
+						label: parameter.name,
+						value: parameterStorageKey(parameter)
+					}))
+			},
+			{
+				label: 'Значения системы',
+				items: parameters
+					.filter(parameter => parameter.kind === 'systemValue')
+					.map(parameter => ({
+						label: parameter.name,
+						value: parameterStorageKey(parameter)
+					}))
 			}
-		});
+		].filter(group => group.items.length > 0);
 	}
 
-	private areaMechanicParameterSourceOptions() {
-		const draft = this.draft();
+	private systemValueSourceOptionGroups(): CommandSelectOptionGroup[] {
+		const groups = new Map<string, CommandSelectOption[]>();
 
-		if (!draft) {
-			return [];
+		for (const value of this.systemValues()
+			.slice()
+			.sort(compareBySectionAndName)) {
+			const label = value.displaySection || 'Значения';
+			const items = groups.get(label) ?? [];
+			items.push({
+				label: value.name,
+				value: value.id
+			});
+			groups.set(label, items);
 		}
 
-		return draft.mechanicBlocks.flatMap(block => {
-			const mechanic = this.mechanicBlockMechanic(block);
-
-			if (!mechanic) {
-				return [];
-			}
-
-			return mechanic.parameters
-				.filter(isAutoSourceMechanicParameter)
-				.sort(compareByOrderAndName)
-				.map(parameter => ({
-					label: `${mechanic.name}: ${this.mechanicParameterSourceLabel(block, parameter)}`,
-					value: areaMechanicParameterSourceKey(block, parameter)
-				}));
-		});
+		return Array.from(groups, ([label, items]) => ({ label, items }));
 	}
 
-	private areaSourceNames() {
-		const mechanicSources = this.areaMechanicParameterSourceOptions().map(
-			option =>
-				[
-					formulaSourceId('mechanicParameter', option.value),
-					option.label
-				] as const
-		);
-		const systemSources = this.systemValues().map(
+	private casterLevelSystemValue() {
+		return this.systemValues().find(
 			value =>
-				[
-					formulaSourceId('systemValue', value.id),
-					systemValueSourceLabel(value)
-				] as const
+				value.slug === 'uroven-zaklinatelya' ||
+				value.name === 'Уровень Заклинателя'
 		);
-		const essenceSources = ESSENCE_PROFILE_SOURCE_OPTIONS.map(
-			option =>
-				[
-					formulaSourceId('essenceProfile', option.value),
-					`Профиль сущности: ${option.label}`
-				] as const
-		);
-
-		return new Map([...mechanicSources, ...systemSources, ...essenceSources]);
 	}
 
-	private createAreaAutoParameterValue(
-		dimension: SpellAreaDimension
-	): SpellAutoParameterValue {
-		const value = createAutoParameterValue();
-		const systemValueSourceKey = this.defaultAreaAutoSourceKey('systemValue');
-		const mechanicParameterSourceKey =
-			this.defaultAreaAutoSourceKey('mechanicParameter');
-
-		return {
-			...value,
-			scale: dimension.key === 'tiles' ? 'large' : value.scale,
-			sourceMode: 'advanced',
-			sources: [
-				createAutoParameterSource({
-					sourceKind: 'systemValue',
-					sourceKey: systemValueSourceKey,
-					target: 'base',
-					curve: 'smooth',
-					weight: 1
-				}),
-				createAutoParameterSource({
-					sourceKind: 'mechanicParameter',
-					sourceKey: mechanicParameterSourceKey,
-					target: 'growth',
-					curve: 'smooth',
-					weight: 1
-				}),
-				createAutoParameterSource({
-					sourceKind: 'essenceProfile',
-					sourceKey: 'area',
-					target: 'multiplier',
-					curve: 'weak',
-					weight: 0.4
-				})
-			],
-			essenceInfluence: 'none',
-			essenceProfileKey: 'area',
-			roundingMode: 'round'
-		};
+	private matchesSystemValueSource(sourceKey: string, value: SystemValue) {
+		return sourceKey === value.id || sourceKey === value.slug;
 	}
 
 	private parameterStorageKey(
 		block: SpellMechanicBlockDraft,
 		parameterIdOrSlug: string
 	) {
-		const parameter = this
-			.mechanicBlockMechanic(block)
-			?.parameters.find(
-				item => item.id === parameterIdOrSlug || item.slug === parameterIdOrSlug
-			);
+		const parameter = this.mechanicBlockMechanic(block)?.parameters.find(
+			item => item.id === parameterIdOrSlug || item.slug === parameterIdOrSlug
+		);
 
 		return parameter ? parameterStorageKey(parameter) : parameterIdOrSlug;
 	}
@@ -2471,7 +2289,9 @@ export class AdminSpellDetailPageComponent {
 		);
 	}
 
-	private normalizeBlockConfig(block: SpellMechanicBlockDraft): SpellMechanicBlockConfig {
+	private normalizeBlockConfig(
+		block: SpellMechanicBlockDraft
+	): SpellMechanicBlockConfig {
 		const config: SpellMechanicBlockConfig = {
 			...block.config,
 			application: this.mechanicApplicationConfig(block)
@@ -2509,9 +2329,13 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft | null,
 		parameter: SpellMechanicParameter
 	) {
-		const value = block ? this.rawParameterValue(block, parameter.id) : undefined;
+		const value = block
+			? this.rawParameterValue(block, parameter.id)
+			: undefined;
 		const valueLabel =
-			value === undefined ? 'Не выбрано' : this.parameterValueLabel(parameter.kind, value);
+			value === undefined
+				? 'Не выбрано'
+				: this.parameterValueLabel(parameter.kind, value);
 
 		if (parameter.kind === 'skill') {
 			return `Уровень: ${parameter.name} → ${valueLabel}`;
@@ -2525,7 +2349,7 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	protected openFormulaGraphEditor(blockIndex: number, parameterId: string) {
-		this.selectedFormulaParameter.set({ blockIndex, parameterId });
+		this.pageStore.setSelectedFormulaParameter({ blockIndex, parameterId });
 	}
 
 	protected openSelectedFormulaGraphEditor(parameterId: string) {
@@ -2537,7 +2361,7 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	protected closeFormulaGraphEditor() {
-		this.selectedFormulaParameter.set(null);
+		this.pageStore.setSelectedFormulaParameter(null);
 	}
 
 	protected setFormulaGraphEditorVisible(visible: boolean) {
@@ -2553,11 +2377,14 @@ export class AdminSpellDetailPageComponent {
 			: null;
 
 		return block
-			? (this.formulaParameterValue(block, selection?.parameterId ?? '')?.graph ?? null)
+			? (this.formulaParameterValue(block, selection?.parameterId ?? '')
+					?.graph ?? null)
 			: null;
 	}
 
-	protected updateSelectedFormulaGraph(graph: MechanicCalculationGraphState | null) {
+	protected updateSelectedFormulaGraph(
+		graph: MechanicCalculationGraphState | null
+	) {
 		const selection = this.selectedFormulaParameter();
 		const block = selection
 			? (this.draft()?.mechanicBlocks[selection.blockIndex] ?? null)
@@ -2567,47 +2394,14 @@ export class AdminSpellDetailPageComponent {
 			return;
 		}
 
-		this.updateMechanicBlockParameter(selection.blockIndex, selection.parameterId, {
-			mode: 'formula',
-			graph
-		});
-	}
-
-	protected progressionParameterPreset(value: SpellProgressionParameterValue) {
-		return this.progressionPresets().find(preset => preset.id === value.presetId) ?? null;
-	}
-
-	protected progressionConfigFields(value: SpellProgressionParameterValue) {
-		const preset = this.progressionParameterPreset(value);
-		return preset ? getConfigFields(preset.kind) : [];
-	}
-
-	protected progressionFormulaLabel(value: SpellProgressionParameterValue) {
-		const preset = this.progressionParameterPreset(value);
-
-		if (!preset) {
-			return 'Пресет не выбран';
-		}
-
-		return buildFormulaLabel(preset.kind, value.config);
-	}
-
-	protected progressionPreviewValue(value: SpellProgressionParameterValue, x: number) {
-		const preset = this.progressionParameterPreset(value);
-
-		if (!preset) {
-			return 0;
-		}
-
-		return evaluateRoundedProgression(preset.kind, value.config, x);
-	}
-
-	protected shouldShowProgressionSourceKey(value: SpellProgressionParameterValue) {
-		return value.sourceKind === 'essenceProfile' || value.sourceKind === 'skillLevel';
-	}
-
-	protected progressionSourceKeyLabel(value: SpellProgressionParameterValue) {
-		return value.sourceKind === 'skillLevel' ? 'Параметр навыка' : 'Профиль';
+		this.updateMechanicBlockParameter(
+			selection.blockIndex,
+			selection.parameterId,
+			{
+				mode: 'formula',
+				graph
+			}
+		);
 	}
 
 	protected progressionSourceKeyOptions(
@@ -2615,8 +2409,7 @@ export class AdminSpellDetailPageComponent {
 		value: SpellProgressionParameterValue
 	) {
 		if (value.sourceKind === 'skillLevel') {
-			return this
-				.mechanicBlockParameters(block)
+			return this.mechanicBlockParameters(block)
 				.filter(parameter => parameter.kind === 'skill')
 				.sort(compareByOrderAndName)
 				.map(parameter => ({
@@ -2659,70 +2452,26 @@ export class AdminSpellDetailPageComponent {
 		});
 	}
 
-	protected parameterOptions(parameter: SpellMechanicParameter): SelectOptionGroup[] {
-		switch (parameter.kind) {
-			case 'target':
-				return createSingleOptionGroup(
-					'Цели заклинания',
-					(this.draft()?.targetConfigs ?? [])
-						.sort(compareByOrderAndName)
-						.map(toSelectOption)
-				);
-			case 'skill':
-				return createSkillOptionGroups(this.skillCategories(), this.skills());
-			case 'damageType':
-				return createSingleOptionGroup(
-					'Типы урона',
-					this.damageTypes()
-						.filter(item => item.isActive)
-						.sort(compareByOrderAndName)
-						.map(toSelectOption)
-				);
-			case 'condition':
-				return createSingleOptionGroup(
-					'Состояния',
-					this.conditions()
-						.filter(item => item.isActive)
-						.sort(compareByOrderAndName)
-						.map(toSelectOption)
-				);
-			default:
-				return [];
-		}
-	}
-
-	protected usesParameterSelect(kind: SpellMechanicParameterKind) {
-		return (
-			kind === 'target' ||
-			kind === 'skill' ||
-			kind === 'damageType' ||
-			kind === 'condition'
-		);
-	}
-
-	protected parameterKindLabel(kind: SpellMechanicParameterKind) {
-		switch (kind) {
-			case 'target':
-				return 'Цель';
-			case 'skill':
-				return 'Навык';
-			case 'number':
-				return 'Число';
-			case 'formula':
-				return 'Формула';
-			case 'damageType':
-				return 'Тип урона';
-			case 'condition':
-				return 'Состояние';
-			case 'systemValue':
-				return 'Значение';
-			case 'text':
-				return 'Текст';
-		}
+	protected showAutoHelp(event: Event, key: AutoHelpKey, popover: Popover) {
+		this.pageStore.setActiveAutoHelpKey(key);
+		popover.toggle(event);
 	}
 
 	protected resetDraft() {
-		this.loadSpell();
+		if (!this.hasChanges()) {
+			return;
+		}
+
+		this.confirmationService.confirm({
+			header: 'Сбросить изменения?',
+			message: 'Все несохранённые изменения будут потеряны.',
+			acceptLabel: 'Сбросить',
+			rejectLabel: 'Отмена',
+			acceptButtonStyleClass: 'p-button-danger',
+			accept: () => {
+				this.pageStore.resetDraftSnapshot();
+			}
+		});
 	}
 
 	protected saveDraft() {
@@ -2735,7 +2484,7 @@ export class AdminSpellDetailPageComponent {
 		const name = draft.name.trim();
 
 		if (!name) {
-			this.errorMessage.set('Название заклинания обязательно.');
+			this.pageStore.setErrorMessage('Название заклинания обязательно.');
 			return;
 		}
 
@@ -2747,7 +2496,7 @@ export class AdminSpellDetailPageComponent {
 			description: draft.description.trim(),
 			config: normalizeSpellConfig(
 				draft.config,
-				this.selectedGestureAreaShape(),
+				this.findAreaShapeByGestureId(draft.gestureId),
 				draft.gestureId
 			),
 			status: draft.status,
@@ -2769,12 +2518,12 @@ export class AdminSpellDetailPageComponent {
 			? this.repository.updateSpell(draft.id, command)
 			: this.repository.createSpell(command);
 
-		this.saving.set(true);
-		this.errorMessage.set(null);
+		this.pageStore.setSaving(true);
+		this.pageStore.setErrorMessage(null);
 		request.pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
 			next: saved => {
 				this.setDraftFromSpell(saved);
-				this.saving.set(false);
+				this.pageStore.setSaving(false);
 
 				if (!draft.id) {
 					void this.router.navigate(['/admin/rules/spells', saved.id], {
@@ -2783,10 +2532,12 @@ export class AdminSpellDetailPageComponent {
 				}
 			},
 			error: error => {
-				this.errorMessage.set(
-					error instanceof Error ? error.message : 'Не удалось сохранить заклинание.'
+				this.pageStore.setErrorMessage(
+					error instanceof Error
+						? error.message
+						: 'Не удалось сохранить заклинание.'
 				);
-				this.saving.set(false);
+				this.pageStore.setSaving(false);
 			}
 		});
 	}
@@ -2823,130 +2574,83 @@ export class AdminSpellDetailPageComponent {
 		}
 	}
 
-	protected canManageActivity(status: PersistedSpellStatus) {
-		return canManageSpellActivity(status);
-	}
-
 	protected setRuntimePreviewVisible(visible: boolean) {
-		this.runtimePreviewVisible.set(visible);
+		this.pageStore.setRuntimePreviewVisible(visible);
 	}
 
 	protected runRuntimePreview(resetRolls = true) {
-		const draft = this.draft();
-
-		if (!draft?.id) {
-			this.runtimePreviewError.set('Сначала сохрани заклинание.');
-			this.runtimePreviewVisible.set(true);
-			return;
-		}
-
-		if (this.hasChanges()) {
-			this.runtimePreviewError.set('Сохрани изменения перед проверкой выполнения.');
-			this.runtimePreviewVisible.set(true);
-			return;
-		}
-
-		if (resetRolls) {
-			this.runtimeRollResults.set({});
-			this.runtimeChoiceResults.set({});
-			this.runtimeRollDrafts.set({});
-		}
-
-		this.runtimePreviewVisible.set(true);
-		this.runtimePreviewLoading.set(true);
-		this.runtimePreviewError.set(null);
-		this.repository
-			.executeSpellRuntimePreview(draft.id, {
-				inputValues: this.sandboxInputValues(),
-				rollResults: this.runtimeRollResults(),
-				choiceResults: this.runtimeChoiceResults()
-			})
-			.pipe(takeUntilDestroyed(this.destroyRef))
-			.subscribe({
-				next: preview => {
-					this.runtimePreview.set(preview);
-					this.ensureRuntimeRollDrafts(preview.pendingRolls);
-					this.runtimePreviewLoading.set(false);
-				},
-				error: error => {
-					this.runtimePreviewError.set(
-						error instanceof Error
-							? error.message
-							: 'Не удалось выполнить preview заклинания.'
-					);
-					this.runtimePreviewLoading.set(false);
-				}
-			});
+		this.pageStore.runRuntimePreview({
+			resetRolls,
+			hasChanges: this.hasChanges(),
+			defaultSkillLevel: this.defaultRuntimeSkillLevel()
+		});
 	}
 
 	protected runtimeRollKey(roll: SpellRuntimePendingRoll) {
-		return `${roll.blockId}:${roll.actionId}:${roll.resultName}`;
+		return this.pageStore.runtimeRollKey(roll);
 	}
 
 	protected runtimeChoiceKey(choice: SpellRuntimePendingChoice) {
-		return `${choice.blockId}:${choice.actionId}`;
+		return this.pageStore.runtimeChoiceKey(choice);
 	}
 
-	protected runtimeRollDraft(roll: SpellRuntimePendingRoll): RuntimeRollDraft {
-		const key = this.runtimeRollKey(roll);
-		const draft = this.runtimeRollDrafts()[key];
-
-		if (draft) {
-			return draft;
-		}
-
-		return createRuntimeRollDraft(this.defaultRuntimeSkillLevel());
+	protected runtimeRollDraft(roll: SpellRuntimePendingRoll) {
+		return this.pageStore.runtimeRollDraft(
+			roll,
+			this.defaultRuntimeSkillLevel()
+		);
 	}
 
-	protected updateRuntimeRollDiceCount(roll: SpellRuntimePendingRoll, diceCount: number | null) {
-		this.patchRuntimeRollDraft(roll, {
-			diceCount: Math.max(0, Math.floor(diceCount ?? 0)),
-			dice: [],
-			successes: null
-		});
+	protected updateRuntimeRollDiceCount(
+		roll: SpellRuntimePendingRoll,
+		diceCount: number | null
+	) {
+		this.pageStore.updateRuntimeRollDiceCount(
+			roll,
+			diceCount,
+			this.defaultRuntimeSkillLevel()
+		);
 	}
 
-	protected updateRuntimeRollSkillLevel(roll: SpellRuntimePendingRoll, skillLevel: number | null) {
-		this.patchRuntimeRollDraft(roll, {
-			skillLevel: skillLevel ?? this.defaultRuntimeSkillLevel(),
-			dice: [],
-			successes: null
-		});
+	protected updateRuntimeRollSkillLevel(
+		roll: SpellRuntimePendingRoll,
+		skillLevel: number | null
+	) {
+		this.pageStore.updateRuntimeRollSkillLevel(
+			roll,
+			skillLevel,
+			this.defaultRuntimeSkillLevel()
+		);
 	}
 
 	protected rollRuntimePendingRoll(roll: SpellRuntimePendingRoll) {
 		const draft = this.runtimeRollDraft(roll);
 		const dice = Array.from({ length: draft.diceCount }, () => randomD6());
-		const successes = countRuntimeSuccesses(dice, this.skillLevels(), draft.skillLevel);
-		const key = this.runtimeRollKey(roll);
+		const successes = countRuntimeSuccesses(
+			dice,
+			this.skillLevels(),
+			draft.skillLevel
+		);
 
-		this.runtimeRollDrafts.update(drafts => ({
-			...drafts,
-			[key]: {
-				...draft,
-				dice,
-				successes
-			}
-		}));
-		this.runtimeRollResults.update(results => ({
-			...results,
-			[key]: successes,
-			[roll.actionId]: successes
-		}));
-		this.runRuntimePreview(false);
+		this.pageStore.submitRuntimeRoll({
+			roll,
+			dice,
+			successes,
+			hasChanges: this.hasChanges(),
+			defaultSkillLevel: this.defaultRuntimeSkillLevel()
+		});
 	}
 
 	protected chooseRuntimePendingChoice(
 		choice: SpellRuntimePendingChoice,
 		optionId: string
 	) {
-		const key = this.runtimeChoiceKey(choice);
-		this.runtimeChoiceResults.update(results => ({
-			...results,
-			[key]: optionId,
-			[choice.actionId]: optionId
-		}));
-		this.runRuntimePreview(false);
+		this.pageStore.chooseRuntimePendingChoice({
+			choice,
+			optionId,
+			hasChanges: this.hasChanges(),
+			defaultSkillLevel: this.defaultRuntimeSkillLevel()
+		});
 	}
 
 	protected runtimeValueLabel(value: unknown) {
@@ -2986,7 +2690,9 @@ export class AdminSpellDetailPageComponent {
 		}
 	}
 
-	protected runtimePreviewStatusSeverity(status: SpellRuntimePreview['status']) {
+	protected runtimePreviewStatusSeverity(
+		status: SpellRuntimePreview['status']
+	): TagSeverity {
 		switch (status) {
 			case 'BLOCKED':
 				return 'danger';
@@ -3013,8 +2719,14 @@ export class AdminSpellDetailPageComponent {
 
 	protected runtimeEffectText(effect: SpellRuntimeEffect) {
 		if (effect.kind === 'valueChange') {
-			const valueName = effect.systemValueName ?? effect.systemValueId ?? 'значение';
-			const operation = effect.operation === 'increase' ? '+' : effect.operation === 'decrease' ? '-' : '=';
+			const valueName =
+				effect.systemValueName ?? effect.systemValueId ?? 'значение';
+			const operation =
+				effect.operation === 'increase'
+					? '+'
+					: effect.operation === 'decrease'
+						? '-'
+						: '=';
 			return `${valueName}: ${operation}${effect.amount ?? 0}`;
 		}
 
@@ -3029,41 +2741,12 @@ export class AdminSpellDetailPageComponent {
 		return effect.text ?? '';
 	}
 
-	protected runtimeTraceSeverity(trace: SpellRuntimeTraceEntry) {
+	protected runtimeTraceSeverity(trace: RuntimeTraceRow): TagSeverity {
 		return trace.status === 'pending' ? 'warn' : 'success';
 	}
 
 	protected runtimeTraceRows(trace: SpellRuntimeTraceEntry[]) {
 		return flattenRuntimeTrace(trace);
-	}
-
-	private ensureRuntimeRollDrafts(rolls: SpellRuntimePendingRoll[]) {
-		this.runtimeRollDrafts.update(drafts => {
-			const nextDrafts = { ...drafts };
-
-			for (const roll of rolls) {
-				const key = this.runtimeRollKey(roll);
-				nextDrafts[key] ??= createRuntimeRollDraft(this.defaultRuntimeSkillLevel());
-			}
-
-			return nextDrafts;
-		});
-	}
-
-	private patchRuntimeRollDraft(
-		roll: SpellRuntimePendingRoll,
-		patch: Partial<RuntimeRollDraft>
-	) {
-		const key = this.runtimeRollKey(roll);
-		const current = this.runtimeRollDraft(roll);
-
-		this.runtimeRollDrafts.update(drafts => ({
-			...drafts,
-			[key]: {
-				...current,
-				...patch
-			}
-		}));
 	}
 
 	private defaultRuntimeSkillLevel() {
@@ -3075,8 +2758,7 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	private loadSpell() {
-		this.loading.set(true);
-		this.errorMessage.set(null);
+		this.pageStore.beginLoading();
 
 		forkJoin({
 			spells: this.repository.loadSpellCatalog(),
@@ -3085,6 +2767,7 @@ export class AdminSpellDetailPageComponent {
 			skills: this.skillsRepository.loadAdminCatalog(),
 			damageTypes: this.damageTypesRepository.loadCatalog(),
 			conditions: this.conditionsRepository.loadCatalog(),
+			creatures: this.creaturesRepository.loadCatalog(),
 			progressionPresets: this.progressionPresetsRepository.loadCatalog(),
 			systemValues: this.valuesRepository.loadCatalog(),
 			sandboxDraft: this.characterSheetSandboxRepository.loadDraft()
@@ -3098,62 +2781,40 @@ export class AdminSpellDetailPageComponent {
 					skills,
 					damageTypes,
 					conditions,
+					creatures,
 					progressionPresets,
 					systemValues,
 					sandboxDraft
 				}) => {
-					this.spellMechanics.set(mechanics.mechanics);
-					this.magicWords.set(words.words);
-					this.skills.set(skills.skills);
-					this.skillCategories.set(skills.categories);
-					this.skillLevels.set(skills.levels);
-					this.damageTypes.set(damageTypes.damageTypes);
-					this.conditions.set(conditions.conditions);
-					this.progressionPresets.set(progressionPresets.presets);
-					this.systemValues.set(systemValues.values);
-					this.initializeSandboxInputValues(sandboxDraft);
+					this.pageStore.setReferenceData({
+						spellMechanics: mechanics.mechanics,
+						magicWords: words.words,
+						skills: skills.skills,
+						skillCategories: skills.categories,
+						skillLevels: skills.levels,
+						damageTypes: damageTypes.damageTypes,
+						conditions: conditions.conditions,
+						creatures: creatures.creatures,
+						creatureCharacteristics: creatures.characteristics,
+						progressionPresets: progressionPresets.presets,
+						systemValues: systemValues.values
+					});
+					this.pageStore.applySandboxInputValues(sandboxDraft.inputValues);
 
 					const formula = findFormulaFromRoute(spells, this.route);
 
 					if (!formula) {
-						this.errorMessage.set('Заклинание не найдено.');
-						this.loading.set(false);
+						this.pageStore.setSpellNotFound();
 						return;
 					}
 
 					this.setDraftFromFormula(formula);
-					this.loading.set(false);
+					this.pageStore.completeLoading();
 				},
 				error: error => {
-					this.errorMessage.set(
-						error instanceof Error
-							? error.message
-							: 'Не удалось загрузить заклинание.'
-					);
-					this.loading.set(false);
+					this.pageStore.failLoading(error);
 				}
 			});
-	}
-
-	private initializeSandboxInputValues(draft: CharacterSheetSandboxDraft) {
-		this.sandboxInputValues.set({
-			...this.createDefaultSandboxInputValues(),
-			...draft.inputValues
-		});
-	}
-
-	private createDefaultSandboxInputValues() {
-		const values: Record<string, number> = {};
-
-		for (const skill of this.skills()) {
-			values[skill.systemValue.id] = skill.defaultLevel;
-		}
-
-		for (const value of this.systemValues()) {
-			values[value.id] = value.baseValue;
-		}
-
-		return values;
 	}
 
 	private setDraftFromFormula(formula: SpellFormulaCandidate) {
@@ -3162,79 +2823,29 @@ export class AdminSpellDetailPageComponent {
 			return;
 		}
 
-		const draft: SpellDraft = {
-			id: null,
-			actionId: formula.action.id,
-			essenceId: formula.essence.id,
-			gestureId: formula.gesture.id,
-			formulaName: `${formula.action.name} + ${formula.essence.name} + ${formula.gesture.name}`,
-			name: `${formula.action.name} ${formula.essence.name}: ${formula.gesture.name}`,
-			description: '',
-			config: normalizeSpellConfig(
-				{},
-				this.findAreaShapeByGestureId(formula.gesture.id),
-				formula.gesture.id
-			),
-			status: 'DRAFT',
-			isActive: false,
-			sortOrder: 0,
-			targetConfigs: createDefaultTargetConfigs(),
-			textBlocks: [],
-			mechanicBlocks: []
-		};
-
-		this.draft.set(draft);
-		this.selectedTargetConfigIndex.set(0);
-		this.selectedMechanicBlockIndex.set(null);
-		this.savedDraftSignature.set(draftSignature(draft));
+		this.setDraftSnapshot(
+			createSpellDraftFromFormula(
+				formula,
+				this.findAreaShapeByGestureId(formula.gesture.id)
+			)
+		);
 	}
 
 	private setDraftFromSpell(spell: Spell) {
-		const draft: SpellDraft = {
-			id: spell.id,
-			actionId: spell.actionId,
-			essenceId: spell.essenceId,
-			gestureId: spell.gestureId,
-			formulaName: spell.formulaName,
-			name: spell.name,
-			description: spell.description,
-			config: normalizeSpellConfig(
-				spell.config,
-				this.findAreaShapeByGestureId(spell.gestureId),
-				spell.gestureId
-			),
-			status: spell.status,
-			isActive: spell.isActive,
-			sortOrder: spell.sortOrder,
-			targetConfigs: normalizeTargetConfigs(spell.targetConfigs),
-			textBlocks: normalizeSpellTextBlocks(spell.textBlocks),
-			mechanicBlocks: spell.mechanicBlocks
-				.sort((first, second) => first.sortOrder - second.sortOrder)
-				.map(block => ({
-					id: block.id,
-					mechanicId: block.mechanicId,
-					parameterValues: normalizeParameterValues(
-						block.parameterValues,
-						this.findMechanic(block.mechanicId)?.parameters ?? []
-					),
-					config: isRecord(block.config) ? block.config : {},
-					isActive: block.isActive,
-					sortOrder: block.sortOrder
-				}))
-		};
+		this.setDraftSnapshot(
+			createSpellDraftFromSpell(spell, {
+				areaShape: this.findAreaShapeByGestureId(spell.gestureId),
+				spellMechanics: this.spellMechanics()
+			})
+		);
+	}
 
-		this.draft.set(draft);
-		this.selectedTargetConfigIndex.set(
-			draft.targetConfigs.length ? 0 : null
-		);
-		this.selectedMechanicBlockIndex.set(
-			draft.mechanicBlocks.length ? 0 : null
-		);
-		this.savedDraftSignature.set(draftSignature(draft));
+	private setDraftSnapshot(draft: SpellDraft) {
+		this.pageStore.setDraftSnapshot(draft);
 	}
 
 	private patchDraft(patch: Partial<SpellDraft>) {
-		this.draft.update(draft => (draft ? { ...draft, ...patch } : draft));
+		this.pageStore.patchDraft(patch);
 	}
 
 	private updateTargetConfigById(
@@ -3254,10 +2865,7 @@ export class AdminSpellDetailPageComponent {
 		});
 	}
 
-	private updateMechanicBlock(
-		index: number,
-		block: SpellMechanicBlockDraft
-	) {
+	private updateMechanicBlock(index: number, block: SpellMechanicBlockDraft) {
 		const draft = this.draft();
 
 		if (!draft) {
@@ -3272,11 +2880,15 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	private findMechanic(mechanicId: string) {
-		return this.spellMechanics().find(mechanic => mechanic.id === mechanicId) ?? null;
+		return (
+			this.spellMechanics().find(mechanic => mechanic.id === mechanicId) ?? null
+		);
 	}
 
 	private findAreaShapeByGestureId(gestureId: string) {
-		return this.magicWords().find(word => word.id === gestureId)?.areaShape ?? null;
+		return (
+			this.magicWords().find(word => word.id === gestureId)?.areaShape ?? null
+		);
 	}
 
 	private firstProgressionPreset() {
@@ -3290,8 +2902,9 @@ export class AdminSpellDetailPageComponent {
 	private essenceMagicWord() {
 		const essenceId = this.draft()?.essenceId;
 		return (
-			this.magicWords().find(word => word.id === essenceId && word.type === 'ESSENCE') ??
-			null
+			this.magicWords().find(
+				word => word.id === essenceId && word.type === 'ESSENCE'
+			) ?? null
 		);
 	}
 
@@ -3300,12 +2913,17 @@ export class AdminSpellDetailPageComponent {
 		value: unknown
 	): string {
 		if (isProgressionParameterValue(value)) {
-			const preset = this.progressionPresets().find(item => item.id === value.presetId);
+			const preset = this.progressionPresets().find(
+				item => item.id === value.presetId
+			);
 			return preset ? `Прогрессия: ${preset.name}` : 'Прогрессия';
 		}
 
 		if (isFormulaParameterValue(value)) {
-			return formatMechanicCalculationFormula(value.graph, this.formulaSourceNames());
+			return formatMechanicCalculationFormula(
+				value.graph,
+				this.formulaSourceNames()
+			);
 		}
 
 		if (isAutoParameterValue(value)) {
@@ -3358,11 +2976,12 @@ export class AdminSpellDetailPageComponent {
 				return targetConfigText(
 					this.draft()?.targetConfigs.find(
 						item => item.id === value || item.slug === value
-					) ??
-						createTargetPreset('Цель', 'selected', 'any', 'one')
+					) ?? createTargetPreset('Цель', 'selected', 'any', 'one')
 				);
 			case 'damageType':
-				return this.damageTypes().find(item => item.id === value)?.name ?? value;
+				return (
+					this.damageTypes().find(item => item.id === value)?.name ?? value
+				);
 			case 'condition':
 				return this.conditions().find(item => item.id === value)?.name ?? value;
 			default:
@@ -3433,6 +3052,10 @@ export class AdminSpellDetailPageComponent {
 		block: SpellMechanicBlockDraft,
 		value: SpellAutoParameterValue
 	) {
+		if (this.shouldUseAutoMinimumForGameText(block, value)) {
+			return value.minimum;
+		}
+
 		const config = autoParameterRuntimeConfig(value);
 		const groups: Record<AutoValueSourceTarget, number> = {
 			growth: 0,
@@ -3444,25 +3067,171 @@ export class AdminSpellDetailPageComponent {
 
 		for (const source of value.sources) {
 			const sourceValue = this.autoSourceRuntimeValue(block, source);
+			const transformSourceValue = this.autoTransformRuntimeSourceValue(
+				block,
+				value,
+				source,
+				sourceValue
+			);
 			groups[source.target] +=
 				applyAutoRuntimeCurve(
 					source.curve,
-					autoEffectiveRuntimeSourceValue(source, sourceValue, value.startLevel)
+					autoEffectiveRuntimeSourceValue(
+						source,
+						sourceValue,
+						value.startLevel,
+						transformSourceValue
+					)
 				) * source.weight;
 		}
 
-		const essenceValue = this.essenceProfileRuntimeValue(value.essenceProfileKey);
 		const base = config.base + groups.base;
 		const power = groups.growth * config.powerMultiplier;
-		const essence = autoEssenceRuntimeInfluenceWeight(value.essenceInfluence) * essenceValue;
 		const multiplied =
-			(base + power + essence + groups.essenceBonus) * (1 + groups.multiplier);
+			(base + power + groups.essenceBonus) * (1 + groups.multiplier);
 		const limitBase =
-			config.limitMax === null && groups.maximum > 0 ? config.base : config.limitMax;
+			config.limitMax === null && this.hasAutoMaximumSource(value)
+				? config.base
+				: config.limitMax;
+		const limit = limitBase === null ? null : limitBase + groups.maximum;
+		const limited = limit === null ? multiplied : Math.min(multiplied, limit);
+		const raw = Math.max(value.minimum, limited);
+		const ranged = this.applyAutoRuntimeRange(block, value, raw);
+		const scaled = ranged * value.finalScale;
+
+		return applyRuntimeRounding(scaled, value.roundingMode);
+	}
+
+	private applyAutoRuntimeRange(
+		block: SpellMechanicBlockDraft,
+		value: SpellAutoParameterValue,
+		raw: number
+	) {
+		if (
+			value.rangeMode !== 'scale' ||
+			value.maximum === null ||
+			value.maximum <= value.minimum
+		) {
+			return raw;
+		}
+
+		const minRaw = this.evaluateAutoRuntimeRawValue(
+			block,
+			value,
+			value.startLevel
+		);
+		const maxRaw = this.evaluateAutoRuntimeRawValue(
+			block,
+			value,
+			this.maxActiveSkillLevel()
+		);
+
+		if (maxRaw === minRaw) {
+			return value.minimum;
+		}
+
+		const ratio = (raw - minRaw) / (maxRaw - minRaw);
+		const clampedRatio = Math.min(1, Math.max(0, ratio));
+
+		return value.minimum + (value.maximum - value.minimum) * clampedRatio;
+	}
+
+	private evaluateAutoRuntimeRawValue(
+		block: SpellMechanicBlockDraft,
+		value: SpellAutoParameterValue,
+		x: number
+	) {
+		if (x < value.startLevel) {
+			return value.minimum;
+		}
+
+		const config = autoParameterRuntimeConfig(value);
+		const groups: Record<AutoValueSourceTarget, number> = {
+			growth: 0,
+			multiplier: 0,
+			base: 0,
+			maximum: 0,
+			essenceBonus: 0
+		};
+
+		for (const source of value.sources) {
+			const sourceValue =
+				source.sourceKind === 'mechanicParameter'
+					? x
+					: this.autoSourceRuntimeValue(block, source);
+			const transformSourceValue = this.autoTransformRuntimeSourceValue(
+				block,
+				value,
+				source,
+				x
+			);
+			groups[source.target] +=
+				applyAutoRuntimeCurve(
+					source.curve,
+					autoEffectiveRuntimeSourceValue(
+						source,
+						sourceValue,
+						value.startLevel,
+						transformSourceValue
+					)
+				) * source.weight;
+		}
+
+		const base = config.base + groups.base;
+		const power = groups.growth * config.powerMultiplier;
+		const multiplied =
+			(base + power + groups.essenceBonus) * (1 + groups.multiplier);
+		const limitBase =
+			config.limitMax === null && this.hasAutoMaximumSource(value)
+				? config.base
+				: config.limitMax;
 		const limit = limitBase === null ? null : limitBase + groups.maximum;
 		const limited = limit === null ? multiplied : Math.min(multiplied, limit);
 
-		return Math.max(value.minimum, applyRuntimeRounding(limited, value.roundingMode));
+		return Math.max(value.minimum, limited);
+	}
+
+	private hasAutoMaximumSource(value: SpellAutoParameterValue) {
+		return value.sources.some(source => source.target === 'maximum');
+	}
+
+	private autoTransformRuntimeSourceValue(
+		block: SpellMechanicBlockDraft,
+		value: SpellAutoParameterValue,
+		source: SpellAutoParameterSource,
+		fallbackValue: number
+	) {
+		if (source.transform !== 'aboveSource') {
+			return fallbackValue;
+		}
+
+		const transformSource =
+			value.sources.find(item => item.id === source.transformSourceKey) ??
+			value.sources.find(item => item.sourceKey === source.transformSourceKey);
+
+		return transformSource
+			? this.autoSourceRuntimeValue(block, transformSource)
+			: fallbackValue;
+	}
+
+	private shouldUseAutoMinimumForGameText(
+		block: SpellMechanicBlockDraft,
+		value: SpellAutoParameterValue
+	) {
+		if (value.startLevel <= 0) {
+			return false;
+		}
+
+		const levelSources = value.sources.filter(
+			source => source.sourceKind !== 'essenceProfile'
+		);
+
+		return (
+			levelSources.length > 0 &&
+			levelSources.every(
+				source => this.autoSourceRuntimeValue(block, source) < value.startLevel
+			)
+		);
 	}
 
 	private autoSourceRuntimeValue(
@@ -3565,7 +3334,8 @@ export class AdminSpellDetailPageComponent {
 
 	private systemValueRuntimeValue(systemValueIdOrSlug: string) {
 		const systemValue = this.systemValues().find(
-			item => item.id === systemValueIdOrSlug || item.slug === systemValueIdOrSlug
+			item =>
+				item.id === systemValueIdOrSlug || item.slug === systemValueIdOrSlug
 		);
 
 		if (!systemValue) {
@@ -3665,7 +3435,11 @@ export class AdminSpellDetailPageComponent {
 			return value['name'];
 		}
 
-		for (const key of ['defaultDamageType', 'defaultSkill', 'defaultCondition']) {
+		for (const key of [
+			'defaultDamageType',
+			'defaultSkill',
+			'defaultCondition'
+		]) {
 			const nested = value[key];
 
 			if (
@@ -3696,21 +3470,23 @@ export class AdminSpellDetailPageComponent {
 	}
 
 	private deleteSpellInternal(id: string) {
-		this.saving.set(true);
-		this.errorMessage.set(null);
+		this.pageStore.setSaving(true);
+		this.pageStore.setErrorMessage(null);
 		this.repository
 			.deleteSpell(id)
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
 				next: () => {
-					this.saving.set(false);
+					this.pageStore.setSaving(false);
 					void this.router.navigate(['/admin/rules/spells']);
 				},
 				error: error => {
-					this.errorMessage.set(
-						error instanceof Error ? error.message : 'Не удалось удалить заклинание.'
+					this.pageStore.setErrorMessage(
+						error instanceof Error
+							? error.message
+							: 'Не удалось удалить заклинание.'
 					);
-					this.saving.set(false);
+					this.pageStore.setSaving(false);
 				}
 			});
 	}
@@ -3784,8 +3560,12 @@ function createSpellTextBlockDraft(
 	};
 }
 
-function createMechanicBlockConfig(mechanic: SpellMechanic): SpellMechanicBlockConfig {
-	const effectScaleAction = mechanic.actions.find(action => action.kind === 'effectScale');
+function createMechanicBlockConfig(
+	mechanic: SpellMechanic
+): SpellMechanicBlockConfig {
+	const effectScaleAction = mechanic.actions.find(
+		action => action.kind === 'effectScale'
+	);
 	const defaultApplication = normalizeApplicationConfig(
 		readDefaultApplicationConfig(mechanic.configSchema)
 	);
@@ -3831,11 +3611,15 @@ function createMechanicBlockPatch(
 	insertIndex: number = draft.mechanicBlocks.length
 ): Pick<SpellDraft, 'mechanicBlocks' | 'targetConfigs'> {
 	const createdTargets = mechanic.parameters
-		.filter(parameter => parameter.kind === 'target' && parameter.defaultTargetConfig)
+		.filter(
+			parameter => parameter.kind === 'target' && parameter.defaultTargetConfig
+		)
 		.map((parameter, index) => ({
 			parameterId: parameter.id,
 			target: createTargetConfigFromMechanicDefault(
-				parameter.defaultTargetConfig as NonNullable<typeof parameter.defaultTargetConfig>,
+				parameter.defaultTargetConfig as NonNullable<
+					typeof parameter.defaultTargetConfig
+				>,
 				draft.targetConfigs.length + index
 			)
 		}));
@@ -3875,7 +3659,9 @@ function defaultParameterValue(
 
 	if (parameter.kind === 'number' || parameter.kind === 'formula') {
 		return createStaticParameterValue(
-			parameter.defaultValue.mode === 'static' ? parameter.defaultValue.value : ''
+			parameter.defaultValue.mode === 'static'
+				? parameter.defaultValue.value
+				: ''
 		);
 	}
 
@@ -3994,6 +3780,12 @@ function normalizeLooseAutoParameterValue(
 		growth: readAutoGrowth(value['growth']),
 		startLevel: readFiniteNumber(value['startLevel'], 0),
 		minimum: readFiniteNumber(value['minimum'], 0),
+		maximum:
+			value['maximum'] === null || value['maximum'] === undefined
+				? null
+				: readFiniteNumber(value['maximum'], 0),
+		rangeMode: readAutoRangeMode(value['rangeMode']),
+		finalScale: readFiniteNumber(value['finalScale'], 1),
 		sourceMode: value['sourceMode'] === 'simple' ? 'simple' : 'advanced',
 		sources,
 		essenceInfluence: readAutoEssenceInfluence(value['essenceInfluence']),
@@ -4011,7 +3803,14 @@ function normalizeLooseAutoParameterSource(
 	return {
 		id: typeof source['id'] === 'string' ? source['id'] : `source-${index}`,
 		sourceKind: readAutoSourceKind(source['sourceKind']),
-		sourceKey: typeof source['sourceKey'] === 'string' ? source['sourceKey'] : '',
+		sourceKey:
+			typeof source['sourceKey'] === 'string' ? source['sourceKey'] : '',
+		transform: readAutoSourceTransform(source['transform']),
+		transformSourceKey:
+			typeof source['transformSourceKey'] === 'string'
+				? source['transformSourceKey']
+				: '',
+		transformDivisor: readFiniteNumber(source['transformDivisor'], 2),
 		target: readAutoSourceTarget(source['target']),
 		weight: typeof source['weight'] === 'number' ? source['weight'] : 1,
 		curve: readAutoSourceCurve(source['curve'])
@@ -4022,7 +3821,9 @@ function readFiniteNumber(value: unknown, fallback: number) {
 	return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-function readAutoCharacter(value: unknown): SpellAutoParameterValue['character'] {
+function readAutoCharacter(
+	value: unknown
+): SpellAutoParameterValue['character'] {
 	return value === 'stable' ||
 		value === 'scalable' ||
 		value === 'elemental' ||
@@ -4034,9 +3835,19 @@ function readAutoCharacter(value: unknown): SpellAutoParameterValue['character']
 }
 
 function readAutoScale(value: unknown): SpellAutoParameterValue['scale'] {
-	return value === 'small' || value === 'medium' || value === 'large' || value === 'huge'
+	return value === 'tiny' ||
+		value === 'small' ||
+		value === 'medium' ||
+		value === 'large' ||
+		value === 'huge'
 		? value
 		: 'medium';
+}
+
+function readAutoRangeMode(
+	value: unknown
+): SpellAutoParameterValue['rangeMode'] {
+	return value === 'scale' ? 'scale' : 'none';
 }
 
 function readAutoGrowth(value: unknown): SpellAutoParameterValue['growth'] {
@@ -4049,7 +3860,9 @@ function readAutoGrowth(value: unknown): SpellAutoParameterValue['growth'] {
 		: 'smooth';
 }
 
-function readAutoSourceKind(value: unknown): SpellAutoParameterSource['sourceKind'] {
+function readAutoSourceKind(
+	value: unknown
+): SpellAutoParameterSource['sourceKind'] {
 	return value === 'mechanicParameter' ||
 		value === 'systemValue' ||
 		value === 'essenceProfile' ||
@@ -4058,7 +3871,9 @@ function readAutoSourceKind(value: unknown): SpellAutoParameterSource['sourceKin
 		: 'manual';
 }
 
-function readAutoSourceTarget(value: unknown): SpellAutoParameterSource['target'] {
+function readAutoSourceTarget(
+	value: unknown
+): SpellAutoParameterSource['target'] {
 	return value === 'growth' ||
 		value === 'multiplier' ||
 		value === 'base' ||
@@ -4068,7 +3883,9 @@ function readAutoSourceTarget(value: unknown): SpellAutoParameterSource['target'
 		: 'growth';
 }
 
-function readAutoSourceCurve(value: unknown): SpellAutoParameterSource['curve'] {
+function readAutoSourceCurve(
+	value: unknown
+): SpellAutoParameterSource['curve'] {
 	return value === 'weak' ||
 		value === 'smooth' ||
 		value === 'fast' ||
@@ -4076,6 +3893,17 @@ function readAutoSourceCurve(value: unknown): SpellAutoParameterSource['curve'] 
 		value === 'explosive'
 		? value
 		: 'smooth';
+}
+
+function readAutoSourceTransform(
+	value: unknown
+): SpellAutoParameterSource['transform'] {
+	return value === 'value' ||
+		value === 'aboveStart' ||
+		value === 'aboveSource' ||
+		value === 'divide'
+		? value
+		: 'aboveStart';
 }
 
 function readAutoEssenceInfluence(
@@ -4089,7 +3917,9 @@ function readAutoEssenceInfluence(
 		: 'none';
 }
 
-function readEssenceProfileKey(value: unknown): SpellAutoParameterValue['essenceProfileKey'] {
+function readEssenceProfileKey(
+	value: unknown
+): SpellAutoParameterValue['essenceProfileKey'] {
 	return value === 'damage' ||
 		value === 'range' ||
 		value === 'control' ||
@@ -4100,8 +3930,12 @@ function readEssenceProfileKey(value: unknown): SpellAutoParameterValue['essence
 		: 'damage';
 }
 
-function readRoundingMode(value: unknown): SpellAutoParameterValue['roundingMode'] {
-	return value === 'floor' || value === 'round' || value === 'ceil' ? value : 'round';
+function readRoundingMode(
+	value: unknown
+): SpellAutoParameterValue['roundingMode'] {
+	return value === 'floor' || value === 'round' || value === 'ceil'
+		? value
+		: 'round';
 }
 
 function autoParameterRuntimeConfig(value: SpellAutoParameterValue) {
@@ -4111,12 +3945,15 @@ function autoParameterRuntimeConfig(value: SpellAutoParameterValue) {
 	return {
 		base: scale.base,
 		powerMultiplier: scale.powerMultiplier * character.powerMultiplier,
-		limitMax: character.limitMax === null ? null : scale.base + character.limitMax
+		limitMax:
+			character.limitMax === null ? null : scale.base + character.limitMax
 	};
 }
 
 function autoRuntimeScaleConfig(scale: SpellAutoParameterValue['scale']) {
 	switch (scale) {
+		case 'tiny':
+			return { base: 0, powerMultiplier: 1 };
 		case 'small':
 			return { base: 2, powerMultiplier: 1 };
 		case 'medium':
@@ -4128,7 +3965,9 @@ function autoRuntimeScaleConfig(scale: SpellAutoParameterValue['scale']) {
 	}
 }
 
-function autoRuntimeCharacterConfig(character: SpellAutoParameterValue['character']) {
+function autoRuntimeCharacterConfig(
+	character: SpellAutoParameterValue['character']
+) {
 	switch (character) {
 		case 'stable':
 			return { powerMultiplier: 0.75, limitMax: 16 };
@@ -4166,23 +4005,20 @@ function applyAutoRuntimeCurve(
 function autoEffectiveRuntimeSourceValue(
 	source: SpellAutoParameterSource,
 	value: number,
-	startLevel: number
+	startLevel: number,
+	transformSourceValue: number
 ) {
-	return source.sourceKind === 'essenceProfile' ? value : Math.max(0, value - startLevel);
-}
-
-function autoEssenceRuntimeInfluenceWeight(
-	influence: SpellAutoParameterValue['essenceInfluence']
-) {
-	switch (influence) {
-		case 'none':
-			return 0;
-		case 'light':
-			return 1;
-		case 'medium':
-			return 2;
-		case 'strong':
-			return 4;
+	switch (source.transform) {
+		case 'value':
+			return value;
+		case 'aboveStart':
+			return source.sourceKind === 'essenceProfile'
+				? value
+				: Math.max(0, value - startLevel);
+		case 'aboveSource':
+			return Math.max(0, value - transformSourceValue);
+		case 'divide':
+			return value / Math.max(1, source.transformDivisor);
 	}
 }
 
@@ -4241,13 +4077,6 @@ function parameterStorageKey(parameter: SpellMechanicParameter) {
 	return parameter.slug || parameter.id;
 }
 
-function areaMechanicParameterSourceKey(
-	block: SpellMechanicBlockDraft,
-	parameter: SpellMechanicParameter
-) {
-	return `${block.id}:${parameterStorageKey(parameter)}`;
-}
-
 function normalizeFormulaSourceId(
 	sourceId: string,
 	parameterSlugsById: Map<string, string>
@@ -4261,116 +4090,6 @@ function normalizeFormulaSourceId(
 	}
 
 	return sourceId;
-}
-
-function normalizeSpellConfig(
-	config: SpellConfig | Record<string, unknown>,
-	areaShape: MagicWordAreaShape | null,
-	gestureId: string
-): SpellConfig {
-	const currentArea =
-		isRecord(config) && isRecord(config['area'])
-			? config['area']
-			: undefined;
-
-	return {
-		...config,
-		area: normalizeSpellAreaConfig(currentArea, areaShape, gestureId)
-	};
-}
-
-function normalizeSpellAreaConfig(
-	config: unknown,
-	areaShape: MagicWordAreaShape | null,
-	gestureId: string
-) {
-	const dimensions = createAreaDimensions(areaShape);
-	const currentDimensions =
-		isRecord(config) && isRecord(config['dimensions'])
-			? config['dimensions']
-			: {};
-
-	return {
-		gestureId,
-		shapeKind: areaShape?.kind ?? '',
-		dimensions: Object.fromEntries(
-			dimensions.map(dimension => [
-				dimension.key,
-				isSpellParameterValue(currentDimensions[dimension.key])
-					? currentDimensions[dimension.key]
-					: createStaticParameterValue(String(dimension.defaultValue))
-			])
-		)
-	};
-}
-
-function createAreaDimensions(
-	areaShape: MagicWordAreaShape | null
-): SpellAreaDimension[] {
-	if (!areaShape?.isActive) {
-		return [];
-	}
-
-	return Object.entries(areaShape.dimensions.base)
-		.filter(([, value]) => typeof value === 'number' && Number.isFinite(value))
-		.map(([key, value]) => ({
-			key,
-			label: areaDimensionLabel(key),
-			defaultValue: value,
-			unitLabel: areaDimensionUnitLabel(key)
-		}));
-}
-
-function areaDimensionLabel(key: string) {
-	switch (key) {
-		case 'radius':
-			return 'Радиус';
-		case 'length':
-			return 'Длина';
-		case 'width':
-			return 'Ширина';
-		case 'height':
-			return 'Высота';
-		case 'side':
-			return 'Сторона';
-		case 'tiles':
-			return 'Количество квадратов';
-		case 'innerRadius':
-			return 'Внутренний радиус';
-		case 'thickness':
-			return 'Толщина';
-		default:
-			return key;
-	}
-}
-
-function areaDimensionUnitLabel(key: string) {
-	return key === 'tiles' ? 'клетки 1x1' : 'клетки';
-}
-
-function isSpellParameterValue(value: unknown): value is SpellParameterValue {
-	return (
-		typeof value === 'string' ||
-		isRecord(value) ||
-		isStaticParameterValue(value) ||
-		isAutoParameterValue(value) ||
-		isProgressionParameterValue(value) ||
-		isFormulaParameterValue(value)
-	);
-}
-
-function normalizeSpellTextBlocks(blocks: SpellTextBlock[]): SpellTextBlock[] {
-	return blocks
-		.filter(block => block.kind === 'text' || block.kind === 'mechanicText')
-		.sort((left, right) => left.sortOrder - right.sortOrder)
-		.map((block, index) => ({
-			id: block.id || crypto.randomUUID(),
-			kind: block.kind,
-			text: block.text ?? '',
-			mechanicBlockId: block.mechanicBlockId ?? '',
-			isActive: block.isActive,
-			sortOrder: index
-		}));
 }
 
 function normalizeParameterValue(
@@ -4424,6 +4143,9 @@ function normalizeParameterValue(
 			growth: value.growth,
 			startLevel: value.startLevel,
 			minimum: value.minimum,
+			maximum: value.maximum,
+			rangeMode: value.rangeMode,
+			finalScale: value.finalScale,
 			sourceMode: value.sourceMode,
 			sources: value.sources.map(source => ({
 				...source,
@@ -4481,49 +4203,72 @@ function readSpellEffectScaleConfig(value: unknown): SpellEffectScaleConfig {
 	};
 }
 
-function readSpellEffectScaleItems(value: unknown): SpellEffectScaleItemConfig[] {
+function readSpellEffectScaleItems(
+	value: unknown
+): SpellEffectScaleItemConfig[] {
 	if (!Array.isArray(value)) {
 		return [];
 	}
 
 	return value.filter(isRecord).map((item, index) => ({
-		id: typeof item['id'] === 'string' && item['id'] ? item['id'] : crypto.randomUUID(),
+		id:
+			typeof item['id'] === 'string' && item['id']
+				? item['id']
+				: crypto.randomUUID(),
+		requirement:
+			item['requirement'] === 'automatic' || item['requirement'] === 'successes'
+				? item['requirement']
+				: 'successes',
 		threshold:
-			typeof item['threshold'] === 'number' && Number.isFinite(item['threshold'])
+			typeof item['threshold'] === 'number' &&
+			Number.isFinite(item['threshold'])
 				? item['threshold']
 				: index,
 		name:
 			typeof item['name'] === 'string' && item['name'].trim()
 				? item['name']
 				: `${index} успехов`,
-		description: typeof item['description'] === 'string' ? item['description'] : '',
+		description:
+			typeof item['description'] === 'string' ? item['description'] : '',
 		isOpenEnded: item['isOpenEnded'] === true,
 		mechanicBlocks: readNestedSpellMechanicBlocks(item['mechanicBlocks'])
 	}));
 }
 
-function readNestedSpellMechanicBlocks(value: unknown): SpellMechanicBlockDraft[] {
+function readNestedSpellMechanicBlocks(
+	value: unknown
+): SpellMechanicBlockDraft[] {
 	if (!Array.isArray(value)) {
 		return [];
 	}
 
 	return value.filter(isRecord).map((item, index) => ({
-		id: typeof item['id'] === 'string' && item['id'] ? item['id'] : crypto.randomUUID(),
-		mechanicId: typeof item['mechanicId'] === 'string' ? item['mechanicId'] : '',
+		id:
+			typeof item['id'] === 'string' && item['id']
+				? item['id']
+				: crypto.randomUUID(),
+		mechanicId:
+			typeof item['mechanicId'] === 'string' ? item['mechanicId'] : '',
 		parameterValues: isRecord(item['parameterValues'])
 			? normalizeParameterValues(item['parameterValues'], [])
 			: {},
 		config: isRecord(item['config']) ? item['config'] : {},
 		isActive: typeof item['isActive'] === 'boolean' ? item['isActive'] : true,
 		sortOrder:
-			typeof item['sortOrder'] === 'number' && Number.isFinite(item['sortOrder'])
+			typeof item['sortOrder'] === 'number' &&
+			Number.isFinite(item['sortOrder'])
 				? item['sortOrder']
 				: index
 	}));
 }
 
 function isEffectScaleMode(value: unknown): value is SpellEffectScaleMode {
-	return value === 'best' || value === 'choice' || value === 'all' || value === 'exact';
+	return (
+		value === 'best' ||
+		value === 'choice' ||
+		value === 'all' ||
+		value === 'exact'
+	);
 }
 
 function toRecord(value: unknown): Record<string, unknown> {
@@ -4551,6 +4296,13 @@ function createSingleOptionGroup(
 	label: string,
 	items: SelectOption[]
 ): SelectOptionGroup[] {
+	return items.length ? [{ label, items }] : [];
+}
+
+function createSingleCommandOptionGroup(
+	label: string,
+	items: CommandSelectOption[]
+): CommandSelectOptionGroup[] {
 	return items.length ? [{ label, items }] : [];
 }
 
@@ -4598,15 +4350,6 @@ function isSpellMechanicBlockDraft(
 	);
 }
 
-function createRuntimeRollDraft(skillLevel: number): RuntimeRollDraft {
-	return {
-		diceCount: 6,
-		skillLevel,
-		dice: [],
-		successes: null
-	};
-}
-
 function flattenRuntimeTrace(
 	trace: SpellRuntimeTraceEntry[],
 	depth = 0
@@ -4642,8 +4385,4 @@ function countRuntimeSuccesses(
 
 		return total + normalSuccess + doubleSuccess;
 	}, 0);
-}
-
-function draftSignature(draft: SpellDraft | null): string {
-	return JSON.stringify(draft ?? null);
 }

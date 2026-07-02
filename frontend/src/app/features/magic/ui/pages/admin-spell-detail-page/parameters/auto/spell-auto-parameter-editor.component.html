@@ -1,0 +1,245 @@
+<div class="admin-spell-detail-page__auto-editor">
+	<span
+		class="admin-spell-detail-page__field admin-spell-detail-page__field--final-scale"
+	>
+		<span class="admin-spell-detail-page__field-label">
+			Поведение
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: поведение"
+				(click)="showHelp($event, 'character')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-select
+			[options]="characterOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().character"
+			(ngModelChange)="patch({ character: $event })"
+		></p-select>
+	</span>
+
+	<span
+		class="admin-spell-detail-page__field admin-spell-detail-page__field--rounding"
+	>
+		<span class="admin-spell-detail-page__field-label">
+			Размер значения
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: размер значения"
+				(click)="showHelp($event, 'scale')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-select
+			[options]="scaleOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().scale"
+			(ngModelChange)="patch({ scale: $event })"
+		></p-select>
+	</span>
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Старт расчёта
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: старт расчёта"
+				(click)="showHelp($event, 'startLevel')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-inputnumber
+			[ngModel]="value().startLevel"
+			[min]="0"
+			[inputStyle]="inputNumberInputStyle"
+			(ngModelChange)="patch({ startLevel: $event ?? 0 })"
+		></p-inputnumber>
+	</span>
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Минимум
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: минимум"
+				(click)="showHelp($event, 'minimum')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-inputnumber
+			[ngModel]="value().minimum"
+			[inputStyle]="inputNumberInputStyle"
+			(ngModelChange)="patch({ minimum: $event ?? 0 })"
+		></p-inputnumber>
+	</span>
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Диапазон
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: диапазон"
+				(click)="showHelp($event, 'rangeMode')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-select
+			[options]="rangeModeOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().rangeMode"
+			(ngModelChange)="patch({ rangeMode: $event })"
+		></p-select>
+	</span>
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Максимум
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: максимум"
+				(click)="showHelp($event, 'maximum')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-inputnumber
+			[ngModel]="value().maximum"
+			[disabled]="value().rangeMode === 'none'"
+			[inputStyle]="inputNumberInputStyle"
+			(ngModelChange)="patch({ maximum: $event })"
+		></p-inputnumber>
+	</span>
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Режим влияний
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: режим влияний"
+				(click)="showHelp($event, 'sourceMode')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-select
+			[options]="sourceModeOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().sourceMode"
+			(ngModelChange)="sourceModeChange.emit($event)"
+		></p-select>
+	</span>
+
+	@if (presetOptions().length) {
+		<span class="admin-spell-detail-page__field">
+			<span>Схема влияний</span>
+			<p-select
+				[options]="presetOptions()"
+				[group]="true"
+				optionGroupLabel="label"
+				optionGroupChildren="items"
+				optionLabel="label"
+				optionValue="value"
+				styleClass="admin-spell-detail-page__auto-preset-select"
+				[panelStyle]="presetPanelStyle()"
+				[ngModel]="null"
+				placeholder="Выбрать схему"
+				(ngModelChange)="presetApply.emit($event)"
+			></p-select>
+		</span>
+	}
+
+	<app-spell-auto-parameter-source-list
+		class="admin-spell-detail-page__auto-sources-host"
+		[value]="value()"
+		[scope]="scope()"
+		[sourceKindOptions]="sourceKindOptions()"
+		[sourceTargetOptions]="sourceTargetOptions()"
+		[sourceCurveOptions]="sourceCurveOptions()"
+		[sourceTransformOptions]="sourceTransformOptions()"
+		[sourceKeyOptions]="sourceKeyOptions()"
+		[transformSourceOptions]="transformSourceOptions()"
+		[defaultSourceKey]="defaultSourceKey()"
+		[sourceKeyLabel]="sourceKeyLabel()"
+		[sourceSummary]="sourceSummary()"
+		[canEditTarget]="value().sourceMode === 'advanced'"
+		[canDelete]="
+			value().sourceMode === 'advanced' && value().sources.length > 1
+		"
+		[isSourceCollapsed]="isSourceCollapsed()"
+		(sourceAdd)="sourceAdd.emit()"
+		(sourcePatch)="sourcePatch.emit($event)"
+		(sourceDelete)="sourceDelete.emit($event)"
+		(sourceCollapseToggle)="sourceCollapseToggle.emit($event)"
+		(helpClick)="helpClick.emit($event)"
+	></app-spell-auto-parameter-source-list>
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Итоговый масштаб
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: итоговый масштаб"
+				(click)="showHelp($event, 'finalScale')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<div class="admin-spell-detail-page__percent-control">
+			<p-slider
+				[ngModel]="finalScalePercent()"
+				[min]="0"
+				[max]="300"
+				[step]="5"
+				(ngModelChange)="updateFinalScale($event)"
+			></p-slider>
+			<p-inputnumber
+				[ngModel]="finalScalePercent()"
+				[min]="0"
+				[max]="300"
+				[step]="5"
+				suffix="%"
+				[inputStyle]="inputNumberInputStyle"
+				(ngModelChange)="updateFinalScale($event)"
+			></p-inputnumber>
+		</div>
+	</span>
+
+	<span class="admin-spell-detail-page__field">
+		<span class="admin-spell-detail-page__field-label">
+			Округление
+			<button
+				type="button"
+				class="admin-spell-detail-page__hint-button"
+				aria-label="Справка: округление"
+				(click)="showHelp($event, 'rounding')"
+			>
+				<i class="pi pi-question-circle"></i>
+			</button>
+		</span>
+		<p-select
+			[options]="roundingModeOptions()"
+			optionLabel="label"
+			optionValue="value"
+			[ngModel]="value().roundingMode"
+			(ngModelChange)="patch({ roundingMode: $event })"
+		></p-select>
+	</span>
+</div>

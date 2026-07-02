@@ -50,6 +50,7 @@ interface RuntimePendingChoice {
 	sourceValue: number;
 	options: Array<{
 		id: string;
+		requirement: 'automatic' | 'successes';
 		threshold: number;
 		name: string;
 		description: string;
@@ -344,6 +345,17 @@ export class SpellRuntimePreviewService {
 		const optional = config['optional'] === true;
 
 		if (directRollResult === undefined) {
+			if (optional) {
+				const results = { [resultName]: 0 };
+				this.storeActionResults(action, results, context);
+				this.pushTrace(block, action, context, {
+					status: 'executed',
+					message: 'Бросок пропущен.',
+					results
+				});
+				return;
+			}
+
 			context.pendingRolls.push({
 				blockId: block.id,
 				blockName: block.mechanic.name,
@@ -463,12 +475,16 @@ export class SpellRuntimePreviewService {
 		const resultName = stringValue(effectiveConfig['resultName']) ?? 'Эффект';
 		const items = normalizeEffectScaleItems(effectiveConfig['items'], context.mechanicsById);
 		const availableItems = items
-			.filter(item =>
-				mode === 'exact'
+			.filter(item => {
+				if (item.requirement === 'automatic') {
+					return true;
+				}
+
+				return mode === 'exact'
 					? item.threshold === sourceValue
-					: item.threshold <= sourceValue
-			)
-			.sort((left, right) => left.threshold - right.threshold);
+					: item.threshold <= sourceValue;
+			})
+			.sort(compareEffectScaleItems);
 
 		if (!availableItems.length) {
 			this.storeActionResults(action, { [resultName]: null }, context);
@@ -584,6 +600,7 @@ export class SpellRuntimePreviewService {
 				sourceValue,
 				options: availableItems.map(item => ({
 					id: item.id,
+					requirement: item.requirement,
 					threshold: item.threshold,
 					name: item.name,
 					description: item.description
@@ -1083,6 +1100,7 @@ interface CalculationGraph {
 
 interface RuntimeEffectScaleItem {
 	id: string;
+	requirement: 'automatic' | 'successes';
 	threshold: number;
 	name: string;
 	description: string;
@@ -1130,6 +1148,7 @@ function normalizeEffectScaleItems(
 		.filter(isRecord)
 		.map((item, index) => ({
 			id: stringValue(item['id']) || `item-${index}`,
+			requirement: toEffectScaleRequirement(item['requirement']),
 			threshold:
 				typeof item['threshold'] === 'number' ? item['threshold'] : index,
 			name: stringValue(item['name']) || `Пункт ${index + 1}`,
@@ -1140,7 +1159,24 @@ function normalizeEffectScaleItems(
 			),
 			actions: normalizeNestedActions(item['actions'])
 		}))
-		.sort((left, right) => left.threshold - right.threshold);
+		.sort(compareEffectScaleItems);
+}
+
+function toEffectScaleRequirement(
+	value: unknown
+): RuntimeEffectScaleItem['requirement'] {
+	return value === 'automatic' || value === 'successes' ? value : 'successes';
+}
+
+function compareEffectScaleItems(
+	left: RuntimeEffectScaleItem,
+	right: RuntimeEffectScaleItem
+) {
+	if (left.requirement !== right.requirement) {
+		return left.requirement === 'automatic' ? -1 : 1;
+	}
+
+	return left.threshold - right.threshold;
 }
 
 function normalizeNestedMechanicBlocks(
@@ -1181,6 +1217,7 @@ function normalizeNestedMechanicBlocks(
 function effectScaleItemResult(item: RuntimeEffectScaleItem): JsonObject {
 	return {
 		id: item.id,
+		requirement: item.requirement,
 		threshold: item.threshold,
 		name: item.name,
 		description: item.description

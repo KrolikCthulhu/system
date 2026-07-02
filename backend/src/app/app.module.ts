@@ -3,11 +3,14 @@ import { ConfigModule, ConfigType } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { ArmorPresetsModule } from './armor-presets/armor-presets.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { CharacterSheetSandboxModule } from './character-sheet-sandbox/character-sheet-sandbox.module';
 import { ConditionsModule } from './conditions/conditions.module';
+import { CreatureTypesModule } from './creature-types/creature-types.module';
+import { CreaturesModule } from './creatures/creatures.module';
 import { DamageTypesModule } from './damage-types/damage-types.module';
 import { GameEventsModule } from './game-events/game-events.module';
 import { MagicModule } from './magic/magic.module';
@@ -41,10 +44,13 @@ import { AppService } from './app.service';
 		}),
 		ScheduleModule.forRoot(),
 		PrismaModule,
+		ArmorPresetsModule,
 		AuthModule,
 		AttributesModule,
 		CharacterSheetSandboxModule,
 		ConditionsModule,
+		CreatureTypesModule,
+		CreaturesModule,
 		DamageTypesModule,
 		GameEventsModule,
 		MagicModule,

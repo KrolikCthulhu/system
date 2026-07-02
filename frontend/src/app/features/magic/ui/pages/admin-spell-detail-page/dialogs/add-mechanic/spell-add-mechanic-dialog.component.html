@@ -1,0 +1,77 @@
+<p-dialog
+	header="Добавление механики"
+	[modal]="true"
+	[draggable]="false"
+	[resizable]="false"
+	[style]="{ width: 'min(96vw, 42rem)' }"
+	[visible]="visible()"
+	(visibleChange)="visibleChange.emit($event)"
+>
+	<div class="admin-spell-detail-page__mechanic-wizard">
+		<span class="admin-spell-detail-page__field">
+			<span>Механика</span>
+			<p-select
+				[options]="mechanicOptions()"
+				optionLabel="label"
+				optionValue="value"
+				[ngModel]="selectedMechanicId()"
+				(ngModelChange)="mechanicChange.emit($event)"
+			></p-select>
+		</span>
+
+		@if (selectedMechanic(); as mechanic) {
+			<div class="admin-spell-detail-page__mechanic-wizard-summary">
+				<strong>{{ mechanic.name }}</strong>
+				@if (mechanic.description) {
+					<span>{{ mechanic.description }}</span>
+				}
+			</div>
+
+			@if (requiredParameters()(mechanic).length) {
+				<div class="admin-spell-detail-page__mechanic-wizard-parameters">
+					<div class="admin-spell-detail-page__mechanic-wizard-section-title">
+						Обязательные параметры
+					</div>
+
+					@for (
+						parameter of requiredParameters()(mechanic);
+						track parameter.id
+					) {
+						<div class="admin-spell-detail-page__mechanic-wizard-parameter">
+							<div>
+								<strong>{{ parameter.name }}</strong>
+								<span>{{ parameterDefaultLabel()(parameter) }}</span>
+							</div>
+
+							<p-tag
+								[value]="
+									parameterReady()(parameter) ? 'Заполнится' : 'Нужно настроить'
+								"
+								[severity]="parameterReady()(parameter) ? 'success' : 'warn'"
+							></p-tag>
+						</div>
+					}
+				</div>
+			}
+		} @else {
+			<div class="admin-spell-detail-page__empty-block">
+				Нет доступных активных механик.
+			</div>
+		}
+
+		<div class="admin-spell-detail-page__mechanic-wizard-actions">
+			<p-button
+				label="Отмена"
+				severity="secondary"
+				variant="outlined"
+				(onClick)="visibleChange.emit(false)"
+			></p-button>
+			<p-button
+				label="Добавить"
+				icon="pi pi-plus"
+				[disabled]="!selectedMechanic()"
+				(onClick)="confirm.emit()"
+			></p-button>
+		</div>
+	</div>
+</p-dialog>

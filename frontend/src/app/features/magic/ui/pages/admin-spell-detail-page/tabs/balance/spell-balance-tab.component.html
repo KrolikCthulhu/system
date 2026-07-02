@@ -1,0 +1,159 @@
+<section class="admin-spell-detail-page__balance">
+	<header class="admin-spell-detail-page__balance-toolbar">
+		<span class="admin-spell-detail-page__field">
+			<span>Существо</span>
+			<p-select
+				[ngModel]="selectedCreature()?.id ?? null"
+				[options]="creatureOptions()"
+				optionLabel="label"
+				optionValue="value"
+				[filter]="true"
+				filterBy="label,searchText"
+				appendTo="body"
+				(ngModelChange)="updateSelectedCreature($event)"
+			></p-select>
+		</span>
+
+		<div class="admin-spell-detail-page__balance-summary">
+			<span>Параметры урона: {{ damageLabel() }}</span>
+			<span>Атака: {{ attackLabel() }}</span>
+			<span>Защита: {{ defenseLabel() }}</span>
+			<span>Кубы защиты: характеристика навыка</span>
+		</div>
+	</header>
+
+	@if (selectedCreature(); as creature) {
+		<div class="admin-spell-detail-page__balance-tiers">
+			@for (matrix of balanceMatrices(); track matrix.tier) {
+				<details class="admin-spell-detail-page__balance-tier" open>
+					<summary class="admin-spell-detail-page__balance-tier-summary">
+						<span>
+							<strong>{{ matrix.tier }}. {{ matrix.name }}</strong>
+							<span>HP {{ matrix.hp }}</span>
+						</span>
+						<span>{{ matrix.armor }}</span>
+						<span>{{ matrix.defense }}</span>
+					</summary>
+
+					<p-table
+						styleClass="admin-spell-detail-page__balance-table"
+						[value]="matrix.rows"
+						size="small"
+						rowGroupMode="subheader"
+						groupRowsBy="groupSortValue"
+						sortField="groupSortValue"
+						[sortOrder]="1"
+						[scrollable]="true"
+						scrollDirection="horizontal"
+						[tableStyle]="{ 'min-width': '52rem' }"
+					>
+						<ng-template pTemplate="header">
+							<tr>
+								@for (axis of rowAxes(); track axis.id) {
+									<th>{{ axis.label }}</th>
+								}
+								@if (columnAxis(); as axis) {
+									@for (value of columnValues(); track value) {
+										<th>{{ axis.label }} {{ value }}</th>
+									}
+								} @else {
+									<th>Урон</th>
+								}
+							</tr>
+						</ng-template>
+
+						<ng-template pTemplate="groupheader" let-row>
+							<tr pRowGroupHeader>
+								<td [attr.colspan]="rowAxes().length + columnValues().length">
+									<span class="admin-spell-detail-page__balance-group">
+										<p-button
+											[icon]="
+												isGroupExpanded(row.groupStateKey)
+													? 'pi pi-minus'
+													: 'pi pi-plus'
+											"
+											[text]="true"
+											[rounded]="true"
+											size="small"
+											[ariaLabel]="
+												isGroupExpanded(row.groupStateKey)
+													? 'Свернуть группу'
+													: 'Раскрыть группу'
+											"
+											(click)="toggleGroupExpanded(row.groupStateKey)"
+										></p-button>
+										<strong>{{ row.groupLabel }}</strong>
+									</span>
+								</td>
+							</tr>
+						</ng-template>
+
+						<ng-template pTemplate="body" let-row>
+							@if (isGroupExpanded(row.groupStateKey)) {
+								<tr>
+									@for (point of row.points; track point.axis.id) {
+										<td>{{ point.value }}</td>
+									}
+									@for (cell of row.cells; track cell.columnValue) {
+										<td>
+											<button
+												type="button"
+												class="admin-spell-detail-page__balance-heat-cell"
+												[class.admin-spell-detail-page__balance-heat-cell--secondary]="
+													cell.severity === 'secondary'
+												"
+												[class.admin-spell-detail-page__balance-heat-cell--info]="
+													cell.severity === 'info'
+												"
+												[class.admin-spell-detail-page__balance-heat-cell--warn]="
+													cell.severity === 'warn'
+												"
+												[class.admin-spell-detail-page__balance-heat-cell--danger]="
+													cell.severity === 'danger'
+												"
+												(click)="showCellDetails(cell)"
+											>
+												<span>{{ cell.percentLabel }}</span>
+											</button>
+										</td>
+									}
+								</tr>
+							}
+						</ng-template>
+					</p-table>
+				</details>
+			}
+		</div>
+	} @else {
+		<div class="admin-spell-detail-page__balance-empty">
+			В бестиарии пока нет существ.
+		</div>
+	}
+</section>
+
+<p-dialog
+	[visible]="selectedCell() !== null"
+	[modal]="true"
+	[draggable]="false"
+	[resizable]="false"
+	[style]="{ width: '28rem' }"
+	[breakpoints]="{ '640px': '95vw' }"
+	[header]="selectedCell()?.title ?? 'Детали'"
+	(onHide)="closeCellDetails()"
+>
+	@if (selectedCell(); as cell) {
+		<div class="admin-spell-detail-page__balance-detail">
+			<p-tag [value]="cell.summary" [severity]="cell.severity"></p-tag>
+			<p>
+				Процент показывает, какую долю HP выбранного тира покрывает ожидаемый
+				урон: урон / HP.
+			</p>
+
+			<ul>
+				@for (detail of cell.details; track $index) {
+					<li>{{ detail }}</li>
+				}
+			</ul>
+		</div>
+	}
+</p-dialog>

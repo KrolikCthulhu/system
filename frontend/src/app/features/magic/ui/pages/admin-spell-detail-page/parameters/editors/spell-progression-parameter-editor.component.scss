@@ -1,0 +1,45 @@
+.admin-spell-detail-page__progression-config {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	gap: 0.625rem;
+}
+
+.admin-spell-detail-page__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.admin-spell-detail-page__field input,
+.admin-spell-detail-page__field textarea,
+.admin-spell-detail-page__field p-select,
+.admin-spell-detail-page__field p-inputnumber {
+	width: 100%;
+}
+
+.admin-spell-detail-page__field-label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.25rem;
+}
+
+.admin-spell-detail-page__hint-button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1rem;
+	height: 1rem;
+	padding: 0;
+	border: 0;
+	background: transparent;
+	color: var(--p-text-muted-color);
+	cursor: pointer;
+}
+
+.admin-spell-detail-page__hint-button:hover,
+.admin-spell-detail-page__hint-button:focus-visible {
+	color: var(--p-primary-color);
+}

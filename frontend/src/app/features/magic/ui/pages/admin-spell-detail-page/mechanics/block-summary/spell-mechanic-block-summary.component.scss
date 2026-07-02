@@ -1,0 +1,74 @@
+.admin-spell-detail-page__mechanic-editor-head {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	align-items: end;
+	gap: 0.75rem;
+	padding: 0.75rem 0.75rem 0;
+}
+
+.admin-spell-detail-page__mechanic-preview {
+	margin: 0 0.75rem;
+	padding: 0.625rem 0.75rem;
+	background: var(--p-surface-50);
+	color: var(--p-text-color);
+	font-size: 0.875rem;
+	line-height: 1.4;
+}
+
+.admin-spell-detail-page__mechanic-application {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	padding: 0 0.75rem 0.75rem;
+	border-bottom: 1px solid var(--p-content-border-color);
+}
+
+.admin-spell-detail-page__mechanic-section-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.admin-spell-detail-page__mechanic-section-head h3 {
+	margin: 0;
+	color: var(--p-text-color);
+	font-size: var(--text-heading-3-size);
+	line-height: 1.2;
+}
+
+.admin-spell-detail-page__mechanic-section-head span {
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	text-align: right;
+}
+
+.admin-spell-detail-page__mechanic-application-grid {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.admin-spell-detail-page__field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.admin-spell-detail-page__field input,
+.admin-spell-detail-page__field textarea,
+.admin-spell-detail-page__field p-select,
+.admin-spell-detail-page__field p-inputnumber {
+	width: 100%;
+}
+
+.admin-spell-detail-page__inline-switch {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
