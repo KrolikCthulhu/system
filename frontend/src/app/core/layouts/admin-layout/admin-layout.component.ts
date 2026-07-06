@@ -58,6 +58,16 @@ export class AdminLayoutComponent {
 			]
 		},
 		{
+			label: 'Бой',
+			expanded: true,
+			items: [
+				{
+					label: 'Боевые намерения',
+					routerLink: '/admin/rules/combat-intents'
+				}
+			]
+		},
+		{
 			label: 'Бестиарий',
 			expanded: true,
 			items: [
@@ -75,6 +85,10 @@ export class AdminLayoutComponent {
 			label: 'Снаряжение',
 			expanded: true,
 			items: [
+				{
+					label: 'Оружие',
+					routerLink: '/admin/rules/weapons'
+				},
 				{
 					label: 'Пресеты брони',
 					routerLink: '/admin/rules/armor-presets'

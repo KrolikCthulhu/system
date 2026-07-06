@@ -93,11 +93,25 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminConditionsPageComponent)
 					},
 					{
+						path: 'combat-intents',
+						loadComponent: () =>
+							import(
+								'../../features/combat-intents/ui/pages/admin-combat-intents-page/admin-combat-intents-page.component'
+							).then(m => m.AdminCombatIntentsPageComponent)
+					},
+					{
 						path: 'armor-presets',
 						loadComponent: () =>
 							import(
 								'../../features/armor-presets/ui/pages/admin-armor-presets-page/admin-armor-presets-page.component'
 							).then(m => m.AdminArmorPresetsPageComponent)
+					},
+					{
+						path: 'weapons',
+						loadComponent: () =>
+							import(
+								'../../features/weapons/ui/pages/admin-weapons-page/admin-weapons-page.component'
+							).then(m => m.AdminWeaponsPageComponent)
 					},
 					{
 						path: 'creature-types',

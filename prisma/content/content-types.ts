@@ -68,6 +68,13 @@ export type ArmorPresetContent = SortableContentItem & {
 	protection: number;
 };
 
+export type WeaponContent = SortableContentItem & {
+	skill: SlugRef;
+	extraDamage: number;
+};
+
+export type CombatIntentContent = SortableContentItem;
+
 export type ProgressionContent = NamedContentItem & {
 	kind: string;
 	config: Prisma.InputJsonValue;

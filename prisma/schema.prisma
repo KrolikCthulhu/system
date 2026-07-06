@@ -211,6 +211,7 @@ model Skill {
   magicWordLinks                 MagicWordSkillLink[]
   spellMechanicParameterDefaults SpellMechanicParameter[]
   creatureTierSkills             CreatureTierSkill[]
+  weapons                         Weapon[]
   isActive                       Boolean                  @default(true) @map("is_active")
   sortOrder                      Int                      @default(0) @map("sort_order")
   createdAt                      DateTime                 @default(now()) @map("created_at")
@@ -575,6 +576,36 @@ model ArmorPreset {
 
   @@index([isActive, sortOrder])
   @@map("armor_presets")
+}
+
+model Weapon {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String   @unique @default(cuid())
+  name        String   @unique
+  skillId     String   @map("skill_id") @db.Uuid
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  extraDamage Int      @default(0) @map("extra_damage")
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([skillId])
+  @@index([isActive, sortOrder])
+  @@map("weapons")
+}
+
+model CombatIntent {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug      String   @unique @default(cuid())
+  name      String   @unique
+  isActive  Boolean  @default(true) @map("is_active")
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("combat_intents")
 }
 
 model Creature {

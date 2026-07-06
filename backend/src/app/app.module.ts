@@ -8,6 +8,7 @@ import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
 import { CharacterSheetSandboxModule } from './character-sheet-sandbox/character-sheet-sandbox.module';
+import { CombatIntentsModule } from './combat-intents/combat-intents.module';
 import { ConditionsModule } from './conditions/conditions.module';
 import { CreatureTypesModule } from './creature-types/creature-types.module';
 import { CreaturesModule } from './creatures/creatures.module';
@@ -20,6 +21,7 @@ import { RollConsequencesModule } from './roll-consequences/roll-consequences.mo
 import { SkillsModule } from './skills/skills.module';
 import { SpellMechanicsModule } from './spell-mechanics/spell-mechanics.module';
 import { ValuesModule } from './values/values.module';
+import { WeaponsModule } from './weapons/weapons.module';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
@@ -48,6 +50,7 @@ import { AppService } from './app.service';
 		AuthModule,
 		AttributesModule,
 		CharacterSheetSandboxModule,
+		CombatIntentsModule,
 		ConditionsModule,
 		CreatureTypesModule,
 		CreaturesModule,
@@ -58,7 +61,8 @@ import { AppService } from './app.service';
 		RollConsequencesModule,
 		SkillsModule,
 		SpellMechanicsModule,
-		ValuesModule
+		ValuesModule,
+		WeaponsModule
 	],
 	controllers: [AppController],
 	providers: [

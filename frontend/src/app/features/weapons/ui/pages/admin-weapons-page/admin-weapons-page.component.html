@@ -1,0 +1,189 @@
+<section class="admin-weapons-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-weapons-page__header">
+		<div class="admin-weapons-page__section-pad">
+			<p-breadcrumb
+				class="admin-weapons-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-weapons-page__workspace">
+		<aside class="admin-weapons-page__panel admin-weapons-page__sidebar">
+			<div
+				class="admin-weapons-page__panel-heading admin-weapons-page__section-pad"
+			>
+				<h2 class="admin-weapons-page__panel-title">Оружие</h2>
+				<p-button
+					label="Новое оружие"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createWeapon()"
+				></p-button>
+			</div>
+
+			<div
+				class="admin-weapons-page__search-row admin-weapons-page__section-pad"
+			>
+				<p-iconfield class="admin-weapons-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск оружия"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-weapons-page__state">Загрузка оружия...</div>
+			} @else if (errorMessage() && !draft()) {
+				<div class="admin-weapons-page__state admin-weapons-page__state--error">
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div
+					class="admin-weapons-page__item-list admin-weapons-page__section-pad"
+				>
+					<div class="admin-weapons-page__list-title">Справочник оружия</div>
+
+					@for (weapon of filteredWeapons(); track weapon.id) {
+						<button
+							type="button"
+							class="admin-weapons-page__item"
+							[class.admin-weapons-page__item--active]="
+								weapon.id === selectedWeaponId()
+							"
+							(click)="selectWeapon(weapon)"
+						>
+							<span>{{ weapon.name }}</span>
+							<span class="admin-weapons-page__item-meta">
+								{{ weapon.skill.name }} · +{{ weapon.extraDamage }}
+							</span>
+							@if (!weapon.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-weapons-page__empty-list">
+							Оружия пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section class="admin-weapons-page__panel admin-weapons-page__editor">
+				<div
+					class="admin-weapons-page__panel-heading admin-weapons-page__panel-heading--split admin-weapons-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-weapons-page__panel-title">{{ title() }}</h2>
+					</div>
+
+					<div class="admin-weapons-page__heading-actions">
+						<p-tag value="Оружие" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedWeapon()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div class="admin-weapons-page__editor-body admin-weapons-page__section-pad">
+					@if (errorMessage()) {
+						<div class="admin-weapons-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-weapons-page__form-grid">
+						<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+							<span>Навык владения</span>
+							<p-select
+								[ngModel]="currentDraft.skillId"
+								[options]="skillGroups()"
+								[fluid]="true"
+								optionLabel="name"
+								optionValue="id"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								[group]="true"
+								[filter]="true"
+								filterBy="name,searchText"
+								appendTo="body"
+								(ngModelChange)="updateDraftSkill($event)"
+							></p-select>
+						</span>
+
+						<span class="admin-weapons-page__field">
+							<span>Дополнительный урон</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.extraDamage"
+								[showButtons]="true"
+								[min]="0"
+								[fluid]="true"
+								(ngModelChange)="updateDraftExtraDamage($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-weapons-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								[fluid]="true"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-weapons-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+					</div>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section class="admin-weapons-page__panel admin-weapons-page__editor">
+				<div class="admin-weapons-page__state">
+					Выбери оружие слева или создай новое.
+				</div>
+			</section>
+		}
+	</div>
+</section>

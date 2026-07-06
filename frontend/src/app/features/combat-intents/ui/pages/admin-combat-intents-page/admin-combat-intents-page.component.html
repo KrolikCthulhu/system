@@ -1,0 +1,178 @@
+<section class="admin-combat-intents-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-combat-intents-page__header">
+		<div class="admin-combat-intents-page__section-pad">
+			<p-breadcrumb
+				class="admin-combat-intents-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-combat-intents-page__workspace">
+		<aside
+			class="admin-combat-intents-page__panel admin-combat-intents-page__sidebar"
+		>
+			<div
+				class="admin-combat-intents-page__panel-heading admin-combat-intents-page__section-pad"
+			>
+				<h2 class="admin-combat-intents-page__panel-title">Боевые намерения</h2>
+				<p-button
+					label="Новое намерение"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createCombatIntent()"
+				></p-button>
+			</div>
+
+			<div
+				class="admin-combat-intents-page__search-row admin-combat-intents-page__section-pad"
+			>
+				<p-iconfield class="admin-combat-intents-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск намерения"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-combat-intents-page__state">
+					Загрузка боевых намерений...
+				</div>
+			} @else if (errorMessage() && !draft()) {
+				<div
+					class="admin-combat-intents-page__state admin-combat-intents-page__state--error"
+				>
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div
+					class="admin-combat-intents-page__item-list admin-combat-intents-page__section-pad"
+				>
+					<div class="admin-combat-intents-page__list-title">
+						Боевые намерения
+					</div>
+
+					@for (
+						combatIntent of filteredCombatIntents();
+						track combatIntent.id
+					) {
+						<button
+							type="button"
+							class="admin-combat-intents-page__item"
+							[class.admin-combat-intents-page__item--active]="
+								combatIntent.id === selectedCombatIntentId()
+							"
+							(click)="selectCombatIntent(combatIntent)"
+						>
+							<span>{{ combatIntent.name }}</span>
+							@if (!combatIntent.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-combat-intents-page__empty-list">
+							Боевых намерений пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section
+				class="admin-combat-intents-page__panel admin-combat-intents-page__editor"
+			>
+				<div
+					class="admin-combat-intents-page__panel-heading admin-combat-intents-page__panel-heading--split admin-combat-intents-page__section-pad"
+				>
+					<div>
+						<h2 class="admin-combat-intents-page__panel-title">
+							{{ title() }}
+						</h2>
+					</div>
+
+					<div class="admin-combat-intents-page__heading-actions">
+						<p-tag value="Боевое намерение" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedCombatIntent()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div
+					class="admin-combat-intents-page__editor-body admin-combat-intents-page__section-pad"
+				>
+					@if (errorMessage()) {
+						<div class="admin-combat-intents-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-combat-intents-page__form-grid">
+						<span
+							class="admin-combat-intents-page__field admin-combat-intents-page__field--wide"
+						>
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-combat-intents-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								[fluid]="true"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-combat-intents-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+					</div>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section
+				class="admin-combat-intents-page__panel admin-combat-intents-page__editor"
+			>
+				<div class="admin-combat-intents-page__state">
+					Выбери боевое намерение слева или создай новое.
+				</div>
+			</section>
+		}
+	</div>
+</section>

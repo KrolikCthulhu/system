@@ -7,6 +7,7 @@ import {
 import { seedArmorPresets } from './seed-armor-presets';
 import { seedCharacteristics } from './seed-characteristics';
 import { seedConditions } from './seed-conditions';
+import { seedCombatIntents } from './seed-combat-intents';
 import { seedCreatureTypes } from './seed-creature-types';
 import { seedCreatures } from './seed-creatures';
 import { seedDamageTypes } from './seed-damage-types';
@@ -24,6 +25,7 @@ import { seedSkillLevels } from './seed-skill-levels';
 import { seedSkillCategories, seedSkills } from './seed-skills';
 import { seedSpellMechanics } from './seed-spell-mechanics';
 import { seedSpells } from './seed-spells';
+import { seedWeapons } from './seed-weapons';
 import {
 	seedHealthValue,
 	seedPotentialValue,
@@ -58,6 +60,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedGameEventHandlers(tx, { sourceValue });
 	await seedDamageTypes(tx);
 	await seedConditions(tx);
+	await seedCombatIntents(tx);
 	await seedCreatureTypes(tx);
 	await seedArmorPresets(tx);
 	await seedProgressionPresets(tx);
@@ -67,6 +70,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 		characteristics,
 		consequences
 	});
+	await seedWeapons(tx);
 	await seedCreatures(tx);
 	await seedSpellcasterLevelValue(tx);
 	await seedSpellMechanics(tx);

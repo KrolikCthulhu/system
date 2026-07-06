@@ -16,6 +16,7 @@ import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
 import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
+import { provideCombatIntentsInfrastructure } from './features/combat-intents/data/provide-combat-intents-infrastructure';
 import { provideConditionsInfrastructure } from './features/conditions/data/provide-conditions-infrastructure';
 import { provideCreatureTypesInfrastructure } from './features/creature-types/data/provide-creature-types-infrastructure';
 import { provideCreaturesInfrastructure } from './features/creatures/data/provide-creatures-infrastructure';
@@ -27,6 +28,7 @@ import { provideRollConsequencesInfrastructure } from './features/roll-consequen
 import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
 import { provideSpellMechanicsInfrastructure } from './features/spell-mechanics/data/provide-spell-mechanics-infrastructure';
 import { provideValuesInfrastructure } from './features/values/data/provide-values-infrastructure';
+import { provideWeaponsInfrastructure } from './features/weapons/data/provide-weapons-infrastructure';
 
 const appThemePreset = definePreset(Aura, {
 	semantic: {
@@ -127,6 +129,7 @@ export const appConfig: ApplicationConfig = {
 		...provideArmorPresetsInfrastructure(),
 		...provideAttributesInfrastructure(),
 		...provideCharacterSheetInfrastructure(),
+		...provideCombatIntentsInfrastructure(),
 		...provideConditionsInfrastructure(),
 		...provideCreatureTypesInfrastructure(),
 		...provideCreaturesInfrastructure(),
@@ -138,6 +141,7 @@ export const appConfig: ApplicationConfig = {
 		...provideSkillsInfrastructure(),
 		...provideSpellMechanicsInfrastructure(),
 		...provideValuesInfrastructure(),
+		...provideWeaponsInfrastructure(),
 		provideAppInitializer(() => inject(AuthFacade).initializeSession()),
 		provideHttpClient(withInterceptors([authInterceptor])),
 		provideRouter(appRoutes),
