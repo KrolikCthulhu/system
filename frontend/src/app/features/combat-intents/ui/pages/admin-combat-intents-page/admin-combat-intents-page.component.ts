@@ -27,8 +27,14 @@ import { CombatIntent } from '../../../domain/combat-intents.models';
 interface CombatIntentDraft {
 	id: string | null;
 	name: string;
+	category: string;
 	isActive: boolean;
 	sortOrder: number;
+}
+
+interface CombatIntentGroup {
+	label: string;
+	items: CombatIntent[];
 }
 
 @Component({
@@ -84,9 +90,17 @@ export class AdminCombatIntentsPageComponent {
 	protected readonly filteredCombatIntents = computed(() => {
 		const query = this.searchQuery().trim().toLowerCase();
 		return this.combatIntents()
-			.filter(item => !query || item.name.toLowerCase().includes(query))
+			.filter(
+				item =>
+					!query ||
+					item.name.toLowerCase().includes(query) ||
+					item.category.toLowerCase().includes(query)
+			)
 			.sort(compareCombatIntents);
 	});
+	protected readonly combatIntentGroups = computed<CombatIntentGroup[]>(() =>
+		buildCombatIntentGroups(this.filteredCombatIntents())
+	);
 	protected readonly title = computed(() => {
 		const draft = this.draft();
 		return draft?.id
@@ -131,6 +145,10 @@ export class AdminCombatIntentsPageComponent {
 		this.patchDraft({ name });
 	}
 
+	protected updateDraftCategory(category: string) {
+		this.patchDraft({ category });
+	}
+
 	protected updateDraftSortOrder(sortOrder: number | null) {
 		this.patchDraft({ sortOrder: sortOrder ?? 0 });
 	}
@@ -166,11 +184,19 @@ export class AdminCombatIntentsPageComponent {
 			return;
 		}
 
+		const category = draft.category.trim();
+
+		if (!category) {
+			this.errorMessage.set('Категория боевого намерения обязательна.');
+			return;
+		}
+
 		this.saving.set(true);
 		this.errorMessage.set(null);
 
 		const command = {
 			name,
+			category,
 			isActive: draft.isActive,
 			sortOrder: draft.sortOrder
 		};
@@ -254,6 +280,7 @@ export class AdminCombatIntentsPageComponent {
 		const draft: CombatIntentDraft = {
 			id: combatIntent.id,
 			name: combatIntent.name,
+			category: combatIntent.category,
 			isActive: combatIntent.isActive,
 			sortOrder: combatIntent.sortOrder
 		};
@@ -312,6 +339,7 @@ function createEmptyDraft(): CombatIntentDraft {
 	return {
 		id: null,
 		name: '',
+		category: 'Урон и травмы',
 		isActive: true,
 		sortOrder: 0
 	};
@@ -324,4 +352,23 @@ function draftSignature(draft: CombatIntentDraft | null): string {
 function compareCombatIntents(first: CombatIntent, second: CombatIntent) {
 	const orderDiff = first.sortOrder - second.sortOrder;
 	return orderDiff || first.name.localeCompare(second.name, 'ru');
+}
+
+function buildCombatIntentGroups(intents: CombatIntent[]): CombatIntentGroup[] {
+	const groupMap = new Map<string, CombatIntentGroup>();
+
+	for (const intent of intents) {
+		const group = groupMap.get(intent.category);
+		if (group) {
+			group.items.push(intent);
+			continue;
+		}
+
+		groupMap.set(intent.category, {
+			label: intent.category,
+			items: [intent]
+		});
+	}
+
+	return [...groupMap.values()];
 }

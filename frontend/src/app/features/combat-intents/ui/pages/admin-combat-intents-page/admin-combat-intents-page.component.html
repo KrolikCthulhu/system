@@ -62,23 +62,29 @@
 						Боевые намерения
 					</div>
 
-					@for (
-						combatIntent of filteredCombatIntents();
-						track combatIntent.id
-					) {
-						<button
-							type="button"
-							class="admin-combat-intents-page__item"
-							[class.admin-combat-intents-page__item--active]="
-								combatIntent.id === selectedCombatIntentId()
-							"
-							(click)="selectCombatIntent(combatIntent)"
-						>
-							<span>{{ combatIntent.name }}</span>
-							@if (!combatIntent.isActive) {
-								<p-tag value="Выкл" severity="secondary"></p-tag>
+					@for (group of combatIntentGroups(); track group.label) {
+						<section class="admin-combat-intents-page__group">
+							<div class="admin-combat-intents-page__group-title">
+								{{ group.label }}
+							</div>
+							@for (combatIntent of group.items; track combatIntent.id) {
+								<button
+									type="button"
+									class="admin-combat-intents-page__item"
+									[class.admin-combat-intents-page__item--active]="
+										combatIntent.id === selectedCombatIntentId()
+									"
+									(click)="selectCombatIntent(combatIntent)"
+								>
+									<span class="admin-combat-intents-page__item-text">
+										<span>{{ combatIntent.name }}</span>
+									</span>
+									@if (!combatIntent.isActive) {
+										<p-tag value="Выкл" severity="secondary"></p-tag>
+									}
+								</button>
 							}
-						</button>
+						</section>
 					} @empty {
 						<div class="admin-combat-intents-page__empty-list">
 							Боевых намерений пока нет.
@@ -134,6 +140,16 @@
 								type="text"
 								[value]="currentDraft.name"
 								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-combat-intents-page__field">
+							<span>Категория</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.category"
+								(input)="updateDraftCategory($any($event.target).value)"
 							/>
 						</span>
 

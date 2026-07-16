@@ -101,9 +101,47 @@
 	min-width: 0;
 }
 
+.admin-weapons-page__search-row {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 0.5rem;
+}
+
 .admin-weapons-page__search input {
 	width: 100%;
 	height: 2.25rem;
+}
+
+.admin-weapons-page__filters-popover {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	width: min(20rem, calc(100vw - 2rem));
+}
+
+.admin-weapons-page__filters-popover-heading {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	color: var(--p-text-color);
+	font-size: 0.9375rem;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.admin-weapons-page__filters {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.admin-weapons-page__navigation-tree {
+	display: block;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
 }
 
 .admin-weapons-page__item-list {
@@ -197,6 +235,63 @@
 	gap: 0.75rem;
 }
 
+.admin-weapons-page__profiles {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-top: 1.25rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-weapons-page__profiles-heading,
+.admin-weapons-page__profile-header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.admin-weapons-page__section-title,
+.admin-weapons-page__profile-title {
+	margin: 0;
+	color: var(--p-text-color);
+	font-size: 1rem;
+	font-weight: 600;
+	line-height: 1.25;
+}
+
+.admin-weapons-page__profile-actions {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
+.admin-weapons-page__profile-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.admin-weapons-page__profile {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 0.5rem;
+	background: var(--p-content-background);
+}
+
+.admin-weapons-page__profile-meta {
+	margin-top: 0.125rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+	line-height: 1.25;
+}
+
 .admin-weapons-page__field,
 .admin-weapons-page__switch-field {
 	display: flex;
@@ -216,6 +311,53 @@
 
 .admin-weapons-page__field--wide {
 	grid-column: 1 / -1;
+}
+
+.admin-weapons-page__checkbox-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	gap: 0.5rem 0.75rem;
+	padding: 0.5rem 0;
+}
+
+.admin-weapons-page__intent-groups {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding-top: 0.5rem;
+}
+
+.admin-weapons-page__intent-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+}
+
+.admin-weapons-page__intent-group-title {
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.admin-weapons-page__checkbox-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+	color: var(--p-text-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-weapons-page__checkbox-row span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
 }
 
 .admin-weapons-page__switch-field {

@@ -25,6 +25,7 @@ import { seedSkillLevels } from './seed-skill-levels';
 import { seedSkillCategories, seedSkills } from './seed-skills';
 import { seedSpellMechanics } from './seed-spell-mechanics';
 import { seedSpells } from './seed-spells';
+import { seedWeaponTemplates } from './seed-weapon-templates';
 import { seedWeapons } from './seed-weapons';
 import {
 	seedHealthValue,
@@ -70,6 +71,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 		characteristics,
 		consequences
 	});
+	await seedWeaponTemplates(tx);
 	await seedWeapons(tx);
 	await seedCreatures(tx);
 	await seedSpellcasterLevelValue(tx);

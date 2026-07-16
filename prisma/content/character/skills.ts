@@ -15,39 +15,39 @@ export default {
 					"slug": "rukopashnyy-boy"
 				},
 				{
-					"name": "Метательное оружие",
-					"rollCharacteristicName": "Рефлексы",
+					"name": "Клинковое оружие",
+					"rollCharacteristicName": "Мощь",
 					"rollConsequenceName": "Усталость",
 					"sortOrder": 1,
-					"slug": "metatelnoe-oruzhie"
+					"slug": "klinkovoe-oruzhie"
+				},
+				{
+					"name": "Топоры и секиры",
+					"rollCharacteristicName": "Мощь",
+					"rollConsequenceName": "Усталость",
+					"sortOrder": 2,
+					"slug": "topory-i-sekiry"
+				},
+				{
+					"name": "Дробящее оружие",
+					"rollCharacteristicName": "Мощь",
+					"rollConsequenceName": "Усталость",
+					"sortOrder": 3,
+					"slug": "udarnoe-oruzhie"
 				},
 				{
 					"name": "Древковое оружие",
 					"rollCharacteristicName": "Мощь",
 					"rollConsequenceName": "Усталость",
-					"sortOrder": 2,
+					"sortOrder": 4,
 					"slug": "drevkovoe-oruzhie"
 				},
 				{
-					"name": "Клинковое оружие",
-					"rollCharacteristicName": "Мощь",
-					"rollConsequenceName": "Усталость",
-					"sortOrder": 3,
-					"slug": "klinkovoe-oruzhie"
-				},
-				{
-					"name": "Ударное оружие",
-					"rollCharacteristicName": "Мощь",
-					"rollConsequenceName": "Усталость",
-					"sortOrder": 4,
-					"slug": "udarnoe-oruzhie"
-				},
-				{
-					"name": "Огнестрельное оружие",
+					"name": "Метательное оружие",
 					"rollCharacteristicName": "Рефлексы",
 					"rollConsequenceName": "Усталость",
 					"sortOrder": 5,
-					"slug": "ognestrelnoe-oruzhie"
+					"slug": "metatelnoe-oruzhie"
 				},
 				{
 					"name": "Стрелковое оружие",
@@ -57,10 +57,17 @@ export default {
 					"slug": "strelkovoe-oruzhie"
 				},
 				{
-					"name": "Уклонение",
+					"name": "Огнестрельное оружие",
 					"rollCharacteristicName": "Рефлексы",
 					"rollConsequenceName": "Усталость",
 					"sortOrder": 7,
+					"slug": "ognestrelnoe-oruzhie"
+				},
+				{
+					"name": "Уклонение",
+					"rollCharacteristicName": "Рефлексы",
+					"rollConsequenceName": "Усталость",
+					"sortOrder": 8,
 					"slug": "uklonenie"
 				}
 			],

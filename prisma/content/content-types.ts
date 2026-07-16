@@ -70,10 +70,39 @@ export type ArmorPresetContent = SortableContentItem & {
 
 export type WeaponContent = SortableContentItem & {
 	skill: SlugRef;
+	template: SlugRef;
 	extraDamage: number;
+	damageTypes?: SlugRef[];
+	attackProfiles?: WeaponAttackProfileContent[];
 };
 
-export type CombatIntentContent = SortableContentItem;
+export type WeaponAttackProfileContent = {
+	kind: 'melee' | 'ranged';
+	name: string;
+	skill: SlugRef;
+	characteristic: SlugRef;
+	baseCost: number;
+	baseDamage: number;
+	rangeMeters: number;
+	usesAmmo?: boolean;
+	damageTypes?: SlugRef[];
+	combatIntents?: SlugRef[];
+	sortOrder?: number;
+	isActive?: boolean;
+};
+
+export type WeaponTemplateContent = SortableContentItem & {
+	skill: SlugRef;
+	handsMin: number;
+	handsMax: number;
+	defaultHands: number;
+	attackProfiles: WeaponAttackProfileContent[];
+};
+
+export type CombatIntentContent = SortableContentItem & {
+	category: string;
+	isActive?: boolean;
+};
 
 export type ProgressionContent = NamedContentItem & {
 	kind: string;

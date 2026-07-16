@@ -102,6 +102,11 @@ enum ProgressionPresetKind {
   PERCENT
 }
 
+enum WeaponAttackProfileKind {
+  MELEE
+  RANGED
+}
+
 model User {
   id                      String                   @id @default(uuid()) @db.Uuid
   email                   String                   @unique
@@ -192,30 +197,33 @@ model SkillLevel {
 }
 
 model Skill {
-  id                             String                   @id @default(uuid()) @db.Uuid
-  slug                           String                   @unique @default(cuid())
+  id                             String                        @id @default(uuid()) @db.Uuid
+  slug                           String                        @unique @default(cuid())
   name                           String
-  shortName                      String?                  @map("short_name")
-  categoryId                     String                   @map("category_id") @db.Uuid
-  category                       SkillCategory            @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  shortName                      String?                       @map("short_name")
+  categoryId                     String                        @map("category_id") @db.Uuid
+  category                       SkillCategory                 @relation(fields: [categoryId], references: [id], onDelete: Restrict)
   description                    String?
-  maxLevel                       Int                      @default(6) @map("max_level")
-  defaultLevel                   Int                      @default(0) @map("default_level")
-  usesDefaultLevelRules          Boolean                  @default(true) @map("uses_default_level_rules")
-  systemValueId                  String                   @unique @map("system_value_id") @db.Uuid
-  systemValue                    SystemValue              @relation("SkillSystemValue", fields: [systemValueId], references: [id], onDelete: Restrict)
-  rollCharacteristicId           String?                  @map("roll_characteristic_id") @db.Uuid
-  rollCharacteristic             Characteristic?          @relation("SkillRollCharacteristic", fields: [rollCharacteristicId], references: [id], onDelete: SetNull)
-  rollConsequenceId              String?                  @map("roll_consequence_id") @db.Uuid
-  rollConsequence                RollConsequence?         @relation(fields: [rollConsequenceId], references: [id], onDelete: SetNull)
+  maxLevel                       Int                           @default(6) @map("max_level")
+  defaultLevel                   Int                           @default(0) @map("default_level")
+  usesDefaultLevelRules          Boolean                       @default(true) @map("uses_default_level_rules")
+  systemValueId                  String                        @unique @map("system_value_id") @db.Uuid
+  systemValue                    SystemValue                   @relation("SkillSystemValue", fields: [systemValueId], references: [id], onDelete: Restrict)
+  rollCharacteristicId           String?                       @map("roll_characteristic_id") @db.Uuid
+  rollCharacteristic             Characteristic?               @relation("SkillRollCharacteristic", fields: [rollCharacteristicId], references: [id], onDelete: SetNull)
+  rollConsequenceId              String?                       @map("roll_consequence_id") @db.Uuid
+  rollConsequence                RollConsequence?              @relation(fields: [rollConsequenceId], references: [id], onDelete: SetNull)
   magicWordLinks                 MagicWordSkillLink[]
   spellMechanicParameterDefaults SpellMechanicParameter[]
   creatureTierSkills             CreatureTierSkill[]
-  weapons                         Weapon[]
-  isActive                       Boolean                  @default(true) @map("is_active")
-  sortOrder                      Int                      @default(0) @map("sort_order")
-  createdAt                      DateTime                 @default(now()) @map("created_at")
-  updatedAt                      DateTime                 @updatedAt @map("updated_at")
+  weapons                        Weapon[]
+  weaponAttackProfiles           WeaponAttackProfile[]
+  weaponTemplates                WeaponTemplate[]
+  weaponTemplateAttackProfiles   WeaponTemplateAttackProfile[]
+  isActive                       Boolean                       @default(true) @map("is_active")
+  sortOrder                      Int                           @default(0) @map("sort_order")
+  createdAt                      DateTime                      @default(now()) @map("created_at")
+  updatedAt                      DateTime                      @updatedAt @map("updated_at")
 
   @@index([categoryId])
   @@index([rollCharacteristicId])
@@ -524,6 +532,8 @@ model DamageType {
 
   magicWordLinks                 MagicWordDamageTypeLink[]
   spellMechanicParameterDefaults SpellMechanicParameter[]
+  weaponTemplateProfileLinks     WeaponTemplateAttackProfileDamageType[]
+  weaponProfileLinks             WeaponAttackProfileDamageType[]
 
   @@index([isActive, sortOrder])
   @@map("damage_types")
@@ -579,33 +589,190 @@ model ArmorPreset {
 }
 
 model Weapon {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug        String   @unique @default(cuid())
-  name        String   @unique
-  skillId     String   @map("skill_id") @db.Uuid
-  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Restrict)
-  extraDamage Int      @default(0) @map("extra_damage")
-  isActive    Boolean  @default(true) @map("is_active")
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id             String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug           String                @unique @default(cuid())
+  name           String                @unique
+  templateId     String                @map("template_id") @db.Uuid
+  template       WeaponTemplate        @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  skillId        String                @map("skill_id") @db.Uuid
+  skill          Skill                 @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  extraDamage    Int                   @default(0) @map("extra_damage")
+  attackProfiles WeaponAttackProfile[]
+  isActive       Boolean               @default(true) @map("is_active")
+  sortOrder      Int                   @default(0) @map("sort_order")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
 
+  @@index([templateId])
   @@index([skillId])
   @@index([isActive, sortOrder])
   @@map("weapons")
+}
+
+model WeaponTemplate {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug         String   @unique @default(cuid())
+  name         String   @unique
+  skillId      String   @map("skill_id") @db.Uuid
+  skill        Skill    @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  handsMin     Int      @default(1) @map("hands_min")
+  handsMax     Int      @default(1) @map("hands_max")
+  defaultHands Int      @default(1) @map("default_hands")
+  isActive     Boolean  @default(true) @map("is_active")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  weapons        Weapon[]
+  attackProfiles WeaponTemplateAttackProfile[]
+
+  @@index([skillId])
+  @@index([isActive, sortOrder])
+  @@map("weapon_templates")
+}
+
+model WeaponTemplateAttackProfile {
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  templateId       String                  @map("template_id") @db.Uuid
+  template         WeaponTemplate          @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  kind             WeaponAttackProfileKind
+  name             String
+  skillId          String                  @map("skill_id") @db.Uuid
+  skill            Skill                   @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  characteristicId String?                 @map("characteristic_id") @db.Uuid
+  characteristic   Characteristic?         @relation("WeaponTemplateProfileCharacteristic", fields: [characteristicId], references: [id], onDelete: SetNull)
+  baseCost         Int                     @default(0) @map("base_cost")
+  baseDamage       Int                     @default(0) @map("base_damage")
+  rangeMeters      Int                     @default(1) @map("range_meters")
+  usesAmmo         Boolean                 @default(false) @map("uses_ammo")
+  isActive         Boolean                 @default(true) @map("is_active")
+  sortOrder        Int                     @default(0) @map("sort_order")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  intentLinks     WeaponTemplateAttackProfileIntent[]
+  damageTypeLinks WeaponTemplateAttackProfileDamageType[]
+
+  @@unique([templateId, kind])
+  @@index([skillId])
+  @@index([characteristicId])
+  @@index([templateId, sortOrder])
+  @@map("weapon_template_attack_profiles")
+}
+
+model WeaponAttackProfile {
+  id               String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  weaponId         String                  @map("weapon_id") @db.Uuid
+  weapon           Weapon                  @relation(fields: [weaponId], references: [id], onDelete: Cascade)
+  kind             WeaponAttackProfileKind
+  name             String
+  skillId          String                  @map("skill_id") @db.Uuid
+  skill            Skill                   @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  characteristicId String?                 @map("characteristic_id") @db.Uuid
+  characteristic   Characteristic?         @relation("WeaponProfileCharacteristic", fields: [characteristicId], references: [id], onDelete: SetNull)
+  baseCost         Int                     @default(0) @map("base_cost")
+  baseDamage       Int                     @default(0) @map("base_damage")
+  rangeMeters      Int                     @default(1) @map("range_meters")
+  usesAmmo         Boolean                 @default(false) @map("uses_ammo")
+  isActive         Boolean                 @default(true) @map("is_active")
+  sortOrder        Int                     @default(0) @map("sort_order")
+  createdAt        DateTime                @default(now()) @map("created_at")
+  updatedAt        DateTime                @updatedAt @map("updated_at")
+
+  intentLinks     WeaponAttackProfileIntent[]
+  damageTypeLinks WeaponAttackProfileDamageType[]
+
+  @@unique([weaponId, kind])
+  @@index([skillId])
+  @@index([characteristicId])
+  @@index([weaponId, sortOrder])
+  @@map("weapon_attack_profiles")
 }
 
 model CombatIntent {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug      String   @unique @default(cuid())
   name      String   @unique
+  category  String   @default("Без категории")
   isActive  Boolean  @default(true) @map("is_active")
   sortOrder Int      @default(0) @map("sort_order")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  weaponAttackProfileLinks         WeaponAttackProfileIntent[]
+  weaponTemplateAttackProfileLinks WeaponTemplateAttackProfileIntent[]
+
+  @@index([category, isActive, sortOrder])
   @@index([isActive, sortOrder])
   @@map("combat_intents")
+}
+
+model WeaponTemplateAttackProfileIntent {
+  id             String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId      String                      @map("profile_id") @db.Uuid
+  profile        WeaponTemplateAttackProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  combatIntentId String                      @map("combat_intent_id") @db.Uuid
+  combatIntent   CombatIntent                @relation(fields: [combatIntentId], references: [id], onDelete: Restrict)
+  costModifier   Int                         @default(0) @map("cost_modifier")
+  damageModifier Int                         @default(0) @map("damage_modifier")
+  ruleText       String?                     @map("rule_text")
+  sortOrder      Int                         @default(0) @map("sort_order")
+  createdAt      DateTime                    @default(now()) @map("created_at")
+  updatedAt      DateTime                    @updatedAt @map("updated_at")
+
+  @@unique([profileId, combatIntentId])
+  @@index([combatIntentId])
+  @@index([profileId, sortOrder])
+  @@map("weapon_template_attack_profile_intents")
+}
+
+model WeaponTemplateAttackProfileDamageType {
+  id           String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId    String                      @map("profile_id") @db.Uuid
+  profile      WeaponTemplateAttackProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  damageTypeId String                      @map("damage_type_id") @db.Uuid
+  damageType   DamageType                  @relation(fields: [damageTypeId], references: [id], onDelete: Restrict)
+  sortOrder    Int                         @default(0) @map("sort_order")
+  createdAt    DateTime                    @default(now()) @map("created_at")
+
+  @@unique([profileId, damageTypeId])
+  @@index([damageTypeId])
+  @@index([profileId, sortOrder])
+  @@map("weapon_template_attack_profile_damage_types")
+}
+
+model WeaponAttackProfileIntent {
+  id             String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId      String              @map("profile_id") @db.Uuid
+  profile        WeaponAttackProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  combatIntentId String              @map("combat_intent_id") @db.Uuid
+  combatIntent   CombatIntent        @relation(fields: [combatIntentId], references: [id], onDelete: Restrict)
+  costModifier   Int                 @default(0) @map("cost_modifier")
+  damageModifier Int                 @default(0) @map("damage_modifier")
+  ruleText       String?             @map("rule_text")
+  sortOrder      Int                 @default(0) @map("sort_order")
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  @@unique([profileId, combatIntentId])
+  @@index([combatIntentId])
+  @@index([profileId, sortOrder])
+  @@map("weapon_attack_profile_intents")
+}
+
+model WeaponAttackProfileDamageType {
+  id           String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  profileId    String              @map("profile_id") @db.Uuid
+  profile      WeaponAttackProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  damageTypeId String              @map("damage_type_id") @db.Uuid
+  damageType   DamageType          @relation(fields: [damageTypeId], references: [id], onDelete: Restrict)
+  sortOrder    Int                 @default(0) @map("sort_order")
+  createdAt    DateTime            @default(now()) @map("created_at")
+
+  @@unique([profileId, damageTypeId])
+  @@index([damageTypeId])
+  @@index([profileId, sortOrder])
+  @@map("weapon_attack_profile_damage_types")
 }
 
 model Creature {
@@ -626,20 +793,20 @@ model Creature {
 }
 
 model CreatureTier {
-  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  creatureId    String              @map("creature_id") @db.Uuid
-  creature      Creature            @relation(fields: [creatureId], references: [id], onDelete: Cascade)
-  tier          Int
-  name          String
-  hp            Int                 @default(1)
-  armorPresetId String?             @map("armor_preset_id") @db.Uuid
-  armorPreset   ArmorPreset?        @relation(fields: [armorPresetId], references: [id], onDelete: SetNull)
+  id              String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatureId      String                       @map("creature_id") @db.Uuid
+  creature        Creature                     @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  tier            Int
+  name            String
+  hp              Int                          @default(1)
+  armorPresetId   String?                      @map("armor_preset_id") @db.Uuid
+  armorPreset     ArmorPreset?                 @relation(fields: [armorPresetId], references: [id], onDelete: SetNull)
   skills          CreatureTierSkill[]
   characteristics CreatureTierCharacteristic[]
-  isActive      Boolean             @default(true) @map("is_active")
-  sortOrder     Int                 @default(0) @map("sort_order")
-  createdAt     DateTime            @default(now()) @map("created_at")
-  updatedAt     DateTime            @updatedAt @map("updated_at")
+  isActive        Boolean                      @default(true) @map("is_active")
+  sortOrder       Int                          @default(0) @map("sort_order")
+  createdAt       DateTime                     @default(now()) @map("created_at")
+  updatedAt       DateTime                     @updatedAt @map("updated_at")
 
   @@unique([creatureId, tier])
   @@index([armorPresetId])
@@ -716,22 +883,24 @@ model Attribute {
 }
 
 model Characteristic {
-  id            String      @id @default(uuid()) @db.Uuid
-  name          String
-  attributeId   String      @map("attribute_id") @db.Uuid
-  attribute     Attribute   @relation(fields: [attributeId], references: [id], onDelete: Restrict)
-  description   String?
-  minValue      Int         @default(0) @map("min_value")
-  maxValue      Int         @default(10) @map("max_value")
-  defaultValue  Int         @default(0) @map("default_value")
-  systemValueId String      @unique @map("system_value_id") @db.Uuid
-  systemValue   SystemValue @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
-  rollSkills          Skill[]                        @relation("SkillRollCharacteristic")
-  creatureTierValues  CreatureTierCharacteristic[]
-  isActive      Boolean     @default(true) @map("is_active")
-  sortOrder     Int         @default(0) @map("sort_order")
-  createdAt     DateTime    @default(now()) @map("created_at")
-  updatedAt     DateTime    @updatedAt @map("updated_at")
+  id                           String                        @id @default(uuid()) @db.Uuid
+  name                         String
+  attributeId                  String                        @map("attribute_id") @db.Uuid
+  attribute                    Attribute                     @relation(fields: [attributeId], references: [id], onDelete: Restrict)
+  description                  String?
+  minValue                     Int                           @default(0) @map("min_value")
+  maxValue                     Int                           @default(10) @map("max_value")
+  defaultValue                 Int                           @default(0) @map("default_value")
+  systemValueId                String                        @unique @map("system_value_id") @db.Uuid
+  systemValue                  SystemValue                   @relation(fields: [systemValueId], references: [id], onDelete: Restrict)
+  rollSkills                   Skill[]                       @relation("SkillRollCharacteristic")
+  creatureTierValues           CreatureTierCharacteristic[]
+  weaponAttackProfiles         WeaponAttackProfile[]         @relation("WeaponProfileCharacteristic")
+  weaponTemplateAttackProfiles WeaponTemplateAttackProfile[] @relation("WeaponTemplateProfileCharacteristic")
+  isActive                     Boolean                       @default(true) @map("is_active")
+  sortOrder                    Int                           @default(0) @map("sort_order")
+  createdAt                    DateTime                      @default(now()) @map("created_at")
+  updatedAt                    DateTime                      @updatedAt @map("updated_at")
 
   @@index([attributeId])
   @@index([attributeId, isActive, sortOrder])

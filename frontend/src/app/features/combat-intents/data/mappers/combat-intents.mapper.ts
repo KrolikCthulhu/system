@@ -20,6 +20,7 @@ export function mapCombatIntentDto(dto: CombatIntentDto): CombatIntent {
 		id: dto.id,
 		slug: dto.slug,
 		name: dto.name,
+		category: dto.category,
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
 		createdAt: dto.createdAt,

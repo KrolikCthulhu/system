@@ -1,7 +1,12 @@
-import { Weapon, WeaponsCatalog } from '../../domain/weapons.models';
+import { Weapon, WeaponTemplate, WeaponsCatalog } from '../../domain/weapons.models';
 import {
+	WeaponAttackProfileDto,
+	WeaponCharacteristicOptionDto,
 	WeaponDto,
+	WeaponDamageTypeOptionDto,
+	WeaponCombatIntentOptionDto,
 	WeaponSkillOptionDto,
+	WeaponTemplateDto,
 	WeaponsCatalogResponseDto
 } from '../dto/weapons.dto';
 
@@ -10,7 +15,11 @@ export function mapWeaponsCatalogResponseDto(
 ): WeaponsCatalog {
 	return {
 		weapons: dto.weapons.map(mapWeaponDto),
-		skills: dto.skills.map(mapWeaponSkillOptionDto)
+		templates: dto.templates.map(mapWeaponTemplateDto),
+		skills: dto.skills.map(mapWeaponSkillOptionDto),
+		characteristics: dto.characteristics.map(mapWeaponCharacteristicOptionDto),
+		combatIntents: dto.combatIntents.map(mapWeaponCombatIntentOptionDto),
+		damageTypes: dto.damageTypes.map(mapWeaponDamageTypeOptionDto)
 	};
 }
 
@@ -19,13 +28,95 @@ export function mapWeaponDto(dto: WeaponDto): Weapon {
 		id: dto.id,
 		slug: dto.slug,
 		name: dto.name,
+		templateId: dto.templateId,
+		template: dto.template,
 		skillId: dto.skillId,
 		skill: mapWeaponSkillOptionDto(dto.skill),
 		extraDamage: dto.extraDamage,
+		attackProfiles: dto.attackProfiles.map(mapWeaponAttackProfileDto),
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
+	};
+}
+
+function mapWeaponAttackProfileDto(dto: WeaponAttackProfileDto) {
+	return {
+		id: dto.id,
+		kind: dto.kind,
+		name: dto.name,
+		skillId: dto.skillId,
+		skill: mapWeaponSkillOptionDto(dto.skill),
+		characteristicId: dto.characteristicId,
+		characteristic: dto.characteristic
+			? mapWeaponCharacteristicOptionDto(dto.characteristic)
+			: null,
+		baseCost: dto.baseCost,
+		baseDamage: dto.baseDamage,
+		rangeMeters: dto.rangeMeters,
+		usesAmmo: dto.usesAmmo,
+		damageTypeIds: dto.damageTypeIds,
+		damageTypes: dto.damageTypes.map(mapWeaponDamageTypeOptionDto),
+		isActive: dto.isActive,
+		sortOrder: dto.sortOrder,
+		intents: dto.intents.map(intent => ({
+			id: intent.id,
+			combatIntentId: intent.combatIntentId,
+			combatIntent: mapWeaponCombatIntentOptionDto(intent.combatIntent),
+			costModifier: intent.costModifier,
+			damageModifier: intent.damageModifier,
+			ruleText: intent.ruleText,
+			sortOrder: intent.sortOrder
+		}))
+	};
+}
+
+export function mapWeaponTemplateDto(dto: WeaponTemplateDto): WeaponTemplate {
+	return {
+		id: dto.id,
+		slug: dto.slug,
+		name: dto.name,
+		skillId: dto.skillId,
+		skill: mapWeaponSkillOptionDto(dto.skill),
+		handsMin: dto.handsMin,
+		handsMax: dto.handsMax,
+		defaultHands: dto.defaultHands,
+		attackProfiles: dto.attackProfiles.map(mapWeaponAttackProfileDto),
+		isActive: dto.isActive,
+		sortOrder: dto.sortOrder,
+		createdAt: dto.createdAt,
+		updatedAt: dto.updatedAt
+	};
+}
+
+function mapWeaponCombatIntentOptionDto(dto: WeaponCombatIntentOptionDto) {
+	return {
+		id: dto.id,
+		slug: dto.slug,
+		name: dto.name,
+		category: dto.category,
+		isActive: dto.isActive,
+		sortOrder: dto.sortOrder
+	};
+}
+
+function mapWeaponDamageTypeOptionDto(dto: WeaponDamageTypeOptionDto) {
+	return {
+		id: dto.id,
+		slug: dto.slug,
+		name: dto.name,
+		isActive: dto.isActive,
+		sortOrder: dto.sortOrder
+	};
+}
+
+function mapWeaponCharacteristicOptionDto(dto: WeaponCharacteristicOptionDto) {
+	return {
+		id: dto.id,
+		name: dto.name,
+		isActive: dto.isActive,
+		sortOrder: dto.sortOrder
 	};
 }
 

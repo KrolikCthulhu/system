@@ -9,6 +9,7 @@ export interface CombatIntentsRepository {
 	loadCatalog(): Observable<CombatIntentsCatalog>;
 	createCombatIntent(command: {
 		name: string;
+		category: string;
 		isActive?: boolean;
 		sortOrder?: number;
 	}): Observable<CombatIntent>;
@@ -16,6 +17,7 @@ export interface CombatIntentsRepository {
 		id: string,
 		command: {
 			name?: string;
+			category?: string;
 			isActive?: boolean;
 			sortOrder?: number;
 		}

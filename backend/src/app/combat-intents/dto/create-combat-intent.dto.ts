@@ -4,6 +4,9 @@ export class CreateCombatIntentDto {
 	@IsString()
 	name!: string;
 
+	@IsString()
+	category!: string;
+
 	@IsOptional()
 	@IsBoolean()
 	isActive?: boolean;

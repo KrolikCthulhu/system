@@ -25,8 +25,9 @@ export async function seedCombatIntents(tx: Prisma.TransactionClient) {
 				where: { id: existing.id },
 				data: {
 					slug,
+					category: seed.category,
 					sortOrder: seed.sortOrder,
-					isActive: true
+					isActive: seed.isActive ?? true
 				}
 			});
 			continue;
@@ -36,7 +37,8 @@ export async function seedCombatIntents(tx: Prisma.TransactionClient) {
 			data: {
 				slug,
 				name: seed.name,
-				isActive: true,
+				category: seed.category,
+				isActive: seed.isActive ?? true,
 				sortOrder: seed.sortOrder
 			}
 		});

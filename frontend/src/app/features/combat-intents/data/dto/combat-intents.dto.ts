@@ -2,6 +2,7 @@ export interface CombatIntentDto {
 	id: string;
 	slug: string;
 	name: string;
+	category: string;
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
@@ -14,12 +15,14 @@ export interface CombatIntentsCatalogResponseDto {
 
 export interface CreateCombatIntentDto {
 	name: string;
+	category: string;
 	isActive?: boolean;
 	sortOrder?: number;
 }
 
 export interface UpdateCombatIntentDto {
 	name?: string;
+	category?: string;
 	isActive?: boolean;
 	sortOrder?: number;
 }

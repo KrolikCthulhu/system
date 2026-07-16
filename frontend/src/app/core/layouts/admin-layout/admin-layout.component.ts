@@ -86,6 +86,10 @@ export class AdminLayoutComponent {
 			expanded: true,
 			items: [
 				{
+					label: 'Шаблоны оружия',
+					routerLink: '/admin/rules/weapon-templates'
+				},
+				{
 					label: 'Оружие',
 					routerLink: '/admin/rules/weapons'
 				},

@@ -107,6 +107,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminArmorPresetsPageComponent)
 					},
 					{
+						path: 'weapon-templates',
+						loadComponent: () =>
+							import(
+								'../../features/weapons/ui/pages/admin-weapon-templates-page/admin-weapon-templates-page.component'
+							).then(m => m.AdminWeaponTemplatesPageComponent)
+					},
+					{
 						path: 'weapons',
 						loadComponent: () =>
 							import(

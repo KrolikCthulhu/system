@@ -10,6 +10,7 @@ const combatIntentSelect = {
 	id: true,
 	slug: true,
 	name: true,
+	category: true,
 	isActive: true,
 	sortOrder: true,
 	createdAt: true,
@@ -88,6 +89,7 @@ export class CombatIntentsService {
 		return {
 			slug: createSlug(dto.name),
 			name: dto.name.trim(),
+			category: dto.category.trim(),
 			isActive: dto.isActive ?? true,
 			sortOrder: dto.sortOrder ?? 0
 		};
@@ -96,6 +98,7 @@ export class CombatIntentsService {
 	private toUpdateData(dto: UpdateCombatIntentDto) {
 		return {
 			name: dto.name === undefined ? undefined : dto.name.trim(),
+			category: dto.category === undefined ? undefined : dto.category.trim(),
 			isActive: dto.isActive,
 			sortOrder: dto.sortOrder
 		};
@@ -106,6 +109,7 @@ export class CombatIntentsService {
 			id: combatIntent.id,
 			slug: combatIntent.slug,
 			name: combatIntent.name,
+			category: combatIntent.category,
 			isActive: combatIntent.isActive,
 			sortOrder: combatIntent.sortOrder,
 			createdAt: combatIntent.createdAt.toISOString(),

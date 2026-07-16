@@ -11,7 +11,7 @@ import {
 	ValidateNested
 } from 'class-validator';
 
-export class UpdateWeaponAttackProfileIntentDto {
+export class WeaponTemplateAttackProfileIntentDto {
 	@IsUUID()
 	combatIntentId!: string;
 
@@ -33,7 +33,7 @@ export class UpdateWeaponAttackProfileIntentDto {
 	sortOrder?: number;
 }
 
-export class UpdateWeaponAttackProfileDto {
+export class WeaponTemplateAttackProfileDto {
 	@IsOptional()
 	@IsUUID()
 	id?: string;
@@ -83,33 +83,34 @@ export class UpdateWeaponAttackProfileDto {
 	@IsOptional()
 	@IsArray()
 	@ValidateNested({ each: true })
-	@Type(() => UpdateWeaponAttackProfileIntentDto)
-	intents?: UpdateWeaponAttackProfileIntentDto[];
+	@Type(() => WeaponTemplateAttackProfileIntentDto)
+	intents?: WeaponTemplateAttackProfileIntentDto[];
 }
 
-export class UpdateWeaponDto {
-	@IsOptional()
+export class CreateWeaponTemplateDto {
 	@IsString()
-	name?: string;
+	name!: string;
 
-	@IsOptional()
 	@IsUUID()
-	templateId?: string;
+	skillId!: string;
 
-	@IsOptional()
-	@IsUUID()
-	skillId?: string;
-
-	@IsOptional()
 	@IsInt()
 	@Min(0)
-	extraDamage?: number;
+	handsMin!: number;
+
+	@IsInt()
+	@Min(0)
+	handsMax!: number;
+
+	@IsInt()
+	@Min(0)
+	defaultHands!: number;
 
 	@IsOptional()
 	@IsArray()
 	@ValidateNested({ each: true })
-	@Type(() => UpdateWeaponAttackProfileDto)
-	attackProfiles?: UpdateWeaponAttackProfileDto[];
+	@Type(() => WeaponTemplateAttackProfileDto)
+	attackProfiles?: WeaponTemplateAttackProfileDto[];
 
 	@IsOptional()
 	@IsBoolean()

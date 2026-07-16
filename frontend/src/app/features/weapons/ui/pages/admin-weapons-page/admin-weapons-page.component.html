@@ -40,6 +40,114 @@
 						(input)="setSearchQuery($any($event.target).value)"
 					/>
 				</p-iconfield>
+
+				<p-button
+					ariaLabel="Фильтры"
+					icon="pi pi-filter"
+					size="small"
+					styleClass="admin-weapons-page__filter-button"
+					[style]="{ width: '2.25rem', height: '2.25rem' }"
+					[outlined]="!hasActiveFilters()"
+					[severity]="hasActiveFilters() ? 'primary' : 'secondary'"
+					(click)="filtersPopover.toggle($event)"
+				></p-button>
+
+				<p-popover #filtersPopover appendTo="body">
+					<div class="admin-weapons-page__filters-popover">
+						<div class="admin-weapons-page__filters-popover-heading">
+							<span>Фильтры</span>
+							<p-button
+								label="Сбросить"
+								icon="pi pi-filter-slash"
+								size="small"
+								severity="secondary"
+								[text]="true"
+								[disabled]="!hasActiveFilters()"
+								(click)="resetFilters()"
+							></p-button>
+						</div>
+
+						<div class="admin-weapons-page__filters">
+							<p-select
+								[ngModel]="selectedTemplateIdFilter()"
+								[options]="templateOptions()"
+								[fluid]="true"
+								[filter]="true"
+								[showClear]="true"
+								optionLabel="name"
+								optionValue="id"
+								filterBy="name,skill.name"
+								placeholder="Шаблон"
+								appendTo="body"
+								(ngModelChange)="setTemplateIdFilter($event)"
+							></p-select>
+
+							<p-select
+								[ngModel]="selectedTemplateSkillIdFilter()"
+								[options]="templateSkillOptions()"
+								[fluid]="true"
+								[filter]="true"
+								[showClear]="true"
+								optionLabel="name"
+								optionValue="id"
+								filterBy="name,searchText"
+								placeholder="Навык шаблона"
+								appendTo="body"
+								(ngModelChange)="setTemplateSkillIdFilter($event)"
+							></p-select>
+
+							<p-select
+								[ngModel]="selectedProfileSkillIdFilter()"
+								[options]="profileSkillOptions()"
+								[fluid]="true"
+								[filter]="true"
+								[showClear]="true"
+								optionLabel="name"
+								optionValue="id"
+								filterBy="name,searchText"
+								placeholder="Навык атаки"
+								appendTo="body"
+								(ngModelChange)="setProfileSkillIdFilter($event)"
+							></p-select>
+
+							<p-select
+								[ngModel]="selectedAttackKindFilter()"
+								[options]="attackKindOptions"
+								[fluid]="true"
+								[showClear]="true"
+								optionLabel="label"
+								optionValue="value"
+								placeholder="Тип атаки"
+								appendTo="body"
+								(ngModelChange)="setAttackKindFilter($event)"
+							></p-select>
+
+							<p-select
+								[ngModel]="selectedAmmoFilter()"
+								[options]="ammoFilterOptions"
+								[fluid]="true"
+								[showClear]="true"
+								optionLabel="label"
+								optionValue="value"
+								placeholder="Боеприпасы"
+								appendTo="body"
+								(ngModelChange)="setAmmoFilter($event)"
+							></p-select>
+
+							<p-select
+								[ngModel]="selectedActiveFilter()"
+								[options]="activeFilterOptions"
+								[fluid]="true"
+								[showClear]="true"
+								optionLabel="label"
+								optionValue="value"
+								placeholder="Активность"
+								appendTo="body"
+								(ngModelChange)="setActiveFilter($event)"
+							></p-select>
+						</div>
+					</div>
+				</p-popover>
 			</div>
 
 			@if (loading()) {
@@ -49,34 +157,22 @@
 					{{ errorMessage() }}
 				</div>
 			} @else {
-				<div
-					class="admin-weapons-page__item-list admin-weapons-page__section-pad"
-				>
-					<div class="admin-weapons-page__list-title">Справочник оружия</div>
-
-					@for (weapon of filteredWeapons(); track weapon.id) {
-						<button
-							type="button"
-							class="admin-weapons-page__item"
-							[class.admin-weapons-page__item--active]="
-								weapon.id === selectedWeaponId()
-							"
-							(click)="selectWeapon(weapon)"
-						>
-							<span>{{ weapon.name }}</span>
-							<span class="admin-weapons-page__item-meta">
-								{{ weapon.skill.name }} · +{{ weapon.extraDamage }}
-							</span>
-							@if (!weapon.isActive) {
-								<p-tag value="Выкл" severity="secondary"></p-tag>
-							}
-						</button>
-					} @empty {
-						<div class="admin-weapons-page__empty-list">
-							Оружия пока нет.
-						</div>
-					}
-				</div>
+				@if (weaponTreeGroups().length) {
+					<app-navigation-tree
+						class="admin-weapons-page__navigation-tree"
+						[groups]="weaponTreeGroups()"
+						[selectedItemId]="selectedWeaponId()"
+						[collapsedGroups]="collapsedGroups()"
+						[collapsedSubgroups]="collapsedSubgroups()"
+						(itemSelect)="selectWeaponById($event)"
+						(groupToggle)="toggleGroup($event)"
+						(subgroupToggle)="toggleSubgroup($event)"
+					></app-navigation-tree>
+				} @else {
+					<div class="admin-weapons-page__empty-list admin-weapons-page__section-pad">
+						Оружия пока нет.
+					</div>
+				}
 			}
 		</aside>
 
@@ -122,32 +218,18 @@
 						</span>
 
 						<span class="admin-weapons-page__field admin-weapons-page__field--wide">
-							<span>Навык владения</span>
+							<span>Шаблон</span>
 							<p-select
-								[ngModel]="currentDraft.skillId"
-								[options]="skillGroups()"
+								[ngModel]="currentDraft.templateId"
+								[options]="templateOptions()"
 								[fluid]="true"
 								optionLabel="name"
 								optionValue="id"
-								optionGroupLabel="label"
-								optionGroupChildren="items"
-								[group]="true"
 								[filter]="true"
-								filterBy="name,searchText"
+								filterBy="name,skill.name"
 								appendTo="body"
-								(ngModelChange)="updateDraftSkill($event)"
+								(ngModelChange)="updateDraftTemplate($event)"
 							></p-select>
-						</span>
-
-						<span class="admin-weapons-page__field">
-							<span>Дополнительный урон</span>
-							<p-inputnumber
-								[ngModel]="currentDraft.extraDamage"
-								[showButtons]="true"
-								[min]="0"
-								[fluid]="true"
-								(ngModelChange)="updateDraftExtraDamage($event)"
-							></p-inputnumber>
 						</span>
 
 						<span class="admin-weapons-page__field">
@@ -169,6 +251,199 @@
 							></p-toggleswitch>
 						</span>
 					</div>
+
+					<section class="admin-weapons-page__profiles">
+						<div class="admin-weapons-page__profiles-heading">
+							<h3 class="admin-weapons-page__section-title">Профили атаки</h3>
+							<div class="admin-weapons-page__profile-actions">
+								<p-button
+									label="Ближняя"
+									icon="pi pi-plus"
+									size="small"
+									[disabled]="!canAddMeleeProfile()"
+									(click)="addAttackProfile('melee')"
+								></p-button>
+								<p-button
+									label="Дистанционная"
+									icon="pi pi-plus"
+									size="small"
+									[disabled]="!canAddRangedProfile()"
+									(click)="addAttackProfile('ranged')"
+								></p-button>
+							</div>
+						</div>
+
+						<div class="admin-weapons-page__profile-list">
+							@for (profile of currentDraft.attackProfiles; track profile.kind; let index = $index) {
+								<section class="admin-weapons-page__profile">
+									<div class="admin-weapons-page__profile-header">
+										<div>
+											<div class="admin-weapons-page__profile-title">
+												{{ profileKindLabel(profile.kind) }}
+											</div>
+											<div class="admin-weapons-page__profile-meta">
+												{{ profile.rangeMeters }} м
+											</div>
+										</div>
+
+										<div class="admin-weapons-page__heading-actions">
+											<p-tag
+												[value]="profile.kind === 'melee' ? 'Ближняя' : 'Дистанционная'"
+												[severity]="profile.kind === 'melee' ? 'success' : 'info'"
+											></p-tag>
+											<p-button
+												icon="pi pi-trash"
+												severity="danger"
+												text
+												rounded
+												[disabled]="currentDraft.attackProfiles.length <= 1"
+												(click)="removeAttackProfile(index)"
+											></p-button>
+										</div>
+									</div>
+
+									<div class="admin-weapons-page__form-grid">
+										<span class="admin-weapons-page__field">
+											<span>Название профиля</span>
+											<input
+												pInputText
+												type="text"
+												[value]="profile.name"
+												(input)="updateProfileName(index, $any($event.target).value)"
+											/>
+										</span>
+
+										<span class="admin-weapons-page__field">
+											<span>Навык</span>
+											<p-select
+												[ngModel]="profile.skillId"
+												[options]="skillGroups()"
+												[fluid]="true"
+												optionLabel="name"
+												optionValue="id"
+												optionGroupLabel="label"
+												optionGroupChildren="items"
+												[group]="true"
+												[filter]="true"
+												filterBy="name,searchText"
+												appendTo="body"
+												(ngModelChange)="updateProfileSkill(index, $event)"
+											></p-select>
+										</span>
+
+										<span class="admin-weapons-page__field">
+											<span>Характеристика</span>
+											<p-select
+												[ngModel]="profile.characteristicId"
+												[options]="characteristicOptions()"
+												[fluid]="true"
+												optionLabel="name"
+												optionValue="id"
+												appendTo="body"
+												(ngModelChange)="updateProfileCharacteristic(index, $event)"
+											></p-select>
+										</span>
+
+										<span class="admin-weapons-page__field">
+											<span>Базовая стоимость</span>
+											<p-inputnumber
+												[ngModel]="profile.baseCost"
+												[showButtons]="true"
+												[min]="0"
+												[fluid]="true"
+												(ngModelChange)="updateProfileBaseCost(index, $event)"
+											></p-inputnumber>
+										</span>
+
+										<span class="admin-weapons-page__field">
+											<span>Базовый урон</span>
+											<p-inputnumber
+												[ngModel]="profile.baseDamage"
+												[showButtons]="true"
+												[min]="0"
+												[fluid]="true"
+												(ngModelChange)="updateProfileBaseDamage(index, $event)"
+											></p-inputnumber>
+										</span>
+
+										<span class="admin-weapons-page__field">
+											<span>Дистанция, м</span>
+											<p-inputnumber
+												[ngModel]="profile.rangeMeters"
+												[showButtons]="true"
+												[min]="1"
+												[fluid]="true"
+												(ngModelChange)="updateProfileRange(index, $event)"
+											></p-inputnumber>
+										</span>
+
+										<span class="admin-weapons-page__switch-field">
+											<span>Использует боеприпасы</span>
+											<p-toggleswitch
+												[ngModel]="profile.usesAmmo"
+												(ngModelChange)="updateProfileUsesAmmo(index, $event)"
+											></p-toggleswitch>
+										</span>
+
+										<span class="admin-weapons-page__switch-field">
+											<span>Профиль активен</span>
+											<p-toggleswitch
+												[ngModel]="profile.isActive"
+												(ngModelChange)="updateProfileActive(index, $event)"
+											></p-toggleswitch>
+										</span>
+
+										<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+											<span>Возможные типы урона</span>
+											<div class="admin-weapons-page__checkbox-list">
+												@for (damageType of damageTypeOptions(); track damageType.id) {
+													<label class="admin-weapons-page__checkbox-row">
+														<p-checkbox
+															[inputId]="'weapon-profile-' + index + '-damage-type-' + damageType.id"
+															[value]="damageType.id"
+															[ngModel]="profile.damageTypeIds"
+															(ngModelChange)="updateProfileDamageTypeIds(index, $event)"
+														></p-checkbox>
+														<span>{{ damageType.name }}</span>
+													</label>
+												}
+											</div>
+										</span>
+
+										<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+											<span>Доступные намерения</span>
+											<div class="admin-weapons-page__intent-groups">
+												@for (group of combatIntentGroups(); track group.label) {
+													<section class="admin-weapons-page__intent-group">
+														<div class="admin-weapons-page__intent-group-title">
+															{{ group.label }}
+														</div>
+														<div class="admin-weapons-page__checkbox-list">
+															@for (intent of group.items; track intent.id) {
+																<label class="admin-weapons-page__checkbox-row">
+																	<p-checkbox
+																		[inputId]="'weapon-profile-' + index + '-intent-' + intent.id"
+																		[binary]="true"
+																		[ngModel]="profile.combatIntentIds.includes(intent.id)"
+																		(ngModelChange)="updateProfileIntent(index, intent.id, $event)"
+																	></p-checkbox>
+																	<span>{{ intent.name }}</span>
+																</label>
+															}
+														</div>
+													</section>
+												} @empty {
+													<span class="admin-weapons-page__empty-list">
+														Намерения пока не настроены.
+													</span>
+												}
+											</div>
+										</span>
+									</div>
+								</section>
+							}
+						</div>
+					</section>
 				</div>
 
 				<app-editor-actions-bar

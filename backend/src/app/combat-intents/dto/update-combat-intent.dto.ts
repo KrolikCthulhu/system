@@ -6,6 +6,10 @@ export class UpdateCombatIntentDto {
 	name?: string;
 
 	@IsOptional()
+	@IsString()
+	category?: string;
+
+	@IsOptional()
 	@IsBoolean()
 	isActive?: boolean;
 
