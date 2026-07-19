@@ -1,4 +1,14 @@
-import { IsBoolean, IsInt, IsOptional, IsString, Min } from 'class-validator';
+import {
+	IsArray,
+	IsBoolean,
+	IsInt,
+	IsOptional,
+	IsString,
+	Min,
+	ValidateNested
+} from 'class-validator';
+import { Type } from 'class-transformer';
+import { CombatIntentTextBlockDto } from './create-combat-intent.dto';
 
 export class UpdateCombatIntentDto {
 	@IsOptional()
@@ -8,6 +18,12 @@ export class UpdateCombatIntentDto {
 	@IsOptional()
 	@IsString()
 	category?: string;
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CombatIntentTextBlockDto)
+	textBlocks?: CombatIntentTextBlockDto[];
 
 	@IsOptional()
 	@IsBoolean()

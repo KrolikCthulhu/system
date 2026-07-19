@@ -1,4 +1,8 @@
-import type { CombatIntentContent, ContentDocument } from '../content-types';
+import type {
+	CombatIntentContent,
+	CombatIntentTextBlockContent,
+	ContentDocument
+} from '../content-types';
 
 const CATEGORIES = {
 	damage: 'Урон и травмы',
@@ -14,27 +18,104 @@ function intent(
 	slug: string,
 	category: string,
 	sortOrder: number,
-	isActive = true
+	isActive = true,
+	textBlocks?: CombatIntentTextBlockContent[]
 ): CombatIntentContent {
 	return {
 		name,
 		slug,
 		category,
 		sortOrder,
-		isActive
+		isActive,
+		textBlocks
 	};
 }
+
+const woundTextBlocks: CombatIntentTextBlockContent[] = [
+	{
+		kind: 'text',
+		text: 'Вы совершаете ',
+		sortOrder: 0
+	},
+	{
+		kind: 'token',
+		token: 'damageTypes',
+		sortOrder: 1
+	},
+	{
+		kind: 'text',
+		text: ' атаку выбранным оружием по цели в пределах ',
+		sortOrder: 2
+	},
+	{
+		kind: 'token',
+		token: 'rangeMeters',
+		sortOrder: 3
+	},
+	{
+		kind: 'text',
+		text: ' м.\n\nЦель может защититься: ',
+		sortOrder: 4
+	},
+	{
+		kind: 'token',
+		token: 'defenseOptions',
+		sortOrder: 5
+	},
+	{
+		kind: 'text',
+		text: '.\n\nПри попадании цель получает ',
+		sortOrder: 6
+	},
+	{
+		kind: 'token',
+		token: 'selectedDamageType',
+		sortOrder: 7
+	},
+	{
+		kind: 'text',
+		text: ' урон, равный ',
+		sortOrder: 8
+	},
+	{
+		kind: 'token',
+		token: 'damageFormula',
+		sortOrder: 9
+	},
+	{
+		kind: 'text',
+		text: '. Если после защиты не осталось ни одного чистого успеха, атака не наносит урона, и базовый урон оружия не применяется.\n\nПри попадании зона ранения определяется случайно: ',
+		sortOrder: 10
+	},
+	{
+		kind: 'token',
+		token: 'randomHitZones',
+		sortOrder: 11
+	},
+	{
+		kind: 'text',
+		text: '. После расчёта итогового урона применяется броня выпавшей зоны. Оставшийся урон снимает здоровье и может вызвать травму.',
+		sortOrder: 12
+	}
+];
 
 export default {
 	schemaVersion: 1,
 	combatIntents: [
-		intent('Ранить', 'ranit', CATEGORIES.damage, 0),
-		intent('Вызвать кровотечение', 'vyzvat-krovotechenie', CATEGORIES.damage, 1),
-		intent('Повредить руку', 'povredit-ruku', CATEGORIES.damage, 2),
-		intent('Повредить ногу', 'povredit-nogu', CATEGORIES.damage, 3),
-		intent('Повредить глаз', 'povredit-glaz', CATEGORIES.damage, 4),
-		intent('Повредить крыло', 'povredit-krylo', CATEGORIES.damage, 5),
-		intent('Повредить хвост', 'povredit-hvost', CATEGORIES.damage, 6),
+		intent('Ранить', 'ranit', CATEGORIES.damage, 0, true, woundTextBlocks),
+		intent('Прицельно ранить', 'pricelno-ranit', CATEGORIES.damage, 1),
+		intent(
+			'Поразить уязвимое место',
+			'porazit-uyazvimoe-mesto',
+			CATEGORIES.damage,
+			2
+		),
+		intent(
+			'Вызвать кровотечение',
+			'vyzvat-krovotechenie',
+			CATEGORIES.damage,
+			3
+		),
 
 		intent('Оглушить', 'oglushit', CATEGORIES.conditions, 100),
 		intent('Ослепить', 'oslepit', CATEGORIES.conditions, 101),
@@ -44,7 +125,12 @@ export default {
 		intent('Сбить с ног', 'sbit-s-nog', CATEGORIES.movement, 202),
 		intent('Бросить', 'brosit', CATEGORIES.movement, 203),
 		intent('Развернуть', 'razvernut', CATEGORIES.movement, 204),
-		intent('Поменяться местами', 'pomenyatsya-mestami', CATEGORIES.movement, 205),
+		intent(
+			'Поменяться местами',
+			'pomenyatsya-mestami',
+			CATEGORIES.movement,
+			205
+		),
 
 		intent('Захватить', 'zahvatit', CATEGORIES.restraint, 300),
 		intent('Обездвижить', 'obezdvizhit', CATEGORIES.restraint, 301),

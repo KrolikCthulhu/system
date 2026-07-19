@@ -138,6 +138,20 @@
 						</span>
 
 						<span class="admin-creatures-page__field">
+							<span>Базовая анатомическая схема</span>
+							<p-select
+								[ngModel]="currentDraft.anatomySchemeId"
+								[options]="anatomySchemes()"
+								optionLabel="name"
+								optionValue="id"
+								appendTo="body"
+								[showClear]="true"
+								placeholder="Не выбрана"
+								(ngModelChange)="updateDraftAnatomyScheme($event)"
+							></p-select>
+						</span>
+
+						<span class="admin-creatures-page__field">
 							<span>Порядок отображения</span>
 							<p-inputnumber
 								[ngModel]="currentDraft.sortOrder"
@@ -155,6 +169,258 @@
 							></p-toggleswitch>
 						</span>
 					</div>
+
+					<section class="admin-creatures-page__anatomy">
+						<button
+							type="button"
+							class="admin-creatures-page__anatomy-heading"
+							[attr.aria-expanded]="isAnatomyExpanded()"
+							(click)="toggleAnatomyExpanded()"
+						>
+							<span class="admin-creatures-page__anatomy-heading-title">
+								<h3>Анатомия вида</h3>
+								@if (currentDraft.anatomyZones.length) {
+									<span>{{ currentDraft.anatomyZones.length }} зон</span>
+								}
+							</span>
+
+							<span
+								class="pi admin-creatures-page__anatomy-toggle"
+								[class.pi-plus]="!isAnatomyExpanded()"
+								[class.pi-minus]="isAnatomyExpanded()"
+								aria-hidden="true"
+							></span>
+						</button>
+
+						@if (isAnatomyExpanded()) {
+							@if (anatomyZoneGroups().length) {
+								<div class="admin-creatures-page__anatomy-list">
+									@for (group of anatomyZoneGroups(); track group.trackId) {
+										@if (group.parent; as parentItem) {
+											<div class="admin-creatures-page__anatomy-group">
+												<ng-container
+													[ngTemplateOutlet]="anatomyZoneRow"
+													[ngTemplateOutletContext]="{
+														zone: parentItem.zone,
+														index: parentItem.index,
+														level: 'main'
+													}"
+												></ng-container>
+
+												@if (group.children.length) {
+													<div class="admin-creatures-page__anatomy-sublist">
+														@for (
+															childItem of group.children;
+															track childItem.zone.id
+														) {
+															<ng-container
+																[ngTemplateOutlet]="anatomyZoneRow"
+																[ngTemplateOutletContext]="{
+																	zone: childItem.zone,
+																	index: childItem.index,
+																	level: 'sub'
+																}"
+															></ng-container>
+														}
+													</div>
+												}
+											</div>
+										} @else {
+											<div class="admin-creatures-page__anatomy-group">
+												<div
+													class="admin-creatures-page__anatomy-orphan-heading"
+												>
+													Зоны без найденного родителя
+												</div>
+												<div class="admin-creatures-page__anatomy-sublist">
+													@for (
+														childItem of group.children;
+														track childItem.zone.id
+													) {
+														<ng-container
+															[ngTemplateOutlet]="anatomyZoneRow"
+															[ngTemplateOutletContext]="{
+																zone: childItem.zone,
+																index: childItem.index,
+																level: 'sub'
+															}"
+														></ng-container>
+													}
+												</div>
+											</div>
+										}
+									}
+								</div>
+							} @else {
+								<div class="admin-creatures-page__empty-list">
+									Сохрани существо с выбранной схемой, чтобы создать анатомию
+									вида.
+								</div>
+							}
+						}
+
+						<ng-template
+							#anatomyZoneRow
+							let-zone="zone"
+							let-index="index"
+							let-level="level"
+						>
+							<div
+								class="admin-creatures-page__anatomy-zone"
+								[class.admin-creatures-page__anatomy-zone--sub]="
+									level === 'sub'
+								"
+							>
+								<div class="admin-creatures-page__anatomy-zone-title">
+									<strong>{{ zone.name }}</strong>
+									<div class="admin-creatures-page__anatomy-zone-meta">
+										<p-tag
+											[value]="
+												zone.kind === 'MAIN'
+													? 'Основная зона'
+													: 'Прицельная подзона'
+											"
+											[severity]="zone.kind === 'MAIN' ? 'success' : 'info'"
+										></p-tag>
+										@if (zone.isRandomHitEligible) {
+											<span>Вес {{ zone.randomHitWeight }}</span>
+										}
+										<span>{{ zone.targetedAttackDicePenalty }} куб.</span>
+										<span>+{{ zone.extraPotentialCost }} Потенциал</span>
+										@if (zone.overriddenFields.length) {
+											<span>{{ zone.overriddenFields.length }} переопр.</span>
+										}
+									</div>
+								</div>
+
+								<div class="admin-creatures-page__anatomy-fields">
+									<span class="admin-creatures-page__field">
+										<span>Название</span>
+										<input
+											pInputText
+											type="text"
+											[value]="zone.name"
+											(input)="
+												updateAnatomyZone(
+													index,
+													{ name: $any($event.target).value },
+													'name'
+												)
+											"
+										/>
+									</span>
+
+									<span class="admin-creatures-page__field">
+										<span>Родительская зона</span>
+										<p-select
+											[ngModel]="zone.parentId"
+											[options]="anatomyParentOptions(zone.id)"
+											optionLabel="label"
+											optionValue="value"
+											appendTo="body"
+											[showClear]="true"
+											(ngModelChange)="
+												updateAnatomyZone(
+													index,
+													{ parentId: $event },
+													'parentId'
+												)
+											"
+										></p-select>
+									</span>
+
+									<span class="admin-creatures-page__field">
+										<span>Тип зоны</span>
+										<p-select
+											[ngModel]="zone.kind"
+											[options]="anatomyZoneKindOptions"
+											optionLabel="label"
+											optionValue="value"
+											appendTo="body"
+											(ngModelChange)="
+												updateAnatomyZone(index, { kind: $event }, 'kind')
+											"
+										></p-select>
+									</span>
+
+									<span class="admin-creatures-page__switch-field">
+										<span>Случайное попадание</span>
+										<p-toggleswitch
+											[ngModel]="zone.isRandomHitEligible"
+											(ngModelChange)="
+												updateAnatomyZone(
+													index,
+													{ isRandomHitEligible: $event },
+													'isRandomHitEligible'
+												)
+											"
+										></p-toggleswitch>
+									</span>
+
+									<span class="admin-creatures-page__field">
+										<span>Вес попадания</span>
+										<p-inputnumber
+											[ngModel]="zone.randomHitWeight"
+											[showButtons]="false"
+											[min]="0"
+											(ngModelChange)="
+												updateAnatomyZone(
+													index,
+													{ randomHitWeight: $event ?? 0 },
+													'randomHitWeight'
+												)
+											"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-creatures-page__field">
+										<span>Штраф прицельной атаки</span>
+										<p-inputnumber
+											[ngModel]="zone.targetedAttackDicePenalty"
+											[showButtons]="false"
+											(ngModelChange)="
+												updateAnatomyZone(
+													index,
+													{ targetedAttackDicePenalty: $event ?? 0 },
+													'targetedAttackDicePenalty'
+												)
+											"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-creatures-page__field">
+										<span>Доп. стоимость Потенциала</span>
+										<p-inputnumber
+											[ngModel]="zone.extraPotentialCost"
+											[showButtons]="false"
+											[min]="0"
+											(ngModelChange)="
+												updateAnatomyZone(
+													index,
+													{ extraPotentialCost: $event ?? 0 },
+													'extraPotentialCost'
+												)
+											"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-creatures-page__switch-field">
+										<span>Активна</span>
+										<p-toggleswitch
+											[ngModel]="zone.isActive"
+											(ngModelChange)="
+												updateAnatomyZone(
+													index,
+													{ isActive: $event },
+													'isActive'
+												)
+											"
+										></p-toggleswitch>
+									</span>
+								</div>
+							</div>
+						</ng-template>
+					</section>
 
 					<section class="admin-creatures-page__tiers">
 						<div class="admin-creatures-page__tiers-heading">

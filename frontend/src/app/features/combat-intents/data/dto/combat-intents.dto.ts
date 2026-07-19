@@ -1,8 +1,11 @@
+import type { CombatIntentTextBlock } from '../../domain/combat-intents.models';
+
 export interface CombatIntentDto {
 	id: string;
 	slug: string;
 	name: string;
 	category: string;
+	textBlocks: CombatIntentTextBlock[];
 	isActive: boolean;
 	sortOrder: number;
 	createdAt: string;
@@ -16,6 +19,7 @@ export interface CombatIntentsCatalogResponseDto {
 export interface CreateCombatIntentDto {
 	name: string;
 	category: string;
+	textBlocks?: CombatIntentTextBlock[];
 	isActive?: boolean;
 	sortOrder?: number;
 }
@@ -23,6 +27,7 @@ export interface CreateCombatIntentDto {
 export interface UpdateCombatIntentDto {
 	name?: string;
 	category?: string;
+	textBlocks?: CombatIntentTextBlock[];
 	isActive?: boolean;
 	sortOrder?: number;
 }

@@ -107,6 +107,11 @@ enum WeaponAttackProfileKind {
   RANGED
 }
 
+enum AnatomyZoneKind {
+  MAIN
+  TARGETED
+}
+
 model User {
   id                      String                   @id @default(uuid()) @db.Uuid
   email                   String                   @unique
@@ -698,14 +703,15 @@ model WeaponAttackProfile {
 }
 
 model CombatIntent {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug      String   @unique @default(cuid())
-  name      String   @unique
-  category  String   @default("Без категории")
-  isActive  Boolean  @default(true) @map("is_active")
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug       String   @unique @default(cuid())
+  name       String   @unique
+  category   String   @default("Без категории")
+  textBlocks Json     @default("[]") @map("text_blocks")
+  isActive   Boolean  @default(true) @map("is_active")
+  sortOrder  Int      @default(0) @map("sort_order")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   weaponAttackProfileLinks         WeaponAttackProfileIntent[]
   weaponTemplateAttackProfileLinks WeaponTemplateAttackProfileIntent[]
@@ -784,20 +790,100 @@ model WeaponAttackProfileDamageType {
 }
 
 model Creature {
-  id        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug      String         @unique @default(cuid())
-  name      String         @unique
-  typeId    String         @map("type_id") @db.Uuid
-  type      CreatureType   @relation(fields: [typeId], references: [id], onDelete: Restrict)
-  tiers     CreatureTier[]
-  isActive  Boolean        @default(true) @map("is_active")
-  sortOrder Int            @default(0) @map("sort_order")
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
+  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug            String                @unique @default(cuid())
+  name            String                @unique
+  typeId          String                @map("type_id") @db.Uuid
+  type            CreatureType          @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  anatomySchemeId String?               @map("anatomy_scheme_id") @db.Uuid
+  anatomyScheme   AnatomyScheme?        @relation(fields: [anatomySchemeId], references: [id], onDelete: SetNull)
+  tiers           CreatureTier[]
+  anatomyZones    CreatureAnatomyZone[]
+  isActive        Boolean               @default(true) @map("is_active")
+  sortOrder       Int                   @default(0) @map("sort_order")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
 
   @@index([typeId, isActive, sortOrder])
+  @@index([anatomySchemeId])
   @@index([isActive, sortOrder])
   @@map("creatures")
+}
+
+model AnatomyScheme {
+  id          String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug        String              @unique @default(cuid())
+  name        String              @unique
+  description String?
+  zones       AnatomySchemeZone[]
+  creatures   Creature[]
+  isActive    Boolean             @default(true) @map("is_active")
+  sortOrder   Int                 @default(0) @map("sort_order")
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  @@index([isActive, sortOrder])
+  @@map("anatomy_schemes")
+}
+
+model AnatomySchemeZone {
+  id                        String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  schemeId                  String              @map("scheme_id") @db.Uuid
+  scheme                    AnatomyScheme       @relation(fields: [schemeId], references: [id], onDelete: Cascade)
+  parentId                  String?             @map("parent_id") @db.Uuid
+  parent                    AnatomySchemeZone?  @relation("AnatomySchemeZoneParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children                  AnatomySchemeZone[] @relation("AnatomySchemeZoneParent")
+  slug                      String              @default(cuid())
+  name                      String
+  kind                      AnatomyZoneKind     @default(MAIN)
+  isRandomHitEligible       Boolean             @default(true) @map("is_random_hit_eligible")
+  randomHitWeight           Int                 @default(1) @map("random_hit_weight")
+  targetedAttackDicePenalty Int                 @default(0) @map("targeted_attack_dice_penalty")
+  extraPotentialCost        Int                 @default(0) @map("extra_potential_cost")
+  isActive                  Boolean             @default(true) @map("is_active")
+  sortOrder                 Int                 @default(0) @map("sort_order")
+  createdAt                 DateTime            @default(now()) @map("created_at")
+  updatedAt                 DateTime            @updatedAt @map("updated_at")
+
+  creatureZoneOverrides CreatureAnatomyZone[]
+
+  @@unique([schemeId, slug])
+  @@index([schemeId, sortOrder])
+  @@index([parentId])
+  @@index([kind, isActive, sortOrder])
+  @@map("anatomy_scheme_zones")
+}
+
+model CreatureAnatomyZone {
+  id                        String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatureId                String                @map("creature_id") @db.Uuid
+  creature                  Creature              @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  sourceZoneId              String?               @map("source_zone_id") @db.Uuid
+  sourceZone                AnatomySchemeZone?    @relation(fields: [sourceZoneId], references: [id], onDelete: SetNull)
+  parentId                  String?               @map("parent_id") @db.Uuid
+  parent                    CreatureAnatomyZone?  @relation("CreatureAnatomyZoneParent", fields: [parentId], references: [id], onDelete: SetNull)
+  children                  CreatureAnatomyZone[] @relation("CreatureAnatomyZoneParent")
+  slug                      String                @default(cuid())
+  name                      String
+  kind                      AnatomyZoneKind       @default(MAIN)
+  isRandomHitEligible       Boolean               @default(true) @map("is_random_hit_eligible")
+  randomHitWeight           Int                   @default(1) @map("random_hit_weight")
+  targetedAttackDicePenalty Int                   @default(0) @map("targeted_attack_dice_penalty")
+  extraPotentialCost        Int                   @default(0) @map("extra_potential_cost")
+  overriddenFields          String[]              @default([]) @map("overridden_fields")
+  isInherited               Boolean               @default(false) @map("is_inherited")
+  isRemoved                 Boolean               @default(false) @map("is_removed")
+  isActive                  Boolean               @default(true) @map("is_active")
+  sortOrder                 Int                   @default(0) @map("sort_order")
+  createdAt                 DateTime              @default(now()) @map("created_at")
+  updatedAt                 DateTime              @updatedAt @map("updated_at")
+
+  @@unique([creatureId, slug])
+  @@index([creatureId, sortOrder])
+  @@index([sourceZoneId])
+  @@index([parentId])
+  @@index([kind, isActive, sortOrder])
+  @@map("creature_anatomy_zones")
 }
 
 model CreatureTier {

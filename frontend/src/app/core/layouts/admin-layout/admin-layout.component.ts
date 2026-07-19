@@ -76,6 +76,10 @@ export class AdminLayoutComponent {
 					routerLink: '/admin/rules/creatures'
 				},
 				{
+					label: 'Анатомические схемы',
+					routerLink: '/admin/rules/anatomy-schemes'
+				},
+				{
 					label: 'Типы существ',
 					routerLink: '/admin/rules/creature-types'
 				}

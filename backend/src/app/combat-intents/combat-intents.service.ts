@@ -3,7 +3,11 @@ import { Prisma } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { createSlug } from '../shared/slug.util';
-import { CreateCombatIntentDto } from './dto/create-combat-intent.dto';
+import {
+	combatIntentTextTokens,
+	CombatIntentTextBlockDto,
+	CreateCombatIntentDto
+} from './dto/create-combat-intent.dto';
 import { UpdateCombatIntentDto } from './dto/update-combat-intent.dto';
 
 const combatIntentSelect = {
@@ -11,6 +15,7 @@ const combatIntentSelect = {
 	slug: true,
 	name: true,
 	category: true,
+	textBlocks: true,
 	isActive: true,
 	sortOrder: true,
 	createdAt: true,
@@ -90,6 +95,7 @@ export class CombatIntentsService {
 			slug: createSlug(dto.name),
 			name: dto.name.trim(),
 			category: dto.category.trim(),
+			textBlocks: this.normalizeTextBlocks(dto.textBlocks),
 			isActive: dto.isActive ?? true,
 			sortOrder: dto.sortOrder ?? 0
 		};
@@ -99,6 +105,10 @@ export class CombatIntentsService {
 		return {
 			name: dto.name === undefined ? undefined : dto.name.trim(),
 			category: dto.category === undefined ? undefined : dto.category.trim(),
+			textBlocks:
+				dto.textBlocks === undefined
+					? undefined
+					: this.normalizeTextBlocks(dto.textBlocks),
 			isActive: dto.isActive,
 			sortOrder: dto.sortOrder
 		};
@@ -110,10 +120,121 @@ export class CombatIntentsService {
 			slug: combatIntent.slug,
 			name: combatIntent.name,
 			category: combatIntent.category,
+			textBlocks: normalizeTextBlocks(combatIntent.textBlocks),
 			isActive: combatIntent.isActive,
 			sortOrder: combatIntent.sortOrder,
 			createdAt: combatIntent.createdAt.toISOString(),
 			updatedAt: combatIntent.updatedAt.toISOString()
 		};
 	}
+
+	private normalizeTextBlocks(
+		textBlocks: CombatIntentTextBlockDto[] | undefined
+	): Prisma.InputJsonValue {
+		const normalized =
+			textBlocks
+				?.flatMap((block, index): CombatIntentTextBlock[] => {
+					const sortOrder = block.sortOrder ?? index;
+					const isActive = block.isActive ?? true;
+
+					if (block.kind === 'text') {
+						return [
+							{
+								kind: 'text',
+								text: block.text ?? '',
+								isActive,
+								sortOrder
+							}
+						];
+					}
+
+					if (block.kind === 'token' && isCombatIntentTextToken(block.token)) {
+						return [
+							{
+								kind: 'token',
+								token: block.token,
+								isActive,
+								sortOrder
+							}
+						];
+					}
+
+					return [];
+				})
+				.sort((first, second) => first.sortOrder - second.sortOrder) ?? [];
+
+		return normalized as Prisma.InputJsonValue;
+	}
+}
+
+type CombatIntentTextToken = (typeof combatIntentTextTokens)[number];
+
+type CombatIntentTextBlock =
+	| {
+			kind: 'text';
+			text: string;
+			isActive: boolean;
+			sortOrder: number;
+	  }
+	| {
+			kind: 'token';
+			token: CombatIntentTextToken;
+			isActive: boolean;
+			sortOrder: number;
+	  };
+
+function isCombatIntentTextToken(
+	value: unknown
+): value is CombatIntentTextToken {
+	return (
+		typeof value === 'string' &&
+		combatIntentTextTokens.includes(value as CombatIntentTextToken)
+	);
+}
+
+function normalizeTextBlocks(value: Prisma.JsonValue): CombatIntentTextBlock[] {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value
+		.flatMap((item, index): CombatIntentTextBlock[] => {
+			if (!isRecord(item)) {
+				return [];
+			}
+
+			const sortOrder =
+				typeof item['sortOrder'] === 'number' ? item['sortOrder'] : index;
+			const isActive =
+				typeof item['isActive'] === 'boolean' ? item['isActive'] : true;
+
+			if (item['kind'] === 'text') {
+				return [
+					{
+						kind: 'text',
+						text: typeof item['text'] === 'string' ? item['text'] : '',
+						isActive,
+						sortOrder
+					}
+				];
+			}
+
+			if (item['kind'] === 'token' && isCombatIntentTextToken(item['token'])) {
+				return [
+					{
+						kind: 'token',
+						token: item['token'],
+						isActive,
+						sortOrder
+					}
+				];
+			}
+
+			return [];
+		})
+		.sort((first, second) => first.sortOrder - second.sortOrder);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

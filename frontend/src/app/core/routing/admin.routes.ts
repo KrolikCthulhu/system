@@ -128,6 +128,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminCreatureTypesPageComponent)
 					},
 					{
+						path: 'anatomy-schemes',
+						loadComponent: () =>
+							import(
+								'../../features/anatomy-schemes/ui/pages/admin-anatomy-schemes-page/admin-anatomy-schemes-page.component'
+							).then(m => m.AdminAnatomySchemesPageComponent)
+					},
+					{
 						path: 'creatures',
 						loadComponent: () =>
 							import(

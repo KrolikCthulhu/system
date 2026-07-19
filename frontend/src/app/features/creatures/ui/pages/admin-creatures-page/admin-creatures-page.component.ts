@@ -25,6 +25,9 @@ import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actio
 import { CREATURES_REPOSITORY } from '../../../data/creatures-repository.port';
 import {
 	Creature,
+	CreatureAnatomySchemeOption,
+	CreatureAnatomyZone,
+	CreatureAnatomyZoneKind,
 	CreatureArmorPresetOption,
 	CreatureCharacteristicOption,
 	CreatureSkillOptionGroup,
@@ -57,10 +60,45 @@ interface CreatureDraft {
 	id: string | null;
 	name: string;
 	typeId: string;
+	anatomySchemeId: string | null;
+	anatomyZones: CreatureAnatomyZone[];
 	tiers: CreatureTierDraft[];
 	isActive: boolean;
 	sortOrder: number;
 }
+
+interface CreatureAnatomyZoneViewItem {
+	zone: CreatureAnatomyZone;
+	index: number;
+	children: CreatureAnatomyZoneViewItem[];
+}
+
+interface CreatureAnatomyZoneViewGroup {
+	trackId: string;
+	parent: CreatureAnatomyZoneViewItem | null;
+	children: CreatureAnatomyZoneViewItem[];
+}
+
+interface SelectOption<TValue extends string> {
+	label: string;
+	value: TValue;
+}
+
+type CreatureAnatomyZoneOverrideField =
+	| 'name'
+	| 'parentId'
+	| 'kind'
+	| 'isRandomHitEligible'
+	| 'randomHitWeight'
+	| 'targetedAttackDicePenalty'
+	| 'extraPotentialCost'
+	| 'isActive'
+	| 'sortOrder';
+
+const ANATOMY_ZONE_KIND_OPTIONS: SelectOption<CreatureAnatomyZoneKind>[] = [
+	{ label: 'Основная зона', value: 'MAIN' },
+	{ label: 'Прицельная подзона', value: 'TARGETED' }
+];
 
 @Component({
 	selector: 'app-admin-creatures-page',
@@ -96,18 +134,23 @@ export class AdminCreaturesPageComponent {
 		{ label: 'Бестиарий' },
 		{ label: 'Существа' }
 	];
+	protected readonly anatomyZoneKindOptions = ANATOMY_ZONE_KIND_OPTIONS;
 	protected readonly selectedCreatureId = signal<string | null>(null);
 	protected readonly searchQuery = signal('');
 	protected readonly creatures = signal<Creature[]>([]);
 	protected readonly creatureTypes = signal<CreatureTypeOption[]>([]);
+	protected readonly anatomySchemes = signal<CreatureAnatomySchemeOption[]>([]);
 	protected readonly armorPresets = signal<CreatureArmorPresetOption[]>([]);
 	protected readonly skills = signal<CreatureSkillOption[]>([]);
-	protected readonly characteristics = signal<CreatureCharacteristicOption[]>([]);
+	protected readonly characteristics = signal<CreatureCharacteristicOption[]>(
+		[]
+	);
 	protected readonly draft = signal<CreatureDraft | null>(null);
 	protected readonly savedDraftSignature = signal('');
 	protected readonly loading = signal(true);
 	protected readonly saving = signal(false);
 	protected readonly errorMessage = signal<string | null>(null);
+	protected readonly isAnatomyExpanded = signal(false);
 	protected readonly expandedTierKeys = signal<Set<number>>(new Set([1]));
 
 	protected readonly hasChanges = computed(
@@ -136,6 +179,9 @@ export class AdminCreaturesPageComponent {
 	protected readonly skillOptionGroups = computed(() =>
 		createSkillOptionGroups(this.skills())
 	);
+	protected readonly anatomyZoneGroups = computed<
+		CreatureAnatomyZoneViewGroup[]
+	>(() => buildCreatureAnatomyZoneGroups(this.draft()?.anatomyZones ?? []));
 
 	constructor() {
 		this.loadCatalog();
@@ -176,6 +222,53 @@ export class AdminCreaturesPageComponent {
 
 	protected updateDraftType(typeId: string) {
 		this.patchDraft({ typeId });
+	}
+
+	protected updateDraftAnatomyScheme(anatomySchemeId: string | null) {
+		this.patchDraft({ anatomySchemeId, anatomyZones: [] });
+	}
+
+	protected toggleAnatomyExpanded() {
+		this.isAnatomyExpanded.update(isExpanded => !isExpanded);
+	}
+
+	protected anatomyParentOptions(currentZoneId: string) {
+		const zones = this.draft()?.anatomyZones ?? [];
+		const excludedIds = collectCreatureAnatomyDescendantIds(
+			zones,
+			currentZoneId
+		);
+		excludedIds.add(currentZoneId);
+
+		return zones
+			.filter(zone => !zone.isRemoved && !excludedIds.has(zone.id))
+			.map(zone => ({ label: zone.name || 'Зона', value: zone.id }));
+	}
+
+	protected updateAnatomyZone(
+		index: number,
+		patch: Partial<CreatureAnatomyZone>,
+		overriddenField: CreatureAnatomyZoneOverrideField
+	) {
+		this.draft.update(draft =>
+			draft
+				? {
+						...draft,
+						anatomyZones: draft.anatomyZones.map((zone, zoneIndex) =>
+							zoneIndex === index
+								? {
+										...zone,
+										...patch,
+										overriddenFields: addOverrideField(
+											zone.overriddenFields,
+											overriddenField
+										)
+									}
+								: zone
+						)
+					}
+				: draft
+		);
 	}
 
 	protected updateDraftSortOrder(sortOrder: number | null) {
@@ -352,6 +445,24 @@ export class AdminCreaturesPageComponent {
 		const command = {
 			name,
 			typeId: draft.typeId,
+			anatomySchemeId: draft.anatomySchemeId,
+			anatomyZones: draft.anatomyZones.map((zone, sortOrder) => ({
+				id: zone.id,
+				sourceZoneId: zone.sourceZoneId,
+				name: zone.name.trim(),
+				slug: zone.slug,
+				parentId: zone.parentId,
+				kind: zone.kind,
+				isRandomHitEligible: zone.isRandomHitEligible,
+				randomHitWeight: zone.randomHitWeight,
+				targetedAttackDicePenalty: zone.targetedAttackDicePenalty,
+				extraPotentialCost: zone.extraPotentialCost,
+				overriddenFields: zone.overriddenFields,
+				isInherited: zone.isInherited,
+				isRemoved: zone.isRemoved,
+				isActive: zone.isActive,
+				sortOrder
+			})),
 			isActive: draft.isActive,
 			sortOrder: draft.sortOrder,
 			tiers: draft.tiers.map(tier => ({
@@ -435,6 +546,7 @@ export class AdminCreaturesPageComponent {
 				next: catalog => {
 					this.creatures.set(catalog.creatures);
 					this.creatureTypes.set(catalog.creatureTypes);
+					this.anatomySchemes.set(catalog.anatomySchemes);
 					this.armorPresets.set(catalog.armorPresets);
 					this.skills.set(catalog.skills);
 					this.characteristics.set(catalog.characteristics);
@@ -476,6 +588,8 @@ export class AdminCreaturesPageComponent {
 			id: creature.id,
 			name: creature.name,
 			typeId: creature.typeId,
+			anatomySchemeId: creature.anatomySchemeId,
+			anatomyZones: creature.anatomyZones,
 			tiers: Array.from({ length: 5 }, (_, index) => {
 				const tierNumber = index + 1;
 				const tier = creature.tiers.find(item => item.tier === tierNumber);
@@ -512,6 +626,8 @@ export class AdminCreaturesPageComponent {
 			id: null,
 			name: '',
 			typeId: this.creatureTypes()[0]?.id ?? '',
+			anatomySchemeId: null,
+			anatomyZones: [],
 			tiers: Array.from({ length: 5 }, (_, index) => {
 				const tier = index + 1;
 				return {
@@ -720,4 +836,97 @@ function createSkillOptionGroups(
 			return orderDiff || first.name.localeCompare(second.name, 'ru');
 		})
 	}));
+}
+
+function buildCreatureAnatomyZoneGroups(
+	zones: CreatureAnatomyZone[]
+): CreatureAnatomyZoneViewGroup[] {
+	const visibleZones = zones.filter(zone => !zone.isRemoved);
+	const items = visibleZones.map(zone => ({
+		zone,
+		index: zones.findIndex(item => item.id === zone.id),
+		children: [] as CreatureAnatomyZoneViewItem[]
+	}));
+	const itemsById = new Map(items.map(item => [item.zone.id, item]));
+	const roots: CreatureAnatomyZoneViewItem[] = [];
+	const orphanChildren: CreatureAnatomyZoneViewItem[] = [];
+
+	for (const item of items) {
+		const parent = item.zone.parentId
+			? itemsById.get(item.zone.parentId)
+			: undefined;
+
+		if (parent) {
+			parent.children.push(item);
+			continue;
+		}
+
+		if (item.zone.parentId) {
+			orphanChildren.push(item);
+			continue;
+		}
+
+		roots.push(item);
+	}
+
+	const sortItems = (
+		first: CreatureAnatomyZoneViewItem,
+		second: CreatureAnatomyZoneViewItem
+	) =>
+		first.zone.sortOrder - second.zone.sortOrder ||
+		first.zone.name.localeCompare(second.zone.name, 'ru');
+
+	for (const item of items) {
+		item.children.sort(sortItems);
+	}
+
+	const groups: CreatureAnatomyZoneViewGroup[] = roots
+		.sort(sortItems)
+		.map(item => ({
+			trackId: item.zone.id,
+			parent: item,
+			children: item.children
+		}));
+
+	if (orphanChildren.length) {
+		groups.push({
+			trackId: 'orphan',
+			parent: null,
+			children: orphanChildren.sort(sortItems)
+		});
+	}
+
+	return groups;
+}
+
+function collectCreatureAnatomyDescendantIds(
+	zones: CreatureAnatomyZone[],
+	zoneId: string
+): Set<string> {
+	const descendantIds = new Set<string>();
+	let hasChanges = true;
+
+	while (hasChanges) {
+		hasChanges = false;
+
+		for (const zone of zones) {
+			if (
+				zone.parentId &&
+				(zone.parentId === zoneId || descendantIds.has(zone.parentId)) &&
+				!descendantIds.has(zone.id)
+			) {
+				descendantIds.add(zone.id);
+				hasChanges = true;
+			}
+		}
+	}
+
+	return descendantIds;
+}
+
+function addOverrideField(
+	fields: string[],
+	field: CreatureAnatomyZoneOverrideField
+): string[] {
+	return fields.includes(field) ? fields : [...fields, field];
 }

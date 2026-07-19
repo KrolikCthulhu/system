@@ -9,6 +9,8 @@ export interface CreatureTypeOption extends CreatureReference {
 	sortOrder: number;
 }
 
+export type CreatureAnatomySchemeOption = CreatureTypeOption;
+
 export interface CreatureArmorPresetOption extends CreatureTypeOption {
 	points: number;
 	protection: number;
@@ -64,12 +66,35 @@ export interface CreatureTier {
 	sortOrder: number;
 }
 
+export type CreatureAnatomyZoneKind = 'MAIN' | 'TARGETED';
+
+export interface CreatureAnatomyZone {
+	id: string;
+	slug: string;
+	name: string;
+	sourceZoneId: string | null;
+	parentId: string | null;
+	kind: CreatureAnatomyZoneKind;
+	isRandomHitEligible: boolean;
+	randomHitWeight: number;
+	targetedAttackDicePenalty: number;
+	extraPotentialCost: number;
+	overriddenFields: string[];
+	isInherited: boolean;
+	isRemoved: boolean;
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface Creature {
 	id: string;
 	slug: string;
 	name: string;
 	typeId: string;
 	type: CreatureReference;
+	anatomySchemeId: string | null;
+	anatomyScheme: CreatureReference | null;
+	anatomyZones: CreatureAnatomyZone[];
 	tiers: CreatureTier[];
 	isActive: boolean;
 	sortOrder: number;
@@ -80,6 +105,7 @@ export interface Creature {
 export interface CreaturesCatalog {
 	creatures: Creature[];
 	creatureTypes: CreatureTypeOption[];
+	anatomySchemes: CreatureAnatomySchemeOption[];
 	armorPresets: CreatureArmorPresetOption[];
 	skills: CreatureSkillOption[];
 	characteristics: CreatureCharacteristicOption[];

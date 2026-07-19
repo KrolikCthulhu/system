@@ -19,6 +19,17 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 				OR: [{ slug: seed.type.slug }, { name: seed.type.name }]
 			}
 		});
+		const anatomyScheme = seed.anatomyScheme
+			? await tx.anatomyScheme.findFirstOrThrow({
+					select: { id: true },
+					where: {
+						OR: [
+							{ slug: seed.anatomyScheme.slug },
+							{ name: seed.anatomyScheme.name }
+						]
+					}
+				})
+			: null;
 		const existing = await tx.creature.findFirst({
 			select: { id: true },
 			where: {
@@ -33,6 +44,7 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 						slug,
 						name: seed.name,
 						typeId: type.id,
+						anatomySchemeId: anatomyScheme?.id ?? null,
 						isActive: true,
 						sortOrder: seed.sortOrder
 					}
@@ -43,10 +55,17 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 						slug,
 						name: seed.name,
 						typeId: type.id,
+						anatomySchemeId: anatomyScheme?.id ?? null,
 						isActive: true,
 						sortOrder: seed.sortOrder
 					}
 				});
+
+		await syncCreatureAnatomyFromScheme(
+			tx,
+			creature.id,
+			anatomyScheme?.id ?? null
+		);
 
 		const seedTiers = seed.tiers.map(tier => tier.tier);
 		await tx.creatureTier.deleteMany({
@@ -172,4 +191,121 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 
 function defaultCreatureCharacteristicValue(defaultValue: number): number {
 	return Math.max(1, defaultValue);
+}
+
+async function syncCreatureAnatomyFromScheme(
+	tx: Prisma.TransactionClient,
+	creatureId: string,
+	schemeId: string | null
+) {
+	if (!schemeId) {
+		await tx.creatureAnatomyZone.deleteMany({
+			where: {
+				creatureId,
+				isInherited: true,
+				overriddenFields: { isEmpty: true }
+			}
+		});
+		return;
+	}
+
+	const schemeZones = await tx.anatomySchemeZone.findMany({
+		where: { schemeId },
+		orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+	});
+	const sourceZoneIds = new Set(schemeZones.map(zone => zone.id));
+
+	await tx.creatureAnatomyZone.deleteMany({
+		where: {
+			creatureId,
+			isInherited: true,
+			overriddenFields: { isEmpty: true },
+			sourceZoneId: { notIn: [...sourceZoneIds] }
+		}
+	});
+
+	const existingZones = await tx.creatureAnatomyZone.findMany({
+		where: { creatureId },
+		orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+	});
+	const existingBySourceId = new Map(
+		existingZones
+			.filter(zone => zone.sourceZoneId)
+			.map(zone => [zone.sourceZoneId as string, zone])
+	);
+	const existingBySlug = new Map(existingZones.map(zone => [zone.slug, zone]));
+	const syncedZoneIdsBySourceId = new Map<string, string>();
+	const orderedSchemeZones = [
+		...schemeZones.filter(zone => !zone.parentId),
+		...schemeZones.filter(zone => zone.parentId)
+	];
+
+	for (const schemeZone of orderedSchemeZones) {
+		const existingZone =
+			existingBySourceId.get(schemeZone.id) ??
+			existingBySlug.get(schemeZone.slug);
+		const parentId = schemeZone.parentId
+			? (syncedZoneIdsBySourceId.get(schemeZone.parentId) ?? null)
+			: null;
+
+		if (existingZone) {
+			const overriddenFields = new Set(existingZone.overriddenFields);
+			const updated = await tx.creatureAnatomyZone.update({
+				select: { id: true },
+				where: { id: existingZone.id },
+				data: {
+					sourceZoneId: schemeZone.id,
+					name: overriddenFields.has('name') ? undefined : schemeZone.name,
+					parentId: overriddenFields.has('parentId') ? undefined : parentId,
+					kind: overriddenFields.has('kind') ? undefined : schemeZone.kind,
+					isRandomHitEligible: overriddenFields.has('isRandomHitEligible')
+						? undefined
+						: schemeZone.isRandomHitEligible,
+					randomHitWeight: overriddenFields.has('randomHitWeight')
+						? undefined
+						: schemeZone.randomHitWeight,
+					targetedAttackDicePenalty: overriddenFields.has(
+						'targetedAttackDicePenalty'
+					)
+						? undefined
+						: schemeZone.targetedAttackDicePenalty,
+					extraPotentialCost: overriddenFields.has('extraPotentialCost')
+						? undefined
+						: schemeZone.extraPotentialCost,
+					isActive: overriddenFields.has('isActive')
+						? undefined
+						: schemeZone.isActive,
+					sortOrder: overriddenFields.has('sortOrder')
+						? undefined
+						: schemeZone.sortOrder,
+					isInherited: true,
+					isRemoved: false
+				}
+			});
+			syncedZoneIdsBySourceId.set(schemeZone.id, updated.id);
+			continue;
+		}
+
+		const created = await tx.creatureAnatomyZone.create({
+			select: { id: true },
+			data: {
+				creatureId,
+				sourceZoneId: schemeZone.id,
+				parentId,
+				slug: schemeZone.slug,
+				name: schemeZone.name,
+				kind: schemeZone.kind,
+				isRandomHitEligible: schemeZone.isRandomHitEligible,
+				randomHitWeight: schemeZone.randomHitWeight,
+				targetedAttackDicePenalty: schemeZone.targetedAttackDicePenalty,
+				extraPotentialCost: schemeZone.extraPotentialCost,
+				overriddenFields: [],
+				isInherited: true,
+				isRemoved: false,
+				isActive: schemeZone.isActive,
+				sortOrder: schemeZone.sortOrder
+			}
+		});
+		syncedZoneIdsBySourceId.set(schemeZone.id, created.id);
+	}
 }

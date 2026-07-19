@@ -4,9 +4,11 @@ import {
 	NotFoundException
 } from '@nestjs/common';
 import { Prisma } from '@prisma/generated';
+import { AnatomySyncService } from '../anatomy-schemes/anatomy-sync.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { createSlug } from '../shared/slug.util';
+import { CreatureAnatomyZoneDto } from './dto/creature-anatomy-zone.dto';
 import { CreateCreatureDto } from './dto/create-creature.dto';
 import { CreatureTierDto } from './dto/creature-tier.dto';
 import { UpdateCreatureDto } from './dto/update-creature.dto';
@@ -22,6 +24,34 @@ const creatureSelect = {
 			slug: true,
 			name: true
 		}
+	},
+	anatomySchemeId: true,
+	anatomyScheme: {
+		select: {
+			id: true,
+			slug: true,
+			name: true
+		}
+	},
+	anatomyZones: {
+		select: {
+			id: true,
+			slug: true,
+			name: true,
+			sourceZoneId: true,
+			parentId: true,
+			kind: true,
+			isRandomHitEligible: true,
+			randomHitWeight: true,
+			targetedAttackDicePenalty: true,
+			extraPotentialCost: true,
+			overriddenFields: true,
+			isInherited: true,
+			isRemoved: true,
+			isActive: true,
+			sortOrder: true
+		},
+		orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 	},
 	tiers: {
 		select: {
@@ -90,78 +120,98 @@ type CreatureRecord = Prisma.CreatureGetPayload<{
 
 @Injectable()
 export class CreaturesService {
-	constructor(private readonly prisma: PrismaService) {}
+	constructor(
+		private readonly prisma: PrismaService,
+		private readonly anatomySyncService: AnatomySyncService
+	) {}
 
 	async getCatalog() {
-		const [creatures, creatureTypes, armorPresets, skills, characteristics] =
-			await this.prisma.$transaction([
-				this.prisma.creature.findMany({
-					select: creatureSelect,
-					orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
-				}),
-				this.prisma.creatureType.findMany({
-					select: {
-						id: true,
-						slug: true,
-						name: true,
-						isActive: true,
-						sortOrder: true
+		const [
+			creatures,
+			creatureTypes,
+			anatomySchemes,
+			armorPresets,
+			skills,
+			characteristics
+		] = await this.prisma.$transaction([
+			this.prisma.creature.findMany({
+				select: creatureSelect,
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.creatureType.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.anatomyScheme.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.armorPreset.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					points: true,
+					protection: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.skill.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					categoryId: true,
+					rollCharacteristicId: true,
+					category: {
+						select: {
+							id: true,
+							slug: true,
+							name: true
+						}
 					},
-					orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
-				}),
-				this.prisma.armorPreset.findMany({
-					select: {
-						id: true,
-						slug: true,
-						name: true,
-						points: true,
-						protection: true,
-						isActive: true,
-						sortOrder: true
-					},
-					orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
-				}),
-				this.prisma.skill.findMany({
-					select: {
-						id: true,
-						slug: true,
-						name: true,
-						categoryId: true,
-						rollCharacteristicId: true,
-						category: {
-							select: {
-								id: true,
-								slug: true,
-								name: true
-							}
-						},
-						maxLevel: true,
-						isActive: true,
-						sortOrder: true
-					},
-					orderBy: [
-						{ category: { sortOrder: 'asc' } },
-						{ sortOrder: 'asc' },
-						{ name: 'asc' }
-					]
-				}),
-				this.prisma.characteristic.findMany({
-					select: {
-						id: true,
-						name: true,
-						minValue: true,
-						maxValue: true,
-						defaultValue: true,
-						isActive: true,
-						sortOrder: true
-					},
-					orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
-				})
-			]);
+					maxLevel: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [
+					{ category: { sortOrder: 'asc' } },
+					{ sortOrder: 'asc' },
+					{ name: 'asc' }
+				]
+			}),
+			this.prisma.characteristic.findMany({
+				select: {
+					id: true,
+					name: true,
+					minValue: true,
+					maxValue: true,
+					defaultValue: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			})
+		]);
 
 		return {
 			creatures: creatures.map(item => this.mapCreature(item)),
 			creatureTypes,
+			anatomySchemes,
 			armorPresets,
 			skills,
 			characteristics
@@ -169,21 +219,43 @@ export class CreaturesService {
 	}
 
 	async createCreature(dto: CreateCreatureDto) {
-		await this.ensureReferences(dto.typeId, dto.tiers);
+		await this.ensureReferences(dto.typeId, dto.anatomySchemeId, dto.tiers);
 
 		try {
-			const creature = await this.prisma.creature.create({
-				select: creatureSelect,
-				data: {
-					slug: createSlug(dto.name),
-					name: dto.name.trim(),
-					typeId: dto.typeId,
-					isActive: dto.isActive ?? true,
-					sortOrder: dto.sortOrder ?? 0,
-					tiers: {
-						create: dto.tiers.map(tier => this.toTierCreateData(tier))
+			const creature = await this.prisma.$transaction(async tx => {
+				const created = await tx.creature.create({
+					select: { id: true },
+					data: {
+						slug: createSlug(dto.name),
+						name: dto.name.trim(),
+						typeId: dto.typeId,
+						anatomySchemeId: dto.anatomySchemeId ?? null,
+						isActive: dto.isActive ?? true,
+						sortOrder: dto.sortOrder ?? 0,
+						tiers: {
+							create: dto.tiers.map(tier => this.toTierCreateData(tier))
+						}
 					}
+				});
+
+				await this.anatomySyncService.syncCreatureAnatomyFromScheme(
+					tx,
+					created.id,
+					dto.anatomySchemeId
+				);
+
+				if (dto.anatomyZones?.length) {
+					await this.replaceCreatureAnatomyZones(
+						tx,
+						created.id,
+						dto.anatomyZones
+					);
 				}
+
+				return tx.creature.findUniqueOrThrow({
+					select: creatureSelect,
+					where: { id: created.id }
+				});
 			});
 
 			return this.mapCreature(creature);
@@ -196,7 +268,11 @@ export class CreaturesService {
 
 	async updateCreature(id: string, dto: UpdateCreatureDto) {
 		await this.ensureCreatureExists(id);
-		await this.ensureReferences(dto.typeId, dto.tiers ?? []);
+		await this.ensureReferences(
+			dto.typeId,
+			dto.anatomySchemeId,
+			dto.tiers ?? []
+		);
 
 		try {
 			const creature = await this.prisma.$transaction(async tx => {
@@ -205,6 +281,7 @@ export class CreaturesService {
 					data: {
 						name: dto.name === undefined ? undefined : dto.name.trim(),
 						typeId: dto.typeId,
+						anatomySchemeId: dto.anatomySchemeId,
 						isActive: dto.isActive,
 						sortOrder: dto.sortOrder
 					}
@@ -221,6 +298,18 @@ export class CreaturesService {
 							}
 						});
 					}
+				}
+
+				if (dto.anatomySchemeId !== undefined) {
+					await this.anatomySyncService.syncCreatureAnatomyFromScheme(
+						tx,
+						id,
+						dto.anatomySchemeId
+					);
+				}
+
+				if (dto.anatomyZones) {
+					await this.replaceCreatureAnatomyZones(tx, id, dto.anatomyZones);
 				}
 
 				return tx.creature.findUniqueOrThrow({
@@ -255,6 +344,7 @@ export class CreaturesService {
 
 	private async ensureReferences(
 		typeId: string | undefined,
+		anatomySchemeId: string | null | undefined,
 		tiers: CreatureTierDto[]
 	) {
 		if (typeId) {
@@ -265,6 +355,17 @@ export class CreaturesService {
 
 			if (!type) {
 				throw new BadRequestException('Тип существа не найден.');
+			}
+		}
+
+		if (anatomySchemeId) {
+			const scheme = await this.prisma.anatomyScheme.findUnique({
+				select: { id: true },
+				where: { id: anatomySchemeId }
+			});
+
+			if (!scheme) {
+				throw new BadRequestException('Анатомическая схема не найдена.');
 			}
 		}
 
@@ -342,6 +443,135 @@ export class CreaturesService {
 		};
 	}
 
+	private async replaceCreatureAnatomyZones(
+		tx: Prisma.TransactionClient,
+		creatureId: string,
+		zones: CreatureAnatomyZoneDto[]
+	) {
+		this.validateAnatomyZones(zones);
+
+		const zoneIdsByClientKey = new Map<string, string>();
+		const orderedZones = zones.map((zone, index) => ({
+			...zone,
+			sortOrder: zone.sortOrder ?? index,
+			slug: zone.slug?.trim() || createSlug(zone.name)
+		}));
+
+		for (const zone of orderedZones.filter(item => !item.parentId)) {
+			const saved = await this.upsertCreatureAnatomyZone(
+				tx,
+				creatureId,
+				null,
+				zone
+			);
+			zoneIdsByClientKey.set(zone.id ?? zone.slug, saved.id);
+		}
+
+		for (const zone of orderedZones.filter(item => item.parentId)) {
+			const parentId = zoneIdsByClientKey.get(zone.parentId ?? '');
+
+			if (!parentId) {
+				throw new BadRequestException(
+					`Родительская зона для «${zone.name}» не найдена.`
+				);
+			}
+
+			const saved = await this.upsertCreatureAnatomyZone(
+				tx,
+				creatureId,
+				parentId,
+				zone
+			);
+			zoneIdsByClientKey.set(zone.id ?? zone.slug, saved.id);
+		}
+	}
+
+	private async upsertCreatureAnatomyZone(
+		tx: Prisma.TransactionClient,
+		creatureId: string,
+		parentId: string | null,
+		zone: CreatureAnatomyZoneDto & { slug: string; sortOrder: number }
+	) {
+		const existing = zone.id
+			? await tx.creatureAnatomyZone.findFirst({
+					select: { id: true },
+					where: { id: zone.id, creatureId }
+				})
+			: await tx.creatureAnatomyZone.findUnique({
+					select: { id: true },
+					where: {
+						creatureId_slug: {
+							creatureId,
+							slug: zone.slug
+						}
+					}
+				});
+		const data = {
+			creatureId,
+			sourceZoneId: zone.sourceZoneId ?? null,
+			parentId,
+			slug: zone.slug,
+			name: zone.name.trim(),
+			kind: zone.kind,
+			isRandomHitEligible: zone.isRandomHitEligible,
+			randomHitWeight: zone.randomHitWeight,
+			targetedAttackDicePenalty: zone.targetedAttackDicePenalty,
+			extraPotentialCost: zone.extraPotentialCost,
+			overriddenFields: zone.overriddenFields ?? [],
+			isInherited: zone.isInherited ?? Boolean(zone.sourceZoneId),
+			isRemoved: zone.isRemoved ?? false,
+			isActive: zone.isActive ?? true,
+			sortOrder: zone.sortOrder
+		} satisfies Prisma.CreatureAnatomyZoneUncheckedCreateInput;
+
+		if (existing) {
+			return tx.creatureAnatomyZone.update({
+				select: { id: true },
+				where: { id: existing.id },
+				data
+			});
+		}
+
+		return tx.creatureAnatomyZone.create({
+			select: { id: true },
+			data
+		});
+	}
+
+	private validateAnatomyZones(zones: CreatureAnatomyZoneDto[]) {
+		const names = new Set<string>();
+		const clientKeys = new Set<string>();
+
+		for (const zone of zones) {
+			const name = zone.name.trim();
+
+			if (!name) {
+				throw new BadRequestException('Название зоны обязательно.');
+			}
+
+			if (names.has(name)) {
+				throw new BadRequestException(`Зона «${name}» указана дважды.`);
+			}
+
+			names.add(name);
+			clientKeys.add(zone.id ?? zone.slug ?? createSlug(name));
+
+			if (zone.kind === 'MAIN' && zone.randomHitWeight < 1) {
+				throw new BadRequestException(
+					`Основная зона «${name}» должна иметь вес попадания не меньше 1.`
+				);
+			}
+		}
+
+		for (const zone of zones) {
+			if (zone.parentId && !clientKeys.has(zone.parentId)) {
+				throw new BadRequestException(
+					`Родительская зона для «${zone.name}» не найдена.`
+				);
+			}
+		}
+	}
+
 	private mapCreature(creature: CreatureRecord) {
 		return {
 			id: creature.id,
@@ -349,6 +579,25 @@ export class CreaturesService {
 			name: creature.name,
 			typeId: creature.typeId,
 			type: creature.type,
+			anatomySchemeId: creature.anatomySchemeId,
+			anatomyScheme: creature.anatomyScheme,
+			anatomyZones: creature.anatomyZones.map(zone => ({
+				id: zone.id,
+				slug: zone.slug,
+				name: zone.name,
+				sourceZoneId: zone.sourceZoneId,
+				parentId: zone.parentId,
+				kind: zone.kind,
+				isRandomHitEligible: zone.isRandomHitEligible,
+				randomHitWeight: zone.randomHitWeight,
+				targetedAttackDicePenalty: zone.targetedAttackDicePenalty,
+				extraPotentialCost: zone.extraPotentialCost,
+				overriddenFields: zone.overriddenFields,
+				isInherited: zone.isInherited,
+				isRemoved: zone.isRemoved,
+				isActive: zone.isActive,
+				sortOrder: zone.sortOrder
+			})),
 			tiers: creature.tiers.map(tier => ({
 				id: tier.id,
 				tier: tier.tier,

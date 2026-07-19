@@ -9,6 +9,8 @@ export interface CreatureTypeOptionDto extends CreatureReferenceDto {
 	sortOrder: number;
 }
 
+export type CreatureAnatomySchemeOptionDto = CreatureTypeOptionDto;
+
 export interface CreatureArmorPresetOptionDto extends CreatureTypeOptionDto {
 	points: number;
 	protection: number;
@@ -58,12 +60,35 @@ export interface CreatureTierDto {
 	sortOrder: number;
 }
 
+export type CreatureAnatomyZoneKindDto = 'MAIN' | 'TARGETED';
+
+export interface CreatureAnatomyZoneDto {
+	id: string;
+	slug: string;
+	name: string;
+	sourceZoneId: string | null;
+	parentId: string | null;
+	kind: CreatureAnatomyZoneKindDto;
+	isRandomHitEligible: boolean;
+	randomHitWeight: number;
+	targetedAttackDicePenalty: number;
+	extraPotentialCost: number;
+	overriddenFields: string[];
+	isInherited: boolean;
+	isRemoved: boolean;
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface CreatureDto {
 	id: string;
 	slug: string;
 	name: string;
 	typeId: string;
 	type: CreatureReferenceDto;
+	anatomySchemeId: string | null;
+	anatomyScheme: CreatureReferenceDto | null;
+	anatomyZones: CreatureAnatomyZoneDto[];
 	tiers: CreatureTierDto[];
 	isActive: boolean;
 	sortOrder: number;
@@ -74,6 +99,7 @@ export interface CreatureDto {
 export interface CreaturesCatalogResponseDto {
 	creatures: CreatureDto[];
 	creatureTypes: CreatureTypeOptionDto[];
+	anatomySchemes: CreatureAnatomySchemeOptionDto[];
 	armorPresets: CreatureArmorPresetOptionDto[];
 	skills: CreatureSkillOptionDto[];
 	characteristics: CreatureCharacteristicOptionDto[];
@@ -100,9 +126,29 @@ export interface CreatureTierCommandDto {
 	sortOrder?: number;
 }
 
+export interface CreatureAnatomyZoneCommandDto {
+	id?: string;
+	sourceZoneId?: string | null;
+	name: string;
+	slug?: string;
+	parentId?: string | null;
+	kind: CreatureAnatomyZoneKindDto;
+	isRandomHitEligible: boolean;
+	randomHitWeight: number;
+	targetedAttackDicePenalty: number;
+	extraPotentialCost: number;
+	overriddenFields?: string[];
+	isInherited?: boolean;
+	isRemoved?: boolean;
+	isActive?: boolean;
+	sortOrder?: number;
+}
+
 export interface CreateCreatureDto {
 	name: string;
 	typeId: string;
+	anatomySchemeId?: string | null;
+	anatomyZones?: CreatureAnatomyZoneCommandDto[];
 	tiers: CreatureTierCommandDto[];
 	isActive?: boolean;
 	sortOrder?: number;
@@ -111,6 +157,8 @@ export interface CreateCreatureDto {
 export interface UpdateCreatureDto {
 	name?: string;
 	typeId?: string;
+	anatomySchemeId?: string | null;
+	anatomyZones?: CreatureAnatomyZoneCommandDto[];
 	tiers?: CreatureTierCommandDto[];
 	isActive?: boolean;
 	sortOrder?: number;

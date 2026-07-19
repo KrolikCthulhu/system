@@ -9,6 +9,7 @@ import { provideRouter } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
 import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
+import { provideAnatomySchemesInfrastructure } from './features/anatomy-schemes/data/provide-anatomy-schemes-infrastructure';
 import { provideArmorPresetsInfrastructure } from './features/armor-presets/data/provide-armor-presets-infrastructure';
 import { provideAttributesInfrastructure } from './features/attributes/data/provide-attributes-infrastructure';
 import { AuthFacade } from './features/auth/state/auth.facade';
@@ -126,6 +127,7 @@ export const appConfig: ApplicationConfig = {
 	providers: [
 		provideBrowserGlobalErrorListeners(),
 		...provideAuthInfrastructure(),
+		...provideAnatomySchemesInfrastructure(),
 		...provideArmorPresetsInfrastructure(),
 		...provideAttributesInfrastructure(),
 		...provideCharacterSheetInfrastructure(),

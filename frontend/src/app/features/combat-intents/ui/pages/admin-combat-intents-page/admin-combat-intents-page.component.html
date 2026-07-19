@@ -172,6 +172,106 @@
 							></p-toggleswitch>
 						</span>
 					</div>
+
+					<section class="admin-combat-intents-page__text-section">
+						<div class="admin-combat-intents-page__section-heading">
+							<h3>Текст для игрока</h3>
+							<div class="admin-combat-intents-page__section-actions">
+								<p-button
+									label="Текст"
+									icon="pi pi-align-left"
+									size="small"
+									severity="secondary"
+									(click)="addTextBlock()"
+								></p-button>
+								<p-button
+									label="Подстановка"
+									icon="pi pi-code"
+									size="small"
+									severity="secondary"
+									(click)="addTextTokenBlock()"
+								></p-button>
+							</div>
+						</div>
+
+						<div class="admin-combat-intents-page__text-preview">
+							{{ textPreview() }}
+						</div>
+
+						<div class="admin-combat-intents-page__text-block-list">
+							@for (
+								block of currentDraft.textBlocks;
+								track block.sortOrder;
+								let index = $index
+							) {
+								<div class="admin-combat-intents-page__text-block">
+									<div class="admin-combat-intents-page__text-block-main">
+										@if (block.kind === 'text') {
+											<span class="admin-combat-intents-page__field">
+												<span>Текст</span>
+												<textarea
+													pTextarea
+													rows="3"
+													[value]="block.text"
+													(input)="
+														updateTextBlockText(
+															index,
+															$any($event.target).value
+														)
+													"
+												></textarea>
+											</span>
+										} @else {
+											<span class="admin-combat-intents-page__field">
+												<span>Подстановка</span>
+												<p-select
+													[ngModel]="block.token"
+													[options]="textTokenOptions"
+													optionLabel="label"
+													optionValue="value"
+													appendTo="body"
+													[filter]="true"
+													(ngModelChange)="updateTextBlockToken(index, $event)"
+												></p-select>
+											</span>
+										}
+									</div>
+
+									<div class="admin-combat-intents-page__text-block-actions">
+										<p-toggleswitch
+											[ngModel]="block.isActive"
+											(ngModelChange)="updateTextBlockActive(index, $event)"
+										></p-toggleswitch>
+										<p-button
+											icon="pi pi-arrow-up"
+											text
+											rounded
+											[disabled]="index === 0"
+											(click)="moveTextBlock(index, -1)"
+										></p-button>
+										<p-button
+											icon="pi pi-arrow-down"
+											text
+											rounded
+											[disabled]="index === currentDraft.textBlocks.length - 1"
+											(click)="moveTextBlock(index, 1)"
+										></p-button>
+										<p-button
+											icon="pi pi-trash"
+											severity="danger"
+											text
+											rounded
+											(click)="removeTextBlock(index)"
+										></p-button>
+									</div>
+								</div>
+							} @empty {
+								<div class="admin-combat-intents-page__empty-list">
+									Текст для игрока пока не настроен.
+								</div>
+							}
+						</div>
+					</section>
 				</div>
 
 				<app-editor-actions-bar

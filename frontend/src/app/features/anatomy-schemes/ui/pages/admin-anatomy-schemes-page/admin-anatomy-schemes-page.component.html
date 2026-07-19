@@ -1,0 +1,403 @@
+<section class="admin-anatomy-schemes-page">
+	<p-confirmdialog
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+	></p-confirmdialog>
+
+	<header class="admin-anatomy-schemes-page__header">
+		<div class="admin-anatomy-schemes-page__section-pad">
+			<p-breadcrumb
+				class="admin-anatomy-schemes-page__breadcrumbs"
+				[model]="breadcrumbs"
+			></p-breadcrumb>
+		</div>
+	</header>
+
+	<div class="admin-anatomy-schemes-page__workspace">
+		<aside
+			class="admin-anatomy-schemes-page__panel admin-anatomy-schemes-page__sidebar"
+		>
+			<div
+				class="admin-anatomy-schemes-page__panel-heading admin-anatomy-schemes-page__section-pad"
+			>
+				<h2 class="admin-anatomy-schemes-page__panel-title">Схемы</h2>
+				<p-button
+					label="Новая схема"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createScheme()"
+				></p-button>
+			</div>
+
+			<div
+				class="admin-anatomy-schemes-page__search-row admin-anatomy-schemes-page__section-pad"
+			>
+				<p-iconfield class="admin-anatomy-schemes-page__search">
+					<p-inputicon class="pi pi-search" />
+					<input
+						pInputText
+						type="text"
+						placeholder="Поиск схемы"
+						[value]="searchQuery()"
+						(input)="setSearchQuery($any($event.target).value)"
+					/>
+				</p-iconfield>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-anatomy-schemes-page__state">Загрузка схем...</div>
+			} @else if (errorMessage() && !draft()) {
+				<div
+					class="admin-anatomy-schemes-page__state admin-anatomy-schemes-page__state--error"
+				>
+					{{ errorMessage() }}
+				</div>
+			} @else {
+				<div
+					class="admin-anatomy-schemes-page__item-list admin-anatomy-schemes-page__section-pad"
+				>
+					<div class="admin-anatomy-schemes-page__list-title">
+						Анатомические схемы
+					</div>
+
+					@for (scheme of filteredSchemes(); track scheme.id) {
+						<button
+							type="button"
+							class="admin-anatomy-schemes-page__item"
+							[class.admin-anatomy-schemes-page__item--active]="
+								scheme.id === selectedSchemeId()
+							"
+							(click)="selectScheme(scheme)"
+						>
+							<span>
+								<strong>{{ scheme.name }}</strong>
+								<small>{{ scheme.zones.length }} зон</small>
+							</span>
+							@if (!scheme.isActive) {
+								<p-tag value="Выкл" severity="secondary"></p-tag>
+							}
+						</button>
+					} @empty {
+						<div class="admin-anatomy-schemes-page__empty-list">
+							Схем пока нет.
+						</div>
+					}
+				</div>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section
+				class="admin-anatomy-schemes-page__panel admin-anatomy-schemes-page__editor"
+			>
+				<div
+					class="admin-anatomy-schemes-page__panel-heading admin-anatomy-schemes-page__panel-heading--split admin-anatomy-schemes-page__section-pad"
+				>
+					<h2 class="admin-anatomy-schemes-page__panel-title">
+						{{ title() }}
+					</h2>
+
+					<div class="admin-anatomy-schemes-page__heading-actions">
+						<p-tag value="Анатомия" severity="info"></p-tag>
+						@if (currentDraft.id) {
+							<p-button
+								icon="pi pi-trash"
+								severity="danger"
+								text
+								rounded
+								(click)="deleteSelectedScheme()"
+							></p-button>
+						}
+					</div>
+				</div>
+
+				<div
+					class="admin-anatomy-schemes-page__editor-body admin-anatomy-schemes-page__section-pad"
+				>
+					@if (errorMessage()) {
+						<div class="admin-anatomy-schemes-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-anatomy-schemes-page__form-grid">
+						<span class="admin-anatomy-schemes-page__field">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraftName($any($event.target).value)"
+							/>
+						</span>
+
+						<span class="admin-anatomy-schemes-page__field">
+							<span>Порядок отображения</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[showButtons]="false"
+								[min]="0"
+								(ngModelChange)="updateDraftSortOrder($event)"
+							></p-inputnumber>
+						</span>
+
+						<span class="admin-anatomy-schemes-page__switch-field">
+							<span>Активно</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraftActive($event)"
+							></p-toggleswitch>
+						</span>
+
+						<span
+							class="admin-anatomy-schemes-page__field admin-anatomy-schemes-page__field--wide"
+						>
+							<span>Описание</span>
+							<textarea
+								pTextarea
+								rows="3"
+								[value]="currentDraft.description"
+								(input)="updateDraftDescription($any($event.target).value)"
+							></textarea>
+						</span>
+					</div>
+
+					<section class="admin-anatomy-schemes-page__section">
+						<div class="admin-anatomy-schemes-page__section-heading">
+							<h3>Зоны</h3>
+							<div class="admin-anatomy-schemes-page__section-actions">
+								<p-button
+									label="Основная"
+									icon="pi pi-plus"
+									size="small"
+									(click)="addMainZone()"
+								></p-button>
+								<p-button
+									label="Подзона"
+									icon="pi pi-plus"
+									size="small"
+									severity="secondary"
+									(click)="addTargetedZone()"
+								></p-button>
+							</div>
+						</div>
+
+						<div class="admin-anatomy-schemes-page__zone-list">
+							@for (group of zoneGroups(); track group.trackId) {
+								@if (group.parent; as parentItem) {
+									<div class="admin-anatomy-schemes-page__zone-group">
+										<ng-container
+											[ngTemplateOutlet]="zoneEditor"
+											[ngTemplateOutletContext]="{
+												zone: parentItem.zone,
+												index: parentItem.index,
+												level: 'main'
+											}"
+										></ng-container>
+
+										@if (group.children.length) {
+											<div class="admin-anatomy-schemes-page__subzone-list">
+												@for (
+													childItem of group.children;
+													track childItem.zone.id
+												) {
+													<ng-container
+														[ngTemplateOutlet]="zoneEditor"
+														[ngTemplateOutletContext]="{
+															zone: childItem.zone,
+															index: childItem.index,
+															level: 'sub'
+														}"
+													></ng-container>
+												}
+											</div>
+										}
+									</div>
+								} @else {
+									<div class="admin-anatomy-schemes-page__zone-group">
+										<div class="admin-anatomy-schemes-page__orphan-heading">
+											Зоны без найденного родителя
+										</div>
+
+										<div class="admin-anatomy-schemes-page__subzone-list">
+											@for (
+												childItem of group.children;
+												track childItem.zone.id
+											) {
+												<ng-container
+													[ngTemplateOutlet]="zoneEditor"
+													[ngTemplateOutletContext]="{
+														zone: childItem.zone,
+														index: childItem.index,
+														level: 'sub'
+													}"
+												></ng-container>
+											}
+										</div>
+									</div>
+								}
+							} @empty {
+								<div class="admin-anatomy-schemes-page__empty-list">
+									Зон пока нет.
+								</div>
+							}
+						</div>
+
+						<ng-template
+							#zoneEditor
+							let-zone="zone"
+							let-index="index"
+							let-level="level"
+						>
+							<div
+								class="admin-anatomy-schemes-page__zone"
+								[class.admin-anatomy-schemes-page__zone--sub]="level === 'sub'"
+							>
+								<div class="admin-anatomy-schemes-page__zone-heading">
+									<div class="admin-anatomy-schemes-page__zone-title">
+										<strong>{{ zone.name || 'Новая зона' }}</strong>
+										<div class="admin-anatomy-schemes-page__zone-meta">
+											<p-tag
+												[value]="zoneKindLabel(zone.kind)"
+												[severity]="zone.kind === 'MAIN' ? 'success' : 'info'"
+											></p-tag>
+											@if (zone.isRandomHitEligible) {
+												<span>Вес {{ zone.randomHitWeight }}</span>
+											}
+											<span>{{ zone.targetedAttackDicePenalty }} куб.</span>
+											<span>+{{ zone.extraPotentialCost }} Потенциал</span>
+										</div>
+									</div>
+									<p-button
+										icon="pi pi-trash"
+										severity="danger"
+										text
+										rounded
+										(click)="removeZone(index)"
+									></p-button>
+								</div>
+
+								<div class="admin-anatomy-schemes-page__form-grid">
+									<span class="admin-anatomy-schemes-page__field">
+										<span>Название</span>
+										<input
+											pInputText
+											type="text"
+											[value]="zone.name"
+											(input)="
+												updateZone(index, {
+													name: $any($event.target).value
+												})
+											"
+										/>
+									</span>
+
+									<span class="admin-anatomy-schemes-page__field">
+										<span>Родительская зона</span>
+										<p-select
+											[ngModel]="zone.parentId"
+											[options]="parentOptions(zone.id)"
+											optionLabel="label"
+											optionValue="value"
+											appendTo="body"
+											[showClear]="true"
+											(ngModelChange)="updateZone(index, { parentId: $event })"
+										></p-select>
+									</span>
+
+									<span class="admin-anatomy-schemes-page__field">
+										<span>Тип зоны</span>
+										<p-select
+											[ngModel]="zone.kind"
+											[options]="zoneKindOptions"
+											optionLabel="label"
+											optionValue="value"
+											appendTo="body"
+											(ngModelChange)="updateZone(index, { kind: $event })"
+										></p-select>
+									</span>
+
+									<span class="admin-anatomy-schemes-page__switch-field">
+										<span>Случайное попадание</span>
+										<p-toggleswitch
+											[ngModel]="zone.isRandomHitEligible"
+											(ngModelChange)="
+												updateZone(index, {
+													isRandomHitEligible: $event
+												})
+											"
+										></p-toggleswitch>
+									</span>
+
+									<span class="admin-anatomy-schemes-page__field">
+										<span>Вес случайного попадания</span>
+										<p-inputnumber
+											[ngModel]="zone.randomHitWeight"
+											[showButtons]="false"
+											[min]="0"
+											(ngModelChange)="
+												updateZone(index, {
+													randomHitWeight: $event ?? 0
+												})
+											"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-anatomy-schemes-page__field">
+										<span>Штраф прицельной атаки</span>
+										<p-inputnumber
+											[ngModel]="zone.targetedAttackDicePenalty"
+											[showButtons]="false"
+											(ngModelChange)="
+												updateZone(index, {
+													targetedAttackDicePenalty: $event ?? 0
+												})
+											"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-anatomy-schemes-page__field">
+										<span>Доп. стоимость Потенциала</span>
+										<p-inputnumber
+											[ngModel]="zone.extraPotentialCost"
+											[showButtons]="false"
+											[min]="0"
+											(ngModelChange)="
+												updateZone(index, {
+													extraPotentialCost: $event ?? 0
+												})
+											"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-anatomy-schemes-page__switch-field">
+										<span>Активна</span>
+										<p-toggleswitch
+											[ngModel]="zone.isActive"
+											(ngModelChange)="updateZone(index, { isActive: $event })"
+										></p-toggleswitch>
+									</span>
+								</div>
+							</div>
+						</ng-template>
+					</section>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section
+				class="admin-anatomy-schemes-page__panel admin-anatomy-schemes-page__editor"
+			>
+				<div class="admin-anatomy-schemes-page__state">
+					Выбери схему слева или создай новую.
+				</div>
+			</section>
+		}
+	</div>
+</section>

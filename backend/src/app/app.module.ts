@@ -3,6 +3,7 @@ import { ConfigModule, ConfigType } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AnatomySchemesModule } from './anatomy-schemes/anatomy-schemes.module';
 import { ArmorPresetsModule } from './armor-presets/armor-presets.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
@@ -46,6 +47,7 @@ import { AppService } from './app.service';
 		}),
 		ScheduleModule.forRoot(),
 		PrismaModule,
+		AnatomySchemesModule,
 		ArmorPresetsModule,
 		AuthModule,
 		AttributesModule,

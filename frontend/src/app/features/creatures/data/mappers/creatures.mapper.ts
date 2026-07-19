@@ -7,6 +7,7 @@ export function mapCreaturesCatalogResponseDto(
 	return {
 		creatures: dto.creatures.map(mapCreatureDto),
 		creatureTypes: dto.creatureTypes,
+		anatomySchemes: dto.anatomySchemes,
 		armorPresets: dto.armorPresets,
 		skills: dto.skills,
 		characteristics: dto.characteristics
@@ -20,6 +21,9 @@ export function mapCreatureDto(dto: CreatureDto): Creature {
 		name: dto.name,
 		typeId: dto.typeId,
 		type: dto.type,
+		anatomySchemeId: dto.anatomySchemeId,
+		anatomyScheme: dto.anatomyScheme,
+		anatomyZones: dto.anatomyZones,
 		tiers: dto.tiers,
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,

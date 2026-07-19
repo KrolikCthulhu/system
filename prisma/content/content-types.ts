@@ -1,5 +1,6 @@
 import {
 	AreaShapeKind,
+	AnatomyZoneKind,
 	MagicWordType,
 	Prisma,
 	SpellStatus,
@@ -154,8 +155,23 @@ export type ConditionContent = SortableContentItem & {
 
 export type CreatureTypeContent = SortableContentItem;
 
+export type AnatomySchemeContent = NamedContentItem & {
+	zones: AnatomySchemeZoneContent[];
+};
+
+export type AnatomySchemeZoneContent = SortableContentItem & {
+	parent?: SlugRef;
+	kind: keyof typeof AnatomyZoneKind;
+	isRandomHitEligible: boolean;
+	randomHitWeight: number;
+	targetedAttackDicePenalty: number;
+	extraPotentialCost: number;
+	isActive?: boolean;
+};
+
 export type CreatureContent = SortableContentItem & {
 	type: SlugRef;
+	anatomyScheme?: SlugRef;
 	tiers: CreatureTierContent[];
 };
 
@@ -216,8 +232,44 @@ export type WeaponTemplateContent = SortableContentItem & {
 
 export type CombatIntentContent = SortableContentItem & {
 	category: string;
+	textBlocks?: CombatIntentTextBlockContent[];
 	isActive?: boolean;
 };
+
+export type CombatIntentTextToken =
+	| 'intentName'
+	| 'attackerName'
+	| 'targetName'
+	| 'weaponName'
+	| 'attackProfileName'
+	| 'attackSkill'
+	| 'attackCharacteristic'
+	| 'baseCost'
+	| 'baseDamage'
+	| 'rangeMeters'
+	| 'damageTypes'
+	| 'selectedDamageType'
+	| 'defenseOptions'
+	| 'cleanSuccesses'
+	| 'damageFormula'
+	| 'randomHitZones'
+	| 'targetedMainZones'
+	| 'targetedSubzones'
+	| 'armorRule';
+
+export type CombatIntentTextBlockContent =
+	| {
+			kind: 'text';
+			text: string;
+			isActive?: boolean;
+			sortOrder?: number;
+	  }
+	| {
+			kind: 'token';
+			token: CombatIntentTextToken;
+			isActive?: boolean;
+			sortOrder?: number;
+	  };
 
 export type ProgressionContent = NamedContentItem & {
 	kind: string;

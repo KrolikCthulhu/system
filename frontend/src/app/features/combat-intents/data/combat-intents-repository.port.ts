@@ -2,6 +2,7 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
 	CombatIntent,
+	CombatIntentTextBlock,
 	CombatIntentsCatalog
 } from '../domain/combat-intents.models';
 
@@ -10,6 +11,7 @@ export interface CombatIntentsRepository {
 	createCombatIntent(command: {
 		name: string;
 		category: string;
+		textBlocks?: CombatIntentTextBlock[];
 		isActive?: boolean;
 		sortOrder?: number;
 	}): Observable<CombatIntent>;
@@ -18,6 +20,7 @@ export interface CombatIntentsRepository {
 		command: {
 			name?: string;
 			category?: string;
+			textBlocks?: CombatIntentTextBlock[];
 			isActive?: boolean;
 			sortOrder?: number;
 		}

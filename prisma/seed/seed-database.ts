@@ -4,6 +4,7 @@ import {
 	seedAttributePoolRules,
 	seedAttributes
 } from './seed-attributes';
+import { seedAnatomySchemes } from './seed-anatomy-schemes';
 import { seedArmorPresets } from './seed-armor-presets';
 import { seedCharacteristics } from './seed-characteristics';
 import { seedConditions } from './seed-conditions';
@@ -62,6 +63,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedDamageTypes(tx);
 	await seedConditions(tx);
 	await seedCombatIntents(tx);
+	await seedAnatomySchemes(tx);
 	await seedCreatureTypes(tx);
 	await seedArmorPresets(tx);
 	await seedProgressionPresets(tx);

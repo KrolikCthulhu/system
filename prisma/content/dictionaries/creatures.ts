@@ -25,6 +25,10 @@ export default {
 				name: 'Звери',
 				slug: 'zveri'
 			},
+			anatomyScheme: {
+				name: 'Четвероногое',
+				slug: 'chetveronogoe'
+			},
 			tiers: [
 				{
 					tier: 1,
