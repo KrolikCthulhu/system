@@ -1,0 +1,8 @@
+-- RenameIndex
+ALTER INDEX "weapon_attack_profile_damage_types_profile_id_damage_type_id_ke" RENAME TO "weapon_attack_profile_damage_types_profile_id_damage_type_i_key";
+
+-- RenameIndex
+ALTER INDEX "weapon_template_attack_profile_damage_types_profile_id_damage_t" RENAME TO "weapon_template_attack_profile_damage_types_profile_id_dama_key";
+
+-- RenameIndex
+ALTER INDEX "weapon_template_attack_profile_damage_types_profile_id_sort_ord" RENAME TO "weapon_template_attack_profile_damage_types_profile_id_sort_idx";

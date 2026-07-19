@@ -1,7 +1,4 @@
-import {
-	Condition,
-	ConditionsCatalog
-} from '../../domain/conditions.models';
+import { Condition, ConditionsCatalog } from '../../domain/conditions.models';
 import {
 	ConditionDto,
 	ConditionsCatalogResponseDto
@@ -21,6 +18,23 @@ export function mapConditionDto(dto: ConditionDto): Condition {
 		slug: dto.slug,
 		name: dto.name,
 		description: dto.description ?? '',
+		durationType: dto.durationType,
+		repeatLevelMode: dto.repeatLevelMode,
+		repeatDurationMode: dto.repeatDurationMode,
+		maxLevel: dto.maxLevel,
+		removalMethods: dto.removalMethods,
+		effects: dto.effects.map((effect, index) => ({
+			type: effect.type,
+			scope: effect.scope,
+			value: effect.value,
+			config: effect.config ?? {},
+			sortOrder: effect.sortOrder ?? index
+		})),
+		textBlocks: (dto.textBlocks ?? []).map((block, index) => ({
+			...block,
+			isActive: block.isActive ?? true,
+			sortOrder: block.sortOrder ?? index
+		})),
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,
 		createdAt: dto.createdAt,

@@ -540,18 +540,26 @@ model DamageType {
 }
 
 model Condition {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug        String   @unique @default(cuid())
-  name        String   @unique
-  description String?
-  isActive    Boolean  @default(true) @map("is_active")
-  sortOrder   Int      @default(0) @map("sort_order")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug               String   @unique @default(cuid())
+  name               String   @unique
+  description        String?
+  durationType       String   @default("until_owner_next_activation") @map("duration_type")
+  repeatLevelMode    String   @default("keep_highest") @map("repeat_level_mode")
+  repeatDurationMode String   @default("keep_highest") @map("repeat_duration_mode")
+  maxLevel           Int      @default(1) @map("max_level")
+  removalMethods     Json     @default("[]") @map("removal_methods")
+  effects            Json     @default("[]")
+  textBlocks         Json     @default("[]") @map("text_blocks")
+  isActive           Boolean  @default(true) @map("is_active")
+  sortOrder          Int      @default(0) @map("sort_order")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
 
   magicWordLinks                 MagicWordConditionLink[]
   spellMechanicParameterDefaults SpellMechanicParameter[]
 
+  @@index([durationType, isActive, sortOrder])
   @@index([isActive, sortOrder])
   @@map("conditions")
 }
