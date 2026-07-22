@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException
+} from '@nestjs/common';
 import { Prisma, WeaponAttackProfileKind } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
@@ -87,6 +91,7 @@ const weaponSelect = {
 			baseDamage: true,
 			rangeMeters: true,
 			usesAmmo: true,
+			canBeParried: true,
 			damageTypeLinks: {
 				select: {
 					damageTypeId: true,
@@ -199,6 +204,7 @@ const weaponTemplateSelect = {
 			baseDamage: true,
 			rangeMeters: true,
 			usesAmmo: true,
+			canBeParried: true,
 			damageTypeLinks: {
 				select: {
 					damageTypeId: true,
@@ -244,8 +250,14 @@ export class WeaponsService {
 	constructor(private readonly prisma: PrismaService) {}
 
 	async getCatalog() {
-		const [weapons, templates, skills, combatIntents, characteristics, damageTypes] =
-			await this.prisma.$transaction([
+		const [
+			weapons,
+			templates,
+			skills,
+			combatIntents,
+			characteristics,
+			damageTypes
+		] = await this.prisma.$transaction([
 			this.prisma.weapon.findMany({
 				select: weaponSelect,
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
@@ -315,7 +327,9 @@ export class WeaponsService {
 				data: {
 					...this.toCreateData(dto, primaryProfile),
 					attackProfiles: {
-						create: profiles.map(profile => this.toProfileNestedCreateData(profile))
+						create: profiles.map(profile =>
+							this.toProfileNestedCreateData(profile)
+						)
 					}
 				}
 			});
@@ -410,7 +424,9 @@ export class WeaponsService {
 					isActive: dto.isActive ?? true,
 					sortOrder: dto.sortOrder ?? 0,
 					attackProfiles: {
-						create: profiles.map(profile => this.toTemplateProfileCreateData(profile))
+						create: profiles.map(profile =>
+							this.toTemplateProfileCreateData(profile)
+						)
 					}
 				}
 			});
@@ -594,6 +610,7 @@ export class WeaponsService {
 								baseDamage: dto.extraDamage ?? 0,
 								rangeMeters: 1,
 								usesAmmo: false,
+								canBeParried: true,
 								isActive: true,
 								sortOrder: 0,
 								intents: []
@@ -602,7 +619,9 @@ export class WeaponsService {
 					: [];
 
 		if (!normalizedProfiles.length) {
-			throw new BadRequestException('Нужно настроить хотя бы один профиль атаки.');
+			throw new BadRequestException(
+				'Нужно настроить хотя бы один профиль атаки.'
+			);
 		}
 
 		const kinds = new Set<string>();
@@ -637,47 +656,48 @@ export class WeaponsService {
 			)
 		];
 		const damageTypeIds = [
-			...new Set(
-				profiles.flatMap(profile => profile.damageTypeIds ?? [])
-			)
+			...new Set(profiles.flatMap(profile => profile.damageTypeIds ?? []))
 		];
 
-		const [skills, characteristics, combatIntents, damageTypes] = await this.prisma.$transaction([
-			this.prisma.skill.findMany({
-				select: { id: true },
-				where: { id: { in: skillIds } }
-			}),
-			characteristicIds.length
-				? this.prisma.characteristic.findMany({
-						select: { id: true },
-						where: { id: { in: characteristicIds } }
-					})
-				: this.prisma.characteristic.findMany({
-						select: { id: true },
-						where: { id: { in: [] } }
-					}),
-			combatIntentIds.length
-				? this.prisma.combatIntent.findMany({
-						select: { id: true },
-						where: { id: { in: combatIntentIds } }
-					})
-				: this.prisma.combatIntent.findMany({
-						select: { id: true },
-						where: { id: { in: [] } }
-					}),
-			damageTypeIds.length
-				? this.prisma.damageType.findMany({
-						select: { id: true },
-						where: { id: { in: damageTypeIds } }
-					})
-				: this.prisma.damageType.findMany({
-						select: { id: true },
-						where: { id: { in: [] } }
-					})
-		]);
+		const [skills, characteristics, combatIntents, damageTypes] =
+			await this.prisma.$transaction([
+				this.prisma.skill.findMany({
+					select: { id: true },
+					where: { id: { in: skillIds } }
+				}),
+				characteristicIds.length
+					? this.prisma.characteristic.findMany({
+							select: { id: true },
+							where: { id: { in: characteristicIds } }
+						})
+					: this.prisma.characteristic.findMany({
+							select: { id: true },
+							where: { id: { in: [] } }
+						}),
+				combatIntentIds.length
+					? this.prisma.combatIntent.findMany({
+							select: { id: true },
+							where: { id: { in: combatIntentIds } }
+						})
+					: this.prisma.combatIntent.findMany({
+							select: { id: true },
+							where: { id: { in: [] } }
+						}),
+				damageTypeIds.length
+					? this.prisma.damageType.findMany({
+							select: { id: true },
+							where: { id: { in: damageTypeIds } }
+						})
+					: this.prisma.damageType.findMany({
+							select: { id: true },
+							where: { id: { in: [] } }
+						})
+			]);
 
 		if (skills.length !== skillIds.length) {
-			throw new BadRequestException('Все профили атаки должны ссылаться на существующие навыки.');
+			throw new BadRequestException(
+				'Все профили атаки должны ссылаться на существующие навыки.'
+			);
 		}
 
 		if (characteristics.length !== characteristicIds.length) {
@@ -745,6 +765,7 @@ export class WeaponsService {
 			baseDamage: profile.baseDamage,
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo,
+			canBeParried: profile.canBeParried ?? profile.kind === 'melee',
 			isActive: profile.isActive ?? true,
 			sortOrder: profile.sortOrder ?? 0,
 			damageTypeLinks: {
@@ -803,6 +824,7 @@ export class WeaponsService {
 				baseDamage: profile.baseDamage,
 				rangeMeters: profile.rangeMeters,
 				usesAmmo: profile.usesAmmo,
+				canBeParried: profile.canBeParried,
 				damageTypes: profile.damageTypeLinks.map(link => link.damageType),
 				damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
 				isActive: profile.isActive,
@@ -846,6 +868,7 @@ export class WeaponsService {
 				baseDamage: profile.baseDamage,
 				rangeMeters: profile.rangeMeters,
 				usesAmmo: profile.usesAmmo,
+				canBeParried: profile.canBeParried,
 				damageTypes: profile.damageTypeLinks.map(link => link.damageType),
 				damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
 				isActive: profile.isActive,

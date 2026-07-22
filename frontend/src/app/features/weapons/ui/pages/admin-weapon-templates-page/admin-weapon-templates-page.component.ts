@@ -40,6 +40,7 @@ interface TemplateProfileDraft {
 	baseDamage: number;
 	rangeMeters: number;
 	usesAmmo: boolean;
+	canBeParried: boolean;
 	isActive: boolean;
 	sortOrder: number;
 	combatIntentIds: string[];
@@ -133,13 +134,15 @@ export class AdminWeaponTemplatesPageComponent {
 	protected readonly combatIntentOptions = computed(() =>
 		this.combatIntents().filter(item => item.isActive)
 	);
-	protected readonly combatIntentGroups = computed<WeaponCombatIntentOptionGroup[]>(() =>
-		buildCombatIntentGroups(this.combatIntentOptions())
-	);
+	protected readonly combatIntentGroups = computed<
+		WeaponCombatIntentOptionGroup[]
+	>(() => buildCombatIntentGroups(this.combatIntentOptions()));
 	protected readonly damageTypeOptions = computed(() =>
 		this.damageTypes().filter(item => item.isActive)
 	);
-	protected readonly title = computed(() => this.draft()?.name || 'Новый шаблон');
+	protected readonly title = computed(
+		() => this.draft()?.name || 'Новый шаблон'
+	);
 
 	constructor() {
 		this.loadCatalog();
@@ -232,13 +235,20 @@ export class AdminWeaponTemplatesPageComponent {
 
 	protected addProfile(kind: WeaponAttackProfileKind) {
 		const current = this.draft();
-		if (!current || current.attackProfiles.some(profile => profile.kind === kind)) {
+		if (
+			!current ||
+			current.attackProfiles.some(profile => profile.kind === kind)
+		) {
 			return;
 		}
 		this.patchDraft({
 			attackProfiles: [
 				...current.attackProfiles,
-				emptyProfile(kind, this.skills()[0]?.id ?? null, this.characteristics()[0]?.id ?? null)
+				emptyProfile(
+					kind,
+					this.skills()[0]?.id ?? null,
+					this.characteristics()[0]?.id ?? null
+				)
 			]
 		});
 	}
@@ -249,7 +259,9 @@ export class AdminWeaponTemplatesPageComponent {
 			return;
 		}
 		this.patchDraft({
-			attackProfiles: current.attackProfiles.filter((_, itemIndex) => itemIndex !== index)
+			attackProfiles: current.attackProfiles.filter(
+				(_, itemIndex) => itemIndex !== index
+			)
 		});
 	}
 
@@ -296,7 +308,9 @@ export class AdminWeaponTemplatesPageComponent {
 	}
 
 	protected resetDraft() {
-		const template = this.templates().find(item => item.id === this.selectedTemplateId());
+		const template = this.templates().find(
+			item => item.id === this.selectedTemplateId()
+		);
 		if (template) {
 			this.selectTemplate(template);
 			return;
@@ -336,6 +350,7 @@ export class AdminWeaponTemplatesPageComponent {
 				baseDamage: profile.baseDamage,
 				rangeMeters: profile.rangeMeters,
 				usesAmmo: profile.usesAmmo,
+				canBeParried: profile.canBeParried,
 				isActive: profile.isActive,
 				sortOrder: profile.sortOrder || index,
 				intents: profile.combatIntentIds.map((combatIntentId, intentIndex) => ({
@@ -359,7 +374,9 @@ export class AdminWeaponTemplatesPageComponent {
 			},
 			error: error => {
 				this.errorMessage.set(
-					error instanceof Error ? error.message : 'Не удалось сохранить шаблон.'
+					error instanceof Error
+						? error.message
+						: 'Не удалось сохранить шаблон.'
 				);
 				this.saving.set(false);
 			}
@@ -388,7 +405,9 @@ export class AdminWeaponTemplatesPageComponent {
 				},
 				error: error => {
 					this.errorMessage.set(
-						error instanceof Error ? error.message : 'Не удалось загрузить шаблоны.'
+						error instanceof Error
+							? error.message
+							: 'Не удалось загрузить шаблоны.'
 					);
 					this.loading.set(false);
 				}
@@ -403,7 +422,10 @@ export class AdminWeaponTemplatesPageComponent {
 	}
 }
 
-function emptyDraft(skillId: string | null, characteristicId: string | null): TemplateDraft {
+function emptyDraft(
+	skillId: string | null,
+	characteristicId: string | null
+): TemplateDraft {
 	return {
 		id: null,
 		name: '',
@@ -431,6 +453,7 @@ function emptyProfile(
 		baseDamage: 0,
 		rangeMeters: kind === 'melee' ? 1 : 10,
 		usesAmmo: kind === 'ranged',
+		canBeParried: kind === 'melee',
 		isActive: true,
 		sortOrder: kind === 'melee' ? 0 : 1,
 		combatIntentIds: [],
@@ -457,6 +480,7 @@ function draftFromTemplate(template: WeaponTemplate): TemplateDraft {
 			baseDamage: profile.baseDamage,
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo,
+			canBeParried: profile.canBeParried,
 			isActive: profile.isActive,
 			sortOrder: profile.sortOrder,
 			combatIntentIds: profile.intents.map(intent => intent.combatIntentId),
@@ -475,13 +499,16 @@ function clamp(value: number, min: number, max: number) {
 
 function upsertTemplate(items: WeaponTemplate[], template: WeaponTemplate) {
 	const exists = items.some(item => item.id === template.id);
-	return (exists
-		? items.map(item => (item.id === template.id ? template : item))
-		: [...items, template]
+	return (
+		exists
+			? items.map(item => (item.id === template.id ? template : item))
+			: [...items, template]
 	).sort(compareTemplates);
 }
 
-function buildSkillGroups(skills: WeaponSkillOption[]): WeaponSkillOptionGroup[] {
+function buildSkillGroups(
+	skills: WeaponSkillOption[]
+): WeaponSkillOptionGroup[] {
 	const groupMap = new Map<string, WeaponSkillOptionGroup>();
 	for (const skill of skills) {
 		const group = groupMap.get(skill.category.id);

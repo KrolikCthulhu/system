@@ -3,6 +3,7 @@ import {
 	IsBoolean,
 	IsIn,
 	IsInt,
+	IsObject,
 	IsOptional,
 	IsString,
 	Min,
@@ -60,6 +61,14 @@ export class CreateCombatIntentDto {
 
 	@IsString()
 	category!: string;
+
+	@IsOptional()
+	@IsString()
+	description?: string;
+
+	@IsOptional()
+	@IsObject()
+	mechanic?: Record<string, unknown>;
 
 	@IsOptional()
 	@IsArray()

@@ -67,12 +67,17 @@ async function seedTemplateProfiles(
 		const characteristic = await tx.characteristic.findFirst({
 			select: { id: true },
 			where: {
-				OR: [{ systemValue: { slug: profile.characteristic.slug } }, { name: profile.characteristic.name }]
+				OR: [
+					{ systemValue: { slug: profile.characteristic.slug } },
+					{ name: profile.characteristic.name }
+				]
 			}
 		});
 
 		if (!characteristic) {
-			throw new Error(`Характеристика "${profile.characteristic.name}" не найдена.`);
+			throw new Error(
+				`Характеристика "${profile.characteristic.name}" не найдена.`
+			);
 		}
 
 		const combatIntentIds = [];
@@ -100,6 +105,7 @@ async function seedTemplateProfiles(
 				baseDamage: profile.baseDamage,
 				rangeMeters: profile.rangeMeters,
 				usesAmmo: profile.usesAmmo ?? false,
+				canBeParried: profile.canBeParried ?? profile.kind === 'melee',
 				isActive: profile.isActive ?? true,
 				sortOrder: profile.sortOrder ?? index,
 				intentLinks: {

@@ -130,148 +130,775 @@
 						</div>
 					}
 
-					<div class="admin-combat-intents-page__form-grid">
-						<span
-							class="admin-combat-intents-page__field admin-combat-intents-page__field--wide"
-						>
-							<span>Название</span>
-							<input
-								pInputText
-								type="text"
-								[value]="currentDraft.name"
-								(input)="updateDraftName($any($event.target).value)"
-							/>
-						</span>
+					<p-tabs value="general" class="admin-combat-intents-page__tabs">
+						<p-tablist>
+							<p-tab value="general">Основное</p-tab>
+							<p-tab value="parameters">Параметры</p-tab>
+							<p-tab value="scenario">Сценарий</p-tab>
+							<p-tab value="text">Текст</p-tab>
+						</p-tablist>
 
-						<span class="admin-combat-intents-page__field">
-							<span>Категория</span>
-							<input
-								pInputText
-								type="text"
-								[value]="currentDraft.category"
-								(input)="updateDraftCategory($any($event.target).value)"
-							/>
-						</span>
+						<p-tabpanels class="admin-combat-intents-page__tabpanels">
+							<p-tabpanel
+								value="general"
+								class="admin-combat-intents-page__tabpanel"
+							>
+								<div class="admin-combat-intents-page__form-grid">
+									<span
+										class="admin-combat-intents-page__field admin-combat-intents-page__field--wide"
+									>
+										<span>Название</span>
+										<input
+											pInputText
+											type="text"
+											[value]="currentDraft.name"
+											(input)="updateDraftName($any($event.target).value)"
+										/>
+									</span>
 
-						<span class="admin-combat-intents-page__field">
-							<span>Порядок отображения</span>
-							<p-inputnumber
-								[ngModel]="currentDraft.sortOrder"
-								[showButtons]="false"
-								[min]="0"
-								[fluid]="true"
-								(ngModelChange)="updateDraftSortOrder($event)"
-							></p-inputnumber>
-						</span>
+									<span class="admin-combat-intents-page__field">
+										<span>Категория</span>
+										<input
+											pInputText
+											type="text"
+											[value]="currentDraft.category"
+											(input)="updateDraftCategory($any($event.target).value)"
+										/>
+									</span>
 
-						<span class="admin-combat-intents-page__switch-field">
-							<span>Активно</span>
-							<p-toggleswitch
-								[ngModel]="currentDraft.isActive"
-								(ngModelChange)="updateDraftActive($event)"
-							></p-toggleswitch>
-						</span>
-					</div>
+									<span class="admin-combat-intents-page__field">
+										<span>Порядок отображения</span>
+										<p-inputnumber
+											[ngModel]="currentDraft.sortOrder"
+											[showButtons]="false"
+											[min]="0"
+											[fluid]="true"
+											(ngModelChange)="updateDraftSortOrder($event)"
+										></p-inputnumber>
+									</span>
 
-					<section class="admin-combat-intents-page__text-section">
-						<div class="admin-combat-intents-page__section-heading">
-							<h3>Текст для игрока</h3>
-							<div class="admin-combat-intents-page__section-actions">
-								<p-button
-									label="Текст"
-									icon="pi pi-align-left"
-									size="small"
-									severity="secondary"
-									(click)="addTextBlock()"
-								></p-button>
-								<p-button
-									label="Подстановка"
-									icon="pi pi-code"
-									size="small"
-									severity="secondary"
-									(click)="addTextTokenBlock()"
-								></p-button>
-							</div>
-						</div>
+									<span class="admin-combat-intents-page__switch-field">
+										<span>Активно</span>
+										<p-toggleswitch
+											[ngModel]="currentDraft.isActive"
+											(ngModelChange)="updateDraftActive($event)"
+										></p-toggleswitch>
+									</span>
 
-						<div class="admin-combat-intents-page__text-preview">
-							{{ textPreview() }}
-						</div>
+									<span
+										class="admin-combat-intents-page__field admin-combat-intents-page__field--wide"
+									>
+										<span>Описание механики</span>
+										<textarea
+											pTextarea
+											rows="5"
+											[value]="currentDraft.description"
+											(input)="
+												updateDraftDescription($any($event.target).value)
+											"
+										></textarea>
+									</span>
+								</div>
+							</p-tabpanel>
 
-						<div class="admin-combat-intents-page__text-block-list">
-							@for (
-								block of currentDraft.textBlocks;
-								track block.sortOrder;
-								let index = $index
-							) {
-								<div class="admin-combat-intents-page__text-block">
-									<div class="admin-combat-intents-page__text-block-main">
-										@if (block.kind === 'text') {
-											<span class="admin-combat-intents-page__field">
-												<span>Текст</span>
-												<textarea
-													pTextarea
-													rows="3"
-													[value]="block.text"
-													(input)="
-														updateTextBlockText(
-															index,
-															$any($event.target).value
-														)
-													"
-												></textarea>
-											</span>
-										} @else {
-											<span class="admin-combat-intents-page__field">
-												<span>Подстановка</span>
-												<p-select
-													[ngModel]="block.token"
-													[options]="textTokenOptions"
-													optionLabel="label"
-													optionValue="value"
-													appendTo="body"
-													[filter]="true"
-													(ngModelChange)="updateTextBlockToken(index, $event)"
-												></p-select>
-											</span>
+							<p-tabpanel
+								value="parameters"
+								class="admin-combat-intents-page__tabpanel"
+							>
+								<section class="admin-combat-intents-page__mechanic-card">
+									<div class="admin-combat-intents-page__mechanic-card-head">
+										<h4>Входные параметры</h4>
+									</div>
+
+									<div class="admin-combat-intents-page__input-list">
+										@for (option of mechanicInputOptions; track option.value) {
+											<div class="admin-combat-intents-page__input-row">
+												<span>{{ option.label }}</span>
+												<div class="admin-combat-intents-page__input-checks">
+													<label>
+														<p-checkbox
+															[binary]="true"
+															[ngModel]="hasMechanicInput(option.value, true)"
+															(ngModelChange)="
+																toggleMechanicInput(option.value, true, $event)
+															"
+														></p-checkbox>
+														Обяз.
+													</label>
+													<label>
+														<p-checkbox
+															[binary]="true"
+															[ngModel]="hasMechanicInput(option.value, false)"
+															(ngModelChange)="
+																toggleMechanicInput(option.value, false, $event)
+															"
+														></p-checkbox>
+														Опц.
+													</label>
+												</div>
+											</div>
 										}
 									</div>
+								</section>
+							</p-tabpanel>
 
-									<div class="admin-combat-intents-page__text-block-actions">
-										<p-toggleswitch
-											[ngModel]="block.isActive"
-											(ngModelChange)="updateTextBlockActive(index, $event)"
-										></p-toggleswitch>
-										<p-button
-											icon="pi pi-arrow-up"
-											text
-											rounded
-											[disabled]="index === 0"
-											(click)="moveTextBlock(index, -1)"
-										></p-button>
-										<p-button
-											icon="pi pi-arrow-down"
-											text
-											rounded
-											[disabled]="index === currentDraft.textBlocks.length - 1"
-											(click)="moveTextBlock(index, 1)"
-										></p-button>
-										<p-button
-											icon="pi pi-trash"
-											severity="danger"
-											text
-											rounded
-											(click)="removeTextBlock(index)"
-										></p-button>
+							<p-tabpanel
+								value="scenario"
+								class="admin-combat-intents-page__tabpanel"
+							>
+								<div class="admin-combat-intents-page__scenario-layout">
+									<aside class="admin-combat-intents-page__scenario-steps">
+										@for (step of scenarioStepOptions; track step.value) {
+											<button
+												type="button"
+												class="admin-combat-intents-page__scenario-step"
+												[class.admin-combat-intents-page__scenario-step--active]="
+													selectedScenarioStep() === step.value
+												"
+												(click)="selectScenarioStep(step.value)"
+											>
+												<span>{{ step.label }}</span>
+											</button>
+										}
+									</aside>
+
+									<section class="admin-combat-intents-page__scenario-editor">
+										@switch (selectedScenarioStep()) {
+											@case ('availability') {
+												<div
+													class="admin-combat-intents-page__mechanic-card-head"
+												>
+													<h4>Доступность</h4>
+												</div>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Размер цели</h5>
+															<span>Условие доступности</span>
+														</div>
+														<p-toggleswitch
+															[ngModel]="
+																currentDraft.mechanic.sizeRequirementEnabled
+															"
+															(ngModelChange)="
+																updateMechanicSizeRequirementEnabled($event)
+															"
+														></p-toggleswitch>
+													</div>
+
+													@if (currentDraft.mechanic.sizeRequirementEnabled) {
+														<span class="admin-combat-intents-page__field">
+															<span>Недоступно, если цель крупнее на</span>
+															<p-inputnumber
+																[ngModel]="
+																	currentDraft.mechanic
+																		.unavailableIfTargetLargerBy
+																"
+																[showButtons]="false"
+																[min]="1"
+																[fluid]="true"
+																(ngModelChange)="
+																	updateMechanicUnavailableIfTargetLargerBy(
+																		$event
+																	)
+																"
+															></p-inputnumber>
+														</span>
+													}
+												</section>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Состояние цели</h5>
+															<span>Условие доступности</span>
+														</div>
+														<p-tag
+															[value]="
+																currentDraft.mechanic.conditionRequirementSlug
+																	? conditionName(
+																			currentDraft.mechanic
+																				.conditionRequirementSlug
+																		)
+																	: 'Не используется'
+															"
+															severity="secondary"
+														></p-tag>
+													</div>
+
+													<span class="admin-combat-intents-page__field">
+														<span>Недоступно, если цель уже имеет</span>
+														<p-select
+															[options]="conditionOptions()"
+															optionLabel="label"
+															optionValue="value"
+															appendTo="body"
+															[filter]="true"
+															filterBy="label"
+															filterPlaceHolder="Поиск"
+															[showClear]="true"
+															placeholder="Не выбрано"
+															[ngModel]="
+																currentDraft.mechanic
+																	.conditionRequirementSlug || null
+															"
+															(ngModelChange)="
+																updateMechanicConditionRequirementSlug($event)
+															"
+														></p-select>
+													</span>
+												</section>
+											}
+
+											@case ('checks') {
+												<div
+													class="admin-combat-intents-page__mechanic-card-head"
+												>
+													<h4>Проверки</h4>
+												</div>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Основная проверка</h5>
+															<span>Бросок намерения</span>
+														</div>
+													</div>
+
+													<span class="admin-combat-intents-page__field">
+														<span>Тип проверки</span>
+														<p-select
+															[options]="rollKindOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="currentDraft.mechanic.rollKind"
+															(ngModelChange)="updateMechanicRollKind($event)"
+														></p-select>
+													</span>
+
+													<span class="admin-combat-intents-page__switch-field">
+														<span>Брать пул из профиля атаки</span>
+														<p-toggleswitch
+															[ngModel]="
+																currentDraft.mechanic.usesAttackProfileDice
+															"
+															(ngModelChange)="
+																updateMechanicUsesAttackProfileDice($event)
+															"
+														></p-toggleswitch>
+													</span>
+												</section>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Защита цели</h5>
+															<span>Доступные ответы на проверку</span>
+														</div>
+													</div>
+
+													<div
+														class="admin-combat-intents-page__defense-options"
+													>
+														<label
+															class="admin-combat-intents-page__checkbox-row"
+														>
+															<p-checkbox
+																[binary]="true"
+																[ngModel]="
+																	currentDraft.mechanic.allowDodgeDefense
+																"
+																(ngModelChange)="
+																	updateMechanicAllowDodgeDefense($event)
+																"
+															></p-checkbox>
+															<span>Уклонение</span>
+														</label>
+
+														<label
+															class="admin-combat-intents-page__checkbox-row"
+														>
+															<p-checkbox
+																[binary]="true"
+																[ngModel]="
+																	currentDraft.mechanic.allowParryDefense
+																"
+																(ngModelChange)="
+																	updateMechanicAllowParryDefense($event)
+																"
+															></p-checkbox>
+															<span>Парирование</span>
+														</label>
+													</div>
+												</section>
+											}
+
+											@case ('success') {
+												<div
+													class="admin-combat-intents-page__mechanic-card-head"
+												>
+													<h4>Успех</h4>
+												</div>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Чистые успехи</h5>
+															<span>Условие срабатывания эффектов</span>
+														</div>
+													</div>
+
+													<span class="admin-combat-intents-page__field">
+														<span>Правило</span>
+														<p-select
+															[options]="hitSuccessModeOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="
+																currentDraft.mechanic.minCleanSuccessesMode
+															"
+															(ngModelChange)="
+																updateMechanicHitSuccessMode($event)
+															"
+														></p-select>
+													</span>
+
+													@if (
+														currentDraft.mechanic.minCleanSuccessesMode ===
+														'fixed'
+													) {
+														<span class="admin-combat-intents-page__field">
+															<span>Минимум чистых успехов</span>
+															<p-inputnumber
+																[ngModel]="
+																	currentDraft.mechanic.minCleanSuccesses
+																"
+																[showButtons]="false"
+																[min]="0"
+																[fluid]="true"
+																(ngModelChange)="
+																	updateMechanicMinCleanSuccesses($event)
+																"
+															></p-inputnumber>
+														</span>
+													} @else {
+														<div class="admin-combat-intents-page__form-grid">
+															<span class="admin-combat-intents-page__field">
+																<span>Цель не крупнее</span>
+																<p-inputnumber
+																	[ngModel]="
+																		currentDraft.mechanic
+																			.minCleanSuccessesIfTargetSameOrSmaller
+																	"
+																	[showButtons]="false"
+																	[min]="1"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateMechanicMinCleanSuccessesIfTargetSameOrSmaller(
+																			$event
+																		)
+																	"
+																></p-inputnumber>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Цель крупнее на 1</span>
+																<p-inputnumber
+																	[ngModel]="
+																		currentDraft.mechanic
+																			.minCleanSuccessesIfTargetLargerByOne
+																	"
+																	[showButtons]="false"
+																	[min]="1"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateMechanicMinCleanSuccessesIfTargetLargerByOne(
+																			$event
+																		)
+																	"
+																></p-inputnumber>
+															</span>
+														</div>
+													}
+												</section>
+											}
+
+											@case ('effects') {
+												<div
+													class="admin-combat-intents-page__mechanic-card-head"
+												>
+													<h4>Эффекты</h4>
+												</div>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Урон</h5>
+															<span>Эффект при успехе</span>
+														</div>
+														<p-toggleswitch
+															[ngModel]="currentDraft.mechanic.damageEnabled"
+															(ngModelChange)="
+																updateMechanicDamageEnabled($event)
+															"
+														></p-toggleswitch>
+													</div>
+
+													@if (currentDraft.mechanic.damageEnabled) {
+														<div class="admin-combat-intents-page__form-grid">
+															<span class="admin-combat-intents-page__field">
+																<span>Расчёт урона</span>
+																<p-select
+																	[options]="damageFormulaOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="
+																		currentDraft.mechanic.damageFormula
+																	"
+																	(ngModelChange)="
+																		updateMechanicDamageFormula($event)
+																	"
+																></p-select>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Тип урона</span>
+																<p-select
+																	[options]="damageTypeSourceOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="currentDraft.mechanic.damageType"
+																	(ngModelChange)="
+																		updateMechanicDamageType($event)
+																	"
+																></p-select>
+															</span>
+														</div>
+
+														<span
+															class="admin-combat-intents-page__switch-field"
+														>
+															<span>Базовый урон только при попадании</span>
+															<p-toggleswitch
+																[ngModel]="
+																	currentDraft.mechanic.baseDamageOnlyOnHit
+																"
+																(ngModelChange)="
+																	updateMechanicBaseDamageOnlyOnHit($event)
+																"
+															></p-toggleswitch>
+														</span>
+													}
+												</section>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Зона попадания</h5>
+															<span>Эффект при успехе</span>
+														</div>
+													</div>
+
+													<span class="admin-combat-intents-page__field">
+														<span>Способ выбора зоны</span>
+														<p-select
+															[options]="hitZoneKindOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="currentDraft.mechanic.hitZoneKind"
+															(ngModelChange)="
+																updateMechanicHitZoneKind($event)
+															"
+														></p-select>
+													</span>
+
+													@if (
+														currentDraft.mechanic.hitZoneKind ===
+														'random_main_zone'
+													) {
+														<span
+															class="admin-combat-intents-page__switch-field"
+														>
+															<span>Использовать веса зон</span>
+															<p-toggleswitch
+																[ngModel]="
+																	currentDraft.mechanic.hitZoneUsesWeights
+																"
+																(ngModelChange)="
+																	updateMechanicHitZoneUsesWeights($event)
+																"
+															></p-toggleswitch>
+														</span>
+													}
+
+													<span class="admin-combat-intents-page__switch-field">
+														<span>Применять броню зоны</span>
+														<p-toggleswitch
+															[ngModel]="currentDraft.mechanic.armorApplies"
+															(ngModelChange)="
+																updateMechanicArmorApplies($event)
+															"
+														></p-toggleswitch>
+													</span>
+												</section>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Состояние</h5>
+															<span>Эффект при успехе</span>
+														</div>
+														<p-tag
+															[value]="
+																currentDraft.mechanic.resultConditionSlug
+																	? conditionName(
+																			currentDraft.mechanic.resultConditionSlug
+																		)
+																	: 'Не используется'
+															"
+															severity="secondary"
+														></p-tag>
+													</div>
+
+													<span class="admin-combat-intents-page__field">
+														<span>Наложить состояние</span>
+														<p-select
+															[options]="conditionOptions()"
+															optionLabel="label"
+															optionValue="value"
+															appendTo="body"
+															[filter]="true"
+															filterBy="label"
+															filterPlaceHolder="Поиск"
+															[showClear]="true"
+															placeholder="Не выбрано"
+															[ngModel]="
+																currentDraft.mechanic.resultConditionSlug ||
+																null
+															"
+															(ngModelChange)="
+																updateMechanicResultConditionSlug($event)
+															"
+														></p-select>
+													</span>
+												</section>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Последствия урона</h5>
+															<span>Эффект при успехе</span>
+														</div>
+													</div>
+
+													<span class="admin-combat-intents-page__field">
+														<span>Дополнительный урон результата</span>
+														<p-select
+															[options]="resultDamageOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="currentDraft.mechanic.resultDamage"
+															(ngModelChange)="
+																updateMechanicResultDamage($event)
+															"
+														></p-select>
+													</span>
+
+													<span class="admin-combat-intents-page__switch-field">
+														<span>Снимает здоровье</span>
+														<p-toggleswitch
+															[ngModel]="currentDraft.mechanic.healthDamage"
+															(ngModelChange)="
+																updateMechanicHealthDamage($event)
+															"
+														></p-toggleswitch>
+													</span>
+
+													<span class="admin-combat-intents-page__switch-field">
+														<span>Может вызвать травму зоны</span>
+														<p-toggleswitch
+															[ngModel]="
+																currentDraft.mechanic.canCauseZoneTrauma
+															"
+															(ngModelChange)="
+																updateMechanicCanCauseZoneTrauma($event)
+															"
+														></p-toggleswitch>
+													</span>
+												</section>
+											}
+
+											@case ('failure') {
+												<div
+													class="admin-combat-intents-page__mechanic-card-head"
+												>
+													<h4>Провал</h4>
+												</div>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
+															<h5>Недостаточно чистых успехов</h5>
+															<span>Эффект при провале</span>
+														</div>
+													</div>
+
+													<span class="admin-combat-intents-page__field">
+														<span>Результат</span>
+														<p-select
+															[options]="noCleanSuccessesOptions"
+															optionLabel="label"
+															optionValue="value"
+															[ngModel]="
+																currentDraft.mechanic.onNoCleanSuccesses
+															"
+															(ngModelChange)="
+																updateMechanicOnNoCleanSuccesses($event)
+															"
+														></p-select>
+													</span>
+												</section>
+											}
+										}
+									</section>
+								</div>
+							</p-tabpanel>
+
+							<p-tabpanel
+								value="text"
+								class="admin-combat-intents-page__tabpanel"
+							>
+								<section class="admin-combat-intents-page__text-section">
+									<div class="admin-combat-intents-page__section-heading">
+										<h3>Текст для игрока</h3>
+										<div class="admin-combat-intents-page__section-actions">
+											<p-button
+												label="Текст"
+												icon="pi pi-align-left"
+												size="small"
+												severity="secondary"
+												(click)="addTextBlock()"
+											></p-button>
+											<p-button
+												label="Подстановка"
+												icon="pi pi-code"
+												size="small"
+												severity="secondary"
+												(click)="addTextTokenBlock()"
+											></p-button>
+										</div>
 									</div>
-								</div>
-							} @empty {
-								<div class="admin-combat-intents-page__empty-list">
-									Текст для игрока пока не настроен.
-								</div>
-							}
-						</div>
-					</section>
+
+									<div class="admin-combat-intents-page__text-preview">
+										{{ textPreview() }}
+									</div>
+
+									<div class="admin-combat-intents-page__text-block-list">
+										@for (
+											block of currentDraft.textBlocks;
+											track block.sortOrder;
+											let index = $index
+										) {
+											<div class="admin-combat-intents-page__text-block">
+												<div class="admin-combat-intents-page__text-block-main">
+													@if (block.kind === 'text') {
+														<span class="admin-combat-intents-page__field">
+															<span>Текст</span>
+															<textarea
+																pTextarea
+																rows="3"
+																[value]="block.text"
+																(input)="
+																	updateTextBlockText(
+																		index,
+																		$any($event.target).value
+																	)
+																"
+															></textarea>
+														</span>
+													} @else {
+														<span class="admin-combat-intents-page__field">
+															<span>Подстановка</span>
+															<p-select
+																[ngModel]="block.token"
+																[options]="textTokenOptions"
+																optionLabel="label"
+																optionValue="value"
+																appendTo="body"
+																[filter]="true"
+																(ngModelChange)="
+																	updateTextBlockToken(index, $event)
+																"
+															></p-select>
+														</span>
+													}
+												</div>
+
+												<div
+													class="admin-combat-intents-page__text-block-actions"
+												>
+													<p-toggleswitch
+														[ngModel]="block.isActive"
+														(ngModelChange)="
+															updateTextBlockActive(index, $event)
+														"
+													></p-toggleswitch>
+													<p-button
+														icon="pi pi-arrow-up"
+														text
+														rounded
+														[disabled]="index === 0"
+														(click)="moveTextBlock(index, -1)"
+													></p-button>
+													<p-button
+														icon="pi pi-arrow-down"
+														text
+														rounded
+														[disabled]="
+															index === currentDraft.textBlocks.length - 1
+														"
+														(click)="moveTextBlock(index, 1)"
+													></p-button>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														text
+														rounded
+														(click)="removeTextBlock(index)"
+													></p-button>
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-combat-intents-page__empty-list">
+												Текст для игрока пока не настроен.
+											</div>
+										}
+									</div>
+								</section>
+							</p-tabpanel>
+						</p-tabpanels>
+					</p-tabs>
 				</div>
 
 				<app-editor-actions-bar

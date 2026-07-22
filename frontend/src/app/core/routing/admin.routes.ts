@@ -100,6 +100,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminCombatIntentsPageComponent)
 					},
 					{
+						path: 'natural-attacks',
+						loadComponent: () =>
+							import(
+								'../../features/weapons/ui/pages/admin-natural-attacks-page/admin-natural-attacks-page.component'
+							).then(m => m.AdminNaturalAttacksPageComponent)
+					},
+					{
 						path: 'armor-presets',
 						loadComponent: () =>
 							import(

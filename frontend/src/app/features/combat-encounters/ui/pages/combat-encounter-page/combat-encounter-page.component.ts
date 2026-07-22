@@ -110,7 +110,7 @@ export class CombatEncounterPageComponent {
 			(this.selectedCreature()?.tiers ?? [])
 				.filter(tier => tier.isActive)
 				.map(tier => ({
-					label: `${tier.tier}: ${tier.name} · ${tier.hp} здоровья`,
+					label: `${tier.tier}: ${tier.name} · ${tier.size?.name ?? 'Средний'} · ${tier.hp} здоровья`,
 					value: tier.id
 				}))
 	);

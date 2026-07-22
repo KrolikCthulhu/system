@@ -28,6 +28,10 @@ export class CreatureTierDto {
 
 	@IsOptional()
 	@IsUUID()
+	sizeId?: string | null;
+
+	@IsOptional()
+	@IsUUID()
 	armorPresetId?: string | null;
 
 	@IsArray()

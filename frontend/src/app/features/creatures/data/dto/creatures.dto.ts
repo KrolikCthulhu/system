@@ -11,6 +11,13 @@ export interface CreatureTypeOptionDto extends CreatureReferenceDto {
 
 export type CreatureAnatomySchemeOptionDto = CreatureTypeOptionDto;
 
+export interface CreatureSizeOptionDto extends CreatureReferenceDto {
+	description: string | null;
+	rank: number;
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface CreatureArmorPresetOptionDto extends CreatureTypeOptionDto {
 	points: number;
 	protection: number;
@@ -29,6 +36,51 @@ export interface CreatureCharacteristicOptionDto {
 	minValue: number;
 	maxValue: number;
 	defaultValue: number;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export type CreatureAttackProfileKindDto = 'melee' | 'ranged';
+
+export interface CreatureCombatIntentOptionDto extends CreatureReferenceDto {
+	category: string;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureDamageTypeOptionDto extends CreatureReferenceDto {
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureNaturalAttackProfileIntentDto {
+	combatIntentId: string;
+	costModifier: number;
+	damageModifier: number;
+	ruleText: string;
+	sortOrder: number;
+}
+
+export interface CreatureNaturalAttackProfileDto {
+	kind: CreatureAttackProfileKindDto;
+	name: string;
+	skillId: string;
+	characteristicId: string | null;
+	baseCost: number;
+	baseDamage: number;
+	rangeMeters: number;
+	usesAmmo: boolean;
+	canBeParried: boolean;
+	damageTypeIds: string[];
+	intents: CreatureNaturalAttackProfileIntentDto[];
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureNaturalAttackOptionDto extends CreatureReferenceDto {
+	skillId: string;
+	skill: CreatureReferenceDto;
+	attackProfiles: CreatureNaturalAttackProfileDto[];
 	isActive: boolean;
 	sortOrder: number;
 }
@@ -52,6 +104,8 @@ export interface CreatureTierDto {
 	tier: number;
 	name: string;
 	hp: number;
+	sizeId: string | null;
+	size: CreatureSizeOptionDto | null;
 	armorPresetId: string | null;
 	armorPreset: CreatureArmorPresetOptionDto | null;
 	skills: CreatureTierSkillDto[];
@@ -80,6 +134,15 @@ export interface CreatureAnatomyZoneDto {
 	sortOrder: number;
 }
 
+export interface CreatureNaturalAttackDto {
+	id: string;
+	naturalAttackId: string;
+	naturalAttack: CreatureNaturalAttackOptionDto;
+	attackProfiles: CreatureNaturalAttackProfileDto[];
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface CreatureDto {
 	id: string;
 	slug: string;
@@ -89,6 +152,7 @@ export interface CreatureDto {
 	anatomySchemeId: string | null;
 	anatomyScheme: CreatureReferenceDto | null;
 	anatomyZones: CreatureAnatomyZoneDto[];
+	naturalAttacks: CreatureNaturalAttackDto[];
 	tiers: CreatureTierDto[];
 	isActive: boolean;
 	sortOrder: number;
@@ -99,8 +163,12 @@ export interface CreatureDto {
 export interface CreaturesCatalogResponseDto {
 	creatures: CreatureDto[];
 	creatureTypes: CreatureTypeOptionDto[];
+	creatureSizes: CreatureSizeOptionDto[];
 	anatomySchemes: CreatureAnatomySchemeOptionDto[];
 	armorPresets: CreatureArmorPresetOptionDto[];
+	naturalAttacks: CreatureNaturalAttackOptionDto[];
+	combatIntents: CreatureCombatIntentOptionDto[];
+	damageTypes: CreatureDamageTypeOptionDto[];
 	skills: CreatureSkillOptionDto[];
 	characteristics: CreatureCharacteristicOptionDto[];
 }
@@ -119,6 +187,7 @@ export interface CreatureTierCommandDto {
 	tier: number;
 	name: string;
 	hp: number;
+	sizeId: string | null;
 	armorPresetId: string | null;
 	skills: CreatureTierSkillCommandDto[];
 	characteristics: CreatureTierCharacteristicCommandDto[];
@@ -144,11 +213,19 @@ export interface CreatureAnatomyZoneCommandDto {
 	sortOrder?: number;
 }
 
+export interface CreatureNaturalAttackCommandDto {
+	naturalAttackId: string;
+	attackProfiles?: CreatureNaturalAttackProfileDto[];
+	isActive?: boolean;
+	sortOrder?: number;
+}
+
 export interface CreateCreatureDto {
 	name: string;
 	typeId: string;
 	anatomySchemeId?: string | null;
 	anatomyZones?: CreatureAnatomyZoneCommandDto[];
+	naturalAttacks?: CreatureNaturalAttackCommandDto[];
 	tiers: CreatureTierCommandDto[];
 	isActive?: boolean;
 	sortOrder?: number;
@@ -159,6 +236,7 @@ export interface UpdateCreatureDto {
 	typeId?: string;
 	anatomySchemeId?: string | null;
 	anatomyZones?: CreatureAnatomyZoneCommandDto[];
+	naturalAttacks?: CreatureNaturalAttackCommandDto[];
 	tiers?: CreatureTierCommandDto[];
 	isActive?: boolean;
 	sortOrder?: number;

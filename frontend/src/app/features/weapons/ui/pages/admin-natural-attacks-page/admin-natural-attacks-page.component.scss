@@ -1,0 +1,212 @@
+:host {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
+
+.admin-natural-attacks-page {
+	display: flex;
+	flex-direction: column;
+	height: 100%;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.admin-natural-attacks-page__header {
+	flex: 0 0 auto;
+	padding-bottom: 1rem;
+}
+
+.admin-natural-attacks-page__workspace {
+	display: grid;
+	grid-template-columns: 21rem minmax(0, 1fr);
+	flex: 1 1 auto;
+	min-height: 0;
+	border-top: 1px solid var(--p-content-border-color);
+	background: var(--p-content-background);
+	overflow: hidden;
+}
+
+.admin-natural-attacks-page__panel {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow: hidden;
+}
+
+.admin-natural-attacks-page__sidebar {
+	border-right: 1px solid var(--p-content-border-color);
+}
+
+.admin-natural-attacks-page__editor {
+	display: grid;
+	grid-template-rows: auto minmax(0, 1fr) auto;
+	height: 100%;
+}
+
+.admin-natural-attacks-page__panel-heading,
+.admin-natural-attacks-page__editor-body {
+	padding: 0.75rem;
+}
+
+.admin-natural-attacks-page__panel-heading {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.75rem;
+}
+
+.admin-natural-attacks-page__panel-title,
+.admin-natural-attacks-page__profiles-heading h3,
+.admin-natural-attacks-page__profile-header h4 {
+	margin: 0;
+	color: var(--p-text-color);
+	line-height: 1.25;
+}
+
+.admin-natural-attacks-page__panel-title {
+	font-size: var(--text-heading-2-size);
+}
+
+.admin-natural-attacks-page__editor-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.admin-natural-attacks-page__navigation-tree {
+	display: block;
+	flex: 1 1 auto;
+	min-height: 0;
+}
+
+.admin-natural-attacks-page__form-grid {
+	display: grid;
+	grid-template-columns: repeat(2, minmax(0, 1fr));
+	align-items: start;
+	gap: 0.75rem;
+}
+
+.admin-natural-attacks-page__field,
+.admin-natural-attacks-page__switch-field {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 0;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-natural-attacks-page__field input,
+.admin-natural-attacks-page__field p-inputnumber {
+	width: 100%;
+	min-width: 0;
+}
+
+.admin-natural-attacks-page__field--wide {
+	grid-column: 1 / -1;
+}
+
+.admin-natural-attacks-page__switch-field {
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	min-height: 2.75rem;
+}
+
+.admin-natural-attacks-page__profiles {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	margin-top: 0.5rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-natural-attacks-page__profiles-heading,
+.admin-natural-attacks-page__profile-header,
+.admin-natural-attacks-page__profile-actions {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.admin-natural-attacks-page__profile-list,
+.admin-natural-attacks-page__intent-groups,
+.admin-natural-attacks-page__intent-group {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	min-width: 0;
+}
+
+.admin-natural-attacks-page__profile {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 0.5rem;
+	background: var(--p-content-background);
+}
+
+.admin-natural-attacks-page__checkbox-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+	gap: 0.5rem 0.75rem;
+	padding: 0.5rem 0;
+}
+
+.admin-natural-attacks-page__checkbox-row {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+	color: var(--p-text-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-natural-attacks-page__checkbox-row span {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-natural-attacks-page__intent-group-title {
+	color: var(--p-text-muted-color);
+	font-size: 0.6875rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
+.admin-natural-attacks-page__state,
+.admin-natural-attacks-page__form-error {
+	padding: 1rem;
+	color: var(--p-text-muted-color);
+	text-align: center;
+}
+
+.admin-natural-attacks-page__form-error {
+	color: var(--p-red-500);
+	text-align: left;
+}
+
+@media (max-width: 1100px) {
+	.admin-natural-attacks-page__workspace,
+	.admin-natural-attacks-page__form-grid {
+		grid-template-columns: 1fr;
+	}
+
+	.admin-natural-attacks-page__sidebar {
+		border-right: 0;
+		border-bottom: 1px solid var(--p-content-border-color);
+	}
+}

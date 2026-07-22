@@ -53,6 +53,7 @@ export interface WeaponAttackProfileDto {
 	baseDamage: number;
 	rangeMeters: number;
 	usesAmmo: boolean;
+	canBeParried: boolean;
 	damageTypeIds: string[];
 	damageTypes: WeaponDamageTypeOptionDto[];
 	isActive: boolean;
@@ -83,7 +84,13 @@ export interface WeaponDto {
 	templateId: string;
 	template: Pick<
 		WeaponTemplateDto,
-		'id' | 'slug' | 'name' | 'handsMin' | 'handsMax' | 'defaultHands' | 'skillId'
+		| 'id'
+		| 'slug'
+		| 'name'
+		| 'handsMin'
+		| 'handsMax'
+		| 'defaultHands'
+		| 'skillId'
 	>;
 	skillId: string;
 	skill: WeaponSkillOptionDto;
@@ -95,9 +102,30 @@ export interface WeaponDto {
 	updatedAt: string;
 }
 
+export interface NaturalAttackDto {
+	id: string;
+	slug: string;
+	name: string;
+	skillId: string;
+	skill: WeaponSkillOptionDto;
+	attackProfiles: WeaponAttackProfileDto[];
+	isActive: boolean;
+	sortOrder: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface WeaponsCatalogResponseDto {
 	weapons: WeaponDto[];
 	templates: WeaponTemplateDto[];
+	skills: WeaponSkillOptionDto[];
+	characteristics: WeaponCharacteristicOptionDto[];
+	combatIntents: WeaponCombatIntentOptionDto[];
+	damageTypes: WeaponDamageTypeOptionDto[];
+}
+
+export interface NaturalAttacksCatalogResponseDto {
+	naturalAttacks: NaturalAttackDto[];
 	skills: WeaponSkillOptionDto[];
 	characteristics: WeaponCharacteristicOptionDto[];
 	combatIntents: WeaponCombatIntentOptionDto[];
@@ -122,6 +150,7 @@ export interface SaveWeaponAttackProfileDto {
 	baseDamage: number;
 	rangeMeters: number;
 	usesAmmo: boolean;
+	canBeParried?: boolean;
 	damageTypeIds?: string[];
 	isActive?: boolean;
 	sortOrder?: number;
@@ -165,6 +194,22 @@ export interface UpdateWeaponTemplateDto {
 	handsMin?: number;
 	handsMax?: number;
 	defaultHands?: number;
+	attackProfiles?: SaveWeaponAttackProfileDto[];
+	isActive?: boolean;
+	sortOrder?: number;
+}
+
+export interface CreateNaturalAttackDto {
+	name: string;
+	skillId: string;
+	attackProfiles?: SaveWeaponAttackProfileDto[];
+	isActive?: boolean;
+	sortOrder?: number;
+}
+
+export interface UpdateNaturalAttackDto {
+	name?: string;
+	skillId?: string;
 	attackProfiles?: SaveWeaponAttackProfileDto[];
 	isActive?: boolean;
 	sortOrder?: number;

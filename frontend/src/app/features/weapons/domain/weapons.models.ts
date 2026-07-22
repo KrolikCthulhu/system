@@ -64,6 +64,7 @@ export interface WeaponAttackProfile {
 	baseDamage: number;
 	rangeMeters: number;
 	usesAmmo: boolean;
+	canBeParried: boolean;
 	damageTypeIds: string[];
 	damageTypes: WeaponDamageTypeOption[];
 	isActive: boolean;
@@ -94,7 +95,13 @@ export interface Weapon {
 	templateId: string;
 	template: Pick<
 		WeaponTemplate,
-		'id' | 'slug' | 'name' | 'handsMin' | 'handsMax' | 'defaultHands' | 'skillId'
+		| 'id'
+		| 'slug'
+		| 'name'
+		| 'handsMin'
+		| 'handsMax'
+		| 'defaultHands'
+		| 'skillId'
 	>;
 	skillId: string;
 	skill: WeaponSkillOption;
@@ -106,9 +113,30 @@ export interface Weapon {
 	updatedAt: string;
 }
 
+export interface NaturalAttack {
+	id: string;
+	slug: string;
+	name: string;
+	skillId: string;
+	skill: WeaponSkillOption;
+	attackProfiles: WeaponAttackProfile[];
+	isActive: boolean;
+	sortOrder: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface WeaponsCatalog {
 	weapons: Weapon[];
 	templates: WeaponTemplate[];
+	skills: WeaponSkillOption[];
+	characteristics: WeaponCharacteristicOption[];
+	combatIntents: WeaponCombatIntentOption[];
+	damageTypes: WeaponDamageTypeOption[];
+}
+
+export interface NaturalAttacksCatalog {
+	naturalAttacks: NaturalAttack[];
 	skills: WeaponSkillOption[];
 	characteristics: WeaponCharacteristicOption[];
 	combatIntents: WeaponCombatIntentOption[];

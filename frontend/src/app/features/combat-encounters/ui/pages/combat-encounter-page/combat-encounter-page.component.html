@@ -153,7 +153,8 @@
 												{{ participant.playerCharacter.owner.displayUsername }}
 											}
 											@if (participant.creatureTier) {
-												· {{ participant.creatureTier.name }}
+												· {{ participant.creatureTier.name }} ·
+												{{ participant.creatureTier.size?.name ?? 'Средний' }}
 											}
 										</span>
 									</div>

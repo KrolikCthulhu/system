@@ -11,6 +11,13 @@ export interface CreatureTypeOption extends CreatureReference {
 
 export type CreatureAnatomySchemeOption = CreatureTypeOption;
 
+export interface CreatureSizeOption extends CreatureReference {
+	description: string | null;
+	rank: number;
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface CreatureArmorPresetOption extends CreatureTypeOption {
 	points: number;
 	protection: number;
@@ -30,6 +37,51 @@ export interface CreatureCharacteristicOption {
 	minValue: number;
 	maxValue: number;
 	defaultValue: number;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export type CreatureAttackProfileKind = 'melee' | 'ranged';
+
+export interface CreatureCombatIntentOption extends CreatureReference {
+	category: string;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureDamageTypeOption extends CreatureReference {
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureNaturalAttackProfileIntent {
+	combatIntentId: string;
+	costModifier: number;
+	damageModifier: number;
+	ruleText: string;
+	sortOrder: number;
+}
+
+export interface CreatureNaturalAttackProfile {
+	kind: CreatureAttackProfileKind;
+	name: string;
+	skillId: string;
+	characteristicId: string | null;
+	baseCost: number;
+	baseDamage: number;
+	rangeMeters: number;
+	usesAmmo: boolean;
+	canBeParried: boolean;
+	damageTypeIds: string[];
+	intents: CreatureNaturalAttackProfileIntent[];
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureNaturalAttackOption extends CreatureReference {
+	skillId: string;
+	skill: CreatureReference;
+	attackProfiles: CreatureNaturalAttackProfile[];
 	isActive: boolean;
 	sortOrder: number;
 }
@@ -58,6 +110,8 @@ export interface CreatureTier {
 	tier: number;
 	name: string;
 	hp: number;
+	sizeId: string | null;
+	size: CreatureSizeOption | null;
 	armorPresetId: string | null;
 	armorPreset: CreatureArmorPresetOption | null;
 	skills: CreatureTierSkill[];
@@ -86,6 +140,15 @@ export interface CreatureAnatomyZone {
 	sortOrder: number;
 }
 
+export interface CreatureNaturalAttack {
+	id: string;
+	naturalAttackId: string;
+	naturalAttack: CreatureNaturalAttackOption;
+	attackProfiles: CreatureNaturalAttackProfile[];
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface Creature {
 	id: string;
 	slug: string;
@@ -95,6 +158,7 @@ export interface Creature {
 	anatomySchemeId: string | null;
 	anatomyScheme: CreatureReference | null;
 	anatomyZones: CreatureAnatomyZone[];
+	naturalAttacks: CreatureNaturalAttack[];
 	tiers: CreatureTier[];
 	isActive: boolean;
 	sortOrder: number;
@@ -105,8 +169,12 @@ export interface Creature {
 export interface CreaturesCatalog {
 	creatures: Creature[];
 	creatureTypes: CreatureTypeOption[];
+	creatureSizes: CreatureSizeOption[];
 	anatomySchemes: CreatureAnatomySchemeOption[];
 	armorPresets: CreatureArmorPresetOption[];
+	naturalAttacks: CreatureNaturalAttackOption[];
+	combatIntents: CreatureCombatIntentOption[];
+	damageTypes: CreatureDamageTypeOption[];
 	skills: CreatureSkillOption[];
 	characteristics: CreatureCharacteristicOption[];
 }

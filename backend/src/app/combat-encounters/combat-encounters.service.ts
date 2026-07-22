@@ -12,9 +12,14 @@ import {
 } from '@prisma/generated';
 import { SystemValueRuntimeService } from '../game-events/system-value-runtime.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+	CombatSizeRuleSize,
+	resolveKnockdownSizeRule
+} from './combat-size-rules';
 import { AddCreatureParticipantDto } from './dto/add-creature-participant.dto';
 import { AddPlayerCharacterParticipantDto } from './dto/add-player-character-participant.dto';
 import { CreateCombatEncounterDto } from './dto/create-combat-encounter.dto';
+import { KnockdownSizeRuleQueryDto } from './dto/knockdown-size-rule-query.dto';
 import { UpdateCombatParticipantDto } from './dto/update-combat-participant.dto';
 
 const HEALTH_VALUE_NAME = 'Здоровье';
@@ -59,7 +64,16 @@ const combatEncounterSelect = {
 					id: true,
 					tier: true,
 					name: true,
-					hp: true
+					hp: true,
+					sizeId: true,
+					size: {
+						select: {
+							id: true,
+							slug: true,
+							name: true,
+							rank: true
+						}
+					}
 				}
 			},
 			sceneName: true,
@@ -191,6 +205,15 @@ export class CombatEncountersService {
 						tier: true,
 						name: true,
 						hp: true,
+						sizeId: true,
+						size: {
+							select: {
+								id: true,
+								slug: true,
+								name: true,
+								rank: true
+							}
+						},
 						isActive: true
 					},
 					orderBy: [{ tier: 'asc' }]
@@ -236,6 +259,37 @@ export class CombatEncountersService {
 		);
 
 		return this.getEncounter(id, userId);
+	}
+
+	async getKnockdownSizeRule(
+		id: string,
+		userId: string,
+		query: KnockdownSizeRuleQueryDto
+	) {
+		const encounter = await this.findEncounter(id);
+		await this.getActiveCampaignMember(encounter.campaignId, userId);
+
+		const [attacker, target, defaultSize] = await this.prisma.$transaction([
+			this.findParticipantForSizeRule(id, query.attackerParticipantId),
+			this.findParticipantForSizeRule(id, query.targetParticipantId),
+			this.prisma.creatureSize.findFirst({
+				select: {
+					id: true,
+					name: true,
+					rank: true
+				},
+				where: { slug: 'sredniy' }
+			})
+		]);
+
+		if (!attacker || !target) {
+			throw new NotFoundException('Участник столкновения не найден.');
+		}
+
+		return resolveKnockdownSizeRule(
+			this.resolveParticipantSize(attacker, defaultSize),
+			this.resolveParticipantSize(target, defaultSize)
+		);
 	}
 
 	async updateParticipant(
@@ -323,6 +377,50 @@ export class CombatEncountersService {
 			});
 
 		return (lastParticipant?.sortOrder ?? -1) + 1;
+	}
+
+	private findParticipantForSizeRule(
+		encounterId: string,
+		participantId: string
+	) {
+		return this.prisma.combatEncounterParticipant.findFirst({
+			select: {
+				id: true,
+				kind: true,
+				creatureTier: {
+					select: {
+						size: {
+							select: {
+								id: true,
+								name: true,
+								rank: true
+							}
+						}
+					}
+				}
+			},
+			where: {
+				id: participantId,
+				encounterId,
+				isActive: true
+			}
+		});
+	}
+
+	private resolveParticipantSize(
+		participant: NonNullable<
+			Awaited<ReturnType<CombatEncountersService['findParticipantForSizeRule']>>
+		>,
+		defaultSize: { id: string; name: string; rank: number } | null
+	): CombatSizeRuleSize {
+		const size = participant.creatureTier?.size ?? defaultSize;
+
+		return {
+			id: size?.id ?? null,
+			name: size?.name ?? 'Средний',
+			rank: size?.rank ?? 2,
+			source: participant.creatureTier?.size ? 'creature_tier' : 'default'
+		};
 	}
 
 	private async resolvePlayerCharacterCombatValues(

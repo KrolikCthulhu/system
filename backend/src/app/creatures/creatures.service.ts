@@ -9,9 +9,86 @@ import { PrismaService } from '../prisma/prisma.service';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { createSlug } from '../shared/slug.util';
 import { CreatureAnatomyZoneDto } from './dto/creature-anatomy-zone.dto';
+import { CreatureNaturalAttackDto } from './dto/creature-natural-attack.dto';
 import { CreateCreatureDto } from './dto/create-creature.dto';
 import { CreatureTierDto } from './dto/creature-tier.dto';
 import { UpdateCreatureDto } from './dto/update-creature.dto';
+
+const naturalAttackProfileSelect = {
+	id: true,
+	kind: true,
+	name: true,
+	skillId: true,
+	skill: {
+		select: {
+			id: true,
+			slug: true,
+			name: true,
+			categoryId: true,
+			category: {
+				select: {
+					id: true,
+					slug: true,
+					name: true
+				}
+			},
+			isActive: true,
+			sortOrder: true
+		}
+	},
+	characteristicId: true,
+	characteristic: {
+		select: {
+			id: true,
+			name: true,
+			isActive: true,
+			sortOrder: true
+		}
+	},
+	baseCost: true,
+	baseDamage: true,
+	rangeMeters: true,
+	usesAmmo: true,
+	canBeParried: true,
+	damageTypeLinks: {
+		select: {
+			damageTypeId: true,
+			damageType: {
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					isActive: true,
+					sortOrder: true
+				}
+			}
+		},
+		orderBy: [{ sortOrder: 'asc' }]
+	},
+	intentLinks: {
+		select: {
+			id: true,
+			combatIntentId: true,
+			combatIntent: {
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					category: true,
+					isActive: true,
+					sortOrder: true
+				}
+			},
+			costModifier: true,
+			damageModifier: true,
+			ruleText: true,
+			sortOrder: true
+		},
+		orderBy: [{ sortOrder: 'asc' }]
+	},
+	isActive: true,
+	sortOrder: true
+} satisfies Prisma.NaturalAttackProfileSelect;
 
 const creatureSelect = {
 	id: true,
@@ -53,12 +130,53 @@ const creatureSelect = {
 		},
 		orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 	},
+	naturalAttackLinks: {
+		select: {
+			id: true,
+			naturalAttackId: true,
+			attackProfiles: true,
+			naturalAttack: {
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					skillId: true,
+					skill: {
+						select: {
+							id: true,
+							slug: true,
+							name: true
+						}
+					},
+					attackProfiles: {
+						select: naturalAttackProfileSelect,
+						orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+					}
+				}
+			},
+			isActive: true,
+			sortOrder: true
+		},
+		orderBy: [{ sortOrder: 'asc' }, { naturalAttack: { name: 'asc' } }]
+	},
 	tiers: {
 		select: {
 			id: true,
 			tier: true,
 			name: true,
 			hp: true,
+			sizeId: true,
+			size: {
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					description: true,
+					rank: true,
+					isActive: true,
+					sortOrder: true
+				}
+			},
 			armorPresetId: true,
 			armorPreset: {
 				select: {
@@ -117,6 +235,9 @@ const creatureSelect = {
 type CreatureRecord = Prisma.CreatureGetPayload<{
 	select: typeof creatureSelect;
 }>;
+type NaturalAttackProfileRecord = Prisma.NaturalAttackProfileGetPayload<{
+	select: typeof naturalAttackProfileSelect;
+}>;
 
 @Injectable()
 export class CreaturesService {
@@ -129,8 +250,12 @@ export class CreaturesService {
 		const [
 			creatures,
 			creatureTypes,
+			creatureSizes,
 			anatomySchemes,
 			armorPresets,
+			naturalAttacks,
+			combatIntents,
+			damageTypes,
 			skills,
 			characteristics
 		] = await this.prisma.$transaction([
@@ -147,6 +272,18 @@ export class CreaturesService {
 					sortOrder: true
 				},
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.creatureSize.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					description: true,
+					rank: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { rank: 'asc' }, { name: 'asc' }]
 			}),
 			this.prisma.anatomyScheme.findMany({
 				select: {
@@ -165,6 +302,49 @@ export class CreaturesService {
 					name: true,
 					points: true,
 					protection: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.naturalAttack.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					skillId: true,
+					skill: {
+						select: {
+							id: true,
+							slug: true,
+							name: true
+						}
+					},
+					attackProfiles: {
+						select: naturalAttackProfileSelect,
+						orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+					},
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.combatIntent.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					category: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ category: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.damageType.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
 					isActive: true,
 					sortOrder: true
 				},
@@ -211,15 +391,29 @@ export class CreaturesService {
 		return {
 			creatures: creatures.map(item => this.mapCreature(item)),
 			creatureTypes,
+			creatureSizes,
 			anatomySchemes,
 			armorPresets,
+			naturalAttacks: naturalAttacks.map(attack => ({
+				...attack,
+				attackProfiles: attack.attackProfiles.map(profile =>
+					this.mapNaturalAttackProfile(profile)
+				)
+			})),
+			combatIntents,
+			damageTypes,
 			skills,
 			characteristics
 		};
 	}
 
 	async createCreature(dto: CreateCreatureDto) {
-		await this.ensureReferences(dto.typeId, dto.anatomySchemeId, dto.tiers);
+		await this.ensureReferences(
+			dto.typeId,
+			dto.anatomySchemeId,
+			dto.tiers,
+			dto.naturalAttacks ?? []
+		);
 
 		try {
 			const creature = await this.prisma.$transaction(async tx => {
@@ -251,6 +445,11 @@ export class CreaturesService {
 						dto.anatomyZones
 					);
 				}
+				await this.replaceCreatureNaturalAttacks(
+					tx,
+					created.id,
+					dto.naturalAttacks ?? []
+				);
 
 				return tx.creature.findUniqueOrThrow({
 					select: creatureSelect,
@@ -271,7 +470,8 @@ export class CreaturesService {
 		await this.ensureReferences(
 			dto.typeId,
 			dto.anatomySchemeId,
-			dto.tiers ?? []
+			dto.tiers ?? [],
+			dto.naturalAttacks ?? []
 		);
 
 		try {
@@ -311,6 +511,9 @@ export class CreaturesService {
 				if (dto.anatomyZones) {
 					await this.replaceCreatureAnatomyZones(tx, id, dto.anatomyZones);
 				}
+				if (dto.naturalAttacks) {
+					await this.replaceCreatureNaturalAttacks(tx, id, dto.naturalAttacks);
+				}
 
 				return tx.creature.findUniqueOrThrow({
 					select: creatureSelect,
@@ -345,7 +548,8 @@ export class CreaturesService {
 	private async ensureReferences(
 		typeId: string | undefined,
 		anatomySchemeId: string | null | undefined,
-		tiers: CreatureTierDto[]
+		tiers: CreatureTierDto[],
+		naturalAttacks: CreatureNaturalAttackDto[]
 	) {
 		if (typeId) {
 			const type = await this.prisma.creatureType.findUnique({
@@ -376,14 +580,54 @@ export class CreaturesService {
 					.filter((id): id is string => Boolean(id))
 			)
 		];
+		const sizeIds = [
+			...new Set(
+				tiers.map(tier => tier.sizeId).filter((id): id is string => Boolean(id))
+			)
+		];
 		const skillIds = [
-			...new Set(tiers.flatMap(tier => tier.skills.map(skill => skill.skillId)))
+			...new Set([
+				...tiers.flatMap(tier => tier.skills.map(skill => skill.skillId)),
+				...naturalAttacks.flatMap(item =>
+					(item.attackProfiles ?? []).map(profile => profile.skillId)
+				)
+			])
 		];
 		const characteristicIds = [
 			...new Set(
-				tiers.flatMap(tier =>
-					tier.characteristics.map(
-						characteristic => characteristic.characteristicId
+				[
+					...naturalAttacks
+						.flatMap(item =>
+							(item.attackProfiles ?? []).map(
+								profile => profile.characteristicId
+							)
+						)
+						.filter((id): id is string => Boolean(id)),
+					tiers.flatMap(tier =>
+						tier.characteristics.map(
+							characteristic => characteristic.characteristicId
+						)
+					)
+				].flat()
+			)
+		];
+		const naturalAttackIds = [
+			...new Set(naturalAttacks.map(item => item.naturalAttackId))
+		];
+		const damageTypeIds = [
+			...new Set(
+				naturalAttacks.flatMap(item =>
+					(item.attackProfiles ?? []).flatMap(
+						profile => profile.damageTypeIds ?? []
+					)
+				)
+			)
+		];
+		const combatIntentIds = [
+			...new Set(
+				naturalAttacks.flatMap(item =>
+					(item.attackProfiles ?? []).flatMap(profile =>
+						(profile.intents ?? []).map(intent => intent.combatIntentId)
 					)
 				)
 			)
@@ -396,6 +640,16 @@ export class CreaturesService {
 
 			if (count !== armorPresetIds.length) {
 				throw new BadRequestException('Пресет брони не найден.');
+			}
+		}
+
+		if (sizeIds.length) {
+			const count = await this.prisma.creatureSize.count({
+				where: { id: { in: sizeIds } }
+			});
+
+			if (count !== sizeIds.length) {
+				throw new BadRequestException('Размер существа не найден.');
 			}
 		}
 
@@ -418,6 +672,36 @@ export class CreaturesService {
 				throw new BadRequestException('Характеристика не найдена.');
 			}
 		}
+
+		if (naturalAttackIds.length) {
+			const count = await this.prisma.naturalAttack.count({
+				where: { id: { in: naturalAttackIds } }
+			});
+
+			if (count !== naturalAttackIds.length) {
+				throw new BadRequestException('Естественная атака не найдена.');
+			}
+		}
+
+		if (damageTypeIds.length) {
+			const count = await this.prisma.damageType.count({
+				where: { id: { in: damageTypeIds } }
+			});
+
+			if (count !== damageTypeIds.length) {
+				throw new BadRequestException('Тип урона не найден.');
+			}
+		}
+
+		if (combatIntentIds.length) {
+			const count = await this.prisma.combatIntent.count({
+				where: { id: { in: combatIntentIds } }
+			});
+
+			if (count !== combatIntentIds.length) {
+				throw new BadRequestException('Боевое намерение не найдено.');
+			}
+		}
 	}
 
 	private toTierCreateData(tier: CreatureTierDto) {
@@ -425,6 +709,7 @@ export class CreaturesService {
 			tier: tier.tier,
 			name: tier.name.trim(),
 			hp: tier.hp,
+			sizeId: tier.sizeId ?? null,
 			armorPresetId: tier.armorPresetId ?? null,
 			isActive: tier.isActive ?? true,
 			sortOrder: tier.sortOrder ?? tier.tier,
@@ -484,6 +769,98 @@ export class CreaturesService {
 			);
 			zoneIdsByClientKey.set(zone.id ?? zone.slug, saved.id);
 		}
+	}
+
+	private async replaceCreatureNaturalAttacks(
+		tx: Prisma.TransactionClient,
+		creatureId: string,
+		naturalAttacks: CreatureNaturalAttackDto[]
+	) {
+		const naturalAttackIds = naturalAttacks.map(item => item.naturalAttackId);
+
+		if (new Set(naturalAttackIds).size !== naturalAttackIds.length) {
+			throw new BadRequestException('Естественная атака указана дважды.');
+		}
+
+		await tx.creatureNaturalAttack.deleteMany({ where: { creatureId } });
+
+		for (const [index, naturalAttack] of naturalAttacks.entries()) {
+			const attackProfiles =
+				naturalAttack.attackProfiles ??
+				(await this.defaultCreatureNaturalAttackProfiles(
+					tx,
+					naturalAttack.naturalAttackId
+				));
+
+			await tx.creatureNaturalAttack.create({
+				data: {
+					creatureId,
+					naturalAttackId: naturalAttack.naturalAttackId,
+					attackProfiles: this.toCreatureNaturalAttackProfiles(attackProfiles),
+					isActive: naturalAttack.isActive ?? true,
+					sortOrder: naturalAttack.sortOrder ?? index
+				}
+			});
+		}
+	}
+
+	private async defaultCreatureNaturalAttackProfiles(
+		tx: Prisma.TransactionClient,
+		naturalAttackId: string
+	): Promise<NonNullable<CreatureNaturalAttackDto['attackProfiles']>> {
+		const profiles = await tx.naturalAttackProfile.findMany({
+			select: naturalAttackProfileSelect,
+			where: { naturalAttackId },
+			orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+		});
+
+		return profiles.map(profile => ({
+			kind: profile.kind === 'MELEE' ? ('melee' as const) : ('ranged' as const),
+			name: profile.name,
+			skillId: profile.skillId,
+			characteristicId: profile.characteristicId,
+			baseCost: profile.baseCost,
+			baseDamage: profile.baseDamage,
+			rangeMeters: profile.rangeMeters,
+			usesAmmo: profile.usesAmmo,
+			canBeParried: profile.canBeParried,
+			damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
+			intents: profile.intentLinks.map(link => ({
+				combatIntentId: link.combatIntentId,
+				costModifier: link.costModifier,
+				damageModifier: link.damageModifier,
+				ruleText: link.ruleText ?? '',
+				sortOrder: link.sortOrder
+			})),
+			isActive: profile.isActive,
+			sortOrder: profile.sortOrder
+		}));
+	}
+
+	private toCreatureNaturalAttackProfiles(
+		profiles: NonNullable<CreatureNaturalAttackDto['attackProfiles']>
+	): Prisma.InputJsonValue {
+		return profiles.map((profile, index) => ({
+			kind: profile.kind,
+			name: profile.name.trim(),
+			skillId: profile.skillId,
+			characteristicId: profile.characteristicId ?? null,
+			baseCost: profile.baseCost,
+			baseDamage: profile.baseDamage,
+			rangeMeters: profile.rangeMeters,
+			usesAmmo: profile.usesAmmo ?? false,
+			canBeParried: profile.canBeParried ?? profile.kind === 'melee',
+			damageTypeIds: profile.damageTypeIds ?? [],
+			intents: (profile.intents ?? []).map((intent, intentIndex) => ({
+				combatIntentId: intent.combatIntentId,
+				costModifier: intent.costModifier ?? 0,
+				damageModifier: intent.damageModifier ?? 0,
+				ruleText: intent.ruleText ?? '',
+				sortOrder: intent.sortOrder ?? intentIndex
+			})),
+			isActive: profile.isActive ?? true,
+			sortOrder: profile.sortOrder ?? index
+		}));
 	}
 
 	private async upsertCreatureAnatomyZone(
@@ -598,11 +975,26 @@ export class CreaturesService {
 				isActive: zone.isActive,
 				sortOrder: zone.sortOrder
 			})),
+			naturalAttacks: creature.naturalAttackLinks.map(link => ({
+				id: link.id,
+				naturalAttackId: link.naturalAttackId,
+				naturalAttack: {
+					...link.naturalAttack,
+					attackProfiles: link.naturalAttack.attackProfiles.map(profile =>
+						this.mapNaturalAttackProfile(profile)
+					)
+				},
+				attackProfiles: link.attackProfiles,
+				isActive: link.isActive,
+				sortOrder: link.sortOrder
+			})),
 			tiers: creature.tiers.map(tier => ({
 				id: tier.id,
 				tier: tier.tier,
 				name: tier.name,
 				hp: tier.hp,
+				sizeId: tier.sizeId,
+				size: tier.size,
 				armorPresetId: tier.armorPresetId,
 				armorPreset: tier.armorPreset,
 				skills: tier.skills.map(skill => ({
@@ -624,6 +1016,36 @@ export class CreaturesService {
 			sortOrder: creature.sortOrder,
 			createdAt: creature.createdAt.toISOString(),
 			updatedAt: creature.updatedAt.toISOString()
+		};
+	}
+
+	private mapNaturalAttackProfile(profile: NaturalAttackProfileRecord) {
+		return {
+			id: profile.id,
+			kind: profile.kind === 'MELEE' ? 'melee' : 'ranged',
+			name: profile.name,
+			skillId: profile.skillId,
+			skill: profile.skill,
+			characteristicId: profile.characteristicId,
+			characteristic: profile.characteristic,
+			baseCost: profile.baseCost,
+			baseDamage: profile.baseDamage,
+			rangeMeters: profile.rangeMeters,
+			usesAmmo: profile.usesAmmo,
+			canBeParried: profile.canBeParried,
+			damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
+			damageTypes: profile.damageTypeLinks.map(link => link.damageType),
+			isActive: profile.isActive,
+			sortOrder: profile.sortOrder,
+			intents: profile.intentLinks.map(link => ({
+				id: link.id,
+				combatIntentId: link.combatIntentId,
+				combatIntent: link.combatIntent,
+				costModifier: link.costModifier,
+				damageModifier: link.damageModifier,
+				ruleText: link.ruleText ?? '',
+				sortOrder: link.sortOrder
+			}))
 		};
 	}
 }

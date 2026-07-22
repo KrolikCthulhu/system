@@ -155,6 +155,11 @@ export type ConditionContent = SortableContentItem & {
 
 export type CreatureTypeContent = SortableContentItem;
 
+export type CreatureSizeContent = NamedContentItem & {
+	rank: number;
+	isActive?: boolean;
+};
+
 export type AnatomySchemeContent = NamedContentItem & {
 	zones: AnatomySchemeZoneContent[];
 };
@@ -172,13 +177,19 @@ export type AnatomySchemeZoneContent = SortableContentItem & {
 export type CreatureContent = SortableContentItem & {
 	type: SlugRef;
 	anatomyScheme?: SlugRef;
+	naturalAttacks?: CreatureNaturalAttackContent[];
 	tiers: CreatureTierContent[];
+};
+
+export type CreatureNaturalAttackContent = SlugRef & {
+	attackProfiles?: WeaponAttackProfileContent[];
 };
 
 export type CreatureTierContent = {
 	tier: number;
 	name: string;
 	hp: number;
+	size?: SlugRef;
 	armorPreset: SlugRef;
 	characteristics?: CreatureTierCharacteristicContent[];
 	skills: CreatureTierSkillContent[];
@@ -216,6 +227,7 @@ export type WeaponAttackProfileContent = {
 	baseDamage: number;
 	rangeMeters: number;
 	usesAmmo?: boolean;
+	canBeParried?: boolean;
 	damageTypes?: SlugRef[];
 	combatIntents?: SlugRef[];
 	sortOrder?: number;
@@ -230,8 +242,15 @@ export type WeaponTemplateContent = SortableContentItem & {
 	attackProfiles: WeaponAttackProfileContent[];
 };
 
+export type NaturalAttackContent = SortableContentItem & {
+	skill: SlugRef;
+	attackProfiles: WeaponAttackProfileContent[];
+};
+
 export type CombatIntentContent = SortableContentItem & {
 	category: string;
+	description?: string;
+	mechanic?: Prisma.InputJsonValue;
 	textBlocks?: CombatIntentTextBlockContent[];
 	isActive?: boolean;
 };

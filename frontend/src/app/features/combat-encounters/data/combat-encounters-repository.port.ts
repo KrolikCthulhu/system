@@ -1,6 +1,9 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CombatEncounter } from '../domain/combat-encounters.models';
+import {
+	CombatEncounter,
+	KnockdownSizeRuleResult
+} from '../domain/combat-encounters.models';
 
 export interface CombatEncountersRepository {
 	loadCampaignEncounters(campaignId: string): Observable<CombatEncounter[]>;
@@ -33,6 +36,11 @@ export interface CombatEncountersRepository {
 			isActive?: boolean;
 		}
 	): Observable<CombatEncounter>;
+	resolveKnockdownSizeRule(
+		id: string,
+		attackerParticipantId: string,
+		targetParticipantId: string
+	): Observable<KnockdownSizeRuleResult>;
 }
 
 export const COMBAT_ENCOUNTERS_REPOSITORY =

@@ -18,11 +18,20 @@ export interface CombatEncounterCreature {
 	name: string;
 }
 
+export interface CombatEncounterCreatureSize {
+	id: string;
+	slug: string;
+	name: string;
+	rank: number;
+}
+
 export interface CombatEncounterCreatureTier {
 	id: string;
 	tier: number;
 	name: string;
 	hp: number;
+	sizeId: string | null;
+	size: CombatEncounterCreatureSize | null;
 }
 
 export interface CombatEncounterParticipant {
@@ -53,4 +62,20 @@ export interface CombatEncounter {
 	participants: CombatEncounterParticipant[];
 	createdAt: string;
 	updatedAt: string;
+}
+
+export interface CombatSizeRuleSize {
+	id: string | null;
+	name: string;
+	rank: number;
+	source: 'creature_tier' | 'default';
+}
+
+export interface KnockdownSizeRuleResult {
+	attackerSize: CombatSizeRuleSize;
+	targetSize: CombatSizeRuleSize;
+	sizeDifference: number;
+	isAvailable: boolean;
+	requiredCleanSuccesses: number | null;
+	text: string;
 }

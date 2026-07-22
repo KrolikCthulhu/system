@@ -4,7 +4,9 @@
 	</header>
 
 	<div class="admin-weapon-templates-page__workspace">
-		<aside class="admin-weapon-templates-page__panel admin-weapon-templates-page__sidebar">
+		<aside
+			class="admin-weapon-templates-page__panel admin-weapon-templates-page__sidebar"
+		>
 			<div class="admin-weapon-templates-page__panel-heading">
 				<h2 class="admin-weapon-templates-page__panel-title">Шаблоны</h2>
 				<p-button
@@ -16,7 +18,9 @@
 			</div>
 
 			@if (loading()) {
-				<div class="admin-weapon-templates-page__state">Загрузка шаблонов...</div>
+				<div class="admin-weapon-templates-page__state">
+					Загрузка шаблонов...
+				</div>
 			} @else {
 				<app-navigation-tree
 					class="admin-weapon-templates-page__navigation-tree"
@@ -30,9 +34,13 @@
 		</aside>
 
 		@if (draft(); as currentDraft) {
-			<section class="admin-weapon-templates-page__panel admin-weapon-templates-page__editor">
+			<section
+				class="admin-weapon-templates-page__panel admin-weapon-templates-page__editor"
+			>
 				<div class="admin-weapon-templates-page__panel-heading">
-					<h2 class="admin-weapon-templates-page__panel-title">{{ title() }}</h2>
+					<h2 class="admin-weapon-templates-page__panel-title">
+						{{ title() }}
+					</h2>
 				</div>
 
 				<div class="admin-weapon-templates-page__editor-body">
@@ -43,7 +51,9 @@
 					}
 
 					<div class="admin-weapon-templates-page__form-grid">
-						<span class="admin-weapon-templates-page__field admin-weapon-templates-page__field--wide">
+						<span
+							class="admin-weapon-templates-page__field admin-weapon-templates-page__field--wide"
+						>
 							<span>Название</span>
 							<input
 								pInputText
@@ -145,7 +155,11 @@
 							</div>
 						</div>
 
-						@for (profile of currentDraft.attackProfiles; track profile.kind; let index = $index) {
+						@for (
+							profile of currentDraft.attackProfiles;
+							track profile.kind;
+							let index = $index
+						) {
 							<section class="admin-weapon-templates-page__profile">
 								<div class="admin-weapon-templates-page__profile-header">
 									<h4>{{ profileKindLabel(profile.kind) }}</h4>
@@ -166,7 +180,11 @@
 											pInputText
 											type="text"
 											[value]="profile.name"
-											(input)="updateProfile(index, { name: $any($event.target).value })"
+											(input)="
+												updateProfile(index, {
+													name: $any($event.target).value
+												})
+											"
 										/>
 									</span>
 
@@ -184,7 +202,9 @@
 											[filter]="true"
 											filterBy="name,searchText"
 											appendTo="body"
-											(ngModelChange)="updateProfile(index, { skillId: $event })"
+											(ngModelChange)="
+												updateProfile(index, { skillId: $event })
+											"
 										></p-select>
 									</span>
 
@@ -197,7 +217,9 @@
 											optionLabel="name"
 											optionValue="id"
 											appendTo="body"
-											(ngModelChange)="updateProfile(index, { characteristicId: $event })"
+											(ngModelChange)="
+												updateProfile(index, { characteristicId: $event })
+											"
 										></p-select>
 									</span>
 
@@ -208,7 +230,9 @@
 											[showButtons]="true"
 											[min]="0"
 											[fluid]="true"
-											(ngModelChange)="updateProfile(index, { baseCost: $event ?? 0 })"
+											(ngModelChange)="
+												updateProfile(index, { baseCost: $event ?? 0 })
+											"
 										></p-inputnumber>
 									</span>
 
@@ -219,7 +243,9 @@
 											[showButtons]="true"
 											[min]="0"
 											[fluid]="true"
-											(ngModelChange)="updateProfile(index, { baseDamage: $event ?? 0 })"
+											(ngModelChange)="
+												updateProfile(index, { baseDamage: $event ?? 0 })
+											"
 										></p-inputnumber>
 									</span>
 
@@ -230,7 +256,9 @@
 											[showButtons]="true"
 											[min]="1"
 											[fluid]="true"
-											(ngModelChange)="updateProfile(index, { rangeMeters: $event ?? 1 })"
+											(ngModelChange)="
+												updateProfile(index, { rangeMeters: $event ?? 1 })
+											"
 										></p-inputnumber>
 									</span>
 
@@ -238,20 +266,46 @@
 										<span>Боеприпасы</span>
 										<p-toggleswitch
 											[ngModel]="profile.usesAmmo"
-											(ngModelChange)="updateProfile(index, { usesAmmo: $event })"
+											(ngModelChange)="
+												updateProfile(index, { usesAmmo: $event })
+											"
 										></p-toggleswitch>
 									</span>
 
-									<span class="admin-weapon-templates-page__field admin-weapon-templates-page__field--wide">
+									<span class="admin-weapon-templates-page__switch-field">
+										<span>Можно парировать</span>
+										<p-toggleswitch
+											[ngModel]="profile.canBeParried"
+											(ngModelChange)="
+												updateProfile(index, { canBeParried: $event })
+											"
+										></p-toggleswitch>
+									</span>
+
+									<span
+										class="admin-weapon-templates-page__field admin-weapon-templates-page__field--wide"
+									>
 										<span>Возможные типы урона</span>
 										<div class="admin-weapon-templates-page__checkbox-list">
-											@for (damageType of damageTypeOptions(); track damageType.id) {
-												<label class="admin-weapon-templates-page__checkbox-row">
+											@for (
+												damageType of damageTypeOptions();
+												track damageType.id
+											) {
+												<label
+													class="admin-weapon-templates-page__checkbox-row"
+												>
 													<p-checkbox
-														[inputId]="'template-profile-' + index + '-damage-type-' + damageType.id"
+														[inputId]="
+															'template-profile-' +
+															index +
+															'-damage-type-' +
+															damageType.id
+														"
 														[value]="damageType.id"
 														[ngModel]="profile.damageTypeIds"
-														(ngModelChange)="updateProfileDamageTypeIds(index, $event)"
+														(ngModelChange)="
+															updateProfileDamageTypeIds(index, $event)
+														"
 													></p-checkbox>
 													<span>{{ damageType.name }}</span>
 												</label>
@@ -259,22 +313,45 @@
 										</div>
 									</span>
 
-									<span class="admin-weapon-templates-page__field admin-weapon-templates-page__field--wide">
+									<span
+										class="admin-weapon-templates-page__field admin-weapon-templates-page__field--wide"
+									>
 										<span>Намерения</span>
 										<div class="admin-weapon-templates-page__intent-groups">
 											@for (group of combatIntentGroups(); track group.label) {
-												<section class="admin-weapon-templates-page__intent-group">
-													<div class="admin-weapon-templates-page__intent-group-title">
+												<section
+													class="admin-weapon-templates-page__intent-group"
+												>
+													<div
+														class="admin-weapon-templates-page__intent-group-title"
+													>
 														{{ group.label }}
 													</div>
-													<div class="admin-weapon-templates-page__checkbox-list">
+													<div
+														class="admin-weapon-templates-page__checkbox-list"
+													>
 														@for (intent of group.items; track intent.id) {
-															<label class="admin-weapon-templates-page__checkbox-row">
+															<label
+																class="admin-weapon-templates-page__checkbox-row"
+															>
 																<p-checkbox
-																	[inputId]="'template-profile-' + index + '-intent-' + intent.id"
+																	[inputId]="
+																		'template-profile-' +
+																		index +
+																		'-intent-' +
+																		intent.id
+																	"
 																	[binary]="true"
-																	[ngModel]="profile.combatIntentIds.includes(intent.id)"
-																	(ngModelChange)="updateProfileIntent(index, intent.id, $event)"
+																	[ngModel]="
+																		profile.combatIntentIds.includes(intent.id)
+																	"
+																	(ngModelChange)="
+																		updateProfileIntent(
+																			index,
+																			intent.id,
+																			$event
+																		)
+																	"
 																></p-checkbox>
 																<span>{{ intent.name }}</span>
 															</label>

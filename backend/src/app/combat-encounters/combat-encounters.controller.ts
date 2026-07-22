@@ -5,6 +5,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 	UseGuards
 } from '@nestjs/common';
 import { AuthenticatedUser } from '../auth/auth.types';
@@ -14,6 +15,7 @@ import { CombatEncountersService } from './combat-encounters.service';
 import { AddCreatureParticipantDto } from './dto/add-creature-participant.dto';
 import { AddPlayerCharacterParticipantDto } from './dto/add-player-character-participant.dto';
 import { CreateCombatEncounterDto } from './dto/create-combat-encounter.dto';
+import { KnockdownSizeRuleQueryDto } from './dto/knockdown-size-rule-query.dto';
 import { UpdateCombatParticipantDto } from './dto/update-combat-participant.dto';
 
 @Controller()
@@ -44,6 +46,15 @@ export class CombatEncountersController {
 		@Param('id') id: string
 	) {
 		return this.encountersService.getEncounter(id, user.id);
+	}
+
+	@Get('combat-encounters/:id/rules/knockdown-size')
+	getKnockdownSizeRule(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Query() query: KnockdownSizeRuleQueryDto
+	) {
+		return this.encountersService.getKnockdownSizeRule(id, user.id, query);
 	}
 
 	@Post('combat-encounters/:id/player-characters')

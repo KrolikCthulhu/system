@@ -422,6 +422,289 @@
 						</ng-template>
 					</section>
 
+					<section class="admin-creatures-page__natural-attacks">
+						<div class="admin-creatures-page__tiers-heading">
+							<h3>Естественные атаки</h3>
+							<span>Доступные способы физической атаки существа</span>
+						</div>
+
+						<div class="admin-creatures-page__natural-attack-list">
+							@for (naturalAttack of naturalAttacks(); track naturalAttack.id) {
+								<div class="admin-creatures-page__natural-attack-card">
+									<label class="admin-creatures-page__natural-attack-row">
+										<p-checkbox
+											[inputId]="'creature-natural-attack-' + naturalAttack.id"
+											[binary]="true"
+											[ngModel]="naturalAttackDraft(naturalAttack.id) !== null"
+											(ngModelChange)="
+												updateNaturalAttack(naturalAttack.id, $event)
+											"
+										></p-checkbox>
+										<span>
+											<strong>{{ naturalAttack.name }}</strong>
+											<small>{{ naturalAttack.skill.name }}</small>
+										</span>
+									</label>
+
+									@if (naturalAttackDraft(naturalAttack.id); as attackDraft) {
+										<div class="admin-creatures-page__natural-attack-profiles">
+											@for (
+												profile of attackDraft.attackProfiles;
+												track profile.kind;
+												let profileIndex = $index
+											) {
+												<div
+													class="admin-creatures-page__natural-attack-profile"
+												>
+													<div
+														class="admin-creatures-page__natural-attack-profile-head"
+													>
+														<strong>{{ profile.name }}</strong>
+														<p-tag
+															[value]="profileKindLabel(profile.kind)"
+															severity="info"
+														></p-tag>
+													</div>
+
+													<div class="admin-creatures-page__attack-fields">
+														<span class="admin-creatures-page__field">
+															<span>Навык</span>
+															<p-select
+																[ngModel]="profile.skillId"
+																[options]="skillOptionGroups()"
+																[fluid]="true"
+																optionLabel="name"
+																optionValue="id"
+																optionGroupLabel="label"
+																optionGroupChildren="items"
+																[group]="true"
+																[filter]="true"
+																filterBy="name,searchText"
+																appendTo="body"
+																(ngModelChange)="
+																	updateNaturalAttackProfile(
+																		naturalAttack.id,
+																		profileIndex,
+																		{ skillId: $event }
+																	)
+																"
+															></p-select>
+														</span>
+
+														<span class="admin-creatures-page__field">
+															<span>Характеристика</span>
+															<p-select
+																[ngModel]="profile.characteristicId"
+																[options]="characteristics()"
+																[fluid]="true"
+																optionLabel="name"
+																optionValue="id"
+																appendTo="body"
+																(ngModelChange)="
+																	updateNaturalAttackProfile(
+																		naturalAttack.id,
+																		profileIndex,
+																		{ characteristicId: $event }
+																	)
+																"
+															></p-select>
+														</span>
+
+														<span class="admin-creatures-page__field">
+															<span>Стоимость</span>
+															<p-inputnumber
+																[ngModel]="profile.baseCost"
+																[showButtons]="false"
+																[fluid]="true"
+																[min]="0"
+																(ngModelChange)="
+																	updateNaturalAttackProfile(
+																		naturalAttack.id,
+																		profileIndex,
+																		{ baseCost: $event ?? 0 }
+																	)
+																"
+															></p-inputnumber>
+														</span>
+
+														<span class="admin-creatures-page__field">
+															<span>Урон</span>
+															<p-inputnumber
+																[ngModel]="profile.baseDamage"
+																[showButtons]="false"
+																[fluid]="true"
+																(ngModelChange)="
+																	updateNaturalAttackProfile(
+																		naturalAttack.id,
+																		profileIndex,
+																		{ baseDamage: $event ?? 0 }
+																	)
+																"
+															></p-inputnumber>
+														</span>
+
+														<span class="admin-creatures-page__field">
+															<span>Дистанция, м</span>
+															<p-inputnumber
+																[ngModel]="profile.rangeMeters"
+																[showButtons]="false"
+																[fluid]="true"
+																[min]="0"
+																(ngModelChange)="
+																	updateNaturalAttackProfile(
+																		naturalAttack.id,
+																		profileIndex,
+																		{ rangeMeters: $event ?? 0 }
+																	)
+																"
+															></p-inputnumber>
+														</span>
+
+														<span class="admin-creatures-page__switch-field">
+															<span>Профиль активен</span>
+															<p-toggleswitch
+																[ngModel]="profile.isActive"
+																(ngModelChange)="
+																	updateNaturalAttackProfile(
+																		naturalAttack.id,
+																		profileIndex,
+																		{ isActive: $event }
+																	)
+																"
+															></p-toggleswitch>
+														</span>
+
+														<span class="admin-creatures-page__switch-field">
+															<span>Можно парировать</span>
+															<p-toggleswitch
+																[ngModel]="profile.canBeParried"
+																(ngModelChange)="
+																	updateNaturalAttackProfile(
+																		naturalAttack.id,
+																		profileIndex,
+																		{ canBeParried: $event }
+																	)
+																"
+															></p-toggleswitch>
+														</span>
+													</div>
+
+													<div class="admin-creatures-page__attack-options">
+														<div
+															class="admin-creatures-page__attack-options-group"
+														>
+															<strong>Типы урона</strong>
+															<div
+																class="admin-creatures-page__attack-option-list"
+															>
+																@for (
+																	damageType of damageTypes();
+																	track damageType.id
+																) {
+																	<label
+																		class="admin-creatures-page__attack-option"
+																	>
+																		<p-checkbox
+																			[inputId]="
+																				'creature-attack-damage-' +
+																				naturalAttack.id +
+																				'-' +
+																				profileIndex +
+																				'-' +
+																				damageType.id
+																			"
+																			[binary]="true"
+																			[ngModel]="
+																				profile.damageTypeIds.includes(
+																					damageType.id
+																				)
+																			"
+																			(ngModelChange)="
+																				updateNaturalAttackProfileDamageType(
+																					naturalAttack.id,
+																					profileIndex,
+																					damageType.id,
+																					$event
+																				)
+																			"
+																		></p-checkbox>
+																		<span>{{ damageType.name }}</span>
+																	</label>
+																}
+															</div>
+														</div>
+
+														<div
+															class="admin-creatures-page__attack-options-group"
+														>
+															<strong>Намерения</strong>
+															<div
+																class="admin-creatures-page__combat-intent-groups"
+															>
+																@for (
+																	group of combatIntentGroups();
+																	track group.label
+																) {
+																	<div
+																		class="admin-creatures-page__combat-intent-group"
+																	>
+																		<small>{{ group.label }}</small>
+																		<div
+																			class="admin-creatures-page__attack-option-list"
+																		>
+																			@for (
+																				intent of group.items;
+																				track intent.id
+																			) {
+																				<label
+																					class="admin-creatures-page__attack-option"
+																				>
+																					<p-checkbox
+																						[inputId]="
+																							'creature-attack-intent-' +
+																							naturalAttack.id +
+																							'-' +
+																							profileIndex +
+																							'-' +
+																							intent.id
+																						"
+																						[binary]="true"
+																						[ngModel]="
+																							profile.combatIntentIds.includes(
+																								intent.id
+																							)
+																						"
+																						(ngModelChange)="
+																							updateNaturalAttackProfileIntent(
+																								naturalAttack.id,
+																								profileIndex,
+																								intent.id,
+																								$event
+																							)
+																						"
+																					></p-checkbox>
+																					<span>{{ intent.name }}</span>
+																				</label>
+																			}
+																		</div>
+																	</div>
+																}
+															</div>
+														</div>
+													</div>
+												</div>
+											}
+										</div>
+									}
+								</div>
+							} @empty {
+								<div class="admin-creatures-page__empty-list">
+									Естественные атаки пока не настроены.
+								</div>
+							}
+						</div>
+					</section>
+
 					<section class="admin-creatures-page__tiers">
 						<div class="admin-creatures-page__tiers-heading">
 							<h3>Тиры</h3>
@@ -445,7 +728,7 @@
 										<span class="admin-creatures-page__tier-card-title">
 											<strong>{{ tier.tier }}. {{ tier.name }}</strong>
 											<span>
-												HP {{ tier.hp }},
+												HP {{ tier.hp }}, {{ sizeName(tier.sizeId) }},
 												{{ armorSummary(tier.armorPresetId) }},
 												@for (skill of tier.skills; track skill.skillId) {
 													{{ skillName(skill.skillId) }} {{ skill.level }}
@@ -494,6 +777,21 @@
 															[min]="1"
 															(ngModelChange)="updateTierHp(tier.tier, $event)"
 														></p-inputnumber>
+													</span>
+
+													<span class="admin-creatures-page__field">
+														<span>Размер</span>
+														<p-select
+															[ngModel]="tier.sizeId"
+															[options]="creatureSizes()"
+															optionLabel="name"
+															optionValue="id"
+															appendTo="body"
+															[filter]="true"
+															(ngModelChange)="
+																updateTierSize(tier.tier, $event)
+															"
+														></p-select>
 													</span>
 												</div>
 											</section>

@@ -383,6 +383,134 @@
 	line-height: 1.25;
 }
 
+.admin-creatures-page__natural-attacks {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding-top: 1rem;
+	border-top: 1px solid var(--p-content-border-color);
+}
+
+.admin-creatures-page__natural-attack-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.admin-creatures-page__natural-attack-card {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	min-width: 0;
+	padding: 0.625rem;
+	background: var(--p-surface-50);
+}
+
+.admin-creatures-page__natural-attack-row {
+	display: flex;
+	align-items: center;
+	gap: 0.625rem;
+	min-width: 0;
+	color: var(--p-text-color);
+}
+
+.admin-creatures-page__natural-attack-row span {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	min-width: 0;
+}
+
+.admin-creatures-page__natural-attack-row strong,
+.admin-creatures-page__natural-attack-row small {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.admin-creatures-page__natural-attack-row small {
+	color: var(--p-text-muted-color);
+}
+
+.admin-creatures-page__natural-attack-profiles,
+.admin-creatures-page__natural-attack-profile,
+.admin-creatures-page__attack-options,
+.admin-creatures-page__attack-options-group,
+.admin-creatures-page__combat-intent-groups,
+.admin-creatures-page__combat-intent-group {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.admin-creatures-page__natural-attack-profiles {
+	gap: 0.5rem;
+	padding-left: 1.75rem;
+}
+
+.admin-creatures-page__natural-attack-profile {
+	gap: 0.625rem;
+	padding: 0.625rem;
+	border: 1px solid var(--p-content-border-color);
+	background: var(--p-content-background);
+}
+
+.admin-creatures-page__natural-attack-profile-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.admin-creatures-page__natural-attack-profile-head strong,
+.admin-creatures-page__attack-options-group strong {
+	color: var(--p-text-color);
+	font-size: 0.875rem;
+	line-height: 1.2;
+}
+
+.admin-creatures-page__attack-fields {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.625rem;
+	min-width: 0;
+}
+
+.admin-creatures-page__attack-options {
+	gap: 0.625rem;
+}
+
+.admin-creatures-page__attack-options-group,
+.admin-creatures-page__combat-intent-group {
+	gap: 0.375rem;
+}
+
+.admin-creatures-page__attack-option-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+	gap: 0.375rem 0.75rem;
+	min-width: 0;
+}
+
+.admin-creatures-page__attack-option {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+	color: var(--p-text-color);
+	font-size: 0.875rem;
+	line-height: 1.25;
+}
+
+.admin-creatures-page__combat-intent-group small {
+	color: var(--p-text-muted-color);
+	font-size: 0.75rem;
+	font-weight: 600;
+	line-height: 1.2;
+	text-transform: uppercase;
+	letter-spacing: 0.04em;
+}
+
 .admin-creatures-page__tiers {
 	display: flex;
 	flex-direction: column;
@@ -569,6 +697,7 @@
 
 	.admin-creatures-page__form-grid,
 	.admin-creatures-page__anatomy-fields,
+	.admin-creatures-page__attack-fields,
 	.admin-creatures-page__tier-fields,
 	.admin-creatures-page__skill-row {
 		grid-template-columns: 1fr;

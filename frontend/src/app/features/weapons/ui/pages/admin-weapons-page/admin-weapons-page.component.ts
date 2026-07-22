@@ -50,6 +50,7 @@ interface WeaponAttackProfileDraft {
 	baseDamage: number;
 	rangeMeters: number;
 	usesAmmo: boolean;
+	canBeParried: boolean;
 	isActive: boolean;
 	sortOrder: number;
 	combatIntentIds: string[];
@@ -108,13 +109,19 @@ export class AdminWeaponsPageComponent {
 	protected readonly selectedWeaponId = signal<string | null>(null);
 	protected readonly searchQuery = signal('');
 	protected readonly selectedTemplateIdFilter = signal<string | null>(null);
-	protected readonly selectedTemplateSkillIdFilter = signal<string | null>(null);
+	protected readonly selectedTemplateSkillIdFilter = signal<string | null>(
+		null
+	);
 	protected readonly selectedProfileSkillIdFilter = signal<string | null>(null);
-	protected readonly selectedAttackKindFilter = signal<AttackKindFilter | null>(null);
+	protected readonly selectedAttackKindFilter = signal<AttackKindFilter | null>(
+		null
+	);
 	protected readonly selectedActiveFilter = signal<ActiveFilter | null>(null);
 	protected readonly selectedAmmoFilter = signal<AmmoFilter | null>(null);
 	protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
-	protected readonly collapsedSubgroups = signal<ReadonlySet<string>>(new Set());
+	protected readonly collapsedSubgroups = signal<ReadonlySet<string>>(
+		new Set()
+	);
 	protected readonly weapons = signal<Weapon[]>([]);
 	protected readonly templates = signal<WeaponTemplate[]>([]);
 	protected readonly skills = signal<WeaponSkillOption[]>([]);
@@ -149,9 +156,9 @@ export class AdminWeaponsPageComponent {
 	protected readonly combatIntentOptions = computed(() =>
 		this.combatIntents().filter(intent => intent.isActive)
 	);
-	protected readonly combatIntentGroups = computed<WeaponCombatIntentOptionGroup[]>(() =>
-		buildCombatIntentGroups(this.combatIntentOptions())
-	);
+	protected readonly combatIntentGroups = computed<
+		WeaponCombatIntentOptionGroup[]
+	>(() => buildCombatIntentGroups(this.combatIntentOptions()));
 	protected readonly damageTypeOptions = computed(() =>
 		this.damageTypes().filter(damageType => damageType.isActive)
 	);
@@ -183,10 +190,12 @@ export class AdminWeaponsPageComponent {
 		this.characteristics().filter(characteristic => characteristic.isActive)
 	);
 	protected readonly canAddMeleeProfile = computed(
-		() => !this.draft()?.attackProfiles.some(profile => profile.kind === 'melee')
+		() =>
+			!this.draft()?.attackProfiles.some(profile => profile.kind === 'melee')
 	);
 	protected readonly canAddRangedProfile = computed(
-		() => !this.draft()?.attackProfiles.some(profile => profile.kind === 'ranged')
+		() =>
+			!this.draft()?.attackProfiles.some(profile => profile.kind === 'ranged')
 	);
 	protected readonly filteredWeapons = computed(() => {
 		const query = this.searchQuery().trim().toLowerCase();
@@ -202,15 +211,22 @@ export class AdminWeaponsPageComponent {
 			.filter(item => {
 				const template = templates.get(item.templateId);
 				const haystack = `${item.name} ${item.attackProfiles
-					.map(profile => `${profile.name} ${profile.skill.name} ${profile.rangeMeters}`)
-					.join(' ')} ${template?.name ?? ''} ${template?.skill.name ?? ''}`.toLowerCase();
+					.map(
+						profile =>
+							`${profile.name} ${profile.skill.name} ${profile.rangeMeters}`
+					)
+					.join(
+						' '
+					)} ${template?.name ?? ''} ${template?.skill.name ?? ''}`.toLowerCase();
 				const matchesQuery = !query || haystack.includes(query);
 				const matchesTemplate = !templateId || item.templateId === templateId;
 				const matchesTemplateSkill =
 					!templateSkillId || template?.skillId === templateSkillId;
 				const matchesProfileSkill =
 					!profileSkillId ||
-					item.attackProfiles.some(profile => profile.skillId === profileSkillId);
+					item.attackProfiles.some(
+						profile => profile.skillId === profileSkillId
+					);
 				const matchesAttackKind =
 					!attackKind ||
 					item.attackProfiles.some(profile => profile.kind === attackKind);
@@ -296,7 +312,10 @@ export class AdminWeaponsPageComponent {
 		this.collapsedGroups.update(groups => toggleSetValue(groups, groupLabel));
 	}
 
-	protected toggleSubgroup(event: { groupLabel: string; subgroupLabel: string }) {
+	protected toggleSubgroup(event: {
+		groupLabel: string;
+		subgroupLabel: string;
+	}) {
 		this.collapsedSubgroups.update(groups =>
 			toggleSetValue(groups, subgroupKey(event.groupLabel, event.subgroupLabel))
 		);
@@ -345,7 +364,7 @@ export class AdminWeaponsPageComponent {
 			templateId,
 			attackProfiles: template
 				? template.attackProfiles.map(profileFromWeaponProfile)
-				: this.draft()?.attackProfiles ?? []
+				: (this.draft()?.attackProfiles ?? [])
 		});
 	}
 
@@ -360,7 +379,10 @@ export class AdminWeaponsPageComponent {
 	protected addAttackProfile(kind: WeaponAttackProfileKind) {
 		const current = this.draft();
 
-		if (!current || current.attackProfiles.some(profile => profile.kind === kind)) {
+		if (
+			!current ||
+			current.attackProfiles.some(profile => profile.kind === kind)
+		) {
 			return;
 		}
 
@@ -384,7 +406,9 @@ export class AdminWeaponsPageComponent {
 		}
 
 		this.patchDraft({
-			attackProfiles: current.attackProfiles.filter((_, itemIndex) => itemIndex !== index)
+			attackProfiles: current.attackProfiles.filter(
+				(_, itemIndex) => itemIndex !== index
+			)
 		});
 	}
 
@@ -396,7 +420,10 @@ export class AdminWeaponsPageComponent {
 		this.patchProfile(index, { skillId });
 	}
 
-	protected updateProfileCharacteristic(index: number, characteristicId: string | null) {
+	protected updateProfileCharacteristic(
+		index: number,
+		characteristicId: string | null
+	) {
 		this.patchProfile(index, { characteristicId });
 	}
 
@@ -414,6 +441,10 @@ export class AdminWeaponsPageComponent {
 
 	protected updateProfileUsesAmmo(index: number, usesAmmo: boolean) {
 		this.patchProfile(index, { usesAmmo });
+	}
+
+	protected updateProfileCanBeParried(index: number, canBeParried: boolean) {
+		this.patchProfile(index, { canBeParried });
 	}
 
 	protected updateProfileActive(index: number, isActive: boolean) {
@@ -513,6 +544,7 @@ export class AdminWeaponsPageComponent {
 				baseDamage: profile.baseDamage,
 				rangeMeters: profile.rangeMeters,
 				usesAmmo: profile.usesAmmo,
+				canBeParried: profile.canBeParried,
 				isActive: profile.isActive,
 				sortOrder: profile.sortOrder || index,
 				intents: profile.combatIntentIds.map((combatIntentId, intentIndex) => ({
@@ -536,7 +568,9 @@ export class AdminWeaponsPageComponent {
 			},
 			error: error => {
 				this.errorMessage.set(
-					error instanceof Error ? error.message : 'Не удалось сохранить оружие.'
+					error instanceof Error
+						? error.message
+						: 'Не удалось сохранить оружие.'
 				);
 				this.saving.set(false);
 			}
@@ -631,7 +665,10 @@ export class AdminWeaponsPageComponent {
 		this.draft.set({ ...current, ...patch });
 	}
 
-	private patchProfile(index: number, patch: Partial<WeaponAttackProfileDraft>) {
+	private patchProfile(
+		index: number,
+		patch: Partial<WeaponAttackProfileDraft>
+	) {
 		const current = this.draft();
 
 		if (!current) {
@@ -672,7 +709,9 @@ export class AdminWeaponsPageComponent {
 				},
 				error: error => {
 					this.errorMessage.set(
-						error instanceof Error ? error.message : 'Не удалось удалить оружие.'
+						error instanceof Error
+							? error.message
+							: 'Не удалось удалить оружие.'
 					);
 					this.saving.set(false);
 				}
@@ -712,6 +751,7 @@ function createEmptyProfileDraft(
 		baseDamage: 0,
 		rangeMeters: kind === 'melee' ? 1 : 10,
 		usesAmmo: kind === 'ranged',
+		canBeParried: kind === 'melee',
 		isActive: true,
 		sortOrder: kind === 'melee' ? 0 : 1,
 		combatIntentIds: [],
@@ -735,6 +775,7 @@ function profilesFromWeapon(weapon: Weapon): WeaponAttackProfileDraft[] {
 			baseDamage: weapon.extraDamage,
 			rangeMeters: 1,
 			usesAmmo: false,
+			canBeParried: true,
 			isActive: weapon.isActive,
 			sortOrder: 0,
 			combatIntentIds: [],
@@ -756,10 +797,11 @@ function profileFromWeaponProfile(
 		baseDamage: profile.baseDamage,
 		rangeMeters: profile.rangeMeters,
 		usesAmmo: profile.usesAmmo,
-	isActive: profile.isActive,
-	sortOrder: profile.sortOrder,
-	combatIntentIds: profile.intents.map(intent => intent.combatIntentId),
-	damageTypeIds: profile.damageTypeIds
+		canBeParried: profile.canBeParried,
+		isActive: profile.isActive,
+		sortOrder: profile.sortOrder,
+		combatIntentIds: profile.intents.map(intent => intent.combatIntentId),
+		damageTypeIds: profile.damageTypeIds
 	};
 }
 
@@ -781,6 +823,7 @@ function draftSignature(draft: WeaponDraft | null) {
 					baseDamage: profile.baseDamage,
 					rangeMeters: profile.rangeMeters,
 					usesAmmo: profile.usesAmmo,
+					canBeParried: profile.canBeParried,
 					isActive: profile.isActive,
 					sortOrder: profile.sortOrder,
 					combatIntentIds: [...profile.combatIntentIds].sort(),
@@ -790,7 +833,9 @@ function draftSignature(draft: WeaponDraft | null) {
 		: '';
 }
 
-function buildSkillGroups(skills: WeaponSkillOption[]): WeaponSkillOptionGroup[] {
+function buildSkillGroups(
+	skills: WeaponSkillOption[]
+): WeaponSkillOptionGroup[] {
 	const groupMap = new Map<string, WeaponSkillOptionGroup>();
 
 	for (const skill of skills) {
@@ -858,20 +903,16 @@ function buildWeaponTreeGroups(
 		const groupSortOrder = template?.skill.sortOrder ?? 9999;
 		const subgroupLabel = template?.name ?? weapon.template.name;
 		const subgroupSortOrder = template?.sortOrder ?? 9999;
-		const group =
-			groupMap.get(groupLabel) ??
-			{
-				label: groupLabel,
-				sortOrder: groupSortOrder,
-				subgroups: new Map()
-			};
-		const subgroup =
-			group.subgroups.get(subgroupLabel) ??
-			{
-				label: subgroupLabel,
-				sortOrder: subgroupSortOrder,
-				items: []
-			};
+		const group = groupMap.get(groupLabel) ?? {
+			label: groupLabel,
+			sortOrder: groupSortOrder,
+			subgroups: new Map()
+		};
+		const subgroup = group.subgroups.get(subgroupLabel) ?? {
+			label: subgroupLabel,
+			sortOrder: subgroupSortOrder,
+			items: []
+		};
 
 		subgroup.items.push({
 			id: weapon.id,
@@ -883,14 +924,26 @@ function buildWeaponTreeGroups(
 	}
 
 	return [...groupMap.values()]
-		.sort((first, second) => first.sortOrder - second.sortOrder || first.label.localeCompare(second.label, 'ru'))
+		.sort(
+			(first, second) =>
+				first.sortOrder - second.sortOrder ||
+				first.label.localeCompare(second.label, 'ru')
+		)
 		.map(group => {
 			const subgroups = [...group.subgroups.values()]
-				.sort((first, second) => first.sortOrder - second.sortOrder || first.label.localeCompare(second.label, 'ru'))
+				.sort(
+					(first, second) =>
+						first.sortOrder - second.sortOrder ||
+						first.label.localeCompare(second.label, 'ru')
+				)
 				.map(subgroup => ({
 					label: subgroup.label,
 					items: subgroup.items
-						.sort((first, second) => first.sortOrder - second.sortOrder || first.label.localeCompare(second.label, 'ru'))
+						.sort(
+							(first, second) =>
+								first.sortOrder - second.sortOrder ||
+								first.label.localeCompare(second.label, 'ru')
+						)
 						.map(item => ({
 							id: item.id,
 							label: item.label
@@ -899,7 +952,10 @@ function buildWeaponTreeGroups(
 
 			return {
 				label: group.label,
-				count: subgroups.reduce((total, subgroup) => total + subgroup.items.length, 0),
+				count: subgroups.reduce(
+					(total, subgroup) => total + subgroup.items.length,
+					0
+				),
 				items: [],
 				subgroups
 			};

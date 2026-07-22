@@ -169,7 +169,9 @@
 						(subgroupToggle)="toggleSubgroup($event)"
 					></app-navigation-tree>
 				} @else {
-					<div class="admin-weapons-page__empty-list admin-weapons-page__section-pad">
+					<div
+						class="admin-weapons-page__empty-list admin-weapons-page__section-pad"
+					>
 						Оружия пока нет.
 					</div>
 				}
@@ -199,7 +201,9 @@
 					</div>
 				</div>
 
-				<div class="admin-weapons-page__editor-body admin-weapons-page__section-pad">
+				<div
+					class="admin-weapons-page__editor-body admin-weapons-page__section-pad"
+				>
 					@if (errorMessage()) {
 						<div class="admin-weapons-page__form-error">
 							{{ errorMessage() }}
@@ -207,7 +211,9 @@
 					}
 
 					<div class="admin-weapons-page__form-grid">
-						<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+						<span
+							class="admin-weapons-page__field admin-weapons-page__field--wide"
+						>
 							<span>Название</span>
 							<input
 								pInputText
@@ -217,7 +223,9 @@
 							/>
 						</span>
 
-						<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+						<span
+							class="admin-weapons-page__field admin-weapons-page__field--wide"
+						>
 							<span>Шаблон</span>
 							<p-select
 								[ngModel]="currentDraft.templateId"
@@ -274,7 +282,11 @@
 						</div>
 
 						<div class="admin-weapons-page__profile-list">
-							@for (profile of currentDraft.attackProfiles; track profile.kind; let index = $index) {
+							@for (
+								profile of currentDraft.attackProfiles;
+								track profile.kind;
+								let index = $index
+							) {
 								<section class="admin-weapons-page__profile">
 									<div class="admin-weapons-page__profile-header">
 										<div>
@@ -288,8 +300,12 @@
 
 										<div class="admin-weapons-page__heading-actions">
 											<p-tag
-												[value]="profile.kind === 'melee' ? 'Ближняя' : 'Дистанционная'"
-												[severity]="profile.kind === 'melee' ? 'success' : 'info'"
+												[value]="
+													profile.kind === 'melee' ? 'Ближняя' : 'Дистанционная'
+												"
+												[severity]="
+													profile.kind === 'melee' ? 'success' : 'info'
+												"
 											></p-tag>
 											<p-button
 												icon="pi pi-trash"
@@ -309,7 +325,9 @@
 												pInputText
 												type="text"
 												[value]="profile.name"
-												(input)="updateProfileName(index, $any($event.target).value)"
+												(input)="
+													updateProfileName(index, $any($event.target).value)
+												"
 											/>
 										</span>
 
@@ -340,7 +358,9 @@
 												optionLabel="name"
 												optionValue="id"
 												appendTo="body"
-												(ngModelChange)="updateProfileCharacteristic(index, $event)"
+												(ngModelChange)="
+													updateProfileCharacteristic(index, $event)
+												"
 											></p-select>
 										</span>
 
@@ -386,6 +406,16 @@
 										</span>
 
 										<span class="admin-weapons-page__switch-field">
+											<span>Можно парировать</span>
+											<p-toggleswitch
+												[ngModel]="profile.canBeParried"
+												(ngModelChange)="
+													updateProfileCanBeParried(index, $event)
+												"
+											></p-toggleswitch>
+										</span>
+
+										<span class="admin-weapons-page__switch-field">
 											<span>Профиль активен</span>
 											<p-toggleswitch
 												[ngModel]="profile.isActive"
@@ -393,16 +423,28 @@
 											></p-toggleswitch>
 										</span>
 
-										<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+										<span
+											class="admin-weapons-page__field admin-weapons-page__field--wide"
+										>
 											<span>Возможные типы урона</span>
 											<div class="admin-weapons-page__checkbox-list">
-												@for (damageType of damageTypeOptions(); track damageType.id) {
+												@for (
+													damageType of damageTypeOptions();
+													track damageType.id
+												) {
 													<label class="admin-weapons-page__checkbox-row">
 														<p-checkbox
-															[inputId]="'weapon-profile-' + index + '-damage-type-' + damageType.id"
+															[inputId]="
+																'weapon-profile-' +
+																index +
+																'-damage-type-' +
+																damageType.id
+															"
 															[value]="damageType.id"
 															[ngModel]="profile.damageTypeIds"
-															(ngModelChange)="updateProfileDamageTypeIds(index, $event)"
+															(ngModelChange)="
+																updateProfileDamageTypeIds(index, $event)
+															"
 														></p-checkbox>
 														<span>{{ damageType.name }}</span>
 													</label>
@@ -410,10 +452,15 @@
 											</div>
 										</span>
 
-										<span class="admin-weapons-page__field admin-weapons-page__field--wide">
+										<span
+											class="admin-weapons-page__field admin-weapons-page__field--wide"
+										>
 											<span>Доступные намерения</span>
 											<div class="admin-weapons-page__intent-groups">
-												@for (group of combatIntentGroups(); track group.label) {
+												@for (
+													group of combatIntentGroups();
+													track group.label
+												) {
 													<section class="admin-weapons-page__intent-group">
 														<div class="admin-weapons-page__intent-group-title">
 															{{ group.label }}
@@ -422,10 +469,25 @@
 															@for (intent of group.items; track intent.id) {
 																<label class="admin-weapons-page__checkbox-row">
 																	<p-checkbox
-																		[inputId]="'weapon-profile-' + index + '-intent-' + intent.id"
+																		[inputId]="
+																			'weapon-profile-' +
+																			index +
+																			'-intent-' +
+																			intent.id
+																		"
 																		[binary]="true"
-																		[ngModel]="profile.combatIntentIds.includes(intent.id)"
-																		(ngModelChange)="updateProfileIntent(index, intent.id, $event)"
+																		[ngModel]="
+																			profile.combatIntentIds.includes(
+																				intent.id
+																			)
+																		"
+																		(ngModelChange)="
+																			updateProfileIntent(
+																				index,
+																				intent.id,
+																				$event
+																			)
+																		"
 																	></p-checkbox>
 																	<span>{{ intent.name }}</span>
 																</label>

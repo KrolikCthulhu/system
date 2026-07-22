@@ -15,6 +15,8 @@ const combatIntentSelect = {
 	slug: true,
 	name: true,
 	category: true,
+	description: true,
+	mechanic: true,
 	textBlocks: true,
 	isActive: true,
 	sortOrder: true,
@@ -95,6 +97,8 @@ export class CombatIntentsService {
 			slug: createSlug(dto.name),
 			name: dto.name.trim(),
 			category: dto.category.trim(),
+			description: dto.description?.trim() || null,
+			mechanic: this.normalizeMechanic(dto.mechanic),
 			textBlocks: this.normalizeTextBlocks(dto.textBlocks),
 			isActive: dto.isActive ?? true,
 			sortOrder: dto.sortOrder ?? 0
@@ -105,6 +109,14 @@ export class CombatIntentsService {
 		return {
 			name: dto.name === undefined ? undefined : dto.name.trim(),
 			category: dto.category === undefined ? undefined : dto.category.trim(),
+			description:
+				dto.description === undefined
+					? undefined
+					: dto.description.trim() || null,
+			mechanic:
+				dto.mechanic === undefined
+					? undefined
+					: this.normalizeMechanic(dto.mechanic),
 			textBlocks:
 				dto.textBlocks === undefined
 					? undefined
@@ -120,6 +132,8 @@ export class CombatIntentsService {
 			slug: combatIntent.slug,
 			name: combatIntent.name,
 			category: combatIntent.category,
+			description: combatIntent.description ?? '',
+			mechanic: normalizeMechanic(combatIntent.mechanic),
 			textBlocks: normalizeTextBlocks(combatIntent.textBlocks),
 			isActive: combatIntent.isActive,
 			sortOrder: combatIntent.sortOrder,
@@ -164,6 +178,12 @@ export class CombatIntentsService {
 				.sort((first, second) => first.sortOrder - second.sortOrder) ?? [];
 
 		return normalized as Prisma.InputJsonValue;
+	}
+
+	private normalizeMechanic(
+		mechanic: Record<string, unknown> | undefined
+	): Prisma.InputJsonValue {
+		return (mechanic ?? {}) as Prisma.InputJsonValue;
 	}
 }
 
@@ -233,6 +253,10 @@ function normalizeTextBlocks(value: Prisma.JsonValue): CombatIntentTextBlock[] {
 			return [];
 		})
 		.sort((first, second) => first.sortOrder - second.sortOrder);
+}
+
+function normalizeMechanic(value: Prisma.JsonValue): Record<string, unknown> {
+	return isRecord(value) ? value : {};
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

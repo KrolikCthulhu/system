@@ -1,5 +1,13 @@
-import { Weapon, WeaponTemplate, WeaponsCatalog } from '../../domain/weapons.models';
 import {
+	NaturalAttack,
+	NaturalAttacksCatalog,
+	Weapon,
+	WeaponTemplate,
+	WeaponsCatalog
+} from '../../domain/weapons.models';
+import {
+	NaturalAttackDto,
+	NaturalAttacksCatalogResponseDto,
 	WeaponAttackProfileDto,
 	WeaponCharacteristicOptionDto,
 	WeaponDto,
@@ -56,6 +64,7 @@ function mapWeaponAttackProfileDto(dto: WeaponAttackProfileDto) {
 		baseDamage: dto.baseDamage,
 		rangeMeters: dto.rangeMeters,
 		usesAmmo: dto.usesAmmo,
+		canBeParried: dto.canBeParried,
 		damageTypeIds: dto.damageTypeIds,
 		damageTypes: dto.damageTypes.map(mapWeaponDamageTypeOptionDto),
 		isActive: dto.isActive,
@@ -90,7 +99,36 @@ export function mapWeaponTemplateDto(dto: WeaponTemplateDto): WeaponTemplate {
 	};
 }
 
-function mapWeaponCombatIntentOptionDto(dto: WeaponCombatIntentOptionDto) {
+export function mapNaturalAttacksCatalogResponseDto(
+	dto: NaturalAttacksCatalogResponseDto
+): NaturalAttacksCatalog {
+	return {
+		naturalAttacks: dto.naturalAttacks.map(mapNaturalAttackDto),
+		skills: dto.skills.map(mapWeaponSkillOptionDto),
+		characteristics: dto.characteristics.map(mapWeaponCharacteristicOptionDto),
+		combatIntents: dto.combatIntents.map(mapWeaponCombatIntentOptionDto),
+		damageTypes: dto.damageTypes.map(mapWeaponDamageTypeOptionDto)
+	};
+}
+
+export function mapNaturalAttackDto(dto: NaturalAttackDto): NaturalAttack {
+	return {
+		id: dto.id,
+		slug: dto.slug,
+		name: dto.name,
+		skillId: dto.skillId,
+		skill: mapWeaponSkillOptionDto(dto.skill),
+		attackProfiles: dto.attackProfiles.map(mapWeaponAttackProfileDto),
+		isActive: dto.isActive,
+		sortOrder: dto.sortOrder,
+		createdAt: dto.createdAt,
+		updatedAt: dto.updatedAt
+	};
+}
+
+export function mapWeaponCombatIntentOptionDto(
+	dto: WeaponCombatIntentOptionDto
+) {
 	return {
 		id: dto.id,
 		slug: dto.slug,
@@ -101,7 +139,7 @@ function mapWeaponCombatIntentOptionDto(dto: WeaponCombatIntentOptionDto) {
 	};
 }
 
-function mapWeaponDamageTypeOptionDto(dto: WeaponDamageTypeOptionDto) {
+export function mapWeaponDamageTypeOptionDto(dto: WeaponDamageTypeOptionDto) {
 	return {
 		id: dto.id,
 		slug: dto.slug,
@@ -111,7 +149,9 @@ function mapWeaponDamageTypeOptionDto(dto: WeaponDamageTypeOptionDto) {
 	};
 }
 
-function mapWeaponCharacteristicOptionDto(dto: WeaponCharacteristicOptionDto) {
+export function mapWeaponCharacteristicOptionDto(
+	dto: WeaponCharacteristicOptionDto
+) {
 	return {
 		id: dto.id,
 		name: dto.name,
@@ -120,7 +160,7 @@ function mapWeaponCharacteristicOptionDto(dto: WeaponCharacteristicOptionDto) {
 	};
 }
 
-function mapWeaponSkillOptionDto(dto: WeaponSkillOptionDto) {
+export function mapWeaponSkillOptionDto(dto: WeaponSkillOptionDto) {
 	return {
 		id: dto.id,
 		slug: dto.slug,

@@ -1,0 +1,359 @@
+<section class="admin-natural-attacks-page">
+	<header class="admin-natural-attacks-page__header">
+		<p-breadcrumb [model]="breadcrumbs"></p-breadcrumb>
+	</header>
+
+	<div class="admin-natural-attacks-page__workspace">
+		<aside
+			class="admin-natural-attacks-page__panel admin-natural-attacks-page__sidebar"
+		>
+			<div class="admin-natural-attacks-page__panel-heading">
+				<h2 class="admin-natural-attacks-page__panel-title">
+					Естественные атаки
+				</h2>
+				<p-button
+					label="Новая атака"
+					icon="pi pi-plus"
+					size="small"
+					(click)="createNaturalAttack()"
+				></p-button>
+			</div>
+
+			@if (loading()) {
+				<div class="admin-natural-attacks-page__state">Загрузка атак...</div>
+			} @else {
+				<app-navigation-tree
+					class="admin-natural-attacks-page__navigation-tree"
+					[groups]="navigationGroups()"
+					[selectedItemId]="selectedNaturalAttackId()"
+					[collapsedGroups]="collapsedGroups()"
+					(itemSelect)="selectNaturalAttackById($event)"
+					(groupToggle)="toggleGroup($event)"
+				></app-navigation-tree>
+			}
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section
+				class="admin-natural-attacks-page__panel admin-natural-attacks-page__editor"
+			>
+				<div class="admin-natural-attacks-page__panel-heading">
+					<h2 class="admin-natural-attacks-page__panel-title">{{ title() }}</h2>
+				</div>
+
+				<div class="admin-natural-attacks-page__editor-body">
+					@if (errorMessage()) {
+						<div class="admin-natural-attacks-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-natural-attacks-page__form-grid">
+						<label
+							class="admin-natural-attacks-page__field admin-natural-attacks-page__field--wide"
+						>
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[value]="currentDraft.name"
+								(input)="updateDraft({ name: $any($event.target).value })"
+							/>
+						</label>
+
+						<label class="admin-natural-attacks-page__field">
+							<span>Навык</span>
+							<p-select
+								[ngModel]="currentDraft.skillId"
+								[options]="skillGroups()"
+								[fluid]="true"
+								optionLabel="name"
+								optionValue="id"
+								optionGroupLabel="label"
+								optionGroupChildren="items"
+								[group]="true"
+								[filter]="true"
+								filterBy="name,searchText"
+								appendTo="body"
+								(ngModelChange)="updateSkill($event)"
+							></p-select>
+						</label>
+
+						<label class="admin-natural-attacks-page__field">
+							<span>Порядок</span>
+							<p-inputnumber
+								[ngModel]="currentDraft.sortOrder"
+								[min]="0"
+								[showButtons]="false"
+								[fluid]="true"
+								(ngModelChange)="updateDraft({ sortOrder: $event ?? 0 })"
+							></p-inputnumber>
+						</label>
+
+						<label class="admin-natural-attacks-page__switch-field">
+							<span>Активна</span>
+							<p-toggleswitch
+								[ngModel]="currentDraft.isActive"
+								(ngModelChange)="updateDraft({ isActive: $event })"
+							></p-toggleswitch>
+						</label>
+					</div>
+
+					<section class="admin-natural-attacks-page__profiles">
+						<div class="admin-natural-attacks-page__profiles-heading">
+							<h3>Профили атаки</h3>
+							<div class="admin-natural-attacks-page__profile-actions">
+								<p-button
+									label="Ближняя"
+									icon="pi pi-plus"
+									size="small"
+									[disabled]="!canAddProfile('melee')"
+									(click)="addProfile('melee')"
+								></p-button>
+								<p-button
+									label="Дистанционная"
+									icon="pi pi-plus"
+									size="small"
+									[disabled]="!canAddProfile('ranged')"
+									(click)="addProfile('ranged')"
+								></p-button>
+							</div>
+						</div>
+
+						<div class="admin-natural-attacks-page__profile-list">
+							@for (
+								profile of currentDraft.attackProfiles;
+								track profile.kind;
+								let index = $index
+							) {
+								<section class="admin-natural-attacks-page__profile">
+									<div class="admin-natural-attacks-page__profile-header">
+										<h4>{{ profileKindLabel(profile.kind) }}</h4>
+										<p-button
+											icon="pi pi-trash"
+											severity="danger"
+											text
+											rounded
+											[disabled]="currentDraft.attackProfiles.length <= 1"
+											(click)="removeProfile(index)"
+										></p-button>
+									</div>
+
+									<div class="admin-natural-attacks-page__form-grid">
+										<label class="admin-natural-attacks-page__field">
+											<span>Название профиля</span>
+											<input
+												pInputText
+												type="text"
+												[value]="profile.name"
+												(input)="
+													updateProfile(index, {
+														name: $any($event.target).value
+													})
+												"
+											/>
+										</label>
+
+										<label class="admin-natural-attacks-page__field">
+											<span>Навык</span>
+											<p-select
+												[ngModel]="profile.skillId"
+												[options]="skillGroups()"
+												[fluid]="true"
+												optionLabel="name"
+												optionValue="id"
+												optionGroupLabel="label"
+												optionGroupChildren="items"
+												[group]="true"
+												[filter]="true"
+												filterBy="name,searchText"
+												appendTo="body"
+												(ngModelChange)="
+													updateProfile(index, { skillId: $event })
+												"
+											></p-select>
+										</label>
+
+										<label class="admin-natural-attacks-page__field">
+											<span>Характеристика</span>
+											<p-select
+												[ngModel]="profile.characteristicId"
+												[options]="characteristics()"
+												[fluid]="true"
+												optionLabel="name"
+												optionValue="id"
+												appendTo="body"
+												(ngModelChange)="
+													updateProfile(index, {
+														characteristicId: $event
+													})
+												"
+											></p-select>
+										</label>
+
+										<label class="admin-natural-attacks-page__field">
+											<span>Стоимость</span>
+											<p-inputnumber
+												[ngModel]="profile.baseCost"
+												[min]="0"
+												[showButtons]="false"
+												[fluid]="true"
+												(ngModelChange)="
+													updateProfile(index, { baseCost: $event ?? 0 })
+												"
+											></p-inputnumber>
+										</label>
+
+										<label class="admin-natural-attacks-page__field">
+											<span>Урон</span>
+											<p-inputnumber
+												[ngModel]="profile.baseDamage"
+												[min]="0"
+												[showButtons]="false"
+												[fluid]="true"
+												(ngModelChange)="
+													updateProfile(index, { baseDamage: $event ?? 0 })
+												"
+											></p-inputnumber>
+										</label>
+
+										<label class="admin-natural-attacks-page__field">
+											<span>Дистанция, м</span>
+											<p-inputnumber
+												[ngModel]="profile.rangeMeters"
+												[min]="1"
+												[showButtons]="false"
+												[fluid]="true"
+												(ngModelChange)="
+													updateProfile(index, { rangeMeters: $event ?? 1 })
+												"
+											></p-inputnumber>
+										</label>
+
+										<label class="admin-natural-attacks-page__switch-field">
+											<span>Боеприпасы</span>
+											<p-toggleswitch
+												[ngModel]="profile.usesAmmo"
+												(ngModelChange)="
+													updateProfile(index, { usesAmmo: $event })
+												"
+											></p-toggleswitch>
+										</label>
+
+										<label class="admin-natural-attacks-page__switch-field">
+											<span>Можно парировать</span>
+											<p-toggleswitch
+												[ngModel]="profile.canBeParried"
+												(ngModelChange)="
+													updateProfile(index, { canBeParried: $event })
+												"
+											></p-toggleswitch>
+										</label>
+
+										<span
+											class="admin-natural-attacks-page__field admin-natural-attacks-page__field--wide"
+										>
+											<span>Возможные типы урона</span>
+											<div class="admin-natural-attacks-page__checkbox-list">
+												@for (
+													damageType of damageTypes();
+													track damageType.id
+												) {
+													<label
+														class="admin-natural-attacks-page__checkbox-row"
+													>
+														<p-checkbox
+															[inputId]="
+																'natural-profile-' +
+																index +
+																'-damage-type-' +
+																damageType.id
+															"
+															[binary]="true"
+															[ngModel]="
+																profile.damageTypeIds.includes(damageType.id)
+															"
+															(ngModelChange)="
+																updateProfileDamageType(
+																	index,
+																	damageType.id,
+																	$event
+																)
+															"
+														></p-checkbox>
+														<span>{{ damageType.name }}</span>
+													</label>
+												}
+											</div>
+										</span>
+
+										<span
+											class="admin-natural-attacks-page__field admin-natural-attacks-page__field--wide"
+										>
+											<span>Намерения</span>
+											<div class="admin-natural-attacks-page__intent-groups">
+												@for (
+													group of combatIntentGroups();
+													track group.label
+												) {
+													<section
+														class="admin-natural-attacks-page__intent-group"
+													>
+														<div
+															class="admin-natural-attacks-page__intent-group-title"
+														>
+															{{ group.label }}
+														</div>
+														<div
+															class="admin-natural-attacks-page__checkbox-list"
+														>
+															@for (intent of group.items; track intent.id) {
+																<label
+																	class="admin-natural-attacks-page__checkbox-row"
+																>
+																	<p-checkbox
+																		[inputId]="
+																			'natural-profile-' +
+																			index +
+																			'-intent-' +
+																			intent.id
+																		"
+																		[binary]="true"
+																		[ngModel]="
+																			profile.combatIntentIds.includes(
+																				intent.id
+																			)
+																		"
+																		(ngModelChange)="
+																			updateProfileIntent(
+																				index,
+																				intent.id,
+																				$event
+																			)
+																		"
+																	></p-checkbox>
+																	<span>{{ intent.name }}</span>
+																</label>
+															}
+														</div>
+													</section>
+												}
+											</div>
+										</span>
+									</div>
+								</section>
+							}
+						</div>
+					</section>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		}
+	</div>
+</section>

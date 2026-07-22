@@ -5,6 +5,8 @@ export interface CombatIntentDto {
 	slug: string;
 	name: string;
 	category: string;
+	description: string;
+	mechanic: Record<string, unknown>;
 	textBlocks: CombatIntentTextBlock[];
 	isActive: boolean;
 	sortOrder: number;
@@ -19,6 +21,8 @@ export interface CombatIntentsCatalogResponseDto {
 export interface CreateCombatIntentDto {
 	name: string;
 	category: string;
+	description?: string;
+	mechanic?: Record<string, unknown>;
 	textBlocks?: CombatIntentTextBlock[];
 	isActive?: boolean;
 	sortOrder?: number;
@@ -27,6 +31,8 @@ export interface CreateCombatIntentDto {
 export interface UpdateCombatIntentDto {
 	name?: string;
 	category?: string;
+	description?: string;
+	mechanic?: Record<string, unknown>;
 	textBlocks?: CombatIntentTextBlock[];
 	isActive?: boolean;
 	sortOrder?: number;

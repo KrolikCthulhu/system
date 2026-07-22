@@ -3,10 +3,20 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map } from 'rxjs';
 import { environment } from '../../../infrastructure/config/environment';
 import { handleApiError } from '../../../shared/http/api-error.util';
-import { Weapon, WeaponTemplate, WeaponsCatalog } from '../domain/weapons.models';
 import {
+	NaturalAttack,
+	NaturalAttacksCatalog,
+	Weapon,
+	WeaponTemplate,
+	WeaponsCatalog
+} from '../domain/weapons.models';
+import {
+	CreateNaturalAttackDto,
 	CreateWeaponDto,
 	CreateWeaponTemplateDto,
+	NaturalAttackDto,
+	NaturalAttacksCatalogResponseDto,
+	UpdateNaturalAttackDto,
 	UpdateWeaponDto,
 	UpdateWeaponTemplateDto,
 	WeaponDto,
@@ -15,6 +25,8 @@ import {
 } from './dto/weapons.dto';
 import { WeaponsRepository } from './weapons-repository.port';
 import {
+	mapNaturalAttackDto,
+	mapNaturalAttacksCatalogResponseDto,
 	mapWeaponDto,
 	mapWeaponTemplateDto,
 	mapWeaponsCatalogResponseDto
@@ -57,11 +69,17 @@ export class HttpWeaponsRepository implements WeaponsRepository {
 			.pipe(catchError(handleApiError));
 	}
 
-	createWeaponTemplate(command: CreateWeaponTemplateDto): Observable<WeaponTemplate> {
+	createWeaponTemplate(
+		command: CreateWeaponTemplateDto
+	): Observable<WeaponTemplate> {
 		return this.http
-			.post<WeaponTemplateDto>(`${this.baseUrl}/admin/weapon-templates`, command, {
-				withCredentials: true
-			})
+			.post<WeaponTemplateDto>(
+				`${this.baseUrl}/admin/weapon-templates`,
+				command,
+				{
+					withCredentials: true
+				}
+			)
 			.pipe(map(mapWeaponTemplateDto), catchError(handleApiError));
 	}
 
@@ -83,6 +101,57 @@ export class HttpWeaponsRepository implements WeaponsRepository {
 	deleteWeaponTemplate(id: string): Observable<void> {
 		return this.http
 			.delete<void>(`${this.baseUrl}/admin/weapon-templates/${id}`, {
+				withCredentials: true
+			})
+			.pipe(catchError(handleApiError));
+	}
+
+	loadNaturalAttacksCatalog(): Observable<NaturalAttacksCatalog> {
+		return this.http
+			.get<NaturalAttacksCatalogResponseDto>(
+				`${this.baseUrl}/admin/natural-attacks`,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(
+				map(mapNaturalAttacksCatalogResponseDto),
+				catchError(handleApiError)
+			);
+	}
+
+	createNaturalAttack(
+		command: CreateNaturalAttackDto
+	): Observable<NaturalAttack> {
+		return this.http
+			.post<NaturalAttackDto>(
+				`${this.baseUrl}/admin/natural-attacks`,
+				command,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapNaturalAttackDto), catchError(handleApiError));
+	}
+
+	updateNaturalAttack(
+		id: string,
+		command: UpdateNaturalAttackDto
+	): Observable<NaturalAttack> {
+		return this.http
+			.patch<NaturalAttackDto>(
+				`${this.baseUrl}/admin/natural-attacks/${id}`,
+				command,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapNaturalAttackDto), catchError(handleApiError));
+	}
+
+	deleteNaturalAttack(id: string): Observable<void> {
+		return this.http
+			.delete<void>(`${this.baseUrl}/admin/natural-attacks/${id}`, {
 				withCredentials: true
 			})
 			.pipe(catchError(handleApiError));

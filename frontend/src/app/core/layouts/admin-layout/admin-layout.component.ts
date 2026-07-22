@@ -64,6 +64,10 @@ export class AdminLayoutComponent {
 				{
 					label: 'Боевые намерения',
 					routerLink: '/admin/rules/combat-intents'
+				},
+				{
+					label: 'Естественные атаки',
+					routerLink: '/admin/rules/natural-attacks'
 				}
 			]
 		},

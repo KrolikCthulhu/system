@@ -21,6 +21,8 @@ export function mapCombatIntentDto(dto: CombatIntentDto): CombatIntent {
 		slug: dto.slug,
 		name: dto.name,
 		category: dto.category,
+		description: dto.description ?? '',
+		mechanic: dto.mechanic ?? {},
 		textBlocks: dto.textBlocks ?? [],
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,

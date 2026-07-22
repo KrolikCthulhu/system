@@ -1,7 +1,8 @@
 import { Prisma } from '../__generated__/index.js';
 import type {
 	ContentDocument,
-	CreatureContent
+	CreatureContent,
+	WeaponAttackProfileContent
 } from '../content/content-types';
 import { readContent } from './content';
 import { seedSlug } from './slug';
@@ -66,6 +67,11 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 			creature.id,
 			anatomyScheme?.id ?? null
 		);
+		await seedCreatureNaturalAttacks(
+			tx,
+			creature.id,
+			seed.naturalAttacks ?? []
+		);
 
 		const seedTiers = seed.tiers.map(tier => tier.tier);
 		await tx.creatureTier.deleteMany({
@@ -85,6 +91,13 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 					]
 				}
 			});
+			const sizeSeed = tierSeed.size ?? { name: 'Средний', slug: 'sredniy' };
+			const size = await tx.creatureSize.findFirstOrThrow({
+				select: { id: true },
+				where: {
+					OR: [{ slug: sizeSeed.slug }, { name: sizeSeed.name }]
+				}
+			});
 			const tier = await tx.creatureTier.upsert({
 				select: { id: true },
 				where: {
@@ -98,6 +111,7 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 					tier: tierSeed.tier,
 					name: tierSeed.name,
 					hp: tierSeed.hp,
+					sizeId: size.id,
 					armorPresetId: armorPreset.id,
 					isActive: tierSeed.isActive ?? true,
 					sortOrder: tierSeed.sortOrder ?? tierSeed.tier
@@ -105,6 +119,7 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 				update: {
 					name: tierSeed.name,
 					hp: tierSeed.hp,
+					sizeId: size.id,
 					armorPresetId: armorPreset.id,
 					isActive: tierSeed.isActive ?? true,
 					sortOrder: tierSeed.sortOrder ?? tierSeed.tier
@@ -187,6 +202,194 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 			});
 		}
 	}
+}
+
+async function seedCreatureNaturalAttacks(
+	tx: Prisma.TransactionClient,
+	creatureId: string,
+	naturalAttackSeeds: NonNullable<CreatureContent['naturalAttacks']>
+) {
+	const naturalAttackIds: string[] = [];
+
+	for (const [index, naturalAttackSeed] of naturalAttackSeeds.entries()) {
+		const naturalAttack = await tx.naturalAttack.findFirstOrThrow({
+			select: {
+				id: true,
+				attackProfiles: {
+					select: {
+						kind: true,
+						name: true,
+						skillId: true,
+						characteristicId: true,
+						baseCost: true,
+						baseDamage: true,
+						rangeMeters: true,
+						usesAmmo: true,
+						canBeParried: true,
+						isActive: true,
+						sortOrder: true,
+						damageTypeLinks: {
+							select: { damageTypeId: true },
+							orderBy: [{ sortOrder: 'asc' }]
+						},
+						intentLinks: {
+							select: {
+								combatIntentId: true,
+								costModifier: true,
+								damageModifier: true,
+								ruleText: true,
+								sortOrder: true
+							},
+							orderBy: [{ sortOrder: 'asc' }]
+						}
+					},
+					orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+				}
+			},
+			where: {
+				OR: [{ slug: naturalAttackSeed.slug }, { name: naturalAttackSeed.name }]
+			}
+		});
+		const attackProfiles = naturalAttackSeed.attackProfiles
+			? await resolveCreatureNaturalAttackProfiles(
+					tx,
+					naturalAttackSeed.attackProfiles
+				)
+			: naturalAttack.attackProfiles.map(profile => ({
+					kind: profile.kind === 'MELEE' ? 'melee' : 'ranged',
+					name: profile.name,
+					skillId: profile.skillId,
+					characteristicId: profile.characteristicId,
+					baseCost: profile.baseCost,
+					baseDamage: profile.baseDamage,
+					rangeMeters: profile.rangeMeters,
+					usesAmmo: profile.usesAmmo,
+					canBeParried: profile.canBeParried,
+					damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
+					intents: profile.intentLinks.map(link => ({
+						combatIntentId: link.combatIntentId,
+						costModifier: link.costModifier,
+						damageModifier: link.damageModifier,
+						ruleText: link.ruleText ?? '',
+						sortOrder: link.sortOrder
+					})),
+					isActive: profile.isActive,
+					sortOrder: profile.sortOrder
+				}));
+		naturalAttackIds.push(naturalAttack.id);
+		await tx.creatureNaturalAttack.upsert({
+			where: {
+				creatureId_naturalAttackId: {
+					creatureId,
+					naturalAttackId: naturalAttack.id
+				}
+			},
+			create: {
+				creatureId,
+				naturalAttackId: naturalAttack.id,
+				attackProfiles,
+				isActive: true,
+				sortOrder: index
+			},
+			update: {
+				attackProfiles,
+				isActive: true,
+				sortOrder: index
+			}
+		});
+	}
+
+	await tx.creatureNaturalAttack.deleteMany({
+		where: {
+			creatureId,
+			naturalAttackId: { notIn: naturalAttackIds }
+		}
+	});
+}
+
+async function resolveCreatureNaturalAttackProfiles(
+	tx: Prisma.TransactionClient,
+	profiles: WeaponAttackProfileContent[]
+) {
+	const resolvedProfiles = [];
+
+	for (const [profileIndex, profile] of profiles.entries()) {
+		const skill = await tx.skill.findFirstOrThrow({
+			select: { id: true },
+			where: {
+				OR: [{ slug: profile.skill.slug }, { name: profile.skill.name }]
+			}
+		});
+		const characteristic = await tx.characteristic.findFirst({
+			select: { id: true },
+			where: {
+				OR: [
+					{ systemValue: { slug: profile.characteristic.slug } },
+					{ name: profile.characteristic.name }
+				]
+			}
+		});
+
+		if (!characteristic) {
+			throw new Error(
+				`Характеристика "${profile.characteristic.name}" не найдена.`
+			);
+		}
+
+		const damageTypeIds = [];
+		for (const damageTypeSeed of profile.damageTypes ?? []) {
+			const damageType = await tx.damageType.findUnique({
+				select: { id: true },
+				where: { slug: damageTypeSeed.slug }
+			});
+
+			if (!damageType) {
+				throw new Error(`Тип урона "${damageTypeSeed.name}" не найден.`);
+			}
+
+			damageTypeIds.push(damageType.id);
+		}
+
+		const intents = [];
+		for (const [intentIndex, intentSeed] of (
+			profile.combatIntents ?? []
+		).entries()) {
+			const combatIntent = await tx.combatIntent.findUnique({
+				select: { id: true },
+				where: { slug: intentSeed.slug }
+			});
+
+			if (!combatIntent) {
+				throw new Error(`Боевое намерение "${intentSeed.name}" не найдено.`);
+			}
+
+			intents.push({
+				combatIntentId: combatIntent.id,
+				costModifier: 0,
+				damageModifier: 0,
+				ruleText: '',
+				sortOrder: intentIndex
+			});
+		}
+
+		resolvedProfiles.push({
+			kind: profile.kind,
+			name: profile.name,
+			skillId: skill.id,
+			characteristicId: characteristic.id,
+			baseCost: profile.baseCost,
+			baseDamage: profile.baseDamage,
+			rangeMeters: profile.rangeMeters,
+			usesAmmo: profile.usesAmmo ?? false,
+			canBeParried: profile.canBeParried ?? profile.kind === 'melee',
+			damageTypeIds,
+			intents,
+			isActive: profile.isActive ?? true,
+			sortOrder: profile.sortOrder ?? profileIndex
+		});
+	}
+
+	return resolvedProfiles;
 }
 
 function defaultCreatureCharacteristicValue(defaultValue: number): number {

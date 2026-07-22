@@ -12,6 +12,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ConfirmationService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
+import { Checkbox } from 'primeng/checkbox';
 import { ConfirmDialog } from 'primeng/confirmdialog';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
@@ -29,7 +30,13 @@ import {
 	CreatureAnatomyZone,
 	CreatureAnatomyZoneKind,
 	CreatureArmorPresetOption,
+	CreatureAttackProfileKind,
 	CreatureCharacteristicOption,
+	CreatureCombatIntentOption,
+	CreatureDamageTypeOption,
+	CreatureNaturalAttackOption,
+	CreatureNaturalAttackProfile,
+	CreatureSizeOption,
 	CreatureSkillOptionGroup,
 	CreatureSkillOption,
 	CreatureTypeOption
@@ -39,6 +46,7 @@ interface CreatureTierDraft {
 	tier: number;
 	name: string;
 	hp: number;
+	sizeId: string | null;
 	armorPresetId: string | null;
 	characteristics: CreatureTierCharacteristicDraft[];
 	skills: CreatureTierSkillDraft[];
@@ -62,7 +70,31 @@ interface CreatureDraft {
 	typeId: string;
 	anatomySchemeId: string | null;
 	anatomyZones: CreatureAnatomyZone[];
+	naturalAttacks: CreatureNaturalAttackDraft[];
 	tiers: CreatureTierDraft[];
+	isActive: boolean;
+	sortOrder: number;
+}
+
+interface CreatureNaturalAttackDraft {
+	naturalAttackId: string;
+	attackProfiles: CreatureNaturalAttackProfileDraft[];
+	isActive: boolean;
+	sortOrder: number;
+}
+
+interface CreatureNaturalAttackProfileDraft {
+	kind: CreatureAttackProfileKind;
+	name: string;
+	skillId: string;
+	characteristicId: string | null;
+	baseCost: number;
+	baseDamage: number;
+	rangeMeters: number;
+	usesAmmo: boolean;
+	canBeParried: boolean;
+	damageTypeIds: string[];
+	combatIntentIds: string[];
 	isActive: boolean;
 	sortOrder: number;
 }
@@ -82,6 +114,11 @@ interface CreatureAnatomyZoneViewGroup {
 interface SelectOption<TValue extends string> {
 	label: string;
 	value: TValue;
+}
+
+interface CreatureCombatIntentGroup {
+	label: string;
+	items: CreatureCombatIntentOption[];
 }
 
 type CreatureAnatomyZoneOverrideField =
@@ -108,6 +145,7 @@ const ANATOMY_ZONE_KIND_OPTIONS: SelectOption<CreatureAnatomyZoneKind>[] = [
 		FormsModule,
 		Breadcrumb,
 		Button,
+		Checkbox,
 		ConfirmDialog,
 		IconField,
 		InputIcon,
@@ -139,8 +177,12 @@ export class AdminCreaturesPageComponent {
 	protected readonly searchQuery = signal('');
 	protected readonly creatures = signal<Creature[]>([]);
 	protected readonly creatureTypes = signal<CreatureTypeOption[]>([]);
+	protected readonly creatureSizes = signal<CreatureSizeOption[]>([]);
 	protected readonly anatomySchemes = signal<CreatureAnatomySchemeOption[]>([]);
 	protected readonly armorPresets = signal<CreatureArmorPresetOption[]>([]);
+	protected readonly naturalAttacks = signal<CreatureNaturalAttackOption[]>([]);
+	protected readonly combatIntents = signal<CreatureCombatIntentOption[]>([]);
+	protected readonly damageTypes = signal<CreatureDamageTypeOption[]>([]);
 	protected readonly skills = signal<CreatureSkillOption[]>([]);
 	protected readonly characteristics = signal<CreatureCharacteristicOption[]>(
 		[]
@@ -178,6 +220,9 @@ export class AdminCreaturesPageComponent {
 	});
 	protected readonly skillOptionGroups = computed(() =>
 		createSkillOptionGroups(this.skills())
+	);
+	protected readonly combatIntentGroups = computed<CreatureCombatIntentGroup[]>(
+		() => createCombatIntentGroups(this.combatIntents())
 	);
 	protected readonly anatomyZoneGroups = computed<
 		CreatureAnatomyZoneViewGroup[]
@@ -226,6 +271,104 @@ export class AdminCreaturesPageComponent {
 
 	protected updateDraftAnatomyScheme(anatomySchemeId: string | null) {
 		this.patchDraft({ anatomySchemeId, anatomyZones: [] });
+	}
+
+	protected updateNaturalAttack(naturalAttackId: string, isSelected: boolean) {
+		const draft = this.draft();
+
+		if (!draft) {
+			return;
+		}
+
+		this.patchDraft({
+			naturalAttacks: isSelected
+				? [
+						...draft.naturalAttacks,
+						this.createNaturalAttackDraft(naturalAttackId)
+					]
+				: draft.naturalAttacks.filter(
+						item => item.naturalAttackId !== naturalAttackId
+					)
+		});
+	}
+
+	protected naturalAttackDraft(naturalAttackId: string) {
+		return (
+			this.draft()?.naturalAttacks.find(
+				item => item.naturalAttackId === naturalAttackId
+			) ?? null
+		);
+	}
+
+	protected profileKindLabel(kind: CreatureAttackProfileKind) {
+		return kind === 'melee' ? 'Ближняя атака' : 'Дистанционная атака';
+	}
+
+	protected updateNaturalAttackProfile(
+		naturalAttackId: string,
+		profileIndex: number,
+		patch: Partial<CreatureNaturalAttackProfileDraft>
+	) {
+		this.draft.update(draft =>
+			draft
+				? {
+						...draft,
+						naturalAttacks: draft.naturalAttacks.map(attack =>
+							attack.naturalAttackId === naturalAttackId
+								? {
+										...attack,
+										attackProfiles: attack.attackProfiles.map(
+											(profile, index) =>
+												index === profileIndex
+													? { ...profile, ...patch }
+													: profile
+										)
+									}
+								: attack
+						)
+					}
+				: draft
+		);
+	}
+
+	protected updateNaturalAttackProfileDamageType(
+		naturalAttackId: string,
+		profileIndex: number,
+		damageTypeId: string,
+		checked: boolean
+	) {
+		const profile =
+			this.naturalAttackDraft(naturalAttackId)?.attackProfiles[profileIndex];
+
+		if (!profile) {
+			return;
+		}
+
+		this.updateNaturalAttackProfile(naturalAttackId, profileIndex, {
+			damageTypeIds: checked
+				? [...profile.damageTypeIds, damageTypeId]
+				: profile.damageTypeIds.filter(id => id !== damageTypeId)
+		});
+	}
+
+	protected updateNaturalAttackProfileIntent(
+		naturalAttackId: string,
+		profileIndex: number,
+		combatIntentId: string,
+		checked: boolean
+	) {
+		const profile =
+			this.naturalAttackDraft(naturalAttackId)?.attackProfiles[profileIndex];
+
+		if (!profile) {
+			return;
+		}
+
+		this.updateNaturalAttackProfile(naturalAttackId, profileIndex, {
+			combatIntentIds: checked
+				? [...profile.combatIntentIds, combatIntentId]
+				: profile.combatIntentIds.filter(id => id !== combatIntentId)
+		});
 	}
 
 	protected toggleAnatomyExpanded() {
@@ -285,6 +428,10 @@ export class AdminCreaturesPageComponent {
 
 	protected updateTierHp(tier: number, hp: number | null) {
 		this.patchTier(tier, { hp: hp ?? 1 });
+	}
+
+	protected updateTierSize(tier: number, sizeId: string | null) {
+		this.patchTier(tier, { sizeId });
 	}
 
 	protected updateTierArmor(tier: number, armorPresetId: string | null) {
@@ -429,13 +576,16 @@ export class AdminCreaturesPageComponent {
 			tier =>
 				!tier.name.trim() ||
 				tier.hp < 1 ||
+				!tier.sizeId ||
 				tier.characteristics.length === 0 ||
 				tier.skills.length === 0 ||
 				tier.skills.some(skill => !skill.skillId)
 		);
 
 		if (invalidTier) {
-			this.errorMessage.set('Для каждого тира нужны название, HP и навыки.');
+			this.errorMessage.set(
+				'Для каждого тира нужны название, HP, размер и навыки.'
+			);
 			return;
 		}
 
@@ -463,12 +613,43 @@ export class AdminCreaturesPageComponent {
 				isActive: zone.isActive,
 				sortOrder
 			})),
+			naturalAttacks: draft.naturalAttacks.map((naturalAttack, sortOrder) => ({
+				naturalAttackId: naturalAttack.naturalAttackId,
+				attackProfiles: naturalAttack.attackProfiles.map(
+					(profile, profileIndex) => ({
+						kind: profile.kind,
+						name: profile.name,
+						skillId: profile.skillId,
+						characteristicId: profile.characteristicId,
+						baseCost: profile.baseCost,
+						baseDamage: profile.baseDamage,
+						rangeMeters: profile.rangeMeters,
+						usesAmmo: profile.usesAmmo,
+						canBeParried: profile.canBeParried,
+						damageTypeIds: profile.damageTypeIds,
+						intents: profile.combatIntentIds.map(
+							(combatIntentId, intentIndex) => ({
+								combatIntentId,
+								costModifier: 0,
+								damageModifier: 0,
+								ruleText: '',
+								sortOrder: intentIndex
+							})
+						),
+						isActive: profile.isActive,
+						sortOrder: profile.sortOrder ?? profileIndex
+					})
+				),
+				isActive: naturalAttack.isActive,
+				sortOrder: naturalAttack.sortOrder ?? sortOrder
+			})),
 			isActive: draft.isActive,
 			sortOrder: draft.sortOrder,
 			tiers: draft.tiers.map(tier => ({
 				tier: tier.tier,
 				name: tier.name.trim(),
 				hp: tier.hp,
+				sizeId: tier.sizeId,
 				armorPresetId: tier.armorPresetId,
 				characteristics: tier.characteristics.map(characteristic => ({
 					characteristicId: characteristic.characteristicId,
@@ -525,6 +706,12 @@ export class AdminCreaturesPageComponent {
 		return armor ? `${armor.points} x ${armor.protection}` : 'нет';
 	}
 
+	protected sizeName(sizeId: string | null): string {
+		return (
+			this.creatureSizes().find(size => size.id === sizeId)?.name ?? 'размер'
+		);
+	}
+
 	protected skillName(skillId: string): string {
 		return this.skills().find(skill => skill.id === skillId)?.name ?? 'Навык';
 	}
@@ -546,8 +733,12 @@ export class AdminCreaturesPageComponent {
 				next: catalog => {
 					this.creatures.set(catalog.creatures);
 					this.creatureTypes.set(catalog.creatureTypes);
+					this.creatureSizes.set(catalog.creatureSizes);
 					this.anatomySchemes.set(catalog.anatomySchemes);
 					this.armorPresets.set(catalog.armorPresets);
+					this.naturalAttacks.set(catalog.naturalAttacks);
+					this.combatIntents.set(catalog.combatIntents);
+					this.damageTypes.set(catalog.damageTypes);
 					this.skills.set(catalog.skills);
 					this.characteristics.set(catalog.characteristics);
 					this.loading.set(false);
@@ -584,12 +775,23 @@ export class AdminCreaturesPageComponent {
 	private setDraftFromCreature(creature: Creature) {
 		const evasionSkillId = this.defaultSkillId();
 		const noArmorPresetId = this.defaultArmorPresetId();
+		const defaultSizeId = this.defaultCreatureSizeId();
 		const draft: CreatureDraft = {
 			id: creature.id,
 			name: creature.name,
 			typeId: creature.typeId,
 			anatomySchemeId: creature.anatomySchemeId,
 			anatomyZones: creature.anatomyZones,
+			naturalAttacks: creature.naturalAttacks
+				.filter(item => item.isActive)
+				.map((item, index) => ({
+					naturalAttackId: item.naturalAttackId,
+					attackProfiles: item.attackProfiles.map(profile =>
+						this.toNaturalAttackProfileDraft(profile)
+					),
+					isActive: item.isActive,
+					sortOrder: item.sortOrder ?? index
+				})),
 			tiers: Array.from({ length: 5 }, (_, index) => {
 				const tierNumber = index + 1;
 				const tier = creature.tiers.find(item => item.tier === tierNumber);
@@ -597,6 +799,7 @@ export class AdminCreaturesPageComponent {
 					tier: tierNumber,
 					name: tier?.name ?? `Тир ${tierNumber}`,
 					hp: tier?.hp ?? 1,
+					sizeId: tier?.sizeId ?? defaultSizeId,
 					armorPresetId: tier?.armorPresetId ?? noArmorPresetId,
 					characteristics: this.createTierCharacteristicDrafts(tier),
 					skills: tier?.skills.length
@@ -620,6 +823,7 @@ export class AdminCreaturesPageComponent {
 
 	private createEmptyDraft(): CreatureDraft {
 		const noArmorPresetId = this.defaultArmorPresetId();
+		const defaultSizeId = this.defaultCreatureSizeId();
 		const evasionSkillId = this.defaultSkillId();
 
 		return {
@@ -628,12 +832,14 @@ export class AdminCreaturesPageComponent {
 			typeId: this.creatureTypes()[0]?.id ?? '',
 			anatomySchemeId: null,
 			anatomyZones: [],
+			naturalAttacks: [],
 			tiers: Array.from({ length: 5 }, (_, index) => {
 				const tier = index + 1;
 				return {
 					tier,
 					name: `Тир ${tier}`,
 					hp: 1,
+					sizeId: defaultSizeId,
 					armorPresetId: noArmorPresetId,
 					characteristics: this.createTierCharacteristicDrafts(null),
 					skills: [{ skillId: evasionSkillId, level: 1 }],
@@ -650,6 +856,14 @@ export class AdminCreaturesPageComponent {
 		return (
 			this.armorPresets().find(item => item.slug === 'bez-broni')?.id ??
 			this.armorPresets()[0]?.id ??
+			null
+		);
+	}
+
+	private defaultCreatureSizeId(): string | null {
+		return (
+			this.creatureSizes().find(item => item.slug === 'sredniy')?.id ??
+			this.creatureSizes()[0]?.id ??
 			null
 		);
 	}
@@ -761,6 +975,44 @@ export class AdminCreaturesPageComponent {
 		);
 	}
 
+	private createNaturalAttackDraft(
+		naturalAttackId: string
+	): CreatureNaturalAttackDraft {
+		const naturalAttack = this.naturalAttacks().find(
+			item => item.id === naturalAttackId
+		);
+
+		return {
+			naturalAttackId,
+			attackProfiles:
+				naturalAttack?.attackProfiles.map(profile =>
+					this.toNaturalAttackProfileDraft(profile)
+				) ?? [],
+			isActive: true,
+			sortOrder: this.draft()?.naturalAttacks.length ?? 0
+		};
+	}
+
+	private toNaturalAttackProfileDraft(
+		profile: CreatureNaturalAttackProfile
+	): CreatureNaturalAttackProfileDraft {
+		return {
+			kind: profile.kind,
+			name: profile.name,
+			skillId: profile.skillId,
+			characteristicId: profile.characteristicId,
+			baseCost: profile.baseCost,
+			baseDamage: profile.baseDamage,
+			rangeMeters: profile.rangeMeters,
+			usesAmmo: profile.usesAmmo,
+			canBeParried: profile.canBeParried,
+			damageTypeIds: [...profile.damageTypeIds],
+			combatIntentIds: profile.intents.map(intent => intent.combatIntentId),
+			isActive: profile.isActive,
+			sortOrder: profile.sortOrder
+		};
+	}
+
 	private upsertCreature(creature: Creature) {
 		this.creatures.update(items => {
 			const index = items.findIndex(item => item.id === creature.id);
@@ -830,6 +1082,30 @@ function createSkillOptionGroups(
 	}
 
 	return [...groupsByCategoryId.values()].map(group => ({
+		label: group.label,
+		items: group.items.sort((first, second) => {
+			const orderDiff = first.sortOrder - second.sortOrder;
+			return orderDiff || first.name.localeCompare(second.name, 'ru');
+		})
+	}));
+}
+
+function createCombatIntentGroups(
+	intents: CreatureCombatIntentOption[]
+): CreatureCombatIntentGroup[] {
+	const groups = new Map<string, CreatureCombatIntentGroup>();
+
+	for (const intent of intents) {
+		const label = intent.category || 'Без категории';
+		const group = groups.get(label) ?? {
+			label,
+			items: []
+		};
+		group.items.push(intent);
+		groups.set(label, group);
+	}
+
+	return [...groups.values()].map(group => ({
 		label: group.label,
 		items: group.items.sort((first, second) => {
 			const orderDiff = first.sortOrder - second.sortOrder;

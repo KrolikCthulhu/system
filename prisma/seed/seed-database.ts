@@ -9,6 +9,7 @@ import { seedArmorPresets } from './seed-armor-presets';
 import { seedCharacteristics } from './seed-characteristics';
 import { seedConditions } from './seed-conditions';
 import { seedCombatIntents } from './seed-combat-intents';
+import { seedCreatureSizes } from './seed-creature-sizes';
 import { seedCreatureTypes } from './seed-creature-types';
 import { seedCreatures } from './seed-creatures';
 import { seedDamageTypes } from './seed-damage-types';
@@ -16,6 +17,7 @@ import { seedGameEventHandlers } from './seed-game-events';
 import { seedAreaShapes } from './seed-area-shapes';
 import { seedMagicWordLinks } from './seed-magic-word-links';
 import { seedMagicWords } from './seed-magic-words';
+import { seedNaturalAttacks } from './seed-natural-attacks';
 import { seedProgressionPresets } from './seed-progression-presets';
 import {
 	seedRollConsequences,
@@ -65,6 +67,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedCombatIntents(tx);
 	await seedAnatomySchemes(tx);
 	await seedCreatureTypes(tx);
+	await seedCreatureSizes(tx);
 	await seedArmorPresets(tx);
 	await seedProgressionPresets(tx);
 	const categories = await seedSkillCategories(tx);
@@ -75,6 +78,7 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 	});
 	await seedWeaponTemplates(tx);
 	await seedWeapons(tx);
+	await seedNaturalAttacks(tx);
 	await seedCreatures(tx);
 	await seedSpellcasterLevelValue(tx);
 	await seedSpellMechanics(tx);

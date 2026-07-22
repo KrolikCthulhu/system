@@ -3,9 +3,9 @@ import type { ContentDocument, WeaponContent } from '../content/content-types';
 import { readContent } from './content';
 import { seedSlug } from './slug';
 
-const WEAPON_SEEDS = readContent<
-	ContentDocument<{ weapons: WeaponContent[] }>
->('dictionaries/weapons.ts').weapons;
+const WEAPON_SEEDS = readContent<ContentDocument<{ weapons: WeaponContent[] }>>(
+	'dictionaries/weapons.ts'
+).weapons;
 const REMOVED_WEAPON_SLUGS = ['legkaya-sablya'];
 
 export async function seedWeapons(tx: Prisma.TransactionClient) {
@@ -81,7 +81,12 @@ async function seedWeaponAttackProfiles(
 	const profiles =
 		seed.attackProfiles && seed.attackProfiles.length
 			? seed.attackProfiles
-			: await profilesFromTemplate(tx, seed.template.slug, seed.extraDamage, seed.damageTypes);
+			: await profilesFromTemplate(
+					tx,
+					seed.template.slug,
+					seed.extraDamage,
+					seed.damageTypes
+				);
 
 	await tx.weaponAttackProfile.deleteMany({ where: { weaponId } });
 
@@ -93,7 +98,10 @@ async function seedWeaponAttackProfiles(
 		const characteristic = await tx.characteristic.findFirst({
 			select: { id: true },
 			where: {
-				OR: [{ systemValue: { slug: profile.characteristic.slug } }, { name: profile.characteristic.name }]
+				OR: [
+					{ systemValue: { slug: profile.characteristic.slug } },
+					{ name: profile.characteristic.name }
+				]
 			}
 		});
 
@@ -102,7 +110,9 @@ async function seedWeaponAttackProfiles(
 		}
 
 		if (!characteristic) {
-			throw new Error(`Характеристика "${profile.characteristic.name}" не найдена.`);
+			throw new Error(
+				`Характеристика "${profile.characteristic.name}" не найдена.`
+			);
 		}
 
 		const intentIds = [];
@@ -143,6 +153,7 @@ async function seedWeaponAttackProfiles(
 				baseDamage: profile.baseDamage,
 				rangeMeters: profile.rangeMeters,
 				usesAmmo: profile.usesAmmo ?? false,
+				canBeParried: profile.canBeParried ?? profile.kind === 'melee',
 				isActive: profile.isActive ?? true,
 				sortOrder: profile.sortOrder ?? index,
 				damageTypeLinks: {
@@ -176,11 +187,14 @@ async function profilesFromTemplate(
 					kind: true,
 					name: true,
 					skill: { select: { slug: true, name: true } },
-					characteristic: { select: { name: true, systemValue: { select: { slug: true } } } },
+					characteristic: {
+						select: { name: true, systemValue: { select: { slug: true } } }
+					},
 					baseCost: true,
 					baseDamage: true,
 					rangeMeters: true,
 					usesAmmo: true,
+					canBeParried: true,
 					isActive: true,
 					sortOrder: true,
 					damageTypeLinks: {
@@ -217,6 +231,7 @@ async function profilesFromTemplate(
 		baseDamage: profile.baseDamage + extraDamage,
 		rangeMeters: profile.rangeMeters,
 		usesAmmo: profile.usesAmmo,
+		canBeParried: profile.canBeParried,
 		damageTypes: weaponDamageTypes?.length
 			? weaponDamageTypes
 			: profile.damageTypeLinks.map(link => link.damageType),
@@ -226,7 +241,9 @@ async function profilesFromTemplate(
 	}));
 }
 
-async function removeLegacyGeneratedWeaponTemplates(tx: Prisma.TransactionClient) {
+async function removeLegacyGeneratedWeaponTemplates(
+	tx: Prisma.TransactionClient
+) {
 	await tx.weaponTemplate.deleteMany({
 		where: {
 			name: { endsWith: ': базовый шаблон' },

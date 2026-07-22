@@ -3,7 +3,10 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map } from 'rxjs';
 import { environment } from '../../../infrastructure/config/environment';
 import { handleApiError } from '../../../shared/http/api-error.util';
-import { CombatEncounter } from '../domain/combat-encounters.models';
+import {
+	CombatEncounter,
+	KnockdownSizeRuleResult
+} from '../domain/combat-encounters.models';
 import { CombatEncountersRepository } from './combat-encounters-repository.port';
 import {
 	AddCreatureParticipantDto,
@@ -11,6 +14,7 @@ import {
 	CombatEncounterDto,
 	CombatEncountersResponseDto,
 	CreateCombatEncounterDto,
+	KnockdownSizeRuleResultDto,
 	UpdateCombatParticipantDto
 } from './dto/combat-encounters.dto';
 import {
@@ -103,5 +107,24 @@ export class HttpCombatEncountersRepository
 				}
 			)
 			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	resolveKnockdownSizeRule(
+		id: string,
+		attackerParticipantId: string,
+		targetParticipantId: string
+	): Observable<KnockdownSizeRuleResult> {
+		return this.http
+			.get<KnockdownSizeRuleResultDto>(
+				`${this.baseUrl}/combat-encounters/${id}/rules/knockdown-size`,
+				{
+					params: {
+						attackerParticipantId,
+						targetParticipantId
+					},
+					withCredentials: true
+				}
+			)
+			.pipe(catchError(handleApiError));
 	}
 }

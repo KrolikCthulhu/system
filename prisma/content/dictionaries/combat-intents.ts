@@ -99,10 +99,231 @@ const woundTextBlocks: CombatIntentTextBlockContent[] = [
 	}
 ];
 
+const woundMechanic = {
+	version: 1,
+	inputs: {
+		required: [
+			'attacker',
+			'target',
+			'attackProfile',
+			'attackSkill',
+			'attackCharacteristic',
+			'damageTypes',
+			'selectedDamageType',
+			'defenseOptions',
+			'targetAnatomy',
+			'targetArmorByZone'
+		],
+		optional: ['weapon', 'naturalAttack', 'cleanSuccesses']
+	},
+	actions: [
+		{
+			kind: 'attack_roll',
+			label: 'Бросок и защита',
+			rollKind: 'opposed_attack',
+			attackDicePool: {
+				characteristic: 'from_attack_profile',
+				skill: 'from_attack_profile'
+			},
+			defense: {
+				kind: 'physical',
+				options: ['dodge', 'parry'],
+				parry: {
+					requiresAttackProfileCanBeParried: true,
+					dicePool: {
+						skill: 'from_parrying_weapon_profile',
+						characteristic: 'from_parrying_weapon_profile'
+					}
+				}
+			},
+			isActive: true,
+			sortOrder: 0
+		},
+		{
+			kind: 'hit_check',
+			label: 'Попадание',
+			minCleanSuccesses: 1,
+			defaultMinCleanSuccesses: 1,
+			onNoCleanSuccesses: 'miss',
+			isActive: true,
+			sortOrder: 1
+		},
+		{
+			kind: 'damage',
+			label: 'Урон',
+			formula: 'cleanSuccesses + attackProfile.baseDamage',
+			baseDamageAppliesOnlyOnHit: true,
+			damageType: 'selectedDamageType',
+			armor: {
+				applies: true,
+				source: 'targetArmorByHitZone',
+				timing: 'after_total_damage'
+			},
+			isActive: true,
+			sortOrder: 2
+		},
+		{
+			kind: 'hit_zone',
+			label: 'Зона попадания',
+			zoneKind: 'random_main_zone',
+			source: 'targetAnatomy',
+			eligibleZones: 'main_random_hit_eligible',
+			usesWeights: true,
+			isActive: true,
+			sortOrder: 3
+		},
+		{
+			kind: 'result',
+			label: 'Результат',
+			healthDamage: true,
+			canCauseZoneTrauma: true,
+			isActive: true,
+			sortOrder: 4
+		}
+	]
+};
+
+const woundDescription =
+	'Атакующий совершает проверку атаки характеристикой и навыком выбранного профиля атаки. Цель выбирает один из доступных способов защиты. Если после защиты не осталось чистых успехов, атака не попадает и не наносит урон. Если остался хотя бы 1 чистый успех, зона ранения случайно определяется по анатомической схеме цели. Урон равен чистым успехам атаки + базовый урон профиля атаки. После расчета урона применяется броня пораженной зоны. Оставшийся урон снимает здоровье цели и может вызвать травму пораженной зоны.';
+
+const knockdownMechanic = {
+	version: 1,
+	inputs: {
+		required: [
+			'attacker',
+			'target',
+			'attackProfile',
+			'attackSkill',
+			'attackCharacteristic',
+			'defenseOptions',
+			'attackerSize',
+			'targetSize'
+		],
+		optional: ['weapon', 'naturalAttack', 'cleanSuccesses', 'sizeDifference']
+	},
+	actions: [
+		{
+			kind: 'target_size_limit',
+			label: 'Ограничение по размеру',
+			source: 'creature_size_rank',
+			attackerRank: 'attackerSize.rank',
+			targetRank: 'targetSize.rank',
+			differenceFormula: 'targetSize.rank - attackerSize.rank',
+			unavailableIfTargetLargerBy: 2,
+			minCleanSuccessesIfTargetSameOrSmaller: 1,
+			minCleanSuccessesIfTargetLargerByOne: 2,
+			isActive: true,
+			sortOrder: 0
+		},
+		{
+			kind: 'target_condition_absence',
+			label: 'Цель не имеет состояние',
+			condition: 'lezhit',
+			isActive: true,
+			sortOrder: 1
+		},
+		{
+			kind: 'attack_roll',
+			label: 'Бросок и защита',
+			rollKind: 'opposed_attack',
+			attackDicePool: {
+				characteristic: 'from_attack_profile',
+				skill: 'from_attack_profile'
+			},
+			defense: {
+				kind: 'physical',
+				options: ['dodge', 'parry'],
+				parry: {
+					requiresAttackProfileCanBeParried: true,
+					dicePool: {
+						skill: 'from_parrying_weapon_profile',
+						characteristic: 'from_parrying_weapon_profile'
+					}
+				}
+			},
+			isActive: true,
+			sortOrder: 2
+		},
+		{
+			kind: 'hit_check',
+			label: 'Попадание',
+			minCleanSuccesses: 'by_size_difference',
+			defaultMinCleanSuccesses: 1,
+			onNoCleanSuccesses: 'miss',
+			isActive: true,
+			sortOrder: 3
+		},
+		{
+			kind: 'result',
+			label: 'Результат',
+			condition: 'lezhit',
+			conditionName: 'Лежит',
+			damage: 'only_if_attack_also_has_damage_rule',
+			isActive: true,
+			sortOrder: 4
+		}
+	]
+};
+
+const knockdownDescription =
+	'Атакующий совершает проверку атаки характеристикой и навыком выбранного профиля атаки. Цель выбирает один из доступных способов защиты. Если после защиты остался хотя бы 1 чистый успех, цель получает состояние «Лежит». Если цель крупнее атакующего на 1 категорию, требуется минимум 2 чистых успеха. Если цель крупнее атакующего на 2 или более категории, намерение недоступно без особого правила.';
+
+const knockdownTextBlocks: CombatIntentTextBlockContent[] = [
+	{
+		kind: 'text',
+		text: 'Вы пытаетесь сбить цель с ног выбранным способом атаки в пределах ',
+		sortOrder: 0
+	},
+	{
+		kind: 'token',
+		token: 'rangeMeters',
+		sortOrder: 1
+	},
+	{
+		kind: 'text',
+		text: ' м.\n\nСовершите проверку ',
+		sortOrder: 2
+	},
+	{
+		kind: 'token',
+		token: 'attackCharacteristic',
+		sortOrder: 3
+	},
+	{
+		kind: 'text',
+		text: ' + ',
+		sortOrder: 4
+	},
+	{
+		kind: 'token',
+		token: 'attackSkill',
+		sortOrder: 5
+	},
+	{
+		kind: 'text',
+		text: '. Цель может защититься: ',
+		sortOrder: 6
+	},
+	{
+		kind: 'token',
+		token: 'defenseOptions',
+		sortOrder: 7
+	},
+	{
+		kind: 'text',
+		text: '.\n\nЕсли после защиты остался хотя бы 1 чистый успех, цель получает состояние «Лежит». Если цель крупнее атакующего на 1 категорию, требуется минимум 2 чистых успеха. Если цель крупнее атакующего на 2 или более категории, это намерение недоступно без особого правила.',
+		sortOrder: 8
+	}
+];
+
 export default {
 	schemaVersion: 1,
 	combatIntents: [
-		intent('Ранить', 'ranit', CATEGORIES.damage, 0, true, woundTextBlocks),
+		{
+			...intent('Ранить', 'ranit', CATEGORIES.damage, 0, true, woundTextBlocks),
+			description: woundDescription,
+			mechanic: woundMechanic
+		},
 		intent('Прицельно ранить', 'pricelno-ranit', CATEGORIES.damage, 1),
 		intent(
 			'Поразить уязвимое место',
@@ -122,7 +343,18 @@ export default {
 
 		intent('Оттолкнуть', 'ottolknut', CATEGORIES.movement, 200),
 		intent('Притянуть', 'prityanut', CATEGORIES.movement, 201),
-		intent('Сбить с ног', 'sbit-s-nog', CATEGORIES.movement, 202),
+		{
+			...intent(
+				'Сбить с ног',
+				'sbit-s-nog',
+				CATEGORIES.movement,
+				202,
+				true,
+				knockdownTextBlocks
+			),
+			description: knockdownDescription,
+			mechanic: knockdownMechanic
+		},
 		intent('Бросить', 'brosit', CATEGORIES.movement, 203),
 		intent('Развернуть', 'razvernut', CATEGORIES.movement, 204),
 		intent(

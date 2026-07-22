@@ -1,6 +1,7 @@
 import {
 	CombatEncounterParticipantKind,
-	CombatEncounterStatus
+	CombatEncounterStatus,
+	KnockdownSizeRuleResult
 } from '../../domain/combat-encounters.models';
 
 export interface CombatEncounterParticipantOwnerDto {
@@ -20,11 +21,20 @@ export interface CombatEncounterCreatureDto {
 	name: string;
 }
 
+export interface CombatEncounterCreatureSizeDto {
+	id: string;
+	slug: string;
+	name: string;
+	rank: number;
+}
+
 export interface CombatEncounterCreatureTierDto {
 	id: string;
 	tier: number;
 	name: string;
 	hp: number;
+	sizeId: string | null;
+	size: CombatEncounterCreatureSizeDto | null;
 }
 
 export interface CombatEncounterParticipantDto {
@@ -83,3 +93,5 @@ export interface UpdateCombatParticipantDto {
 	initiative?: number | null;
 	isActive?: boolean;
 }
+
+export interface KnockdownSizeRuleResultDto extends KnockdownSizeRuleResult {}

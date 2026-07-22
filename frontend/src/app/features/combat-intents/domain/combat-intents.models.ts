@@ -38,6 +38,8 @@ export interface CombatIntent {
 	slug: string;
 	name: string;
 	category: string;
+	description: string;
+	mechanic: Record<string, unknown>;
 	textBlocks: CombatIntentTextBlock[];
 	isActive: boolean;
 	sortOrder: number;

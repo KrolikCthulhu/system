@@ -26,6 +26,8 @@ export async function seedCombatIntents(tx: Prisma.TransactionClient) {
 				data: {
 					slug,
 					category: seed.category,
+					description: seed.description ?? null,
+					mechanic: seed.mechanic ?? {},
 					textBlocks: seed.textBlocks ?? [],
 					sortOrder: seed.sortOrder,
 					isActive: seed.isActive ?? true
@@ -39,6 +41,8 @@ export async function seedCombatIntents(tx: Prisma.TransactionClient) {
 				slug,
 				name: seed.name,
 				category: seed.category,
+				description: seed.description ?? null,
+				mechanic: seed.mechanic ?? {},
 				textBlocks: seed.textBlocks ?? [],
 				isActive: seed.isActive ?? true,
 				sortOrder: seed.sortOrder

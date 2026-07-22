@@ -67,6 +67,10 @@ export class UpdateWeaponAttackProfileDto {
 	usesAmmo!: boolean;
 
 	@IsOptional()
+	@IsBoolean()
+	canBeParried?: boolean;
+
+	@IsOptional()
 	@IsArray()
 	@IsUUID(undefined, { each: true })
 	damageTypeIds?: string[];
