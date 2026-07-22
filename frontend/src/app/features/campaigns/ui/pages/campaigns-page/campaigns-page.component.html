@@ -1,0 +1,333 @@
+<section class="campaigns-page">
+	<header class="campaigns-page__header">
+		<div>
+			<p class="campaigns-page__eyebrow">Игровое пространство</p>
+			<h1>Кампании</h1>
+		</div>
+
+		<p-button
+			icon="pi pi-refresh"
+			label="Обновить"
+			severity="secondary"
+			[loading]="loading()"
+			(onClick)="loadCampaigns()"
+		/>
+	</header>
+
+	@if (errorMessage()) {
+		<div class="campaigns-page__error">
+			{{ errorMessage() }}
+		</div>
+	}
+
+	<div class="campaigns-page__layout">
+		<aside class="campaigns-page__sidebar">
+			<section class="campaigns-page__panel">
+				<h2>Новая кампания</h2>
+
+				<label class="campaigns-page__field">
+					<span>Название</span>
+					<input
+						pInputText
+						[value]="draft().name"
+						(input)="updateDraftName($any($event.target).value)"
+					/>
+				</label>
+
+				<label class="campaigns-page__field">
+					<span>Описание</span>
+					<textarea
+						pTextarea
+						rows="4"
+						[value]="draft().description"
+						(input)="updateDraftDescription($any($event.target).value)"
+					></textarea>
+				</label>
+
+				<p-button
+					icon="pi pi-plus"
+					label="Создать"
+					[loading]="saving()"
+					(onClick)="createCampaign()"
+				/>
+			</section>
+
+			<section class="campaigns-page__list-panel">
+				<div class="campaigns-page__section-title">
+					<h2>Мои кампании</h2>
+					<span>{{ activeCampaigns().length }}</span>
+				</div>
+
+				@if (loading()) {
+					<div class="campaigns-page__empty">Загрузка кампаний...</div>
+				} @else if (!activeCampaigns().length) {
+					<div class="campaigns-page__empty">Активных кампаний пока нет.</div>
+				} @else {
+					<div class="campaigns-page__list">
+						@for (campaign of activeCampaigns(); track campaign.id) {
+							<button
+								type="button"
+								class="campaigns-page__list-item"
+								[class.campaigns-page__list-item--active]="
+									selectedCampaignId() === campaign.id
+								"
+								(click)="selectCampaign(campaign)"
+							>
+								<span>{{ campaign.name }}</span>
+								<small>
+									{{ memberRoleLabel(campaign.currentUserRole ?? 'PLAYER') }}
+									· {{ campaign.members.length }} уч.
+								</small>
+							</button>
+						}
+					</div>
+				}
+			</section>
+
+			@if (invitedCampaigns().length) {
+				<section class="campaigns-page__list-panel">
+					<div class="campaigns-page__section-title">
+						<h2>Приглашения</h2>
+						<span>{{ invitedCampaigns().length }}</span>
+					</div>
+
+					<div class="campaigns-page__list">
+						@for (campaign of invitedCampaigns(); track campaign.id) {
+							<div class="campaigns-page__invite-item">
+								<button
+									type="button"
+									class="campaigns-page__list-item"
+									[class.campaigns-page__list-item--active]="
+										selectedCampaignId() === campaign.id
+									"
+									(click)="selectCampaign(campaign)"
+								>
+									<span>{{ campaign.name }}</span>
+									<small>Мастер: {{ campaign.owner.displayUsername }}</small>
+								</button>
+
+								<p-button
+									label="Принять"
+									size="small"
+									(onClick)="acceptInvitation(campaign)"
+								/>
+							</div>
+						}
+					</div>
+				</section>
+			}
+		</aside>
+
+		<main class="campaigns-page__content">
+			@if (selectedCampaign(); as campaign) {
+				<section class="campaigns-page__details">
+					<div class="campaigns-page__details-head">
+						<div>
+							<h2>{{ campaign.name }}</h2>
+							<p>
+								Мастер: {{ campaign.owner.displayUsername }}
+								@if (
+									campaign.owner.username !== campaign.owner.displayUsername
+								) {
+									<span>({{ campaign.owner.username }})</span>
+								}
+							</p>
+						</div>
+
+						<p-tag
+							[value]="
+								memberStatusLabel(campaign.currentUserStatus ?? 'INVITED')
+							"
+							[severity]="
+								memberStatusSeverity(campaign.currentUserStatus ?? 'INVITED')
+							"
+						/>
+					</div>
+
+					@if (campaign.description) {
+						<p class="campaigns-page__description">
+							{{ campaign.description }}
+						</p>
+					}
+
+					@if (canInvite()) {
+						<section class="campaigns-page__invite-form">
+							<h3>Пригласить игрока</h3>
+
+							<div class="campaigns-page__invite-grid">
+								<label class="campaigns-page__field">
+									<span>Email или имя пользователя</span>
+									<input
+										pInputText
+										[value]="inviteIdentifier()"
+										(input)="inviteIdentifier.set($any($event.target).value)"
+									/>
+								</label>
+
+								<label class="campaigns-page__field">
+									<span>Роль</span>
+									<p-select
+										[ngModel]="inviteRole()"
+										[options]="roleOptions"
+										optionLabel="label"
+										optionValue="value"
+										(ngModelChange)="inviteRole.set($event)"
+									/>
+								</label>
+
+								<p-button
+									icon="pi pi-user-plus"
+									label="Пригласить"
+									[loading]="inviting()"
+									(onClick)="inviteMember()"
+								/>
+							</div>
+
+							@if (inviteErrorMessage()) {
+								<div class="campaigns-page__error">
+									{{ inviteErrorMessage() }}
+								</div>
+							}
+						</section>
+					}
+
+					@if (campaign.currentUserStatus === 'ACTIVE') {
+						<section class="campaigns-page__encounters">
+							<div class="campaigns-page__subsection-head">
+								<h3>Боевые столкновения</h3>
+								@if (loadingEncounters()) {
+									<span>Загрузка...</span>
+								}
+							</div>
+
+							@if (canInvite()) {
+								<p-button
+									icon="pi pi-bolt"
+									label="Создать столкновение"
+									[loading]="creatingEncounter()"
+									(onClick)="createEncounter()"
+								/>
+							}
+
+							@if (encounterErrorMessage()) {
+								<div class="campaigns-page__error">
+									{{ encounterErrorMessage() }}
+								</div>
+							}
+
+							@if (!loadingEncounters() && !encounters().length) {
+								<div class="campaigns-page__empty">
+									Столкновений в этой кампании пока нет.
+								</div>
+							} @else {
+								<div class="campaigns-page__encounter-list">
+									@for (encounter of encounters(); track encounter.id) {
+										<a
+											class="campaigns-page__encounter"
+											[routerLink]="['/combat-encounters', encounter.id]"
+										>
+											<div>
+												<strong>{{ encounter.name }}</strong>
+												<span>
+													{{ encounter.participants.length }} участников
+												</span>
+											</div>
+
+											<span class="pi pi-angle-right" aria-hidden="true"></span>
+										</a>
+									}
+								</div>
+							}
+						</section>
+
+						<section class="campaigns-page__characters">
+							<div class="campaigns-page__subsection-head">
+								<h3>Персонажи</h3>
+								@if (loadingCharacters()) {
+									<span>Загрузка...</span>
+								}
+							</div>
+
+							<div class="campaigns-page__character-create">
+								<label class="campaigns-page__field">
+									<span>Имя персонажа</span>
+									<input
+										pInputText
+										[value]="characterName()"
+										(input)="characterName.set($any($event.target).value)"
+									/>
+								</label>
+
+								<p-button
+									icon="pi pi-plus"
+									label="Создать персонажа"
+									[loading]="creatingCharacter()"
+									(onClick)="createCharacter()"
+								/>
+							</div>
+
+							@if (characterErrorMessage()) {
+								<div class="campaigns-page__error">
+									{{ characterErrorMessage() }}
+								</div>
+							}
+
+							@if (!loadingCharacters() && !characters().length) {
+								<div class="campaigns-page__empty">
+									Персонажей в этой кампании пока нет.
+								</div>
+							} @else {
+								<div class="campaigns-page__character-list">
+									@for (character of characters(); track character.id) {
+										<a
+											class="campaigns-page__character"
+											[routerLink]="['/characters', character.id]"
+										>
+											<div>
+												<strong>{{ character.name }}</strong>
+												<span>{{ character.owner.displayUsername }}</span>
+											</div>
+
+											<span class="pi pi-angle-right" aria-hidden="true"></span>
+										</a>
+									}
+								</div>
+							}
+						</section>
+					}
+
+					<section class="campaigns-page__members">
+						<h3>Участники</h3>
+
+						<div class="campaigns-page__member-list">
+							@for (member of campaign.members; track member.id) {
+								<article class="campaigns-page__member">
+									<div>
+										<strong>{{ member.user.displayUsername }}</strong>
+										<span>{{ member.user.email }}</span>
+									</div>
+
+									<div class="campaigns-page__member-tags">
+										<p-tag
+											[value]="memberRoleLabel(member.role)"
+											severity="info"
+										/>
+										<p-tag
+											[value]="memberStatusLabel(member.status)"
+											[severity]="memberStatusSeverity(member.status)"
+										/>
+									</div>
+								</article>
+							}
+						</div>
+					</section>
+				</section>
+			} @else {
+				<section class="campaigns-page__empty-state">
+					<h2>Кампания не выбрана</h2>
+					<p>Создайте первую кампанию или примите приглашение.</p>
+				</section>
+			}
+		</main>
+	</div>
+</section>

@@ -1,15 +1,31 @@
 <div class="private-layout">
 	<p-toolbar>
 		<ng-template #start>
-			<div class="private-layout__identity">
-				@if (user(); as currentUser) {
-					<div class="private-layout__username">
-						{{ currentUser.displayUsername || currentUser.username }}
-					</div>
-					<div class="private-layout__role">
-						{{ getRoleLabel(currentUser.role) }}
-					</div>
-				}
+			<div class="private-layout__start">
+				<div class="private-layout__identity">
+					@if (user(); as currentUser) {
+						<div class="private-layout__username">
+							{{ currentUser.displayUsername || currentUser.username }}
+						</div>
+						<div class="private-layout__role">
+							{{ getRoleLabel(currentUser.role) }}
+						</div>
+					}
+				</div>
+
+				<nav class="private-layout__nav" aria-label="Основная навигация">
+					<a pButton severity="secondary" routerLink="/campaigns">
+						<span pButtonIcon class="pi pi-users"></span>
+						<span pButtonLabel>Кампании</span>
+					</a>
+
+					@if (user()?.role === 'ADMIN') {
+						<a pButton severity="secondary" routerLink="/admin">
+							<span pButtonIcon class="pi pi-cog"></span>
+							<span pButtonLabel>Админка</span>
+						</a>
+					}
+				</nav>
 			</div>
 		</ng-template>
 		<ng-template #end>

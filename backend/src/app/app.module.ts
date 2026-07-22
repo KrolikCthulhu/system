@@ -8,7 +8,9 @@ import { ArmorPresetsModule } from './armor-presets/armor-presets.module';
 import { AttributesModule } from './attributes/attributes.module';
 import { AuthModule } from './auth/auth.module';
 import { authConfig } from './auth/config/auth.config';
+import { CampaignsModule } from './campaigns/campaigns.module';
 import { CharacterSheetSandboxModule } from './character-sheet-sandbox/character-sheet-sandbox.module';
+import { CombatEncountersModule } from './combat-encounters/combat-encounters.module';
 import { CombatIntentsModule } from './combat-intents/combat-intents.module';
 import { ConditionsModule } from './conditions/conditions.module';
 import { CreatureTypesModule } from './creature-types/creature-types.module';
@@ -16,6 +18,7 @@ import { CreaturesModule } from './creatures/creatures.module';
 import { DamageTypesModule } from './damage-types/damage-types.module';
 import { GameEventsModule } from './game-events/game-events.module';
 import { MagicModule } from './magic/magic.module';
+import { PlayerCharactersModule } from './player-characters/player-characters.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProgressionPresetsModule } from './progression-presets/progression-presets.module';
 import { RollConsequencesModule } from './roll-consequences/roll-consequences.module';
@@ -51,7 +54,9 @@ import { AppService } from './app.service';
 		ArmorPresetsModule,
 		AuthModule,
 		AttributesModule,
+		CampaignsModule,
 		CharacterSheetSandboxModule,
+		CombatEncountersModule,
 		CombatIntentsModule,
 		ConditionsModule,
 		CreatureTypesModule,
@@ -59,6 +64,7 @@ import { AppService } from './app.service';
 		DamageTypesModule,
 		GameEventsModule,
 		MagicModule,
+		PlayerCharactersModule,
 		ProgressionPresetsModule,
 		RollConsequencesModule,
 		SkillsModule,

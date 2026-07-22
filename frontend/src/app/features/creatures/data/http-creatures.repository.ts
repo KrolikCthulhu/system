@@ -29,6 +29,14 @@ export class HttpCreaturesRepository implements CreaturesRepository {
 			.pipe(map(mapCreaturesCatalogResponseDto), catchError(handleApiError));
 	}
 
+	loadPublicCatalog(): Observable<CreaturesCatalog> {
+		return this.http
+			.get<CreaturesCatalogResponseDto>(`${this.baseUrl}/creatures/catalog`, {
+				withCredentials: true
+			})
+			.pipe(map(mapCreaturesCatalogResponseDto), catchError(handleApiError));
+	}
+
 	createCreature(command: CreateCreatureDto): Observable<Creature> {
 		return this.http
 			.post<CreatureDto>(`${this.baseUrl}/admin/creatures`, command, {

@@ -39,7 +39,8 @@ export function evaluateGraph(
 		values,
 		breakdown,
 		new Set<string>(),
-		sourceOverrides
+		sourceOverrides,
+		new Set<string>()
 	);
 	const rawBase =
 		beforeResultNode?.kind === 'curve'
@@ -48,7 +49,7 @@ export function evaluateGraph(
 					graph,
 					values,
 					sourceOverrides
-			  )
+				)
 			: finalBase;
 
 	return {
@@ -146,7 +147,8 @@ function evaluateIncomingValue(
 		values,
 		[],
 		new Set<string>(),
-		sourceOverrides
+		sourceOverrides,
+		new Set<string>()
 	);
 }
 
@@ -156,7 +158,8 @@ function evaluateGraphNode(
 	values: SystemValue[],
 	breakdown: string[],
 	visited: Set<string>,
-	sourceOverrides?: Record<string, number>
+	sourceOverrides?: Record<string, number>,
+	visitedValues: Set<string> = new Set<string>()
 ): number {
 	if (visited.has(nodeId)) {
 		breakdown.push('Обнаружен цикл в графе');
@@ -180,14 +183,16 @@ function evaluateGraphNode(
 			break;
 		case 'source': {
 			const referencedValue = node.sourceValueId
-				? values.find(value => value.id === node.sourceValueId) ?? null
+				? (values.find(value => value.id === node.sourceValueId) ?? null)
 				: null;
-			result =
-				node.sourceValueId && sourceOverrides?.[node.sourceValueId] !== undefined
-					? sourceOverrides[node.sourceValueId]
-					: referencedValue
-						? resolveStoredFinalValue(referencedValue, values)
-						: 0;
+			result = referencedValue
+				? evaluateSystemValue(
+						referencedValue,
+						values,
+						sourceOverrides,
+						visitedValues
+					)
+				: 0;
 			breakdown.push(
 				`Значение системы ${referencedValue?.name ?? node.sourceValueId ?? 'не выбрано'} = ${formatNumber(result)}`
 			);
@@ -202,7 +207,9 @@ function evaluateGraphNode(
 			const incomingValues =
 				node.operation === 'subtract' || node.operation === 'divide'
 					? ['a', 'b'].map(handleId => {
-							const edge = incomingEdges.find(item => item.targetHandle === handleId);
+							const edge = incomingEdges.find(
+								item => item.targetHandle === handleId
+							);
 							return edge
 								? evaluateGraphNode(
 										edge.source,
@@ -210,10 +217,11 @@ function evaluateGraphNode(
 										values,
 										breakdown,
 										visited,
-										sourceOverrides
-								  )
+										sourceOverrides,
+										visitedValues
+									)
 								: 0;
-					  })
+						})
 					: incomingEdges.map(edge =>
 							evaluateGraphNode(
 								edge.source,
@@ -221,9 +229,10 @@ function evaluateGraphNode(
 								values,
 								breakdown,
 								visited,
-								sourceOverrides
+								sourceOverrides,
+								visitedValues
 							)
-					  );
+						);
 
 			result = applyOperation(node.operation ?? 'sum', incomingValues);
 			breakdown.push(
@@ -239,7 +248,8 @@ function evaluateGraphNode(
 				values,
 				breakdown,
 				visited,
-				sourceOverrides
+				sourceOverrides,
+				visitedValues
 			);
 			const right = evaluateHandleValue(
 				node.id,
@@ -248,7 +258,8 @@ function evaluateGraphNode(
 				values,
 				breakdown,
 				visited,
-				sourceOverrides
+				sourceOverrides,
+				visitedValues
 			);
 			result = applyComparison(node.comparison ?? 'gte', left, right) ? 1 : 0;
 			breakdown.push(
@@ -264,7 +275,8 @@ function evaluateGraphNode(
 				values,
 				breakdown,
 				visited,
-				sourceOverrides
+				sourceOverrides,
+				visitedValues
 			);
 			const thenValue = evaluateHandleValue(
 				node.id,
@@ -273,7 +285,8 @@ function evaluateGraphNode(
 				values,
 				breakdown,
 				visited,
-				sourceOverrides
+				sourceOverrides,
+				visitedValues
 			);
 			const elseValue = evaluateHandleValue(
 				node.id,
@@ -282,7 +295,8 @@ function evaluateGraphNode(
 				values,
 				breakdown,
 				visited,
-				sourceOverrides
+				sourceOverrides,
+				visitedValues
 			);
 			result = condition !== 0 ? thenValue : elseValue;
 			breakdown.push(
@@ -299,8 +313,9 @@ function evaluateGraphNode(
 						values,
 						breakdown,
 						visited,
-						sourceOverrides
-				  )
+						sourceOverrides,
+						visitedValues
+					)
 				: 0;
 			result = applyCurve(sourceValue, node.curveRanges ?? []);
 			breakdown.push(`Шкала уровней = ${formatNumber(result)}`);
@@ -315,8 +330,9 @@ function evaluateGraphNode(
 						values,
 						breakdown,
 						visited,
-						sourceOverrides
-				  )
+						sourceOverrides,
+						visitedValues
+					)
 				: 0;
 			breakdown.push(`Результат = ${formatNumber(result)}`);
 			break;
@@ -334,7 +350,8 @@ function evaluateHandleValue(
 	values: SystemValue[],
 	breakdown: string[],
 	visited: Set<string>,
-	sourceOverrides?: Record<string, number>
+	sourceOverrides?: Record<string, number>,
+	visitedValues: Set<string> = new Set<string>()
 ) {
 	const incoming = graph.edges.find(
 		edge => edge.target === nodeId && edge.targetHandle === handleId
@@ -347,14 +364,55 @@ function evaluateHandleValue(
 				values,
 				breakdown,
 				visited,
-				sourceOverrides
-		  )
+				sourceOverrides,
+				visitedValues
+			)
 		: 0;
+}
+
+function evaluateSystemValue(
+	value: SystemValue,
+	values: SystemValue[],
+	sourceOverrides?: Record<string, number>,
+	visitedValues: Set<string> = new Set<string>()
+) {
+	if (visitedValues.has(value.id)) {
+		return 0;
+	}
+
+	if (!value.calculationGraph) {
+		return sourceOverrides?.[value.id] ?? value.baseValue;
+	}
+
+	visitedValues.add(value.id);
+	const resultNode = value.calculationGraph.nodes.find(
+		node => node.kind === 'result'
+	);
+	const result = resultNode
+		? evaluateGraphNode(
+				resultNode.id,
+				value.calculationGraph,
+				values,
+				[],
+				new Set<string>(),
+				{
+					...sourceOverrides,
+					[CHARACTER_INPUT_OVERRIDE_KEY]:
+						sourceOverrides?.[value.id] ?? value.baseValue
+				},
+				visitedValues
+			)
+		: (sourceOverrides?.[value.id] ?? value.baseValue);
+	visitedValues.delete(value.id);
+
+	return result;
 }
 
 function findIncomingNode(nodeId: string, graph: ValueGraphState) {
 	const incoming = graph.edges.find(edge => edge.target === nodeId);
-	return incoming ? graph.nodes.find(node => node.id === incoming.source) ?? null : null;
+	return incoming
+		? (graph.nodes.find(node => node.id === incoming.source) ?? null)
+		: null;
 }
 
 function findIncomingEdge(nodeId: string, graph: ValueGraphState) {
@@ -362,7 +420,9 @@ function findIncomingEdge(nodeId: string, graph: ValueGraphState) {
 }
 
 function applyCurve(value: number, ranges: CurveRange[]): number {
-	const matchingRange = ranges.find(range => value >= range.from && value <= range.to);
+	const matchingRange = ranges.find(
+		range => value >= range.from && value <= range.to
+	);
 	return matchingRange ? matchingRange.result : 0;
 }
 

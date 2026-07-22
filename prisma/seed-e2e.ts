@@ -1,4 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg';
+import { Pool } from 'pg';
 import * as dotenv from 'dotenv';
 import * as dotenvExpand from 'dotenv-expand';
 import { PrismaClient } from './__generated__/index.js';
@@ -13,7 +14,8 @@ async function main() {
 		throw new Error('POSTGRES_URI is not set.');
 	}
 
-	const adapter = new PrismaPg({ connectionString });
+	const pool = new Pool({ connectionString });
+	const adapter = new PrismaPg(pool, { disposeExternalPool: true });
 	const prisma = new PrismaClient({ adapter });
 
 	try {

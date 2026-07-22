@@ -12,6 +12,34 @@ enum UserRole {
   USER
 }
 
+enum CampaignMemberRole {
+  GM
+  PLAYER
+}
+
+enum CampaignMemberStatus {
+  INVITED
+  ACTIVE
+  LEFT
+}
+
+enum PlayerCharacterStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+enum CombatEncounterStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+}
+
+enum CombatEncounterParticipantKind {
+  PLAYER_CHARACTER
+  CREATURE
+}
+
 enum SystemValueOwnerType {
   ATTRIBUTE
   CHARACTERISTIC
@@ -123,10 +151,114 @@ model User {
   isEmailVerified         Boolean                  @default(false)
   authSessions            AuthSession[]
   emailVerificationTokens EmailVerificationToken[]
+  ownedCampaigns          Campaign[]               @relation("CampaignOwner")
+  campaignMemberships     CampaignMember[]
+  playerCharacters        PlayerCharacter[]
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
   @@map("users")
+}
+
+model Campaign {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String
+  description String?
+  ownerId     String            @map("owner_id") @db.Uuid
+  owner       User              @relation("CampaignOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     CampaignMember[]
+  characters  PlayerCharacter[]
+  encounters  CombatEncounter[]
+  isActive    Boolean           @default(true) @map("is_active")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@index([ownerId])
+  @@index([isActive, updatedAt])
+  @@map("campaigns")
+}
+
+model CampaignMember {
+  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId  String               @map("campaign_id") @db.Uuid
+  campaign    Campaign             @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId      String               @map("user_id") @db.Uuid
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role        CampaignMemberRole   @default(PLAYER)
+  status      CampaignMemberStatus @default(INVITED)
+  invitedById String?              @map("invited_by_id") @db.Uuid
+  invitedAt   DateTime             @default(now()) @map("invited_at")
+  joinedAt    DateTime?            @map("joined_at")
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  @@unique([campaignId, userId])
+  @@index([userId])
+  @@index([campaignId, status])
+  @@map("campaign_members")
+}
+
+model PlayerCharacter {
+  id                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId         String                       @map("campaign_id") @db.Uuid
+  campaign           Campaign                     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  ownerUserId        String                       @map("owner_user_id") @db.Uuid
+  ownerUser          User                         @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  name               String
+  sheetInputValues   Json                         @default("{}") @map("sheet_input_values")
+  combatParticipants CombatEncounterParticipant[]
+  status             PlayerCharacterStatus        @default(DRAFT)
+  isActive           Boolean                      @default(true) @map("is_active")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
+
+  @@index([campaignId, status])
+  @@index([ownerUserId])
+  @@index([campaignId, ownerUserId])
+  @@map("player_characters")
+}
+
+model CombatEncounter {
+  id           String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId   String                       @map("campaign_id") @db.Uuid
+  campaign     Campaign                     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  name         String
+  status       CombatEncounterStatus        @default(DRAFT)
+  participants CombatEncounterParticipant[]
+  isActive     Boolean                      @default(true) @map("is_active")
+  createdAt    DateTime                     @default(now()) @map("created_at")
+  updatedAt    DateTime                     @updatedAt @map("updated_at")
+
+  @@index([campaignId, status])
+  @@index([campaignId, isActive, updatedAt])
+  @@map("combat_encounters")
+}
+
+model CombatEncounterParticipant {
+  id                String                         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  encounterId       String                         @map("encounter_id") @db.Uuid
+  encounter         CombatEncounter                @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  kind              CombatEncounterParticipantKind
+  playerCharacterId String?                        @map("player_character_id") @db.Uuid
+  playerCharacter   PlayerCharacter?               @relation(fields: [playerCharacterId], references: [id], onDelete: SetNull)
+  creatureId        String?                        @map("creature_id") @db.Uuid
+  creature          Creature?                      @relation(fields: [creatureId], references: [id], onDelete: SetNull)
+  creatureTierId    String?                        @map("creature_tier_id") @db.Uuid
+  creatureTier      CreatureTier?                  @relation(fields: [creatureTierId], references: [id], onDelete: SetNull)
+  sceneName         String                         @map("scene_name")
+  currentHealth     Int                            @default(0) @map("current_health")
+  currentPotential  Int                            @default(0) @map("current_potential")
+  initiative        Int?
+  isActive          Boolean                        @default(true) @map("is_active")
+  sortOrder         Int                            @default(0) @map("sort_order")
+  createdAt         DateTime                       @default(now()) @map("created_at")
+  updatedAt         DateTime                       @updatedAt @map("updated_at")
+
+  @@index([encounterId, sortOrder])
+  @@index([playerCharacterId])
+  @@index([creatureId])
+  @@index([creatureTierId])
+  @@map("combat_encounter_participants")
 }
 
 model AuthSession {
@@ -790,19 +922,20 @@ model WeaponAttackProfileDamageType {
 }
 
 model Creature {
-  id              String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug            String                @unique @default(cuid())
-  name            String                @unique
-  typeId          String                @map("type_id") @db.Uuid
-  type            CreatureType          @relation(fields: [typeId], references: [id], onDelete: Restrict)
-  anatomySchemeId String?               @map("anatomy_scheme_id") @db.Uuid
-  anatomyScheme   AnatomyScheme?        @relation(fields: [anatomySchemeId], references: [id], onDelete: SetNull)
-  tiers           CreatureTier[]
-  anatomyZones    CreatureAnatomyZone[]
-  isActive        Boolean               @default(true) @map("is_active")
-  sortOrder       Int                   @default(0) @map("sort_order")
-  createdAt       DateTime              @default(now()) @map("created_at")
-  updatedAt       DateTime              @updatedAt @map("updated_at")
+  id                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug               String                       @unique @default(cuid())
+  name               String                       @unique
+  typeId             String                       @map("type_id") @db.Uuid
+  type               CreatureType                 @relation(fields: [typeId], references: [id], onDelete: Restrict)
+  anatomySchemeId    String?                      @map("anatomy_scheme_id") @db.Uuid
+  anatomyScheme      AnatomyScheme?               @relation(fields: [anatomySchemeId], references: [id], onDelete: SetNull)
+  tiers              CreatureTier[]
+  anatomyZones       CreatureAnatomyZone[]
+  combatParticipants CombatEncounterParticipant[]
+  isActive           Boolean                      @default(true) @map("is_active")
+  sortOrder          Int                          @default(0) @map("sort_order")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
 
   @@index([typeId, isActive, sortOrder])
   @@index([anatomySchemeId])
@@ -887,20 +1020,21 @@ model CreatureAnatomyZone {
 }
 
 model CreatureTier {
-  id              String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  creatureId      String                       @map("creature_id") @db.Uuid
-  creature        Creature                     @relation(fields: [creatureId], references: [id], onDelete: Cascade)
-  tier            Int
-  name            String
-  hp              Int                          @default(1)
-  armorPresetId   String?                      @map("armor_preset_id") @db.Uuid
-  armorPreset     ArmorPreset?                 @relation(fields: [armorPresetId], references: [id], onDelete: SetNull)
-  skills          CreatureTierSkill[]
-  characteristics CreatureTierCharacteristic[]
-  isActive        Boolean                      @default(true) @map("is_active")
-  sortOrder       Int                          @default(0) @map("sort_order")
-  createdAt       DateTime                     @default(now()) @map("created_at")
-  updatedAt       DateTime                     @updatedAt @map("updated_at")
+  id                 String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  creatureId         String                       @map("creature_id") @db.Uuid
+  creature           Creature                     @relation(fields: [creatureId], references: [id], onDelete: Cascade)
+  tier               Int
+  name               String
+  hp                 Int                          @default(1)
+  armorPresetId      String?                      @map("armor_preset_id") @db.Uuid
+  armorPreset        ArmorPreset?                 @relation(fields: [armorPresetId], references: [id], onDelete: SetNull)
+  skills             CreatureTierSkill[]
+  characteristics    CreatureTierCharacteristic[]
+  combatParticipants CombatEncounterParticipant[]
+  isActive           Boolean                      @default(true) @map("is_active")
+  sortOrder          Int                          @default(0) @map("sort_order")
+  createdAt          DateTime                     @default(now()) @map("created_at")
+  updatedAt          DateTime                     @updatedAt @map("updated_at")
 
   @@unique([creatureId, tier])
   @@index([armorPresetId])

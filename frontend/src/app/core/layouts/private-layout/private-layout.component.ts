@@ -1,6 +1,6 @@
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterOutlet } from '@angular/router';
+import { Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Toolbar } from 'primeng/toolbar';
 import { EMPTY, catchError, finalize } from 'rxjs';
@@ -9,7 +9,7 @@ import { AuthUserRole } from '../../../features/auth/domain/auth.models';
 
 @Component({
 	selector: 'app-private-layout',
-	imports: [Button, RouterOutlet, Toolbar],
+	imports: [Button, RouterLink, RouterOutlet, Toolbar],
 	templateUrl: './private-layout.component.html',
 	styleUrl: './private-layout.component.scss'
 })

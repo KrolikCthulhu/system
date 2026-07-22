@@ -16,7 +16,9 @@ import { AuthFacade } from './features/auth/state/auth.facade';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
+import { provideCampaignsInfrastructure } from './features/campaigns/data/provide-campaigns-infrastructure';
 import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
+import { provideCombatEncountersInfrastructure } from './features/combat-encounters/data/provide-combat-encounters-infrastructure';
 import { provideCombatIntentsInfrastructure } from './features/combat-intents/data/provide-combat-intents-infrastructure';
 import { provideConditionsInfrastructure } from './features/conditions/data/provide-conditions-infrastructure';
 import { provideCreatureTypesInfrastructure } from './features/creature-types/data/provide-creature-types-infrastructure';
@@ -24,6 +26,7 @@ import { provideCreaturesInfrastructure } from './features/creatures/data/provid
 import { provideDamageTypesInfrastructure } from './features/damage-types/data/provide-damage-types-infrastructure';
 import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
 import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
+import { providePlayerCharactersInfrastructure } from './features/player-characters/data/provide-player-characters-infrastructure';
 import { provideProgressionPresetsInfrastructure } from './features/progression-presets/data/provide-progression-presets-infrastructure';
 import { provideRollConsequencesInfrastructure } from './features/roll-consequences/data/provide-roll-consequences-infrastructure';
 import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
@@ -130,7 +133,9 @@ export const appConfig: ApplicationConfig = {
 		...provideAnatomySchemesInfrastructure(),
 		...provideArmorPresetsInfrastructure(),
 		...provideAttributesInfrastructure(),
+		...provideCampaignsInfrastructure(),
 		...provideCharacterSheetInfrastructure(),
+		...provideCombatEncountersInfrastructure(),
 		...provideCombatIntentsInfrastructure(),
 		...provideConditionsInfrastructure(),
 		...provideCreatureTypesInfrastructure(),
@@ -138,6 +143,7 @@ export const appConfig: ApplicationConfig = {
 		...provideDamageTypesInfrastructure(),
 		...provideGameEventsInfrastructure(),
 		...provideMagicWordsInfrastructure(),
+		...providePlayerCharactersInfrastructure(),
 		...provideProgressionPresetsInfrastructure(),
 		...provideRollConsequencesInfrastructure(),
 		...provideSkillsInfrastructure(),

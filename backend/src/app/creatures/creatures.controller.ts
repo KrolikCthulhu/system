@@ -62,3 +62,14 @@ export class CreaturesController {
 		}
 	}
 }
+
+@Controller('creatures')
+@UseGuards(JwtAuthGuard)
+export class CreaturesReadController {
+	constructor(private readonly creaturesService: CreaturesService) {}
+
+	@Get('catalog')
+	getCatalog() {
+		return this.creaturesService.getCatalog();
+	}
+}

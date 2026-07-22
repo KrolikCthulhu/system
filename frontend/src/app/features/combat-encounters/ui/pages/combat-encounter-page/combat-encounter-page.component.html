@@ -1,0 +1,251 @@
+<section class="combat-encounter-page">
+	<header class="combat-encounter-page__header">
+		<div>
+			<a routerLink="/campaigns" class="combat-encounter-page__back">
+				<span class="pi pi-angle-left" aria-hidden="true"></span>
+				К кампаниям
+			</a>
+
+			<h1>{{ encounter()?.name || 'Боевое столкновение' }}</h1>
+
+			@if (encounter(); as currentEncounter) {
+				<p>{{ activeParticipants().length }} участников</p>
+			}
+		</div>
+
+		@if (encounter(); as currentEncounter) {
+			<p-tag
+				[value]="
+					currentEncounter.status === 'DRAFT'
+						? 'Черновик'
+						: currentEncounter.status
+				"
+				severity="info"
+			/>
+		}
+	</header>
+
+	@if (errorMessage()) {
+		<div class="combat-encounter-page__error">
+			{{ errorMessage() }}
+		</div>
+	}
+
+	@if (loading()) {
+		<section class="combat-encounter-page__state">
+			Загрузка столкновения...
+		</section>
+	} @else if (encounter()) {
+		<div class="combat-encounter-page__layout">
+			<section class="combat-encounter-page__quick-add">
+				<article class="combat-encounter-page__panel">
+					<h2>Добавить персонажа</h2>
+
+					<div class="combat-encounter-page__inline-form">
+						<label class="combat-encounter-page__field">
+							<span>Персонаж кампании</span>
+							<p-select
+								[ngModel]="selectedCharacterId()"
+								[options]="characterOptions()"
+								optionLabel="label"
+								optionValue="value"
+								placeholder="Выберите персонажа"
+								(ngModelChange)="selectedCharacterId.set($event)"
+							/>
+						</label>
+
+						<p-button
+							icon="pi pi-plus"
+							label="Добавить"
+							[loading]="addingCharacter()"
+							[disabled]="!selectedCharacterId()"
+							(onClick)="addSelectedCharacter()"
+						/>
+					</div>
+				</article>
+
+				<article class="combat-encounter-page__panel">
+					<h2>Добавить существ</h2>
+
+					<div class="combat-encounter-page__creature-form">
+						<label class="combat-encounter-page__field">
+							<span>Существо</span>
+							<p-select
+								[ngModel]="selectedCreatureId()"
+								[options]="creatureOptions()"
+								optionLabel="label"
+								optionValue="value"
+								placeholder="Выберите существо"
+								(ngModelChange)="updateSelectedCreature($event)"
+							/>
+						</label>
+
+						<label class="combat-encounter-page__field">
+							<span>Ранг</span>
+							<p-select
+								[ngModel]="selectedCreatureTierId()"
+								[options]="creatureTierOptions()"
+								optionLabel="label"
+								optionValue="value"
+								placeholder="Выберите ранг"
+								(ngModelChange)="selectedCreatureTierId.set($event)"
+							/>
+						</label>
+
+						<label class="combat-encounter-page__field">
+							<span>Имя на сцене</span>
+							<input
+								pInputText
+								[value]="creatureSceneName()"
+								placeholder="По умолчанию название существа"
+								(input)="creatureSceneName.set($any($event.target).value)"
+							/>
+						</label>
+
+						<label
+							class="combat-encounter-page__field combat-encounter-page__field--small"
+						>
+							<span>Количество</span>
+							<p-inputnumber
+								[ngModel]="creatureCount()"
+								(ngModelChange)="creatureCount.set($event ?? 1)"
+								[min]="1"
+								[max]="20"
+								[showButtons]="false"
+								[fluid]="true"
+							/>
+						</label>
+
+						<p-button
+							icon="pi pi-plus"
+							label="Добавить"
+							[loading]="addingCreature()"
+							[disabled]="!selectedCreatureId()"
+							(onClick)="addSelectedCreature()"
+						/>
+					</div>
+				</article>
+			</section>
+
+			<section class="combat-encounter-page__participants">
+				<div class="combat-encounter-page__section-head">
+					<h2>Участники</h2>
+					<span>{{ activeParticipants().length }}</span>
+				</div>
+
+				@if (!activeParticipants().length) {
+					<div class="combat-encounter-page__empty">
+						Добавьте персонажей или существ, чтобы начать сцену.
+					</div>
+				} @else {
+					<div class="combat-encounter-page__participant-list">
+						@for (participant of activeParticipants(); track participant.id) {
+							@let draft = getParticipantDraft(participant);
+
+							<article class="combat-encounter-page__participant">
+								<div class="combat-encounter-page__participant-main">
+									<div>
+										<strong>{{ participant.sceneName }}</strong>
+										<span>
+											{{ participantKindLabel(participant) }}
+											@if (participant.playerCharacter) {
+												·
+												{{ participant.playerCharacter.owner.displayUsername }}
+											}
+											@if (participant.creatureTier) {
+												· {{ participant.creatureTier.name }}
+											}
+										</span>
+									</div>
+
+									<p-tag
+										[value]="participantKindLabel(participant)"
+										[severity]="
+											participant.kind === 'PLAYER_CHARACTER'
+												? 'success'
+												: 'warn'
+										"
+									/>
+								</div>
+
+								<div class="combat-encounter-page__participant-fields">
+									<label class="combat-encounter-page__field">
+										<span>Имя на сцене</span>
+										<input
+											pInputText
+											[value]="draft.sceneName"
+											(input)="
+												patchParticipantDraft(participant.id, {
+													sceneName: $any($event.target).value
+												})
+											"
+										/>
+									</label>
+
+									<label
+										class="combat-encounter-page__field combat-encounter-page__field--small"
+									>
+										<span>Здоровье</span>
+										<p-inputnumber
+											[ngModel]="draft.currentHealth"
+											(ngModelChange)="
+												patchParticipantDraft(participant.id, {
+													currentHealth: $event ?? 0
+												})
+											"
+											[min]="0"
+											[showButtons]="false"
+											[fluid]="true"
+										/>
+									</label>
+
+									<label
+										class="combat-encounter-page__field combat-encounter-page__field--small"
+									>
+										<span>Потенциал</span>
+										<p-inputnumber
+											[ngModel]="draft.currentPotential"
+											(ngModelChange)="
+												patchParticipantDraft(participant.id, {
+													currentPotential: $event ?? 0
+												})
+											"
+											[min]="0"
+											[showButtons]="false"
+											[fluid]="true"
+										/>
+									</label>
+
+									<label
+										class="combat-encounter-page__field combat-encounter-page__field--small"
+									>
+										<span>Инициатива</span>
+										<p-inputnumber
+											[ngModel]="draft.initiative"
+											(ngModelChange)="
+												patchParticipantDraft(participant.id, {
+													initiative: $event
+												})
+											"
+											[showButtons]="false"
+											[fluid]="true"
+										/>
+									</label>
+
+									<p-button
+										icon="pi pi-save"
+										label="Сохранить"
+										severity="secondary"
+										variant="outlined"
+										[loading]="savingParticipantId() === participant.id"
+										(onClick)="saveParticipant(participant)"
+									/>
+								</div>
+							</article>
+						}
+					</div>
+				}
+			</section>
+		</div>
+	}
+</section>

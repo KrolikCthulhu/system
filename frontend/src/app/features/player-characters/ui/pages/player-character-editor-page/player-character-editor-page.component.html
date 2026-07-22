@@ -1,0 +1,237 @@
+<section class="player-character-editor-page">
+	<header class="player-character-editor-page__header">
+		<div>
+			<a routerLink="/campaigns" class="player-character-editor-page__back">
+				<span class="pi pi-angle-left" aria-hidden="true"></span>
+				К кампаниям
+			</a>
+
+			<h1>{{ character()?.name || 'Персонаж' }}</h1>
+
+			@if (character(); as currentCharacter) {
+				<p>{{ currentCharacter.campaignName }}</p>
+			}
+		</div>
+
+		<div class="player-character-editor-page__actions">
+			@if (hasChanges()) {
+				<p-tag value="Есть изменения" severity="warn"></p-tag>
+			} @else {
+				<p-tag value="Сохранено" severity="success"></p-tag>
+			}
+			<p-button
+				label="Очистить лист"
+				severity="secondary"
+				variant="outlined"
+				[disabled]="loading() || saving()"
+				(onClick)="clearSheet()"
+			/>
+			<p-button
+				label="Сбросить"
+				severity="secondary"
+				variant="outlined"
+				[disabled]="loading() || saving() || !hasChanges()"
+				(onClick)="resetDraft()"
+			/>
+			<p-button
+				icon="pi pi-save"
+				label="Сохранить"
+				[loading]="saving()"
+				[disabled]="loading() || !hasChanges()"
+				(onClick)="save()"
+			/>
+		</div>
+
+		@if (lastRoll(); as roll) {
+			<aside class="player-character-editor-page__roll-summary">
+				<div class="player-character-editor-page__roll-heading">
+					<span>{{ roll.skillName }}</span>
+					<p-tag value="Совершён бросок" severity="info"></p-tag>
+				</div>
+				<div class="player-character-editor-page__dice-row">
+					@for (die of roll.dice; track $index) {
+						<span
+							class="player-character-editor-page__die"
+							[class.player-character-editor-page__die--one]="die === 1"
+						>
+							{{ die }}
+						</span>
+					} @empty {
+						<span class="player-character-editor-page__muted">Нет кубов</span>
+					}
+				</div>
+				<div class="player-character-editor-page__roll-meta">
+					<span>Успехи: {{ roll.successes }}</span>
+					<span>Шестерки: {{ roll.sixes }}</span>
+					<span>Единицы: {{ roll.ones }}</span>
+					<span>Игнор: {{ roll.ignoredOnes }}</span>
+					<span>Последствия: {{ roll.consequenceCount }}</span>
+					<span>{{ roll.consequenceName }}</span>
+				</div>
+			</aside>
+		}
+	</header>
+
+	@if (errorMessage()) {
+		<div class="player-character-editor-page__error">
+			{{ errorMessage() }}
+		</div>
+	}
+
+	@if (loading()) {
+		<section class="player-character-editor-page__state">
+			Загрузка персонажа...
+		</section>
+	} @else if (character()) {
+		<div class="player-character-editor-page__layout">
+			<section class="player-character-editor-page__identity">
+				<label class="player-character-editor-page__field">
+					<span>Имя персонажа</span>
+					<input
+						#characterNameInput
+						pInputText
+						[value]="name()"
+						(input)="name.set(characterNameInput.value)"
+					/>
+				</label>
+			</section>
+
+			@if (resourceValues().length) {
+				<section class="player-character-editor-page__resources">
+					<div class="player-character-editor-page__section-heading">
+						<h2>Последствия и ресурсы</h2>
+					</div>
+
+					<div class="player-character-editor-page__resource-list">
+						@for (item of resourceValues(); track item.value.id) {
+							<div class="player-character-editor-page__value-row">
+								<div>
+									<strong>{{ item.value.name }}</strong>
+									<span>Итог: {{ formatValue(item.calculated) }}</span>
+								</div>
+								@if (item.isEditable) {
+									<p-inputnumber
+										[ngModel]="getInputValue(item.value.id)"
+										(ngModelChange)="setInputValue(item.value.id, $event)"
+										[showButtons]="false"
+									/>
+								} @else {
+									<strong class="player-character-editor-page__readonly-value">
+										{{ formatValue(item.calculated) }}
+									</strong>
+								}
+							</div>
+						}
+					</div>
+				</section>
+			}
+
+			<section class="player-character-editor-page__attributes">
+				<div class="player-character-editor-page__section-heading">
+					<h2>Атрибуты и характеристики</h2>
+				</div>
+
+				<div class="player-character-editor-page__attribute-grid">
+					@for (block of attributeBlocks(); track block.attribute.id) {
+						<article class="player-character-editor-page__attribute-card">
+							<div class="player-character-editor-page__attribute-top">
+								<div>
+									<h3>{{ block.attribute.name }}</h3>
+									<span>Итог: {{ formatValue(block.value) }}</span>
+								</div>
+								<strong class="player-character-editor-page__readonly-value">
+									{{ formatValue(block.value) }}
+								</strong>
+							</div>
+
+							<div class="player-character-editor-page__characteristic-list">
+								@for (
+									item of block.characteristics;
+									track item.characteristic.id
+								) {
+									<div class="player-character-editor-page__value-row">
+										<div>
+											<strong>{{ item.characteristic.name }}</strong>
+											<span>Итог: {{ formatValue(item.value) }}</span>
+										</div>
+										<p-inputnumber
+											[ngModel]="
+												getInputValue(item.characteristic.systemValue.id)
+											"
+											(ngModelChange)="
+												setInputValue(
+													item.characteristic.systemValue.id,
+													$event
+												)
+											"
+											[min]="item.characteristic.minValue"
+											[max]="item.characteristic.maxValue"
+											[showButtons]="false"
+										/>
+									</div>
+								} @empty {
+									<div class="player-character-editor-page__muted">
+										Характеристик пока нет.
+									</div>
+								}
+							</div>
+						</article>
+					}
+				</div>
+			</section>
+
+			<section class="player-character-editor-page__skills">
+				<div class="player-character-editor-page__section-heading">
+					<h2>Навыки</h2>
+				</div>
+
+				<div class="player-character-editor-page__skill-groups">
+					@for (group of skillGroups(); track group.category?.id ?? 'none') {
+						<article class="player-character-editor-page__skill-group">
+							<div class="player-character-editor-page__skill-group-heading">
+								<h3>{{ group.category?.name ?? 'Без категории' }}</h3>
+								<span>{{ group.skills.length }}</span>
+							</div>
+
+							<div class="player-character-editor-page__skill-list">
+								@for (skill of group.skills; track skill.id) {
+									<div class="player-character-editor-page__skill-row">
+										<div>
+											<strong>{{ skill.name }}</strong>
+											<span>
+												{{ getSkillConsequenceName(skill) }}
+												@if (!skill.rollCharacteristicId) {
+													· характеристика броска не выбрана
+												}
+											</span>
+										</div>
+										<div class="player-character-editor-page__skill-controls">
+											<p-inputnumber
+												[ngModel]="getInputValue(skill.systemValue.id)"
+												(ngModelChange)="
+													setInputValue(skill.systemValue.id, $event)
+												"
+												[min]="0"
+												[max]="skill.maxLevel"
+												[showButtons]="false"
+											/>
+											<p-button
+												label="Бросить"
+												icon="pi pi-send"
+												severity="secondary"
+												variant="outlined"
+												[loading]="rollingSkillId() === skill.id"
+												[disabled]="rollingSkillId() !== null"
+												(onClick)="rollSkill(skill)"
+											/>
+										</div>
+									</div>
+								}
+							</div>
+						</article>
+					}
+				</div>
+			</section>
+		</div>
+	}
+</section>
