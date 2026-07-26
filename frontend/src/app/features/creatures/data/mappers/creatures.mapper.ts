@@ -76,7 +76,22 @@ export function mapCreatureDto(dto: CreatureDto): Creature {
 				sortOrder: ability.sortOrder ?? index
 			})),
 			actions: mapCreatureTierActions(tier.actions ?? []),
-			actionOverrides: mapCreatureTierActions(tier.actionOverrides ?? [])
+			actionOverrides: mapCreatureTierActions(tier.actionOverrides ?? []),
+			targetSelection: {
+				title: tier.targetSelection?.title ?? '',
+				description: tier.targetSelection?.description ?? '',
+				tacticText: tier.targetSelection?.tacticText ?? '',
+				positionChecklist: tier.targetSelection?.positionChecklist ?? [],
+				scoringRules: (tier.targetSelection?.scoringRules ?? []).map(
+					(rule, ruleIndex) => ({
+						key: rule.key,
+						label: rule.label,
+						points: rule.points,
+						isActive: rule.isActive ?? true,
+						sortOrder: rule.sortOrder ?? ruleIndex
+					})
+				)
+			}
 		})),
 		isActive: dto.isActive,
 		sortOrder: dto.sortOrder,

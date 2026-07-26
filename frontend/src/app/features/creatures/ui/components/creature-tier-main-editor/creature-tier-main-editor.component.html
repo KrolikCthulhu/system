@@ -1,0 +1,56 @@
+<section class="admin-creatures-page__tier-section">
+	<h4>Основное</h4>
+	<div class="admin-creatures-page__tier-fields">
+		<span class="admin-creatures-page__field admin-creatures-page__field--wide">
+			<span>Название тира</span>
+			<input
+				pInputText
+				type="text"
+				[value]="tier().name"
+				(input)="nameChange.emit($any($event.target).value)"
+			/>
+		</span>
+
+		<span class="admin-creatures-page__field">
+			<span>HP</span>
+			<p-inputnumber
+				[ngModel]="tier().hp"
+				[showButtons]="false"
+				[min]="1"
+				(ngModelChange)="hpChange.emit($event)"
+			></p-inputnumber>
+		</span>
+
+		<span class="admin-creatures-page__field">
+			<span>Размер</span>
+			<p-select
+				[ngModel]="tier().sizeId"
+				[options]="creatureSizes()"
+				optionLabel="name"
+				optionValue="id"
+				appendTo="body"
+				[filter]="true"
+				(ngModelChange)="sizeChange.emit($event)"
+			></p-select>
+		</span>
+	</div>
+</section>
+
+<section class="admin-creatures-page__tier-section">
+	<h4>Броня</h4>
+	<div class="admin-creatures-page__tier-fields">
+		<span class="admin-creatures-page__field admin-creatures-page__field--wide">
+			<span>Пресет брони</span>
+			<p-select
+				[ngModel]="tier().armorPresetId"
+				[options]="armorPresets()"
+				optionLabel="name"
+				optionValue="id"
+				appendTo="body"
+				[showClear]="true"
+				(ngModelChange)="armorChange.emit($event)"
+			></p-select>
+			<small>{{ armorSummary() }}</small>
+		</span>
+	</div>
+</section>

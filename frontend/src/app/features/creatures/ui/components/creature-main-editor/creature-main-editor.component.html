@@ -1,0 +1,55 @@
+<div class="admin-creatures-page__form-grid">
+	<span class="admin-creatures-page__field">
+		<span>Название</span>
+		<input
+			pInputText
+			type="text"
+			[value]="draft().name"
+			(input)="nameChange.emit($any($event.target).value)"
+		/>
+	</span>
+
+	<span class="admin-creatures-page__field">
+		<span>Тип существа</span>
+		<p-select
+			[ngModel]="draft().typeId"
+			[options]="creatureTypes()"
+			optionLabel="name"
+			optionValue="id"
+			appendTo="body"
+			(ngModelChange)="typeChange.emit($event)"
+		></p-select>
+	</span>
+
+	<span class="admin-creatures-page__field">
+		<span>Базовая анатомическая схема</span>
+		<p-select
+			[ngModel]="draft().anatomySchemeId"
+			[options]="anatomySchemes()"
+			optionLabel="name"
+			optionValue="id"
+			appendTo="body"
+			[showClear]="true"
+			placeholder="Не выбрана"
+			(ngModelChange)="anatomySchemeChange.emit($event)"
+		></p-select>
+	</span>
+
+	<span class="admin-creatures-page__field">
+		<span>Порядок отображения</span>
+		<p-inputnumber
+			[ngModel]="draft().sortOrder"
+			[showButtons]="false"
+			[min]="0"
+			(ngModelChange)="sortOrderChange.emit($event)"
+		></p-inputnumber>
+	</span>
+
+	<span class="admin-creatures-page__switch-field">
+		<span>Активно</span>
+		<p-toggleswitch
+			[ngModel]="draft().isActive"
+			(ngModelChange)="activeChange.emit($event)"
+		></p-toggleswitch>
+	</span>
+</div>

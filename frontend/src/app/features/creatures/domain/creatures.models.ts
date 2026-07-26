@@ -167,6 +167,22 @@ export interface CreatureTierAbility {
 	sortOrder: number;
 }
 
+export interface CreatureTargetSelectionScoringRule {
+	key: string;
+	label: string;
+	points: number;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureTargetSelection {
+	title: string;
+	description: string;
+	tacticText: string;
+	positionChecklist: string[];
+	scoringRules: CreatureTargetSelectionScoringRule[];
+}
+
 export type CreatureTierActionKind =
 	| 'attack'
 	| 'grab_action'
@@ -278,6 +294,7 @@ export interface CreatureTier {
 	abilities: CreatureTierAbility[];
 	actions: CreatureTierAction[];
 	actionOverrides: CreatureTierAction[];
+	targetSelection: CreatureTargetSelection;
 	skills: CreatureTierSkill[];
 	characteristics: CreatureTierCharacteristic[];
 	isActive: boolean;

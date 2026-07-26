@@ -1,0 +1,130 @@
+<section class="admin-creatures-page__tier-section">
+	<div class="admin-creatures-page__tier-section-head">
+		<h4>Модификаторы атак</h4>
+		<p-button
+			label="Модификатор"
+			icon="pi pi-plus"
+			size="small"
+			text
+			[disabled]="!profileOptions().length"
+			(click)="addOverride.emit()"
+		></p-button>
+	</div>
+
+	@if (tier().attackOverrides.length) {
+		<div class="admin-creatures-page__tier-attack-list">
+			@for (
+				attackOverride of tier().attackOverrides;
+				track attackOverride.sortOrder;
+				let overrideIndex = $index
+			) {
+				<div class="admin-creatures-page__tier-attack-row">
+					<span
+						class="admin-creatures-page__field admin-creatures-page__field--wide"
+					>
+						<span>Атака</span>
+						<p-select
+							[ngModel]="profileKey(attackOverride)"
+							[options]="profileOptions()"
+							[fluid]="true"
+							optionLabel="label"
+							optionValue="value"
+							appendTo="body"
+							(ngModelChange)="
+								overrideProfileChange.emit({
+									index: overrideIndex,
+									key: $event
+								})
+							"
+						></p-select>
+					</span>
+
+					<span class="admin-creatures-page__switch-field">
+						<span>Доступна</span>
+						<p-toggleswitch
+							[ngModel]="attackOverride.isAvailable"
+							(ngModelChange)="
+								overrideChange.emit({
+									index: overrideIndex,
+									patch: { isAvailable: $event }
+								})
+							"
+						></p-toggleswitch>
+					</span>
+
+					<span class="admin-creatures-page__field">
+						<span>Стоимость</span>
+						<p-inputnumber
+							[ngModel]="attackOverride.costModifier"
+							[showButtons]="false"
+							[fluid]="true"
+							(ngModelChange)="
+								overrideChange.emit({
+									index: overrideIndex,
+									patch: { costModifier: $event ?? 0 }
+								})
+							"
+						></p-inputnumber>
+					</span>
+
+					<span class="admin-creatures-page__field">
+						<span>Урон</span>
+						<p-inputnumber
+							[ngModel]="attackOverride.damageModifier"
+							[showButtons]="false"
+							[fluid]="true"
+							(ngModelChange)="
+								overrideChange.emit({
+									index: overrideIndex,
+									patch: { damageModifier: $event ?? 0 }
+								})
+							"
+						></p-inputnumber>
+					</span>
+
+					<span class="admin-creatures-page__field">
+						<span>Дистанция</span>
+						<p-inputnumber
+							[ngModel]="attackOverride.rangeModifier"
+							[showButtons]="false"
+							[fluid]="true"
+							(ngModelChange)="
+								overrideChange.emit({
+									index: overrideIndex,
+									patch: { rangeModifier: $event ?? 0 }
+								})
+							"
+						></p-inputnumber>
+					</span>
+
+					<span class="admin-creatures-page__field">
+						<span>Пул кубиков</span>
+						<p-inputnumber
+							[ngModel]="attackOverride.dicePoolModifier"
+							[showButtons]="false"
+							[fluid]="true"
+							(ngModelChange)="
+								overrideChange.emit({
+									index: overrideIndex,
+									patch: { dicePoolModifier: $event ?? 0 }
+								})
+							"
+						></p-inputnumber>
+					</span>
+
+					<p-button
+						icon="pi pi-trash"
+						severity="danger"
+						text
+						rounded
+						(click)="removeOverride.emit(overrideIndex)"
+					></p-button>
+				</div>
+			}
+		</div>
+	} @else {
+		<div class="admin-creatures-page__empty-list">
+			Нет переопределений атак для этого тира.
+		</div>
+	}
+</section>

@@ -192,6 +192,7 @@ const creatureSelect = {
 			abilities: true,
 			actions: true,
 			actionOverrides: true,
+			targetSelection: true,
 			skills: {
 				select: {
 					id: true,
@@ -749,6 +750,9 @@ export class CreaturesService {
 			actionOverrides: normalizeCreatureTierActions(
 				tier.actionOverrides
 			) as Prisma.InputJsonValue,
+			targetSelection: normalizeCreatureTargetSelection(
+				tier.targetSelection
+			) as Prisma.InputJsonValue,
 			isActive: tier.isActive ?? true,
 			sortOrder: tier.sortOrder ?? tier.tier,
 			skills: {
@@ -1078,6 +1082,7 @@ export class CreaturesService {
 				abilities: normalizeCreatureTierAbilities(tier.abilities),
 				actions: normalizeCreatureTierActions(tier.actions),
 				actionOverrides: normalizeCreatureTierActions(tier.actionOverrides),
+				targetSelection: normalizeCreatureTargetSelection(tier.targetSelection),
 				skills: tier.skills.map(skill => ({
 					id: skill.id,
 					skillId: skill.skillId,
@@ -1232,6 +1237,43 @@ function normalizeCreatureTierAbilities(value: unknown) {
 			}
 		];
 	});
+}
+
+function normalizeCreatureTargetSelection(value: unknown) {
+	const source = isRecord(value) ? value : {};
+
+	return {
+		title: readOptionalString(source, 'title'),
+		description: readOptionalString(source, 'description'),
+		tacticText: readOptionalString(source, 'tacticText'),
+		positionChecklist: Array.isArray(source['positionChecklist'])
+			? source['positionChecklist'].filter(
+					(item): item is string => typeof item === 'string'
+				)
+			: [],
+		scoringRules: (Array.isArray(source['scoringRules'])
+			? source['scoringRules'].flatMap(item => {
+					if (!isRecord(item)) {
+						return [];
+					}
+
+					return [
+						{
+							key: readOptionalString(item, 'key'),
+							label: readOptionalString(item, 'label'),
+							points: readNumber(item, 'points') ?? 0,
+							isActive: readBoolean(item, 'isActive') ?? true
+						}
+					];
+				})
+			: []
+		)
+			.sort((left, right) => right.points - left.points)
+			.map((rule, index) => ({
+				...rule,
+				sortOrder: index
+			}))
+	};
 }
 
 function normalizeCreatureTierActions(value: unknown) {

@@ -1169,6 +1169,7 @@ model CreatureTier {
   abilities          Json                         @default("[]")
   actions            Json                         @default("[]")
   actionOverrides    Json                         @default("[]") @map("action_overrides")
+  targetSelection    Json                         @default("{}") @map("target_selection")
   skills             CreatureTierSkill[]
   characteristics    CreatureTierCharacteristic[]
   combatParticipants CombatEncounterParticipant[]

@@ -155,6 +155,51 @@ export class CreatureTierAttackAvailabilityRuleDto {
 	sortOrder?: number;
 }
 
+export class CreatureTargetSelectionScoringRuleDto {
+	@IsString()
+	key!: string;
+
+	@IsString()
+	label!: string;
+
+	@IsInt()
+	points!: number;
+
+	@IsOptional()
+	@IsBoolean()
+	isActive?: boolean;
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	sortOrder?: number;
+}
+
+export class CreatureTargetSelectionDto {
+	@IsOptional()
+	@IsString()
+	title?: string;
+
+	@IsOptional()
+	@IsString()
+	description?: string;
+
+	@IsOptional()
+	@IsString()
+	tacticText?: string;
+
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	positionChecklist?: string[];
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CreatureTargetSelectionScoringRuleDto)
+	scoringRules?: CreatureTargetSelectionScoringRuleDto[];
+}
+
 export class CreatureTierActionReferenceDto {
 	@IsOptional()
 	@IsString()
@@ -439,6 +484,11 @@ export class CreatureTierDto {
 	@ValidateNested({ each: true })
 	@Type(() => CreatureTierActionDto)
 	actionOverrides?: CreatureTierActionDto[];
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureTargetSelectionDto)
+	targetSelection?: CreatureTargetSelectionDto | null;
 
 	@IsArray()
 	@ValidateNested({ each: true })

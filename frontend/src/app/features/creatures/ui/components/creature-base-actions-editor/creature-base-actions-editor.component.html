@@ -1,0 +1,18 @@
+<section class="admin-creatures-page__natural-attacks">
+	<div class="admin-creatures-page__tiers-heading">
+		<h3>Действия</h3>
+		<span>Общие действия, которые наследуют тиры существа</span>
+	</div>
+
+	<app-creature-tier-actions-editor
+		[actions]="actions()"
+		(actionsChange)="actionsChange.emit($event)"
+		[actorName]="actorName()"
+		[naturalAttacks]="naturalAttacks()"
+		[combatIntents]="combatIntents()"
+		[damageTypes]="damageTypes()"
+		[conditions]="conditions()"
+		[skills]="skills()"
+		[characteristics]="characteristics()"
+	></app-creature-tier-actions-editor>
+</section>

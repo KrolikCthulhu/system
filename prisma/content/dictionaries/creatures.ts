@@ -355,6 +355,21 @@ function wolfActions(
 	return actions;
 }
 
+function wolfTargetSelection(
+	_description: string,
+	scoringRules: NonNullable<
+		CreatureContent['tiers'][number]['targetSelection']
+	>['scoringRules']
+): NonNullable<CreatureContent['tiers'][number]['targetSelection']> {
+	return {
+		title: '',
+		description: '',
+		tacticText: '',
+		positionChecklist: [],
+		scoringRules
+	};
+}
+
 export default {
 	creatures: [
 		{
@@ -413,6 +428,24 @@ export default {
 					size: smallSize,
 					armorPreset: noArmor,
 					attackOverrides: biteDamageOverride(0),
+					targetSelection: wolfTargetSelection(
+						'Молодой волк действует просто: выбирает ближайшую доступную цель, замечает явную слабость, но редко поддерживает сложную фокусировку стаи.',
+						[
+							{
+								key: 'nearest_available',
+								label: 'Ближайшая доступная',
+								points: 3,
+								sortOrder: 0
+							},
+							{
+								key: 'health_below_half',
+								label: 'Здоровье ниже половины',
+								points: 1,
+								sortOrder: 1
+							},
+							{ key: 'prone', label: 'Лежит', points: 1, sortOrder: 2 }
+						]
+					),
 					characteristics: [
 						{ ...power, value: 1 },
 						{ ...reflexes, value: 2 },
@@ -431,6 +464,36 @@ export default {
 					size: mediumSize,
 					armorPreset: noArmor,
 					attackOverrides: biteDamageOverride(0),
+					targetSelection: wolfTargetSelection(
+						'Волк поддерживает атаку стаи: предпочитает Добычу стаи, захваченную, раненую или лежащую цель.',
+						[
+							{
+								key: 'pack_prey',
+								label: 'Добыча стаи',
+								points: 5,
+								sortOrder: 0
+							},
+							{
+								key: 'grabbed_by_pack',
+								label: 'Захвачена членом стаи',
+								points: 3,
+								sortOrder: 1
+							},
+							{
+								key: 'bleeding',
+								label: 'Кровотечение',
+								points: 2,
+								sortOrder: 2
+							},
+							{
+								key: 'health_below_half',
+								label: 'Здоровье ниже половины',
+								points: 2,
+								sortOrder: 3
+							},
+							{ key: 'prone', label: 'Лежит', points: 2, sortOrder: 4 }
+						]
+					),
 					characteristics: [
 						{ ...power, value: 2 },
 						{ ...reflexes, value: 3 },
@@ -450,6 +513,36 @@ export default {
 					armorPreset: noArmor,
 					attackOverrides: biteDamageOverride(1),
 					actionOverrides: wolfActions(2),
+					targetSelection: wolfTargetSelection(
+						'Матёрый волк лучше оценивает уязвимость: может игнорировать ближайшую цель ради истекающей кровью, сильно раненой или изолированной добычи.',
+						[
+							{
+								key: 'pack_prey',
+								label: 'Добыча стаи',
+								points: 5,
+								sortOrder: 0
+							},
+							{
+								key: 'bleeding',
+								label: 'Кровотечение',
+								points: 4,
+								sortOrder: 1
+							},
+							{
+								key: 'health_below_half',
+								label: 'Здоровье ниже половины',
+								points: 3,
+								sortOrder: 2
+							},
+							{
+								key: 'grabbed_by_pack',
+								label: 'Захвачена членом стаи',
+								points: 3,
+								sortOrder: 3
+							},
+							{ key: 'prone', label: 'Лежит', points: 2, sortOrder: 4 }
+						]
+					),
 					characteristics: [
 						{ ...power, value: 3 },
 						{ ...reflexes, value: 4 },
@@ -469,6 +562,35 @@ export default {
 					armorPreset: noArmor,
 					attackOverrides: biteDamageOverride(1),
 					actionOverrides: wolfActions(2, { includeAssignPrey: true }),
+					targetSelection: wolfTargetSelection(
+						'Вожак ориентирует стаю на Добычу стаи и выбирает цель так, чтобы общий фокус стаи был очевиден для остальных волков.',
+						[
+							{
+								key: 'pack_prey',
+								label: 'Добыча стаи',
+								points: 8,
+								sortOrder: 0
+							},
+							{
+								key: 'attacked_by_pack',
+								label: 'Цель, атакуемая стаей',
+								points: 4,
+								sortOrder: 1
+							},
+							{
+								key: 'bleeding',
+								label: 'Кровотечение',
+								points: 3,
+								sortOrder: 2
+							},
+							{
+								key: 'grabbed_by_pack',
+								label: 'Захвачена членом стаи',
+								points: 3,
+								sortOrder: 3
+							}
+						]
+					),
 					abilities: [
 						{
 							name: 'Назначить добычу',
@@ -504,6 +626,42 @@ export default {
 					armorPreset: noArmor,
 					attackOverrides: biteDamageOverride(2),
 					actionOverrides: wolfActions(3),
+					targetSelection: wolfTargetSelection(
+						'Лютый волк давит самую уязвимую добычу и чаще выбирает кровоточащую, захваченную или тяжело раненую цель, если позиция позволяет атаковать без окружения.',
+						[
+							{
+								key: 'pack_prey',
+								label: 'Добыча стаи',
+								points: 6,
+								sortOrder: 0
+							},
+							{
+								key: 'bleeding',
+								label: 'Кровотечение',
+								points: 4,
+								sortOrder: 1
+							},
+							{
+								key: 'grabbed_by_pack',
+								label: 'Захвачена членом стаи',
+								points: 4,
+								sortOrder: 2
+							},
+							{
+								key: 'health_below_quarter',
+								label: 'Здоровье ниже четверти',
+								points: 3,
+								sortOrder: 3
+							},
+							{
+								key: 'health_below_half',
+								label: 'Здоровье ниже половины',
+								points: 2,
+								sortOrder: 4
+							},
+							{ key: 'prone', label: 'Лежит', points: 2, sortOrder: 5 }
+						]
+					),
 					characteristics: [
 						{ ...power, value: 5 },
 						{ ...reflexes, value: 4 },

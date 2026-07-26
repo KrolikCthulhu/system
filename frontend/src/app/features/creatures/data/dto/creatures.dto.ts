@@ -161,6 +161,22 @@ export interface CreatureTierAbilityDto {
 	sortOrder: number;
 }
 
+export interface CreatureTargetSelectionScoringRuleDto {
+	key: string;
+	label: string;
+	points: number;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreatureTargetSelectionDto {
+	title: string;
+	description: string;
+	tacticText: string;
+	positionChecklist: string[];
+	scoringRules: CreatureTargetSelectionScoringRuleDto[];
+}
+
 export type CreatureTierActionKindDto =
 	| 'attack'
 	| 'grab_action'
@@ -272,6 +288,7 @@ export interface CreatureTierDto {
 	abilities: CreatureTierAbilityDto[];
 	actions: CreatureTierActionDto[];
 	actionOverrides: CreatureTierActionDto[];
+	targetSelection: CreatureTargetSelectionDto;
 	skills: CreatureTierSkillDto[];
 	characteristics: CreatureTierCharacteristicDto[];
 	isActive: boolean;
@@ -362,6 +379,7 @@ export interface CreatureTierAttackOverrideCommandDto {
 }
 
 export type CreatureTierAbilityCommandDto = CreatureTierAbilityDto;
+export type CreatureTargetSelectionCommandDto = CreatureTargetSelectionDto;
 export type CreatureTierActionCommandDto = CreatureTierActionDto;
 
 export interface CreatureTierCommandDto {
@@ -374,6 +392,7 @@ export interface CreatureTierCommandDto {
 	abilities?: CreatureTierAbilityCommandDto[];
 	actions?: CreatureTierActionCommandDto[];
 	actionOverrides?: CreatureTierActionCommandDto[];
+	targetSelection?: CreatureTargetSelectionCommandDto;
 	skills: CreatureTierSkillCommandDto[];
 	characteristics: CreatureTierCharacteristicCommandDto[];
 	isActive?: boolean;

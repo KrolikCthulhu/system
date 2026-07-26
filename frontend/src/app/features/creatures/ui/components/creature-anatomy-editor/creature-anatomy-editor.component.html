@@ -1,0 +1,238 @@
+<section class="admin-creatures-page__anatomy">
+	<button
+		type="button"
+		class="admin-creatures-page__anatomy-heading"
+		[attr.aria-expanded]="isExpanded()"
+		(click)="expandedToggle.emit()"
+	>
+		<span class="admin-creatures-page__anatomy-heading-title">
+			<h3>Анатомия вида</h3>
+			@if (zoneCount()) {
+				<span>{{ zoneCount() }} зон</span>
+			}
+		</span>
+
+		<span
+			class="pi admin-creatures-page__anatomy-toggle"
+			[class.pi-plus]="!isExpanded()"
+			[class.pi-minus]="isExpanded()"
+			aria-hidden="true"
+		></span>
+	</button>
+
+	@if (isExpanded()) {
+		@if (groups().length) {
+			<div class="admin-creatures-page__anatomy-list">
+				@for (group of groups(); track group.trackId) {
+					@if (group.parent; as parentItem) {
+						<div class="admin-creatures-page__anatomy-group">
+							<ng-container
+								[ngTemplateOutlet]="anatomyZoneRow"
+								[ngTemplateOutletContext]="{
+									zone: parentItem.zone,
+									index: parentItem.index,
+									level: 'main'
+								}"
+							></ng-container>
+
+							@if (group.children.length) {
+								<div class="admin-creatures-page__anatomy-sublist">
+									@for (childItem of group.children; track childItem.zone.id) {
+										<ng-container
+											[ngTemplateOutlet]="anatomyZoneRow"
+											[ngTemplateOutletContext]="{
+												zone: childItem.zone,
+												index: childItem.index,
+												level: 'sub'
+											}"
+										></ng-container>
+									}
+								</div>
+							}
+						</div>
+					} @else {
+						<div class="admin-creatures-page__anatomy-group">
+							<div class="admin-creatures-page__anatomy-orphan-heading">
+								Зоны без найденного родителя
+							</div>
+							<div class="admin-creatures-page__anatomy-sublist">
+								@for (childItem of group.children; track childItem.zone.id) {
+									<ng-container
+										[ngTemplateOutlet]="anatomyZoneRow"
+										[ngTemplateOutletContext]="{
+											zone: childItem.zone,
+											index: childItem.index,
+											level: 'sub'
+										}"
+									></ng-container>
+								}
+							</div>
+						</div>
+					}
+				}
+			</div>
+		} @else {
+			<div class="admin-creatures-page__empty-list">
+				Сохрани существо с выбранной схемой, чтобы создать анатомию вида.
+			</div>
+		}
+	}
+
+	<ng-template
+		#anatomyZoneRow
+		let-zone="zone"
+		let-index="index"
+		let-level="level"
+	>
+		<div
+			class="admin-creatures-page__anatomy-zone"
+			[class.admin-creatures-page__anatomy-zone--sub]="level === 'sub'"
+		>
+			<div class="admin-creatures-page__anatomy-zone-title">
+				<strong>{{ zone.name }}</strong>
+				<div class="admin-creatures-page__anatomy-zone-meta">
+					<p-tag
+						[value]="
+							zone.kind === 'MAIN' ? 'Основная зона' : 'Прицельная подзона'
+						"
+						[severity]="zone.kind === 'MAIN' ? 'success' : 'info'"
+					></p-tag>
+					@if (zone.isRandomHitEligible) {
+						<span>Вес {{ zone.randomHitWeight }}</span>
+					}
+					<span>{{ zone.targetedAttackDicePenalty }} куб.</span>
+					<span>+{{ zone.extraPotentialCost }} Потенциал</span>
+					@if (zone.overriddenFields.length) {
+						<span>{{ zone.overriddenFields.length }} переопр.</span>
+					}
+				</div>
+			</div>
+
+			<div class="admin-creatures-page__anatomy-fields">
+				<span class="admin-creatures-page__field">
+					<span>Название</span>
+					<input
+						pInputText
+						type="text"
+						[value]="zone.name"
+						(input)="
+							zoneChange.emit({
+								index,
+								patch: { name: $any($event.target).value },
+								field: 'name'
+							})
+						"
+					/>
+				</span>
+
+				<span class="admin-creatures-page__field">
+					<span>Родительская зона</span>
+					<p-select
+						[ngModel]="zone.parentId"
+						[options]="parentOptions(zone.id)"
+						optionLabel="label"
+						optionValue="value"
+						appendTo="body"
+						[showClear]="true"
+						(ngModelChange)="
+							zoneChange.emit({
+								index,
+								patch: { parentId: $event },
+								field: 'parentId'
+							})
+						"
+					></p-select>
+				</span>
+
+				<span class="admin-creatures-page__field">
+					<span>Тип зоны</span>
+					<p-select
+						[ngModel]="zone.kind"
+						[options]="zoneKindOptions()"
+						optionLabel="label"
+						optionValue="value"
+						appendTo="body"
+						(ngModelChange)="
+							zoneChange.emit({ index, patch: { kind: $event }, field: 'kind' })
+						"
+					></p-select>
+				</span>
+
+				<span class="admin-creatures-page__switch-field">
+					<span>Случайное попадание</span>
+					<p-toggleswitch
+						[ngModel]="zone.isRandomHitEligible"
+						(ngModelChange)="
+							zoneChange.emit({
+								index,
+								patch: { isRandomHitEligible: $event },
+								field: 'isRandomHitEligible'
+							})
+						"
+					></p-toggleswitch>
+				</span>
+
+				<span class="admin-creatures-page__field">
+					<span>Вес попадания</span>
+					<p-inputnumber
+						[ngModel]="zone.randomHitWeight"
+						[showButtons]="false"
+						[min]="0"
+						(ngModelChange)="
+							zoneChange.emit({
+								index,
+								patch: { randomHitWeight: $event ?? 0 },
+								field: 'randomHitWeight'
+							})
+						"
+					></p-inputnumber>
+				</span>
+
+				<span class="admin-creatures-page__field">
+					<span>Штраф прицельной атаки</span>
+					<p-inputnumber
+						[ngModel]="zone.targetedAttackDicePenalty"
+						[showButtons]="false"
+						(ngModelChange)="
+							zoneChange.emit({
+								index,
+								patch: { targetedAttackDicePenalty: $event ?? 0 },
+								field: 'targetedAttackDicePenalty'
+							})
+						"
+					></p-inputnumber>
+				</span>
+
+				<span class="admin-creatures-page__field">
+					<span>Доп. стоимость Потенциала</span>
+					<p-inputnumber
+						[ngModel]="zone.extraPotentialCost"
+						[showButtons]="false"
+						[min]="0"
+						(ngModelChange)="
+							zoneChange.emit({
+								index,
+								patch: { extraPotentialCost: $event ?? 0 },
+								field: 'extraPotentialCost'
+							})
+						"
+					></p-inputnumber>
+				</span>
+
+				<span class="admin-creatures-page__switch-field">
+					<span>Активна</span>
+					<p-toggleswitch
+						[ngModel]="zone.isActive"
+						(ngModelChange)="
+							zoneChange.emit({
+								index,
+								patch: { isActive: $event },
+								field: 'isActive'
+							})
+						"
+					></p-toggleswitch>
+				</span>
+			</div>
+		</div>
+	</ng-template>
+</section>

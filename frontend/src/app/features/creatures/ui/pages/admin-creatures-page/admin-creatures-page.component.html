@@ -225,61 +225,16 @@
 						<p-tabpanels class="admin-creatures-page__tabpanels">
 							<p-tabpanel value="main" class="admin-creatures-page__tabpanel">
 								@if (detailTab() === 'main') {
-									<div class="admin-creatures-page__form-grid">
-										<span class="admin-creatures-page__field">
-											<span>Название</span>
-											<input
-												pInputText
-												type="text"
-												[value]="currentDraft.name"
-												(input)="updateDraftName($any($event.target).value)"
-											/>
-										</span>
-
-										<span class="admin-creatures-page__field">
-											<span>Тип существа</span>
-											<p-select
-												[ngModel]="currentDraft.typeId"
-												[options]="creatureTypes()"
-												optionLabel="name"
-												optionValue="id"
-												appendTo="body"
-												(ngModelChange)="updateDraftType($event)"
-											></p-select>
-										</span>
-
-										<span class="admin-creatures-page__field">
-											<span>Базовая анатомическая схема</span>
-											<p-select
-												[ngModel]="currentDraft.anatomySchemeId"
-												[options]="anatomySchemes()"
-												optionLabel="name"
-												optionValue="id"
-												appendTo="body"
-												[showClear]="true"
-												placeholder="Не выбрана"
-												(ngModelChange)="updateDraftAnatomyScheme($event)"
-											></p-select>
-										</span>
-
-										<span class="admin-creatures-page__field">
-											<span>Порядок отображения</span>
-											<p-inputnumber
-												[ngModel]="currentDraft.sortOrder"
-												[showButtons]="false"
-												[min]="0"
-												(ngModelChange)="updateDraftSortOrder($event)"
-											></p-inputnumber>
-										</span>
-
-										<span class="admin-creatures-page__switch-field">
-											<span>Активно</span>
-											<p-toggleswitch
-												[ngModel]="currentDraft.isActive"
-												(ngModelChange)="updateDraftActive($event)"
-											></p-toggleswitch>
-										</span>
-									</div>
+									<app-creature-main-editor
+										[draft]="currentDraft"
+										[creatureTypes]="creatureTypes()"
+										[anatomySchemes]="anatomySchemes()"
+										(nameChange)="updateDraftName($event)"
+										(typeChange)="updateDraftType($event)"
+										(anatomySchemeChange)="updateDraftAnatomyScheme($event)"
+										(sortOrderChange)="updateDraftSortOrder($event)"
+										(activeChange)="updateDraftActive($event)"
+									></app-creature-main-editor>
 								}
 							</p-tabpanel>
 
@@ -288,281 +243,21 @@
 								class="admin-creatures-page__tabpanel"
 							>
 								@if (detailTab() === 'anatomy') {
-									<section class="admin-creatures-page__anatomy">
-										<button
-											type="button"
-											class="admin-creatures-page__anatomy-heading"
-											[attr.aria-expanded]="isAnatomyExpanded()"
-											(click)="toggleAnatomyExpanded()"
-										>
-											<span class="admin-creatures-page__anatomy-heading-title">
-												<h3>Анатомия вида</h3>
-												@if (currentDraft.anatomyZones.length) {
-													<span
-														>{{ currentDraft.anatomyZones.length }} зон</span
-													>
-												}
-											</span>
-
-											<span
-												class="pi admin-creatures-page__anatomy-toggle"
-												[class.pi-plus]="!isAnatomyExpanded()"
-												[class.pi-minus]="isAnatomyExpanded()"
-												aria-hidden="true"
-											></span>
-										</button>
-
-										@if (isAnatomyExpanded()) {
-											@if (anatomyZoneGroups().length) {
-												<div class="admin-creatures-page__anatomy-list">
-													@for (
-														group of anatomyZoneGroups();
-														track group.trackId
-													) {
-														@if (group.parent; as parentItem) {
-															<div class="admin-creatures-page__anatomy-group">
-																<ng-container
-																	[ngTemplateOutlet]="anatomyZoneRow"
-																	[ngTemplateOutletContext]="{
-																		zone: parentItem.zone,
-																		index: parentItem.index,
-																		level: 'main'
-																	}"
-																></ng-container>
-
-																@if (group.children.length) {
-																	<div
-																		class="admin-creatures-page__anatomy-sublist"
-																	>
-																		@for (
-																			childItem of group.children;
-																			track childItem.zone.id
-																		) {
-																			<ng-container
-																				[ngTemplateOutlet]="anatomyZoneRow"
-																				[ngTemplateOutletContext]="{
-																					zone: childItem.zone,
-																					index: childItem.index,
-																					level: 'sub'
-																				}"
-																			></ng-container>
-																		}
-																	</div>
-																}
-															</div>
-														} @else {
-															<div class="admin-creatures-page__anatomy-group">
-																<div
-																	class="admin-creatures-page__anatomy-orphan-heading"
-																>
-																	Зоны без найденного родителя
-																</div>
-																<div
-																	class="admin-creatures-page__anatomy-sublist"
-																>
-																	@for (
-																		childItem of group.children;
-																		track childItem.zone.id
-																	) {
-																		<ng-container
-																			[ngTemplateOutlet]="anatomyZoneRow"
-																			[ngTemplateOutletContext]="{
-																				zone: childItem.zone,
-																				index: childItem.index,
-																				level: 'sub'
-																			}"
-																		></ng-container>
-																	}
-																</div>
-															</div>
-														}
-													}
-												</div>
-											} @else {
-												<div class="admin-creatures-page__empty-list">
-													Сохрани существо с выбранной схемой, чтобы создать
-													анатомию вида.
-												</div>
-											}
-										}
-
-										<ng-template
-											#anatomyZoneRow
-											let-zone="zone"
-											let-index="index"
-											let-level="level"
-										>
-											<div
-												class="admin-creatures-page__anatomy-zone"
-												[class.admin-creatures-page__anatomy-zone--sub]="
-													level === 'sub'
-												"
-											>
-												<div class="admin-creatures-page__anatomy-zone-title">
-													<strong>{{ zone.name }}</strong>
-													<div class="admin-creatures-page__anatomy-zone-meta">
-														<p-tag
-															[value]="
-																zone.kind === 'MAIN'
-																	? 'Основная зона'
-																	: 'Прицельная подзона'
-															"
-															[severity]="
-																zone.kind === 'MAIN' ? 'success' : 'info'
-															"
-														></p-tag>
-														@if (zone.isRandomHitEligible) {
-															<span>Вес {{ zone.randomHitWeight }}</span>
-														}
-														<span
-															>{{ zone.targetedAttackDicePenalty }} куб.</span
-														>
-														<span
-															>+{{ zone.extraPotentialCost }} Потенциал</span
-														>
-														@if (zone.overriddenFields.length) {
-															<span
-																>{{
-																	zone.overriddenFields.length
-																}}
-																переопр.</span
-															>
-														}
-													</div>
-												</div>
-
-												<div class="admin-creatures-page__anatomy-fields">
-													<span class="admin-creatures-page__field">
-														<span>Название</span>
-														<input
-															pInputText
-															type="text"
-															[value]="zone.name"
-															(input)="
-																updateAnatomyZone(
-																	index,
-																	{ name: $any($event.target).value },
-																	'name'
-																)
-															"
-														/>
-													</span>
-
-													<span class="admin-creatures-page__field">
-														<span>Родительская зона</span>
-														<p-select
-															[ngModel]="zone.parentId"
-															[options]="anatomyParentOptions(zone.id)"
-															optionLabel="label"
-															optionValue="value"
-															appendTo="body"
-															[showClear]="true"
-															(ngModelChange)="
-																updateAnatomyZone(
-																	index,
-																	{ parentId: $event },
-																	'parentId'
-																)
-															"
-														></p-select>
-													</span>
-
-													<span class="admin-creatures-page__field">
-														<span>Тип зоны</span>
-														<p-select
-															[ngModel]="zone.kind"
-															[options]="anatomyZoneKindOptions"
-															optionLabel="label"
-															optionValue="value"
-															appendTo="body"
-															(ngModelChange)="
-																updateAnatomyZone(
-																	index,
-																	{ kind: $event },
-																	'kind'
-																)
-															"
-														></p-select>
-													</span>
-
-													<span class="admin-creatures-page__switch-field">
-														<span>Случайное попадание</span>
-														<p-toggleswitch
-															[ngModel]="zone.isRandomHitEligible"
-															(ngModelChange)="
-																updateAnatomyZone(
-																	index,
-																	{ isRandomHitEligible: $event },
-																	'isRandomHitEligible'
-																)
-															"
-														></p-toggleswitch>
-													</span>
-
-													<span class="admin-creatures-page__field">
-														<span>Вес попадания</span>
-														<p-inputnumber
-															[ngModel]="zone.randomHitWeight"
-															[showButtons]="false"
-															[min]="0"
-															(ngModelChange)="
-																updateAnatomyZone(
-																	index,
-																	{ randomHitWeight: $event ?? 0 },
-																	'randomHitWeight'
-																)
-															"
-														></p-inputnumber>
-													</span>
-
-													<span class="admin-creatures-page__field">
-														<span>Штраф прицельной атаки</span>
-														<p-inputnumber
-															[ngModel]="zone.targetedAttackDicePenalty"
-															[showButtons]="false"
-															(ngModelChange)="
-																updateAnatomyZone(
-																	index,
-																	{ targetedAttackDicePenalty: $event ?? 0 },
-																	'targetedAttackDicePenalty'
-																)
-															"
-														></p-inputnumber>
-													</span>
-
-													<span class="admin-creatures-page__field">
-														<span>Доп. стоимость Потенциала</span>
-														<p-inputnumber
-															[ngModel]="zone.extraPotentialCost"
-															[showButtons]="false"
-															[min]="0"
-															(ngModelChange)="
-																updateAnatomyZone(
-																	index,
-																	{ extraPotentialCost: $event ?? 0 },
-																	'extraPotentialCost'
-																)
-															"
-														></p-inputnumber>
-													</span>
-
-													<span class="admin-creatures-page__switch-field">
-														<span>Активна</span>
-														<p-toggleswitch
-															[ngModel]="zone.isActive"
-															(ngModelChange)="
-																updateAnatomyZone(
-																	index,
-																	{ isActive: $event },
-																	'isActive'
-																)
-															"
-														></p-toggleswitch>
-													</span>
-												</div>
-											</div>
-										</ng-template>
-									</section>
+									<app-creature-anatomy-editor
+										[zoneCount]="currentDraft.anatomyZones.length"
+										[isExpanded]="isAnatomyExpanded()"
+										[groups]="anatomyZoneGroups()"
+										[zoneKindOptions]="anatomyZoneKindOptions"
+										[parentOptionsByZoneId]="anatomyParentOptionsByZoneId()"
+										(expandedToggle)="toggleAnatomyExpanded()"
+										(zoneChange)="
+											updateAnatomyZone(
+												$event.index,
+												$event.patch,
+												$event.field
+											)
+										"
+									></app-creature-anatomy-editor>
 								}
 							</p-tabpanel>
 
@@ -571,326 +266,43 @@
 								class="admin-creatures-page__tabpanel"
 							>
 								@if (detailTab() === 'attacks') {
-									<section class="admin-creatures-page__natural-attacks">
-										<div class="admin-creatures-page__tiers-heading">
-											<h3>Естественные атаки</h3>
-											<span>Доступные способы физической атаки существа</span>
-										</div>
-
-										<div class="admin-creatures-page__natural-attack-list">
-											@for (
-												naturalAttack of naturalAttacks();
-												track naturalAttack.id
-											) {
-												<div class="admin-creatures-page__natural-attack-card">
-													<label
-														class="admin-creatures-page__natural-attack-row"
-													>
-														<p-checkbox
-															[inputId]="
-																'creature-natural-attack-' + naturalAttack.id
-															"
-															[binary]="true"
-															[ngModel]="
-																naturalAttackDraft(naturalAttack.id) !== null
-															"
-															(ngModelChange)="
-																updateNaturalAttack(naturalAttack.id, $event)
-															"
-														></p-checkbox>
-														<span>
-															<strong>{{ naturalAttack.name }}</strong>
-															<small>{{ naturalAttack.skill.name }}</small>
-														</span>
-													</label>
-
-													@if (
-														naturalAttackDraft(naturalAttack.id);
-														as attackDraft
-													) {
-														<div
-															class="admin-creatures-page__natural-attack-profiles"
-														>
-															@for (
-																profile of attackDraft.attackProfiles;
-																track profile.kind;
-																let profileIndex = $index
-															) {
-																<div
-																	class="admin-creatures-page__natural-attack-profile"
-																>
-																	<div
-																		class="admin-creatures-page__natural-attack-profile-head"
-																	>
-																		<strong>{{ profile.name }}</strong>
-																		<p-tag
-																			[value]="profileKindLabel(profile.kind)"
-																			severity="info"
-																		></p-tag>
-																	</div>
-
-																	<div
-																		class="admin-creatures-page__attack-fields"
-																	>
-																		<span class="admin-creatures-page__field">
-																			<span>Навык</span>
-																			<p-select
-																				[ngModel]="profile.skillId"
-																				[options]="skillOptionGroups()"
-																				[fluid]="true"
-																				optionLabel="name"
-																				optionValue="id"
-																				optionGroupLabel="label"
-																				optionGroupChildren="items"
-																				[group]="true"
-																				[filter]="true"
-																				filterBy="name,searchText"
-																				appendTo="body"
-																				(ngModelChange)="
-																					updateNaturalAttackProfile(
-																						naturalAttack.id,
-																						profileIndex,
-																						{ skillId: $event }
-																					)
-																				"
-																			></p-select>
-																		</span>
-
-																		<span class="admin-creatures-page__field">
-																			<span>Характеристика</span>
-																			<p-select
-																				[ngModel]="profile.characteristicId"
-																				[options]="characteristics()"
-																				[fluid]="true"
-																				optionLabel="name"
-																				optionValue="id"
-																				appendTo="body"
-																				(ngModelChange)="
-																					updateNaturalAttackProfile(
-																						naturalAttack.id,
-																						profileIndex,
-																						{ characteristicId: $event }
-																					)
-																				"
-																			></p-select>
-																		</span>
-
-																		<span class="admin-creatures-page__field">
-																			<span>Стоимость</span>
-																			<p-inputnumber
-																				[ngModel]="profile.baseCost"
-																				[showButtons]="false"
-																				[fluid]="true"
-																				[min]="0"
-																				(ngModelChange)="
-																					updateNaturalAttackProfile(
-																						naturalAttack.id,
-																						profileIndex,
-																						{ baseCost: $event ?? 0 }
-																					)
-																				"
-																			></p-inputnumber>
-																		</span>
-
-																		<span class="admin-creatures-page__field">
-																			<span>Урон</span>
-																			<p-inputnumber
-																				[ngModel]="profile.baseDamage"
-																				[showButtons]="false"
-																				[fluid]="true"
-																				(ngModelChange)="
-																					updateNaturalAttackProfile(
-																						naturalAttack.id,
-																						profileIndex,
-																						{ baseDamage: $event ?? 0 }
-																					)
-																				"
-																			></p-inputnumber>
-																		</span>
-
-																		<span class="admin-creatures-page__field">
-																			<span>Дистанция, м</span>
-																			<p-inputnumber
-																				[ngModel]="profile.rangeMeters"
-																				[showButtons]="false"
-																				[fluid]="true"
-																				[min]="0"
-																				(ngModelChange)="
-																					updateNaturalAttackProfile(
-																						naturalAttack.id,
-																						profileIndex,
-																						{ rangeMeters: $event ?? 0 }
-																					)
-																				"
-																			></p-inputnumber>
-																		</span>
-
-																		<span
-																			class="admin-creatures-page__switch-field"
-																		>
-																			<span>Профиль активен</span>
-																			<p-toggleswitch
-																				[ngModel]="profile.isActive"
-																				(ngModelChange)="
-																					updateNaturalAttackProfile(
-																						naturalAttack.id,
-																						profileIndex,
-																						{ isActive: $event }
-																					)
-																				"
-																			></p-toggleswitch>
-																		</span>
-
-																		<span
-																			class="admin-creatures-page__switch-field"
-																		>
-																			<span>Можно парировать</span>
-																			<p-toggleswitch
-																				[ngModel]="profile.canBeParried"
-																				(ngModelChange)="
-																					updateNaturalAttackProfile(
-																						naturalAttack.id,
-																						profileIndex,
-																						{ canBeParried: $event }
-																					)
-																				"
-																			></p-toggleswitch>
-																		</span>
-																	</div>
-
-																	@if (profile.availabilityRules.length) {
-																		<div
-																			class="admin-creatures-page__attack-note"
-																		>
-																			<strong>Доступность</strong>
-																			<span>
-																				{{
-																					attackAvailabilityText(
-																						profile.availabilityRules
-																					)
-																				}}
-																			</span>
-																		</div>
-																	}
-
-																	<div
-																		class="admin-creatures-page__attack-options"
-																	>
-																		<div
-																			class="admin-creatures-page__attack-options-group"
-																		>
-																			<strong>Типы урона</strong>
-																			<div
-																				class="admin-creatures-page__attack-option-list"
-																			>
-																				@for (
-																					damageType of damageTypes();
-																					track damageType.id
-																				) {
-																					<label
-																						class="admin-creatures-page__attack-option"
-																					>
-																						<p-checkbox
-																							[inputId]="
-																								'creature-attack-damage-' +
-																								naturalAttack.id +
-																								'-' +
-																								profileIndex +
-																								'-' +
-																								damageType.id
-																							"
-																							[binary]="true"
-																							[ngModel]="
-																								profile.damageTypeIds.includes(
-																									damageType.id
-																								)
-																							"
-																							(ngModelChange)="
-																								updateNaturalAttackProfileDamageType(
-																									naturalAttack.id,
-																									profileIndex,
-																									damageType.id,
-																									$event
-																								)
-																							"
-																						></p-checkbox>
-																						<span>{{ damageType.name }}</span>
-																					</label>
-																				}
-																			</div>
-																		</div>
-
-																		<div
-																			class="admin-creatures-page__attack-options-group"
-																		>
-																			<strong>Намерения</strong>
-																			<div
-																				class="admin-creatures-page__combat-intent-groups"
-																			>
-																				@for (
-																					group of combatIntentGroups();
-																					track group.label
-																				) {
-																					<div
-																						class="admin-creatures-page__combat-intent-group"
-																					>
-																						<small>{{ group.label }}</small>
-																						<div
-																							class="admin-creatures-page__attack-option-list"
-																						>
-																							@for (
-																								intent of group.items;
-																								track intent.id
-																							) {
-																								<label
-																									class="admin-creatures-page__attack-option"
-																								>
-																									<p-checkbox
-																										[inputId]="
-																											'creature-attack-intent-' +
-																											naturalAttack.id +
-																											'-' +
-																											profileIndex +
-																											'-' +
-																											intent.id
-																										"
-																										[binary]="true"
-																										[ngModel]="
-																											hasNaturalAttackProfileIntent(
-																												profile,
-																												intent.id
-																											)
-																										"
-																										(ngModelChange)="
-																											updateNaturalAttackProfileIntent(
-																												naturalAttack.id,
-																												profileIndex,
-																												intent.id,
-																												$event
-																											)
-																										"
-																									></p-checkbox>
-																									<span>{{ intent.name }}</span>
-																								</label>
-																							}
-																						</div>
-																					</div>
-																				}
-																			</div>
-																		</div>
-																	</div>
-																</div>
-															}
-														</div>
-													}
-												</div>
-											} @empty {
-												<div class="admin-creatures-page__empty-list">
-													Естественные атаки пока не настроены.
-												</div>
-											}
-										</div>
-									</section>
+									<app-creature-natural-attacks-editor
+										[naturalAttacks]="naturalAttacks()"
+										[attackDrafts]="currentDraft.naturalAttacks"
+										[skillOptionGroups]="skillOptionGroups()"
+										[characteristics]="characteristics()"
+										[damageTypes]="damageTypes()"
+										[combatIntentGroups]="combatIntentGroups()"
+										(naturalAttackChange)="
+											updateNaturalAttack(
+												$event.naturalAttackId,
+												$event.isSelected
+											)
+										"
+										(profileChange)="
+											updateNaturalAttackProfile(
+												$event.naturalAttackId,
+												$event.profileIndex,
+												$event.patch
+											)
+										"
+										(damageTypeChange)="
+											updateNaturalAttackProfileDamageType(
+												$event.naturalAttackId,
+												$event.profileIndex,
+												$event.damageTypeId,
+												$event.isSelected
+											)
+										"
+										(intentChange)="
+											updateNaturalAttackProfileIntent(
+												$event.naturalAttackId,
+												$event.profileIndex,
+												$event.combatIntentId,
+												$event.isSelected
+											)
+										"
+									></app-creature-natural-attacks-editor>
 								}
 							</p-tabpanel>
 
@@ -899,707 +311,114 @@
 								class="admin-creatures-page__tabpanel"
 							>
 								@if (detailTab() === 'actions') {
-									<section class="admin-creatures-page__natural-attacks">
-										<div class="admin-creatures-page__tiers-heading">
-											<h3>Действия</h3>
-											<span
-												>Общие действия, которые наследуют тиры существа</span
-											>
-										</div>
-
-										<app-creature-tier-actions-editor
-											[actions]="currentDraft.actions"
-											(actionsChange)="updateBaseActions($event)"
-											[actorName]="currentDraft.name"
-											[naturalAttacks]="naturalAttacks()"
-											[combatIntents]="combatIntents()"
-											[damageTypes]="damageTypes()"
-											[conditions]="conditions()"
-											[skills]="skills()"
-											[characteristics]="characteristics()"
-										></app-creature-tier-actions-editor>
-									</section>
+									<app-creature-base-actions-editor
+										[actions]="currentDraft.actions"
+										(actionsChange)="updateBaseActions($event)"
+										[actorName]="currentDraft.name"
+										[naturalAttacks]="naturalAttacks()"
+										[combatIntents]="combatIntents()"
+										[damageTypes]="damageTypes()"
+										[conditions]="conditions()"
+										[skills]="skills()"
+										[characteristics]="characteristics()"
+									></app-creature-base-actions-editor>
 								}
 							</p-tabpanel>
 
 							<p-tabpanel value="tiers" class="admin-creatures-page__tabpanel">
 								@if (detailTab() === 'tiers') {
-									<section class="admin-creatures-page__tiers">
-										<div class="admin-creatures-page__tiers-heading">
-											<h3>Тиры</h3>
-											<span>Варианты существа по опасности</span>
-										</div>
-
-										<div class="admin-creatures-page__tier-list">
-											<p-tabs
-												class="admin-creatures-page__tier-tabs"
-												[value]="selectedTierTab()"
-												(valueChange)="setSelectedTierTab($event)"
-											>
-												<p-tablist>
-													@for (tier of currentDraft.tiers; track tier.tier) {
-														<p-tab [value]="tierTabValue(tier.tier)">
-															{{ tier.tier }}. {{ tier.name }}
-														</p-tab>
-													}
-												</p-tablist>
-
-												<p-tabpanels
-													class="admin-creatures-page__tier-tabpanels"
-												>
-													@for (tier of currentDraft.tiers; track tier.tier) {
-														<p-tabpanel [value]="tierTabValue(tier.tier)">
-															@if (
-																selectedTierTab() === tierTabValue(tier.tier)
-															) {
-																<div class="admin-creatures-page__tier-card">
-																	<div
-																		class="admin-creatures-page__tier-card-head"
-																	>
-																		<span
-																			class="admin-creatures-page__tier-card-title"
-																		>
-																			<strong
-																				>{{ tier.tier }}.
-																				{{ tier.name }}</strong
-																			>
-																			<span>
-																				HP {{ tier.hp }},
-																				{{ sizeName(tier.sizeId) }},
-																				{{ armorSummary(tier.armorPresetId) }},
-																				навыков: {{ tier.skills.length }}
-																			</span>
-																		</span>
-																	</div>
-
-																	<div
-																		class="admin-creatures-page__tier-card-body"
-																	>
-																		<p-tabs
-																			class="admin-creatures-page__tier-section-tabs"
-																			[value]="selectedTierSectionTab()"
-																			(valueChange)="
-																				setSelectedTierSectionTab($event)
-																			"
-																		>
-																			<p-tablist>
-																				<p-tab value="main">Основное</p-tab>
-																				<p-tab value="overrides"
-																					>Модификаторы</p-tab
-																				>
-																				<p-tab value="actions">Действия</p-tab>
-																				<p-tab value="characteristics"
-																					>Характеристики</p-tab
-																				>
-																				<p-tab value="skills">Навыки</p-tab>
-																			</p-tablist>
-
-																			<p-tabpanels
-																				class="admin-creatures-page__tier-section-tabpanels"
-																			>
-																				<p-tabpanel value="main">
-																					@if (
-																						selectedTierSectionTab() === 'main'
-																					) {
-																						<section
-																							class="admin-creatures-page__tier-section"
-																						>
-																							<h4>Основное</h4>
-																							<div
-																								class="admin-creatures-page__tier-fields"
-																							>
-																								<span
-																									class="admin-creatures-page__field admin-creatures-page__field--wide"
-																								>
-																									<span>Название тира</span>
-																									<input
-																										pInputText
-																										type="text"
-																										[value]="tier.name"
-																										(input)="
-																											updateTierName(
-																												tier.tier,
-																												$any($event.target)
-																													.value
-																											)
-																										"
-																									/>
-																								</span>
-
-																								<span
-																									class="admin-creatures-page__field"
-																								>
-																									<span>HP</span>
-																									<p-inputnumber
-																										[ngModel]="tier.hp"
-																										[showButtons]="false"
-																										[min]="1"
-																										(ngModelChange)="
-																											updateTierHp(
-																												tier.tier,
-																												$event
-																											)
-																										"
-																									></p-inputnumber>
-																								</span>
-
-																								<span
-																									class="admin-creatures-page__field"
-																								>
-																									<span>Размер</span>
-																									<p-select
-																										[ngModel]="tier.sizeId"
-																										[options]="creatureSizes()"
-																										optionLabel="name"
-																										optionValue="id"
-																										appendTo="body"
-																										[filter]="true"
-																										(ngModelChange)="
-																											updateTierSize(
-																												tier.tier,
-																												$event
-																											)
-																										"
-																									></p-select>
-																								</span>
-																							</div>
-																						</section>
-
-																						<section
-																							class="admin-creatures-page__tier-section"
-																						>
-																							<h4>Броня</h4>
-																							<div
-																								class="admin-creatures-page__tier-fields"
-																							>
-																								<span
-																									class="admin-creatures-page__field admin-creatures-page__field--wide"
-																								>
-																									<span>Пресет брони</span>
-																									<p-select
-																										[ngModel]="
-																											tier.armorPresetId
-																										"
-																										[options]="armorPresets()"
-																										optionLabel="name"
-																										optionValue="id"
-																										appendTo="body"
-																										[showClear]="true"
-																										(ngModelChange)="
-																											updateTierArmor(
-																												tier.tier,
-																												$event
-																											)
-																										"
-																									></p-select>
-																									<small>{{
-																										armorSummary(
-																											tier.armorPresetId
-																										)
-																									}}</small>
-																								</span>
-																							</div>
-																						</section>
-																					}
-																				</p-tabpanel>
-
-																				<p-tabpanel value="overrides">
-																					@if (
-																						selectedTierSectionTab() ===
-																						'overrides'
-																					) {
-																						<section
-																							class="admin-creatures-page__tier-section"
-																						>
-																							<div
-																								class="admin-creatures-page__tier-section-head"
-																							>
-																								<h4>Модификаторы атак</h4>
-																								<p-button
-																									label="Модификатор"
-																									icon="pi pi-plus"
-																									size="small"
-																									text
-																									[disabled]="
-																										!tierAttackProfileOptions()
-																											.length
-																									"
-																									(click)="
-																										addTierAttackOverride(
-																											tier.tier
-																										)
-																									"
-																								></p-button>
-																							</div>
-
-																							@if (
-																								tier.attackOverrides.length
-																							) {
-																								<div
-																									class="admin-creatures-page__tier-attack-list"
-																								>
-																									@for (
-																										override of tier.attackOverrides;
-																										track override.sortOrder;
-																										let overrideIndex = $index
-																									) {
-																										<div
-																											class="admin-creatures-page__tier-attack-row"
-																										>
-																											<span
-																												class="admin-creatures-page__field admin-creatures-page__field--wide"
-																											>
-																												<span>Атака</span>
-																												<p-select
-																													[ngModel]="
-																														tierAttackOverrideProfileKey(
-																															override
-																														)
-																													"
-																													[options]="
-																														tierAttackProfileOptions()
-																													"
-																													[fluid]="true"
-																													optionLabel="label"
-																													optionValue="value"
-																													appendTo="body"
-																													(ngModelChange)="
-																														updateTierAttackOverrideProfile(
-																															tier.tier,
-																															overrideIndex,
-																															$event
-																														)
-																													"
-																												></p-select>
-																											</span>
-
-																											<span
-																												class="admin-creatures-page__switch-field"
-																											>
-																												<span>Доступна</span>
-																												<p-toggleswitch
-																													[ngModel]="
-																														override.isAvailable
-																													"
-																													(ngModelChange)="
-																														updateTierAttackOverride(
-																															tier.tier,
-																															overrideIndex,
-																															{
-																																isAvailable:
-																																	$event
-																															}
-																														)
-																													"
-																												></p-toggleswitch>
-																											</span>
-
-																											<span
-																												class="admin-creatures-page__field"
-																											>
-																												<span>Стоимость</span>
-																												<p-inputnumber
-																													[ngModel]="
-																														override.costModifier
-																													"
-																													[showButtons]="false"
-																													[fluid]="true"
-																													(ngModelChange)="
-																														updateTierAttackOverride(
-																															tier.tier,
-																															overrideIndex,
-																															{
-																																costModifier:
-																																	$event ?? 0
-																															}
-																														)
-																													"
-																												></p-inputnumber>
-																											</span>
-
-																											<span
-																												class="admin-creatures-page__field"
-																											>
-																												<span>Урон</span>
-																												<p-inputnumber
-																													[ngModel]="
-																														override.damageModifier
-																													"
-																													[showButtons]="false"
-																													[fluid]="true"
-																													(ngModelChange)="
-																														updateTierAttackOverride(
-																															tier.tier,
-																															overrideIndex,
-																															{
-																																damageModifier:
-																																	$event ?? 0
-																															}
-																														)
-																													"
-																												></p-inputnumber>
-																											</span>
-
-																											<span
-																												class="admin-creatures-page__field"
-																											>
-																												<span>Дистанция</span>
-																												<p-inputnumber
-																													[ngModel]="
-																														override.rangeModifier
-																													"
-																													[showButtons]="false"
-																													[fluid]="true"
-																													(ngModelChange)="
-																														updateTierAttackOverride(
-																															tier.tier,
-																															overrideIndex,
-																															{
-																																rangeModifier:
-																																	$event ?? 0
-																															}
-																														)
-																													"
-																												></p-inputnumber>
-																											</span>
-
-																											<span
-																												class="admin-creatures-page__field"
-																											>
-																												<span>Пул кубиков</span>
-																												<p-inputnumber
-																													[ngModel]="
-																														override.dicePoolModifier
-																													"
-																													[showButtons]="false"
-																													[fluid]="true"
-																													(ngModelChange)="
-																														updateTierAttackOverride(
-																															tier.tier,
-																															overrideIndex,
-																															{
-																																dicePoolModifier:
-																																	$event ?? 0
-																															}
-																														)
-																													"
-																												></p-inputnumber>
-																											</span>
-
-																											<p-button
-																												icon="pi pi-trash"
-																												severity="danger"
-																												text
-																												rounded
-																												(click)="
-																													removeTierAttackOverride(
-																														tier.tier,
-																														overrideIndex
-																													)
-																												"
-																											></p-button>
-																										</div>
-																									}
-																								</div>
-																							} @else {
-																								<div
-																									class="admin-creatures-page__empty-list"
-																								>
-																									Нет переопределений атак для
-																									этого тира.
-																								</div>
-																							}
-																						</section>
-																					}
-																				</p-tabpanel>
-
-																				<p-tabpanel value="actions">
-																					@if (
-																						selectedTierSectionTab() ===
-																						'actions'
-																					) {
-																						<app-creature-tier-actions-editor
-																							[actions]="
-																								effectiveTierActions(tier)
-																							"
-																							(actionsChange)="
-																								updateTierActionOverrides(
-																									tier,
-																									$event
-																								)
-																							"
-																							[actorName]="tier.name"
-																							[naturalAttacks]="
-																								naturalAttacks()
-																							"
-																							[combatIntents]="combatIntents()"
-																							[damageTypes]="damageTypes()"
-																							[conditions]="conditions()"
-																							[skills]="skills()"
-																							[characteristics]="
-																								characteristics()
-																							"
-																						></app-creature-tier-actions-editor>
-
-																						@if (tier.abilities.length) {
-																							<section
-																								class="admin-creatures-page__tier-section"
-																							>
-																								<h4>Способности</h4>
-																								<div
-																									class="admin-creatures-page__tier-ability-list"
-																								>
-																									@for (
-																										ability of tier.abilities;
-																										track ability.name
-																									) {
-																										<div
-																											class="admin-creatures-page__tier-ability"
-																										>
-																											<div
-																												class="admin-creatures-page__tier-ability-head"
-																											>
-																												<strong>{{
-																													ability.name
-																												}}</strong>
-																												@if (
-																													ability.costPotential !==
-																													null
-																												) {
-																													<p-tag
-																														[value]="
-																															ability.costPotential +
-																															' Потенциала'
-																														"
-																														severity="secondary"
-																													></p-tag>
-																												}
-																											</div>
-																											@if (ability.target) {
-																												<small
-																													>Цель:
-																													{{
-																														ability.target
-																													}}</small
-																												>
-																											}
-																											@if (ability.duration) {
-																												<small
-																													>Длительность:
-																													{{
-																														ability.duration
-																													}}</small
-																												>
-																											}
-																											@if (
-																												ability.appliesCondition
-																											) {
-																												<small>
-																													Состояние:
-																													{{
-																														ability
-																															.appliesCondition
-																															.name
-																													}}
-																													@if (
-																														ability.conditionDisplayName
-																													) {
-																														как
-																														{{
-																															ability.conditionDisplayName
-																														}}
-																													}
-																												</small>
-																											}
-																											@if (ability.effectText) {
-																												<p>
-																													{{
-																														ability.effectText
-																													}}
-																												</p>
-																											}
-																										</div>
-																									}
-																								</div>
-																							</section>
-																						}
-																					}
-																				</p-tabpanel>
-
-																				<p-tabpanel value="characteristics">
-																					@if (
-																						selectedTierSectionTab() ===
-																						'characteristics'
-																					) {
-																						<section
-																							class="admin-creatures-page__tier-section"
-																						>
-																							<h4>Характеристики</h4>
-																							<div
-																								class="admin-creatures-page__tier-fields"
-																							>
-																								@for (
-																									characteristicValue of tier.characteristics;
-																									track characteristicValue.characteristicId
-																								) {
-																									@if (
-																										characteristicsById().get(
-																											characteristicValue.characteristicId
-																										);
-																										as characteristicOption
-																									) {
-																										<span
-																											class="admin-creatures-page__field"
-																										>
-																											<span>{{
-																												characteristicOption.name
-																											}}</span>
-																											<p-inputnumber
-																												[ngModel]="
-																													characteristicValue.value
-																												"
-																												[showButtons]="false"
-																												[min]="
-																													characteristicOption.minValue
-																												"
-																												[max]="
-																													characteristicOption.maxValue
-																												"
-																												(ngModelChange)="
-																													updateTierCharacteristic(
-																														tier.tier,
-																														characteristicValue.characteristicId,
-																														$event
-																													)
-																												"
-																											></p-inputnumber>
-																										</span>
-																									}
-																								}
-																							</div>
-																						</section>
-																					}
-																				</p-tabpanel>
-
-																				<p-tabpanel value="skills">
-																					@if (
-																						selectedTierSectionTab() ===
-																						'skills'
-																					) {
-																						<section
-																							class="admin-creatures-page__tier-section"
-																						>
-																							<div
-																								class="admin-creatures-page__tier-section-head"
-																							>
-																								<h4>Навыки</h4>
-																								<p-button
-																									label="Навык"
-																									icon="pi pi-plus"
-																									size="small"
-																									text
-																									(click)="
-																										addTierSkill(tier.tier)
-																									"
-																								></p-button>
-																							</div>
-
-																							<div
-																								class="admin-creatures-page__skill-list"
-																							>
-																								@for (
-																									skill of tier.skills;
-																									track skill.skillId;
-																									let skillIndex = $index
-																								) {
-																									<div
-																										class="admin-creatures-page__skill-row"
-																									>
-																										<span
-																											class="admin-creatures-page__field"
-																										>
-																											<span>Навык</span>
-																											<p-select
-																												[ngModel]="
-																													skill.skillId
-																												"
-																												[options]="
-																													skillOptionsForTier(
-																														tier,
-																														skill.skillId
-																													)
-																												"
-																												[fluid]="true"
-																												optionLabel="name"
-																												optionValue="id"
-																												optionGroupLabel="label"
-																												optionGroupChildren="items"
-																												[group]="true"
-																												[filter]="true"
-																												filterBy="name,searchText"
-																												appendTo="body"
-																												(ngModelChange)="
-																													updateTierSkill(
-																														tier.tier,
-																														skillIndex,
-																														$event
-																													)
-																												"
-																											></p-select>
-																										</span>
-
-																										<span
-																											class="admin-creatures-page__field admin-creatures-page__field--skill-level"
-																										>
-																											<span>Уровень</span>
-																											<p-inputnumber
-																												[ngModel]="skill.level"
-																												[showButtons]="false"
-																												[fluid]="true"
-																												[min]="0"
-																												[max]="6"
-																												(ngModelChange)="
-																													updateTierSkillLevel(
-																														tier.tier,
-																														skillIndex,
-																														$event
-																													)
-																												"
-																											></p-inputnumber>
-																										</span>
-
-																										<p-button
-																											icon="pi pi-trash"
-																											severity="danger"
-																											text
-																											rounded
-																											[disabled]="
-																												tier.skills.length <= 1
-																											"
-																											(click)="
-																												removeTierSkill(
-																													tier.tier,
-																													skillIndex
-																												)
-																											"
-																										></p-button>
-																									</div>
-																								}
-																							</div>
-																						</section>
-																					}
-																				</p-tabpanel>
-																			</p-tabpanels>
-																		</p-tabs>
-																	</div>
-																</div>
-															}
-														</p-tabpanel>
-													}
-												</p-tabpanels>
-											</p-tabs>
-										</div>
-									</section>
+									<app-creature-tiers-editor
+										[tiers]="currentDraft.tiers"
+										[selectedTierTab]="selectedTierTab()"
+										[selectedTierSectionTab]="selectedTierSectionTab()"
+										[creatureSizes]="creatureSizes()"
+										[armorPresets]="armorPresets()"
+										[targetRuleOptions]="targetSelectionRuleOptions"
+										[attackProfileOptions]="tierAttackProfileOptions()"
+										[effectiveActionsByTier]="effectiveTierActionsByTier()"
+										[naturalAttacks]="naturalAttacks()"
+										[combatIntents]="combatIntents()"
+										[damageTypes]="damageTypes()"
+										[conditions]="conditions()"
+										[skills]="skills()"
+										[characteristics]="characteristics()"
+										[characteristicsById]="characteristicsById()"
+										[skillOptionsByKey]="tierSkillOptionsByKey()"
+										[armorSummaryById]="armorSummaryById()"
+										[sizeNameById]="sizeNameById()"
+										(addTier)="addTier()"
+										(removeTier)="removeTier($event)"
+										(selectedTierTabChange)="setSelectedTierTab($event)"
+										(selectedTierSectionTabChange)="
+											setSelectedTierSectionTab($event)
+										"
+										(tierNameChange)="updateTierName($event.tier, $event.name)"
+										(tierHpChange)="updateTierHp($event.tier, $event.hp)"
+										(tierSizeChange)="
+											updateTierSize($event.tier, $event.sizeId)
+										"
+										(tierArmorChange)="
+											updateTierArmor($event.tier, $event.armorPresetId)
+										"
+										(addTargetRule)="addTargetScoringRule($event)"
+										(targetRuleKeyChange)="
+											updateTargetScoringRuleKey(
+												$event.tier,
+												$event.index,
+												$event.key
+											)
+										"
+										(targetRuleChange)="
+											updateTargetScoringRule(
+												$event.tier,
+												$event.index,
+												$event.patch
+											)
+										"
+										(removeTargetRule)="
+											removeTargetScoringRule($event.tier, $event.index)
+										"
+										(addAttackOverride)="addTierAttackOverride($event)"
+										(attackOverrideProfileChange)="
+											updateTierAttackOverrideProfile(
+												$event.tier,
+												$event.index,
+												$event.key
+											)
+										"
+										(attackOverrideChange)="
+											updateTierAttackOverride(
+												$event.tier,
+												$event.index,
+												$event.patch
+											)
+										"
+										(removeAttackOverride)="
+											removeTierAttackOverride($event.tier, $event.index)
+										"
+										(tierActionsChange)="
+											updateTierActionOverrides($event.tier, $event.actions)
+										"
+										(characteristicChange)="
+											updateTierCharacteristic(
+												$event.tier,
+												$event.characteristicId,
+												$event.value
+											)
+										"
+										(addSkill)="addTierSkill($event)"
+										(skillChange)="
+											updateTierSkill($event.tier, $event.index, $event.skillId)
+										"
+										(skillLevelChange)="
+											updateTierSkillLevel(
+												$event.tier,
+												$event.index,
+												$event.level
+											)
+										"
+										(removeSkill)="removeTierSkill($event.tier, $event.index)"
+									></app-creature-tiers-editor>
 								}
 							</p-tabpanel>
 						</p-tabpanels>

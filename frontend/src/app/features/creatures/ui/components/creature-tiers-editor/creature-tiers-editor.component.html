@@ -1,0 +1,301 @@
+<section class="admin-creatures-page__tiers">
+	<div class="admin-creatures-page__tiers-heading">
+		<h3>Тиры</h3>
+		<span>Варианты существа по опасности</span>
+	</div>
+
+	<div class="admin-creatures-page__tier-workspace">
+		<aside class="admin-creatures-page__tier-menu">
+			<div class="admin-creatures-page__tier-menu-head">
+				<span>Список тиров</span>
+				<p-button
+					label="Тир"
+					icon="pi pi-plus"
+					size="small"
+					text
+					(click)="addTier.emit()"
+				></p-button>
+			</div>
+
+			<nav class="admin-creatures-page__tier-tree" aria-label="Тиры существа">
+				@for (tier of tiers(); track tier.tier) {
+					<button
+						type="button"
+						class="admin-creatures-page__tier-tree-item"
+						[class.admin-creatures-page__tier-tree-item--active]="
+							selectedTierTab() === tierTabValue(tier.tier)
+						"
+						(click)="selectedTierTabChange.emit(tierTabValue(tier.tier))"
+					>
+						<span class="admin-creatures-page__tier-tree-marker"></span>
+						<span class="admin-creatures-page__tier-tree-text">
+							<strong>{{ tier.tier }}. {{ tier.name }}</strong>
+							<small>
+								HP {{ tier.hp }}, {{ sizeName(tier.sizeId) }},
+								{{ tier.skills.length }} навыков
+							</small>
+						</span>
+					</button>
+				} @empty {
+					<div class="admin-creatures-page__empty-list">Тиров пока нет.</div>
+				}
+			</nav>
+		</aside>
+
+		<div class="admin-creatures-page__tier-content">
+			@for (tier of tiers(); track tier.tier) {
+				@if (selectedTierTab() === tierTabValue(tier.tier)) {
+					<div class="admin-creatures-page__tier-card">
+						<div class="admin-creatures-page__tier-card-head">
+							<span class="admin-creatures-page__tier-card-title">
+								<strong>{{ tier.tier }}. {{ tier.name }}</strong>
+								<span>
+									HP {{ tier.hp }}, {{ sizeName(tier.sizeId) }},
+									{{ armorSummary(tier.armorPresetId) }}, навыков:
+									{{ tier.skills.length }}
+								</span>
+							</span>
+							<p-button
+								label="Удалить"
+								icon="pi pi-trash"
+								severity="danger"
+								size="small"
+								text
+								[disabled]="tiers().length <= 1"
+								(click)="removeTier.emit(tier.tier)"
+							></p-button>
+						</div>
+
+						<div class="admin-creatures-page__tier-card-body">
+							<p-tabs
+								class="admin-creatures-page__tier-section-tabs"
+								[value]="selectedTierSectionTab()"
+								(valueChange)="selectedTierSectionTabChange.emit($event)"
+							>
+								<p-tablist>
+									<p-tab value="main">Основное</p-tab>
+									<p-tab value="targeting">Тактика</p-tab>
+									<p-tab value="overrides">Модификаторы</p-tab>
+									<p-tab value="actions">Действия</p-tab>
+									<p-tab value="characteristics">Характеристики</p-tab>
+									<p-tab value="skills">Навыки</p-tab>
+								</p-tablist>
+
+								<p-tabpanels
+									class="admin-creatures-page__tier-section-tabpanels"
+								>
+									<p-tabpanel value="main">
+										@if (selectedTierSectionTab() === 'main') {
+											<app-creature-tier-main-editor
+												[tier]="tier"
+												[creatureSizes]="creatureSizes()"
+												[armorPresets]="armorPresets()"
+												[armorSummary]="armorSummary(tier.armorPresetId)"
+												(nameChange)="
+													tierNameChange.emit({
+														tier: tier.tier,
+														name: $event
+													})
+												"
+												(hpChange)="
+													tierHpChange.emit({ tier: tier.tier, hp: $event })
+												"
+												(sizeChange)="
+													tierSizeChange.emit({
+														tier: tier.tier,
+														sizeId: $event
+													})
+												"
+												(armorChange)="
+													tierArmorChange.emit({
+														tier: tier.tier,
+														armorPresetId: $event
+													})
+												"
+											></app-creature-tier-main-editor>
+										}
+									</p-tabpanel>
+
+									<p-tabpanel value="targeting">
+										@if (selectedTierSectionTab() === 'targeting') {
+											<app-creature-tier-target-selection-editor
+												[targetSelection]="tier.targetSelection"
+												[ruleOptions]="targetRuleOptions()"
+												(addRule)="addTargetRule.emit(tier.tier)"
+												(ruleKeyChange)="
+													targetRuleKeyChange.emit({
+														tier: tier.tier,
+														index: $event.index,
+														key: $event.key
+													})
+												"
+												(ruleChange)="
+													targetRuleChange.emit({
+														tier: tier.tier,
+														index: $event.index,
+														patch: $event.patch
+													})
+												"
+												(removeRule)="
+													removeTargetRule.emit({
+														tier: tier.tier,
+														index: $event
+													})
+												"
+											></app-creature-tier-target-selection-editor>
+										}
+									</p-tabpanel>
+
+									<p-tabpanel value="overrides">
+										@if (selectedTierSectionTab() === 'overrides') {
+											<app-creature-tier-attack-overrides-editor
+												[tier]="tier"
+												[profileOptions]="attackProfileOptions()"
+												(addOverride)="addAttackOverride.emit(tier.tier)"
+												(overrideProfileChange)="
+													attackOverrideProfileChange.emit({
+														tier: tier.tier,
+														index: $event.index,
+														key: $event.key
+													})
+												"
+												(overrideChange)="
+													attackOverrideChange.emit({
+														tier: tier.tier,
+														index: $event.index,
+														patch: $event.patch
+													})
+												"
+												(removeOverride)="
+													removeAttackOverride.emit({
+														tier: tier.tier,
+														index: $event
+													})
+												"
+											></app-creature-tier-attack-overrides-editor>
+										}
+									</p-tabpanel>
+
+									<p-tabpanel value="actions">
+										@if (selectedTierSectionTab() === 'actions') {
+											<app-creature-tier-actions-editor
+												[actions]="effectiveActions(tier)"
+												(actionsChange)="
+													tierActionsChange.emit({
+														tier,
+														actions: $event
+													})
+												"
+												[actorName]="tier.name"
+												[naturalAttacks]="naturalAttacks()"
+												[combatIntents]="combatIntents()"
+												[damageTypes]="damageTypes()"
+												[conditions]="conditions()"
+												[skills]="skills()"
+												[characteristics]="characteristics()"
+											></app-creature-tier-actions-editor>
+
+											@if (tier.abilities.length) {
+												<section class="admin-creatures-page__tier-section">
+													<h4>Способности</h4>
+													<div class="admin-creatures-page__tier-ability-list">
+														@for (
+															ability of tier.abilities;
+															track ability.name
+														) {
+															<div class="admin-creatures-page__tier-ability">
+																<div
+																	class="admin-creatures-page__tier-ability-head"
+																>
+																	<strong>{{ ability.name }}</strong>
+																	@if (ability.costPotential !== null) {
+																		<p-tag
+																			[value]="
+																				ability.costPotential + ' Потенциала'
+																			"
+																			severity="secondary"
+																		></p-tag>
+																	}
+																</div>
+																@if (ability.target) {
+																	<small>Цель: {{ ability.target }}</small>
+																}
+																@if (ability.duration) {
+																	<small
+																		>Длительность: {{ ability.duration }}</small
+																	>
+																}
+																@if (ability.appliesCondition) {
+																	<small>
+																		Состояние:
+																		{{ ability.appliesCondition.name }}
+																		@if (ability.conditionDisplayName) {
+																			как {{ ability.conditionDisplayName }}
+																		}
+																	</small>
+																}
+																@if (ability.effectText) {
+																	<p>{{ ability.effectText }}</p>
+																}
+															</div>
+														}
+													</div>
+												</section>
+											}
+										}
+									</p-tabpanel>
+
+									<p-tabpanel value="characteristics">
+										@if (selectedTierSectionTab() === 'characteristics') {
+											<app-creature-tier-characteristics-editor
+												[tier]="tier"
+												[characteristicsById]="characteristicsById()"
+												(characteristicChange)="
+													characteristicChange.emit({
+														tier: tier.tier,
+														characteristicId: $event.characteristicId,
+														value: $event.value
+													})
+												"
+											></app-creature-tier-characteristics-editor>
+										}
+									</p-tabpanel>
+
+									<p-tabpanel value="skills">
+										@if (selectedTierSectionTab() === 'skills') {
+											<app-creature-tier-skills-editor
+												[tier]="tier"
+												[skillOptionsByKey]="skillOptionsByKey()"
+												(addSkill)="addSkill.emit(tier.tier)"
+												(skillChange)="
+													skillChange.emit({
+														tier: tier.tier,
+														index: $event.index,
+														skillId: $event.skillId
+													})
+												"
+												(skillLevelChange)="
+													skillLevelChange.emit({
+														tier: tier.tier,
+														index: $event.index,
+														level: $event.level
+													})
+												"
+												(removeSkill)="
+													removeSkill.emit({
+														tier: tier.tier,
+														index: $event
+													})
+												"
+											></app-creature-tier-skills-editor>
+										}
+									</p-tabpanel>
+								</p-tabpanels>
+							</p-tabs>
+						</div>
+					</div>
+				}
+			}
+		</div>
+	</div>
+</section>

@@ -1,0 +1,67 @@
+<section class="admin-creatures-page__tier-section">
+	<div class="admin-creatures-page__tier-section-head">
+		<h4>Навыки</h4>
+		<p-button
+			label="Навык"
+			icon="pi pi-plus"
+			size="small"
+			text
+			(click)="addSkill.emit()"
+		></p-button>
+	</div>
+
+	<div class="admin-creatures-page__skill-list">
+		@for (
+			skill of tier().skills;
+			track skill.skillId;
+			let skillIndex = $index
+		) {
+			<div class="admin-creatures-page__skill-row">
+				<span class="admin-creatures-page__field">
+					<span>Навык</span>
+					<p-select
+						[ngModel]="skill.skillId"
+						[options]="skillOptions(skill.skillId)"
+						[fluid]="true"
+						optionLabel="name"
+						optionValue="id"
+						optionGroupLabel="label"
+						optionGroupChildren="items"
+						[group]="true"
+						[filter]="true"
+						filterBy="name,searchText"
+						appendTo="body"
+						(ngModelChange)="
+							skillChange.emit({ index: skillIndex, skillId: $event })
+						"
+					></p-select>
+				</span>
+
+				<span
+					class="admin-creatures-page__field admin-creatures-page__field--skill-level"
+				>
+					<span>Уровень</span>
+					<p-inputnumber
+						[ngModel]="skill.level"
+						[showButtons]="false"
+						[fluid]="true"
+						[min]="0"
+						[max]="6"
+						(ngModelChange)="
+							skillLevelChange.emit({ index: skillIndex, level: $event })
+						"
+					></p-inputnumber>
+				</span>
+
+				<p-button
+					icon="pi pi-trash"
+					severity="danger"
+					text
+					rounded
+					[disabled]="tier().skills.length <= 1"
+					(click)="removeSkill.emit(skillIndex)"
+				></p-button>
+			</div>
+		}
+	</div>
+</section>

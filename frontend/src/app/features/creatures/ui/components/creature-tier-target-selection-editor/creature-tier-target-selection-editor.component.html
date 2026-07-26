@@ -1,0 +1,83 @@
+<section class="admin-creatures-page__tier-section">
+	<div class="admin-creatures-page__tier-section-head">
+		<h4>Приоритет выбора цели</h4>
+		<p-button
+			label="Признак"
+			icon="pi pi-plus"
+			size="small"
+			text
+			(click)="addRule.emit()"
+		></p-button>
+	</div>
+
+	@if (targetSelection().scoringRules.length) {
+		<div class="admin-creatures-page__target-rule-list">
+			@for (
+				rule of targetSelection().scoringRules;
+				track $index;
+				let ruleIndex = $index
+			) {
+				<div class="admin-creatures-page__target-rule-row">
+					<span class="admin-creatures-page__switch-field">
+						<span>Активен</span>
+						<p-toggleswitch
+							[ngModel]="rule.isActive"
+							(ngModelChange)="
+								ruleChange.emit({
+									index: ruleIndex,
+									patch: { isActive: $event }
+								})
+							"
+						></p-toggleswitch>
+					</span>
+
+					<span
+						class="admin-creatures-page__field admin-creatures-page__field--wide"
+					>
+						<span>Признак</span>
+						<p-select
+							[ngModel]="rule.key"
+							[options]="ruleOptions()"
+							optionLabel="label"
+							optionValue="value"
+							appendTo="body"
+							[filter]="true"
+							(ngModelChange)="
+								ruleKeyChange.emit({ index: ruleIndex, key: $event })
+							"
+						></p-select>
+					</span>
+
+					<span
+						class="admin-creatures-page__field admin-creatures-page__field--points"
+					>
+						<span>Очки</span>
+						<p-inputnumber
+							[ngModel]="rule.points"
+							[showButtons]="false"
+							[fluid]="true"
+							(ngModelChange)="
+								ruleChange.emit({
+									index: ruleIndex,
+									patch: { points: $event ?? 0 }
+								})
+							"
+						></p-inputnumber>
+					</span>
+
+					<p-button
+						icon="pi pi-trash"
+						severity="danger"
+						text
+						rounded
+						(click)="removeRule.emit(ruleIndex)"
+					></p-button>
+				</div>
+			}
+		</div>
+	} @else {
+		<div class="admin-creatures-page__empty-list">
+			Нет признаков для расчёта цели.
+		</div>
+	}
+</section>

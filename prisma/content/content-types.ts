@@ -356,10 +356,27 @@ export type CreatureTierContent = {
 	abilities?: CreatureTierAbilityContent[];
 	actions?: CreatureTierActionContent[];
 	actionOverrides?: CreatureTierActionContent[];
+	targetSelection?: CreatureTargetSelectionContent;
 	characteristics?: CreatureTierCharacteristicContent[];
 	skills: CreatureTierSkillContent[];
 	sortOrder?: number;
 	isActive?: boolean;
+};
+
+export type CreatureTargetSelectionContent = {
+	title?: string;
+	description?: string;
+	tacticText?: string;
+	positionChecklist?: string[];
+	scoringRules?: CreatureTargetSelectionScoringRuleContent[];
+};
+
+export type CreatureTargetSelectionScoringRuleContent = {
+	key: string;
+	label: string;
+	points: number;
+	isActive?: boolean;
+	sortOrder?: number;
 };
 
 export type CreatureTierAttackOverrideContent = {

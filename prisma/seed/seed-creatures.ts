@@ -122,6 +122,7 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 					abilities: normalizeTierAbilities(tierSeed.abilities),
 					actions: normalizeTierActions(tierSeed.actions),
 					actionOverrides: normalizeTierActions(tierSeed.actionOverrides),
+					targetSelection: normalizeTargetSelection(tierSeed.targetSelection),
 					isActive: tierSeed.isActive ?? true,
 					sortOrder: tierSeed.sortOrder ?? tierSeed.tier
 				},
@@ -136,6 +137,7 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 					abilities: normalizeTierAbilities(tierSeed.abilities),
 					actions: normalizeTierActions(tierSeed.actions),
 					actionOverrides: normalizeTierActions(tierSeed.actionOverrides),
+					targetSelection: normalizeTargetSelection(tierSeed.targetSelection),
 					isActive: tierSeed.isActive ?? true,
 					sortOrder: tierSeed.sortOrder ?? tierSeed.tier
 				}
@@ -504,6 +506,26 @@ function normalizeTierAbilities(
 		isActive: ability.isActive ?? true,
 		sortOrder: ability.sortOrder ?? index
 	})) as Prisma.InputJsonValue;
+}
+
+function normalizeTargetSelection(
+	targetSelection: CreatureContent['tiers'][number]['targetSelection']
+): Prisma.InputJsonValue {
+	return {
+		title: targetSelection?.title ?? '',
+		description: targetSelection?.description ?? '',
+		tacticText: targetSelection?.tacticText ?? '',
+		positionChecklist: targetSelection?.positionChecklist ?? [],
+		scoringRules: [...(targetSelection?.scoringRules ?? [])]
+			.sort((left, right) => right.points - left.points)
+			.map((rule, index) => ({
+				key: rule.key,
+				label: rule.label,
+				points: rule.points,
+				isActive: rule.isActive ?? true,
+				sortOrder: index
+			}))
+	} as Prisma.InputJsonValue;
 }
 
 function normalizeTierActions(

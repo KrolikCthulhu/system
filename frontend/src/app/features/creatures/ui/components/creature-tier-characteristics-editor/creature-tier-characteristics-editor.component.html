@@ -1,0 +1,30 @@
+<section class="admin-creatures-page__tier-section">
+	<h4>Характеристики</h4>
+	<div class="admin-creatures-page__tier-fields">
+		@for (
+			characteristicValue of tier().characteristics;
+			track characteristicValue.characteristicId
+		) {
+			@if (
+				characteristicsById().get(characteristicValue.characteristicId);
+				as characteristicOption
+			) {
+				<span class="admin-creatures-page__field">
+					<span>{{ characteristicOption.name }}</span>
+					<p-inputnumber
+						[ngModel]="characteristicValue.value"
+						[showButtons]="false"
+						[min]="characteristicOption.minValue"
+						[max]="characteristicOption.maxValue"
+						(ngModelChange)="
+							characteristicChange.emit({
+								characteristicId: characteristicValue.characteristicId,
+								value: $event
+							})
+						"
+					></p-inputnumber>
+				</span>
+			}
+		}
+	</div>
+</section>
