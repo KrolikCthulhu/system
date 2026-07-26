@@ -11,7 +11,7 @@ import {
 import { Type } from 'class-transformer';
 import { CreatureAnatomyZoneDto } from './creature-anatomy-zone.dto';
 import { CreatureNaturalAttackDto } from './creature-natural-attack.dto';
-import { CreatureTierDto } from './creature-tier.dto';
+import { CreatureTierActionDto, CreatureTierDto } from './creature-tier.dto';
 
 export class UpdateCreatureDto {
 	@IsOptional()
@@ -43,6 +43,12 @@ export class UpdateCreatureDto {
 	@ValidateNested({ each: true })
 	@Type(() => CreatureNaturalAttackDto)
 	naturalAttacks?: CreatureNaturalAttackDto[];
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CreatureTierActionDto)
+	actions?: CreatureTierActionDto[];
 
 	@IsOptional()
 	@IsBoolean()

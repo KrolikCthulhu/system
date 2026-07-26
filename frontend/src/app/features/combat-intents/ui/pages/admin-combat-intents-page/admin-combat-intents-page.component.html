@@ -705,6 +705,193 @@
 														class="admin-combat-intents-page__rule-block-head"
 													>
 														<div>
+															<h5>Связь между участниками</h5>
+															<span>Эффект при успехе</span>
+														</div>
+														<p-toggleswitch
+															[ngModel]="currentDraft.mechanic.relationEnabled"
+															(ngModelChange)="
+																updateMechanicRelationEnabled($event)
+															"
+														></p-toggleswitch>
+													</div>
+
+													@if (currentDraft.mechanic.relationEnabled) {
+														<div class="admin-combat-intents-page__form-grid">
+															<span class="admin-combat-intents-page__field">
+																<span>Тип связи</span>
+																<p-select
+																	[options]="relationTypeOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="currentDraft.mechanic.relationType"
+																	(ngModelChange)="
+																		updateMechanicRelationType($event)
+																	"
+																></p-select>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Максимальная дистанция, м</span>
+																<p-inputnumber
+																	[ngModel]="
+																		currentDraft.mechanic
+																			.relationMaxDistanceMeters
+																	"
+																	[showButtons]="false"
+																	[min]="0"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateMechanicRelationMaxDistanceMeters(
+																			$event
+																		)
+																	"
+																></p-inputnumber>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Состояние на источнике</span>
+																<p-select
+																	[options]="conditionOptions()"
+																	optionLabel="label"
+																	optionValue="value"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="label"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="
+																		currentDraft.mechanic
+																			.relationSourceConditionSlug || null
+																	"
+																	(ngModelChange)="
+																		updateMechanicRelationSourceConditionSlug(
+																			$event
+																		)
+																	"
+																></p-select>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Состояние на цели</span>
+																<p-select
+																	[options]="conditionOptions()"
+																	optionLabel="label"
+																	optionValue="value"
+																	appendTo="body"
+																	[filter]="true"
+																	filterBy="label"
+																	filterPlaceHolder="Поиск"
+																	[showClear]="true"
+																	placeholder="Не выбрано"
+																	[ngModel]="
+																		currentDraft.mechanic
+																			.relationTargetConditionSlug || null
+																	"
+																	(ngModelChange)="
+																		updateMechanicRelationTargetConditionSlug(
+																			$event
+																		)
+																	"
+																></p-select>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Способ освобождения</span>
+																<p-select
+																	[options]="relationEscapeModeOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="
+																		currentDraft.mechanic.relationEscapeMode
+																	"
+																	(ngModelChange)="
+																		updateMechanicRelationEscapeMode($event)
+																	"
+																></p-select>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Стоимость освобождения</span>
+																<p-inputnumber
+																	[ngModel]="
+																		currentDraft.mechanic
+																			.relationEscapeCostPotential
+																	"
+																	[showButtons]="false"
+																	[min]="0"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateMechanicRelationEscapeCostPotential(
+																			$event
+																		)
+																	"
+																></p-inputnumber>
+															</span>
+
+															<span class="admin-combat-intents-page__field">
+																<span>Движение цели</span>
+																<p-select
+																	[options]="relationMovementModeOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="
+																		currentDraft.mechanic.relationMovementMode
+																	"
+																	(ngModelChange)="
+																		updateMechanicRelationMovementMode($event)
+																	"
+																></p-select>
+															</span>
+														</div>
+
+														<span class="admin-combat-intents-page__field">
+															<span>Правило перемещения</span>
+															<textarea
+																pTextarea
+																rows="3"
+																[value]="
+																	currentDraft.mechanic.relationMovementRule
+																"
+																(input)="
+																	updateMechanicRelationMovementRule(
+																		$any($event.target).value
+																	)
+																"
+															></textarea>
+														</span>
+
+														@if (
+															currentDraft.mechanic.relationEscapeMode ===
+															'fixed_difficulty'
+														) {
+															<span class="admin-combat-intents-page__field">
+																<span>Фиксированная сложность</span>
+																<p-inputnumber
+																	[ngModel]="
+																		currentDraft.mechanic
+																			.relationEscapeDifficulty
+																	"
+																	[showButtons]="false"
+																	[min]="1"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateMechanicRelationEscapeDifficulty(
+																			$event
+																		)
+																	"
+																></p-inputnumber>
+															</span>
+														}
+													}
+												</section>
+
+												<section class="admin-combat-intents-page__rule-block">
+													<div
+														class="admin-combat-intents-page__rule-block-head"
+													>
+														<div>
 															<h5>Последствия урона</h5>
 															<span>Эффект при успехе</span>
 														</div>

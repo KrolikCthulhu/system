@@ -2,7 +2,16 @@ import { Prisma } from '../__generated__/index.js';
 import {
 	conditionDurationTypes,
 	conditionEffectScopes,
+	conditionEffectTargetScopes,
 	conditionEffectTypes,
+	conditionApplicationConditionTypes,
+	conditionDuplicateInstanceModes,
+	conditionInstanceLimitModes,
+	conditionInstanceModes,
+	conditionInstanceOverflowModes,
+	conditionInstanceUniquenessModes,
+	conditionParameterTypes,
+	conditionParameterValueSources,
 	conditionRepeatDurationModes,
 	conditionRepeatLevelModes,
 	conditionRemovalMethods,
@@ -39,9 +48,19 @@ export async function seedConditions(tx: Prisma.TransactionClient) {
 					durationType: seed.durationType,
 					repeatLevelMode: seed.repeatLevelMode,
 					repeatDurationMode: seed.repeatDurationMode,
+					instanceMode: seed.instanceMode,
+					instanceLimitMode: seed.instanceLimitMode,
+					maxInstances: seed.maxInstances,
+					instanceOverflowMode: seed.instanceOverflowMode,
+					instanceUniquenessMode: seed.instanceUniquenessMode,
+					duplicateInstanceMode: seed.duplicateInstanceMode,
 					maxLevel: seed.maxLevel,
 					removalMethods: seed.removalMethods as Prisma.InputJsonValue,
 					effects: normalizeEffects(seed.effects),
+					applicationConditions: normalizeApplicationConditions(
+						seed.applicationConditions ?? []
+					),
+					parameters: normalizeParameters(seed.parameters ?? []),
 					textBlocks: normalizeTextBlocks(seed.textBlocks ?? []),
 					sortOrder: seed.sortOrder,
 					isActive: seed.isActive ?? true
@@ -58,15 +77,30 @@ export async function seedConditions(tx: Prisma.TransactionClient) {
 				durationType: seed.durationType,
 				repeatLevelMode: seed.repeatLevelMode,
 				repeatDurationMode: seed.repeatDurationMode,
+				instanceMode: seed.instanceMode,
+				instanceLimitMode: seed.instanceLimitMode,
+				maxInstances: seed.maxInstances,
+				instanceOverflowMode: seed.instanceOverflowMode,
+				instanceUniquenessMode: seed.instanceUniquenessMode,
+				duplicateInstanceMode: seed.duplicateInstanceMode,
 				maxLevel: seed.maxLevel,
 				removalMethods: seed.removalMethods as Prisma.InputJsonValue,
 				effects: normalizeEffects(seed.effects),
+				applicationConditions: normalizeApplicationConditions(
+					seed.applicationConditions ?? []
+				),
+				parameters: normalizeParameters(seed.parameters ?? []),
 				textBlocks: normalizeTextBlocks(seed.textBlocks ?? []),
 				isActive: seed.isActive ?? true,
 				sortOrder: seed.sortOrder
 			}
 		});
 	}
+
+	await tx.condition.updateMany({
+		where: { slug: 'dobycha-stai' },
+		data: { isActive: false }
+	});
 }
 
 function normalizeEffects(
@@ -76,8 +110,36 @@ function normalizeEffects(
 		type: effect.type,
 		scope: effect.scope,
 		value: effect.value,
-		config: effect.config ?? {},
+		config: {
+			...(isRecord(effect.config) ? effect.config : {}),
+			targetScope: effect.targetScope ?? 'holder'
+		},
 		sortOrder: effect.sortOrder ?? index
+	})) as Prisma.InputJsonValue;
+}
+
+function normalizeApplicationConditions(
+	conditions: ConditionContent['applicationConditions']
+): Prisma.InputJsonValue {
+	return (conditions ?? []).map((condition, index) => ({
+		type: condition.type,
+		isActive: condition.isActive ?? true,
+		config: condition.config ?? {},
+		sortOrder: condition.sortOrder ?? index
+	})) as Prisma.InputJsonValue;
+}
+
+function normalizeParameters(
+	parameters: ConditionContent['parameters']
+): Prisma.InputJsonValue {
+	return (parameters ?? []).map((parameter, index) => ({
+		key: parameter.key,
+		label: parameter.label,
+		type: parameter.type,
+		valueSource: parameter.valueSource ?? 'manual',
+		isRequired: parameter.isRequired ?? true,
+		defaultValue: parameter.defaultValue,
+		sortOrder: parameter.sortOrder ?? index
 	})) as Prisma.InputJsonValue;
 }
 
@@ -110,10 +172,46 @@ function validateConditionSeed(seed: ConditionContent) {
 		seed.name,
 		'repeatDurationMode'
 	);
+	assertIncludes(
+		conditionInstanceModes,
+		seed.instanceMode,
+		seed.name,
+		'instanceMode'
+	);
+	assertIncludes(
+		conditionInstanceLimitModes,
+		seed.instanceLimitMode,
+		seed.name,
+		'instanceLimitMode'
+	);
+	assertIncludes(
+		conditionInstanceOverflowModes,
+		seed.instanceOverflowMode,
+		seed.name,
+		'instanceOverflowMode'
+	);
+	assertIncludes(
+		conditionInstanceUniquenessModes,
+		seed.instanceUniquenessMode,
+		seed.name,
+		'instanceUniquenessMode'
+	);
+	assertIncludes(
+		conditionDuplicateInstanceModes,
+		seed.duplicateInstanceMode,
+		seed.name,
+		'duplicateInstanceMode'
+	);
 
 	if (seed.maxLevel < 1) {
 		throw new Error(
 			`Состояние "${seed.name}": maxLevel должен быть не меньше 1.`
+		);
+	}
+
+	if (seed.maxInstances < 1) {
+		throw new Error(
+			`Состояние "${seed.name}": maxInstances должен быть не меньше 1.`
 		);
 	}
 
@@ -134,6 +232,36 @@ function validateConditionSeed(seed: ConditionContent) {
 			seed.name,
 			'effect.scope'
 		);
+		assertIncludes(
+			conditionEffectTargetScopes,
+			effect.targetScope ?? 'holder',
+			seed.name,
+			'effect.targetScope'
+		);
+	}
+
+	for (const condition of seed.applicationConditions ?? []) {
+		assertIncludes(
+			conditionApplicationConditionTypes,
+			condition.type,
+			seed.name,
+			'applicationCondition.type'
+		);
+	}
+
+	for (const parameter of seed.parameters ?? []) {
+		assertIncludes(
+			conditionParameterTypes,
+			parameter.type,
+			seed.name,
+			'parameter.type'
+		);
+		assertIncludes(
+			conditionParameterValueSources,
+			parameter.valueSource ?? 'manual',
+			seed.name,
+			'parameter.valueSource'
+		);
 	}
 }
 
@@ -148,4 +276,8 @@ function assertIncludes<TValue extends string>(
 			`Состояние "${conditionName}": неизвестное значение ${field} "${value}".`
 		);
 	}
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

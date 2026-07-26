@@ -43,6 +43,52 @@
 			</div>
 		</div>
 	</p-dialog>
+	<p-dialog
+		header="Библиотека параметров"
+		[modal]="true"
+		[visible]="parameterPresetDialogVisible()"
+		[style]="{ width: '38rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+		(visibleChange)="parameterPresetDialogVisible.set($event)"
+	>
+		<div class="admin-conditions-page__preset-library">
+			<p-button
+				label="Пустой параметр"
+				icon="pi pi-plus"
+				severity="secondary"
+				outlined
+				(click)="addEmptyParameter()"
+			></p-button>
+
+			<div class="admin-conditions-page__preset-list">
+				@for (preset of parameterPresets; track preset.key) {
+					<button
+						type="button"
+						class="admin-conditions-page__preset"
+						(click)="addParameterPreset(preset)"
+					>
+						<span>
+							<strong>{{ preset.label }}</strong>
+							<small>{{ preset.description }}</small>
+						</span>
+						<p-tag
+							severity="secondary"
+							[value]="parameterPresetStorageLabel(preset)"
+						></p-tag>
+					</button>
+				}
+			</div>
+
+			<div class="admin-conditions-page__dialog-actions">
+				<p-button
+					label="Закрыть"
+					severity="secondary"
+					outlined
+					(click)="hideParameterPresetDialog()"
+				></p-button>
+			</div>
+		</div>
+	</p-dialog>
 
 	<header class="admin-conditions-page__header">
 		<div class="admin-conditions-page__section-pad">
@@ -161,333 +207,1439 @@
 						</div>
 					}
 
-					<div class="admin-conditions-page__form-grid">
-						<span class="admin-conditions-page__field">
-							<span>Название</span>
-							<input
-								pInputText
-								type="text"
-								[value]="currentDraft.name"
-								(input)="updateDraftName($any($event.target).value)"
-							/>
-						</span>
-
-						<span class="admin-conditions-page__field">
-							<span>Порядок отображения</span>
-							<p-inputnumber
-								[ngModel]="currentDraft.sortOrder"
-								[showButtons]="false"
-								[min]="0"
-								(ngModelChange)="updateDraftSortOrder($event)"
-							></p-inputnumber>
-						</span>
-
-						<span class="admin-conditions-page__field">
-							<span>Тип длительности</span>
-							<p-select
-								[ngModel]="currentDraft.durationType"
-								[options]="durationOptions"
-								optionLabel="label"
-								optionValue="value"
-								(ngModelChange)="updateDraftDurationType($event)"
-							></p-select>
-						</span>
-
-						<span class="admin-conditions-page__field">
-							<span>Повторное наложение: уровень</span>
-							<p-select
-								[ngModel]="currentDraft.repeatLevelMode"
-								[options]="repeatLevelOptions"
-								optionLabel="label"
-								optionValue="value"
-								(ngModelChange)="updateDraftRepeatLevelMode($event)"
-							></p-select>
-						</span>
-
-						<span class="admin-conditions-page__field">
-							<span>Повторное наложение: длительность</span>
-							<p-select
-								[ngModel]="currentDraft.repeatDurationMode"
-								[options]="repeatDurationOptions"
-								optionLabel="label"
-								optionValue="value"
-								(ngModelChange)="updateDraftRepeatDurationMode($event)"
-							></p-select>
-						</span>
-
-						<span class="admin-conditions-page__field">
-							<span>Максимальный уровень</span>
-							<p-inputnumber
-								[ngModel]="currentDraft.maxLevel"
-								[showButtons]="false"
-								[min]="1"
-								(ngModelChange)="updateDraftMaxLevel($event)"
-							></p-inputnumber>
-						</span>
-
-						<span class="admin-conditions-page__switch-field">
-							<span>Активно</span>
-							<p-toggleswitch
-								[ngModel]="currentDraft.isActive"
-								(ngModelChange)="updateDraftActive($event)"
-							></p-toggleswitch>
-						</span>
-
-						<span
-							class="admin-conditions-page__field admin-conditions-page__field--wide"
-						>
-							<span>Описание</span>
-							<textarea
-								pTextarea
-								rows="5"
-								[value]="currentDraft.description"
-								(input)="updateDraftDescription($any($event.target).value)"
-							></textarea>
-						</span>
-					</div>
-
-					<section class="admin-conditions-page__section">
-						<div class="admin-conditions-page__section-heading">
-							<h3>Текст для игрока</h3>
-							<div class="admin-conditions-page__section-actions">
-								<p-button
-									label="Текст"
-									icon="pi pi-align-left"
-									size="small"
-									severity="secondary"
-									(click)="addTextBlock()"
-								></p-button>
-								<p-button
-									label="Подстановка"
-									icon="pi pi-code"
-									size="small"
-									severity="secondary"
-									(click)="addTextTokenBlock()"
-								></p-button>
+					@if (validationWarnings().length) {
+						<div class="admin-conditions-page__warnings">
+							<div class="admin-conditions-page__warnings-title">
+								Предупреждения
 							</div>
+							<ul>
+								@for (warning of validationWarnings(); track warning.message) {
+									<li>{{ warning.message }}</li>
+								}
+							</ul>
 						</div>
+					}
 
-						<div class="admin-conditions-page__text-preview">
-							{{ conditionTextPreview() }}
-						</div>
+					<p-tabs value="general" class="admin-conditions-page__tabs">
+						<p-tablist>
+							<p-tab value="general">Основное</p-tab>
+							<p-tab value="conditions">Условия</p-tab>
+							<p-tab value="parameters">Параметры</p-tab>
+							<p-tab value="text">Текст</p-tab>
+							<p-tab value="test">Тест экземпляра</p-tab>
+							<p-tab value="effects">Эффекты</p-tab>
+						</p-tablist>
 
-						<div class="admin-conditions-page__text-blocks">
-							@for (
-								block of currentDraft.textBlocks;
-								track $index;
-								let index = $index
-							) {
-								<div class="admin-conditions-page__text-block">
-									<div class="admin-conditions-page__text-block-main">
-										@if (block.kind === 'text') {
-											<span class="admin-conditions-page__field">
-												<span>Текст</span>
-												<textarea
-													pTextarea
-													rows="2"
-													[value]="block.text"
-													(input)="
-														updateTextBlockText(
-															index,
-															$any($event.target).value
-														)
-													"
-												></textarea>
-											</span>
-										} @else {
-											<span class="admin-conditions-page__field">
-												<span>Подстановка</span>
-												<p-select
-													[ngModel]="block.token"
-													[options]="textTokenOptions"
-													optionLabel="label"
-													optionValue="value"
-													(ngModelChange)="updateTextBlockToken(index, $event)"
-												></p-select>
-											</span>
-										}
-									</div>
+						<p-tabpanels class="admin-conditions-page__tabpanels">
+							<p-tabpanel
+								value="general"
+								class="admin-conditions-page__tabpanel"
+							>
+								<div class="admin-conditions-page__form-grid">
+									<span class="admin-conditions-page__field">
+										<span>Название</span>
+										<input
+											pInputText
+											type="text"
+											[value]="currentDraft.name"
+											(input)="updateDraftName($any($event.target).value)"
+										/>
+									</span>
 
-									<div class="admin-conditions-page__text-block-actions">
+									<span class="admin-conditions-page__field">
+										<span>Порядок отображения</span>
+										<p-inputnumber
+											[ngModel]="currentDraft.sortOrder"
+											[showButtons]="false"
+											[min]="0"
+											(ngModelChange)="updateDraftSortOrder($event)"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-conditions-page__field">
+										<span>Тип длительности</span>
+										<p-select
+											[ngModel]="currentDraft.durationType"
+											[options]="durationOptions"
+											optionLabel="label"
+											optionValue="value"
+											(ngModelChange)="updateDraftDurationType($event)"
+										></p-select>
+									</span>
+
+									<span class="admin-conditions-page__field">
+										<span>Максимальный уровень</span>
+										<p-inputnumber
+											[ngModel]="currentDraft.maxLevel"
+											[showButtons]="false"
+											[min]="1"
+											(ngModelChange)="updateDraftMaxLevel($event)"
+										></p-inputnumber>
+									</span>
+
+									<span class="admin-conditions-page__switch-field">
+										<span>Активно</span>
 										<p-toggleswitch
-											[ngModel]="block.isActive"
-											(ngModelChange)="updateTextBlockActive(index, $event)"
+											[ngModel]="currentDraft.isActive"
+											(ngModelChange)="updateDraftActive($event)"
 										></p-toggleswitch>
-										<p-button
-											icon="pi pi-arrow-up"
-											severity="secondary"
-											text
-											rounded
-											[disabled]="index === 0"
-											(click)="moveTextBlock(index, -1)"
-										></p-button>
-										<p-button
-											icon="pi pi-arrow-down"
-											severity="secondary"
-											text
-											rounded
-											[disabled]="index === currentDraft.textBlocks.length - 1"
-											(click)="moveTextBlock(index, 1)"
-										></p-button>
-										<p-button
-											icon="pi pi-trash"
-											severity="danger"
-											text
-											rounded
-											(click)="removeTextBlock(index)"
-										></p-button>
-									</div>
+									</span>
+
+									<span
+										class="admin-conditions-page__field admin-conditions-page__field--wide"
+									>
+										<span>Описание</span>
+										<textarea
+											pTextarea
+											rows="5"
+											[value]="currentDraft.description"
+											(input)="
+												updateDraftDescription($any($event.target).value)
+											"
+										></textarea>
+									</span>
 								</div>
-							} @empty {
-								<div class="admin-conditions-page__empty-list">
-									Текст для игрока пока не настроен.
-								</div>
-							}
-						</div>
-					</section>
 
-					<section class="admin-conditions-page__section">
-						<div class="admin-conditions-page__section-heading">
-							<h3>Способы снятия</h3>
-						</div>
-
-						<div class="admin-conditions-page__checkbox-grid">
-							@for (option of removalOptions; track option.value) {
-								<label class="admin-conditions-page__checkbox">
-									<p-checkbox
-										[ngModel]="hasRemovalMethod(option.value)"
-										[binary]="true"
-										(ngModelChange)="toggleRemovalMethod(option.value, $event)"
-									></p-checkbox>
-									<span>{{ option.label }}</span>
-								</label>
-							}
-						</div>
-					</section>
-
-					<section class="admin-conditions-page__section">
-						<div class="admin-conditions-page__section-heading">
-							<h3>Эффекты состояния</h3>
-							<p-button
-								label="Добавить эффект"
-								icon="pi pi-plus"
-								size="small"
-								(click)="addEffect()"
-							></p-button>
-						</div>
-
-						<div class="admin-conditions-page__effects">
-							@for (
-								effect of currentDraft.effects;
-								track $index;
-								let index = $index
-							) {
-								<div class="admin-conditions-page__effect">
-									<div class="admin-conditions-page__effect-heading">
-										<strong>Эффект {{ index + 1 }}</strong>
-										<p-button
-											icon="pi pi-trash"
-											severity="danger"
-											text
-											rounded
-											(click)="removeEffect(index)"
-										></p-button>
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Если состояние уже есть</h3>
 									</div>
 
-									<div class="admin-conditions-page__form-grid">
-										<span class="admin-conditions-page__field">
-											<span>Тип эффекта</span>
-											<p-select
-												[ngModel]="effect.type"
-												[options]="effectTypeOptions"
-												optionLabel="label"
-												optionValue="value"
-												(ngModelChange)="updateEffectType(index, $event)"
-											></p-select>
-										</span>
-
-										<span class="admin-conditions-page__field">
-											<span>Область применения</span>
-											<p-select
-												[ngModel]="effect.scope"
-												[options]="effectScopeOptions"
-												optionLabel="label"
-												optionValue="value"
-												(ngModelChange)="updateEffectScope(index, $event)"
-											></p-select>
-										</span>
-
-										<span class="admin-conditions-page__field">
-											<span>Значение</span>
-											<p-inputnumber
-												[ngModel]="effect.value"
-												[showButtons]="false"
-												(ngModelChange)="updateEffectValue(index, $event)"
-											></p-inputnumber>
-										</span>
-
-										@if (needsEffectTarget(effect.scope)) {
+									<div class="admin-conditions-page__repeat-rule">
+										<div class="admin-conditions-page__form-grid">
 											<span class="admin-conditions-page__field">
-												<span>
-													{{
-														effect.scope === 'skill'
-															? 'Навык'
-															: 'Характеристика'
-													}}
-												</span>
+												<span>Уровень</span>
 												<p-select
-													[ngModel]="effect.targetId"
-													[options]="targetOptions(effect.scope)"
+													[ngModel]="currentDraft.repeatLevelMode"
+													[options]="repeatLevelOptions"
 													optionLabel="label"
 													optionValue="value"
-													[filter]="true"
-													[showClear]="true"
-													placeholder="Выбрать"
-													(ngModelChange)="updateEffectTargetId(index, $event)"
+													(ngModelChange)="updateDraftRepeatLevelMode($event)"
 												></p-select>
 											</span>
-										}
 
-										@if (effect.type === 'periodic_damage') {
 											<span class="admin-conditions-page__field">
-												<span>Когда применяется</span>
+												<span>Длительность</span>
 												<p-select
-													[ngModel]="effect.timing"
-													[options]="effectTimingOptions"
+													[ngModel]="currentDraft.repeatDurationMode"
+													[options]="repeatDurationOptions"
 													optionLabel="label"
 													optionValue="value"
-													(ngModelChange)="updateEffectTiming(index, $event)"
+													(ngModelChange)="
+														updateDraftRepeatDurationMode($event)
+													"
 												></p-select>
 											</span>
-										}
+										</div>
 
-										@if (effect.type === 'special_rule') {
+										<div class="admin-conditions-page__repeat-preview">
+											{{ repeatApplicationPreview() }}
+										</div>
+									</div>
+								</section>
+
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Экземпляры состояния</h3>
+									</div>
+
+									<div class="admin-conditions-page__repeat-rule">
+										<div class="admin-conditions-page__form-grid">
+											<span class="admin-conditions-page__field">
+												<span>Режим</span>
+												<p-select
+													[ngModel]="currentDraft.instanceMode"
+													[options]="instanceModeOptions"
+													optionLabel="label"
+													optionValue="value"
+													(ngModelChange)="updateDraftInstanceMode($event)"
+												></p-select>
+											</span>
+
+											<span class="admin-conditions-page__field">
+												<span>Лимит экземпляров</span>
+												<p-select
+													[ngModel]="currentDraft.instanceLimitMode"
+													[options]="instanceLimitModeOptions"
+													optionLabel="label"
+													optionValue="value"
+													[disabled]="currentDraft.instanceMode === 'single'"
+													(ngModelChange)="updateDraftInstanceLimitMode($event)"
+												></p-select>
+											</span>
+
+											<span class="admin-conditions-page__field">
+												<span>Максимум активных экземпляров</span>
+												<p-inputnumber
+													[ngModel]="currentDraft.maxInstances"
+													[showButtons]="false"
+													[min]="1"
+													[disabled]="
+														currentDraft.instanceMode === 'single' ||
+														currentDraft.instanceLimitMode === 'none'
+													"
+													(ngModelChange)="updateDraftMaxInstances($event)"
+												></p-inputnumber>
+											</span>
+
+											<span class="admin-conditions-page__field">
+												<span>При превышении лимита</span>
+												<p-select
+													[ngModel]="currentDraft.instanceOverflowMode"
+													[options]="instanceOverflowModeOptions"
+													optionLabel="label"
+													optionValue="value"
+													[disabled]="
+														currentDraft.instanceMode === 'single' ||
+														currentDraft.instanceLimitMode === 'none'
+													"
+													(ngModelChange)="
+														updateDraftInstanceOverflowMode($event)
+													"
+												></p-select>
+											</span>
+
+											<span class="admin-conditions-page__field">
+												<span>Уникальность экземпляра</span>
+												<p-select
+													[ngModel]="currentDraft.instanceUniquenessMode"
+													[options]="instanceUniquenessModeOptions"
+													optionLabel="label"
+													optionValue="value"
+													[disabled]="currentDraft.instanceMode === 'single'"
+													(ngModelChange)="
+														updateDraftInstanceUniquenessMode($event)
+													"
+												></p-select>
+											</span>
+
+											<span class="admin-conditions-page__field">
+												<span>Повтор идентичного экземпляра</span>
+												<p-select
+													[ngModel]="currentDraft.duplicateInstanceMode"
+													[options]="duplicateInstanceModeOptions"
+													optionLabel="label"
+													optionValue="value"
+													[disabled]="
+														currentDraft.instanceMode === 'single' ||
+														currentDraft.instanceUniquenessMode === 'none'
+													"
+													(ngModelChange)="
+														updateDraftDuplicateInstanceMode($event)
+													"
+												></p-select>
+											</span>
+										</div>
+
+										<div class="admin-conditions-page__repeat-preview">
+											{{ instancePolicyPreview() }}
+										</div>
+									</div>
+								</section>
+
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Способы снятия</h3>
+									</div>
+
+									<div class="admin-conditions-page__checkbox-grid">
+										@for (option of removalOptions; track option.value) {
+											<label class="admin-conditions-page__checkbox">
+												<p-checkbox
+													[ngModel]="hasRemovalMethod(option.value)"
+													[binary]="true"
+													(ngModelChange)="
+														toggleRemovalMethod(option.value, $event)
+													"
+												></p-checkbox>
+												<span>{{ option.label }}</span>
+											</label>
+										}
+									</div>
+								</section>
+							</p-tabpanel>
+
+							<p-tabpanel
+								value="conditions"
+								class="admin-conditions-page__tabpanel"
+							>
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Условия применения</h3>
+										<p-button
+											label="Добавить условие"
+											icon="pi pi-plus"
+											size="small"
+											(click)="addApplicationCondition()"
+										></p-button>
+									</div>
+
+									<div class="admin-conditions-page__conditions">
+										@for (
+											condition of currentDraft.applicationConditions;
+											track $index;
+											let index = $index
+										) {
+											<div class="admin-conditions-page__condition">
+												<div class="admin-conditions-page__effect-heading">
+													<strong>Условие {{ index + 1 }}</strong>
+													<div class="admin-conditions-page__condition-actions">
+														<p-toggleswitch
+															[ngModel]="condition.isActive"
+															(ngModelChange)="
+																updateApplicationConditionActive(index, $event)
+															"
+														></p-toggleswitch>
+														<p-button
+															icon="pi pi-trash"
+															severity="danger"
+															text
+															rounded
+															(click)="removeApplicationCondition(index)"
+														></p-button>
+													</div>
+												</div>
+
+												<div class="admin-conditions-page__form-grid">
+													<span class="admin-conditions-page__field">
+														<span>Тип условия</span>
+														<p-select
+															[ngModel]="condition.type"
+															[options]="applicationConditionTypeOptions"
+															optionLabel="label"
+															optionValue="value"
+															(ngModelChange)="
+																updateApplicationConditionType(index, $event)
+															"
+														></p-select>
+													</span>
+
+													@if (condition.type === 'target_missing_condition') {
+														<span class="admin-conditions-page__field">
+															<span>Состояние</span>
+															<p-select
+																[ngModel]="condition.config.conditionId"
+																[options]="conditionOptions()"
+																optionLabel="label"
+																optionValue="value"
+																[filter]="true"
+																[showClear]="true"
+																placeholder="Выбрать состояние"
+																(ngModelChange)="
+																	updateApplicationConditionTargetCondition(
+																		index,
+																		$event
+																	)
+																"
+															></p-select>
+														</span>
+													}
+
+													@if (condition.type === 'target_size_relative') {
+														<span class="admin-conditions-page__field">
+															<span>Правило размера</span>
+															<p-select
+																[ngModel]="condition.config.sizeMode"
+																[options]="sizeRelativeModeOptions"
+																optionLabel="label"
+																optionValue="value"
+																(ngModelChange)="
+																	updateApplicationConditionSizeMode(
+																		index,
+																		$event
+																	)
+																"
+															></p-select>
+														</span>
+
+														<span class="admin-conditions-page__field">
+															<span>Разница размеров</span>
+															<p-inputnumber
+																[ngModel]="condition.config.sizeDelta"
+																[showButtons]="false"
+																[min]="0"
+																(ngModelChange)="
+																	updateApplicationConditionSizeDelta(
+																		index,
+																		$event
+																	)
+																"
+															></p-inputnumber>
+														</span>
+													}
+
+													<span
+														class="admin-conditions-page__field admin-conditions-page__field--wide"
+													>
+														<span>Как будет проверяться</span>
+														<div class="admin-conditions-page__text-preview">
+															{{ applicationConditionText(condition) }}
+														</div>
+													</span>
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-conditions-page__empty-list">
+												Условия применения пока не настроены.
+											</div>
+										}
+									</div>
+								</section>
+							</p-tabpanel>
+
+							<p-tabpanel
+								value="parameters"
+								class="admin-conditions-page__tabpanel"
+							>
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Входные параметры</h3>
+										<p-button
+											label="Добавить параметр"
+											icon="pi pi-plus"
+											size="small"
+											(click)="addParameter()"
+										></p-button>
+									</div>
+
+									<div class="admin-conditions-page__parameters">
+										@for (view of parameterViews(); track view.parameter.key) {
+											@let parameter = view.parameter;
+											@let index = view.index;
+											@if (isFirstConditionParameterView(view)) {
+												<div class="admin-conditions-page__parameter-group">
+													<div>
+														<strong>Параметры состояния</strong>
+														<span>
+															Хранятся в самом состоянии и используются как
+															настройки по умолчанию.
+														</span>
+													</div>
+													<p-tag
+														severity="secondary"
+														[value]="
+															conditionParameterViews().length.toString()
+														"
+													></p-tag>
+												</div>
+											}
+											@if (isFirstInstanceParameterView(view)) {
+												<div class="admin-conditions-page__parameter-group">
+													<div>
+														<strong>Параметры экземпляра</strong>
+														<span>
+															Заполняются при наложении состояния в бою: из
+															цели, источника, атаки, зоны или результата
+															проверки.
+														</span>
+													</div>
+													<p-tag
+														severity="info"
+														[value]="instanceParameterViews().length.toString()"
+													></p-tag>
+												</div>
+											}
+											<div class="admin-conditions-page__parameter">
+												<div class="admin-conditions-page__parameter-heading">
+													<span>{{ parameterStorageLabel(parameter) }}</span>
+												</div>
+												<div class="admin-conditions-page__form-grid">
+													<span class="admin-conditions-page__field">
+														<span>Название в редакторе</span>
+														<input
+															pInputText
+															type="text"
+															[value]="parameter.label"
+															(input)="
+																updateParameterLabel(
+																	index,
+																	$any($event.target).value
+																)
+															"
+														/>
+													</span>
+
+													<span class="admin-conditions-page__field">
+														<span>Тип</span>
+														<p-select
+															[ngModel]="parameter.type"
+															[options]="parameterTypeOptions"
+															optionLabel="label"
+															optionValue="value"
+															(ngModelChange)="
+																updateParameterType(index, $event)
+															"
+														></p-select>
+													</span>
+
+													<span class="admin-conditions-page__field">
+														<span>Источник значения</span>
+														<p-select
+															[ngModel]="parameter.valueSource"
+															[options]="parameterValueSourceOptions"
+															optionLabel="label"
+															optionValue="value"
+															(ngModelChange)="
+																updateParameterValueSource(index, $event)
+															"
+														></p-select>
+													</span>
+
+													<span class="admin-conditions-page__field">
+														<span>Значение по умолчанию</span>
+														@switch (parameter.type) {
+															@case ('number') {
+																<p-inputnumber
+																	[ngModel]="parameterNumberValue(parameter)"
+																	[showButtons]="false"
+																	(ngModelChange)="
+																		updateParameterDefaultNumber(index, $event)
+																	"
+																></p-inputnumber>
+															}
+															@case ('distance') {
+																<p-inputnumber
+																	[ngModel]="parameterNumberValue(parameter)"
+																	[showButtons]="false"
+																	suffix=" м"
+																	[min]="0"
+																	(ngModelChange)="
+																		updateParameterDefaultNumber(index, $event)
+																	"
+																></p-inputnumber>
+															}
+															@case ('boolean') {
+																<p-toggleswitch
+																	[ngModel]="parameterBooleanValue(parameter)"
+																	(ngModelChange)="
+																		updateParameterDefaultBoolean(index, $event)
+																	"
+																></p-toggleswitch>
+															}
+															@case ('rule') {
+																<textarea
+																	pTextarea
+																	rows="3"
+																	[value]="parameterTextValue(parameter)"
+																	(input)="
+																		updateParameterDefaultValue(
+																			index,
+																			$any($event.target).value
+																		)
+																	"
+																></textarea>
+															}
+															@case ('rule_template') {
+																<div
+																	class="admin-conditions-page__rule-template"
+																>
+																	<p-select
+																		[ngModel]="
+																			parameterRuleTemplateValue(parameter)
+																				.template
+																		"
+																		[options]="ruleTemplateTypeOptions"
+																		optionLabel="label"
+																		optionValue="value"
+																		(ngModelChange)="
+																			updateParameterDefaultRuleTemplate(
+																				index,
+																				{
+																					template: $event
+																				}
+																			)
+																		"
+																	></p-select>
+
+																	@if (
+																		parameterRuleTemplateValue(parameter)
+																			.template === 'opposed_check' ||
+																		parameterRuleTemplateValue(parameter)
+																			.template === 'fixed_difficulty'
+																	) {
+																		<input
+																			pInputText
+																			type="text"
+																			[value]="
+																				parameterRuleTemplateValue(parameter)
+																					.checkName
+																			"
+																			placeholder="Название проверки"
+																			(input)="
+																				updateParameterDefaultRuleTemplate(
+																					index,
+																					{
+																						checkName: $any($event.target).value
+																					}
+																				)
+																			"
+																		/>
+																	}
+
+																	@if (
+																		parameterRuleTemplateValue(parameter)
+																			.template !== 'remove_source'
+																	) {
+																		<p-inputnumber
+																			[ngModel]="
+																				parameterRuleTemplateValue(parameter)
+																					.potentialCost
+																			"
+																			[showButtons]="false"
+																			[min]="0"
+																			suffix=" Потенциал"
+																			(ngModelChange)="
+																				updateParameterDefaultRuleTemplate(
+																					index,
+																					{
+																						potentialCost: $event ?? 0
+																					}
+																				)
+																			"
+																		></p-inputnumber>
+																	}
+
+																	@if (
+																		parameterRuleTemplateValue(parameter)
+																			.template === 'fixed_difficulty'
+																	) {
+																		<p-inputnumber
+																			[ngModel]="
+																				parameterRuleTemplateValue(parameter)
+																					.difficulty
+																			"
+																			[showButtons]="false"
+																			[min]="0"
+																			prefix="Сложность "
+																			(ngModelChange)="
+																				updateParameterDefaultRuleTemplate(
+																					index,
+																					{
+																						difficulty: $event ?? 0
+																					}
+																				)
+																			"
+																		></p-inputnumber>
+																	}
+
+																	<span
+																		class="admin-conditions-page__rule-template-preview"
+																	>
+																		{{
+																			ruleTemplatePreview(
+																				parameterRuleTemplateValue(parameter)
+																			)
+																		}}
+																	</span>
+																</div>
+															}
+															@case ('check') {
+																<textarea
+																	pTextarea
+																	rows="3"
+																	[value]="parameterTextValue(parameter)"
+																	(input)="
+																		updateParameterDefaultValue(
+																			index,
+																			$any($event.target).value
+																		)
+																	"
+																></textarea>
+															}
+															@case ('creature') {
+																<p-select
+																	[ngModel]="parameterTextValue(parameter)"
+																	[options]="
+																		parameterSelectOptions(parameter.type)
+																	"
+																	optionLabel="label"
+																	optionValue="value"
+																	[filter]="true"
+																	[showClear]="true"
+																	placeholder="Выбрать"
+																	(ngModelChange)="
+																		updateParameterDefaultValue(
+																			index,
+																			$event ?? ''
+																		)
+																	"
+																></p-select>
+															}
+															@case ('combat_participant') {
+																<p-select
+																	[ngModel]="parameterTextValue(parameter)"
+																	[options]="
+																		parameterSelectOptions(parameter.type)
+																	"
+																	optionLabel="label"
+																	optionValue="value"
+																	[showClear]="true"
+																	placeholder="Выбрать"
+																	(ngModelChange)="
+																		updateParameterDefaultValue(
+																			index,
+																			$event ?? ''
+																		)
+																	"
+																></p-select>
+															}
+															@case ('body_part') {
+																<p-select
+																	[ngModel]="parameterTextValue(parameter)"
+																	[options]="
+																		parameterSelectOptions(parameter.type)
+																	"
+																	optionLabel="label"
+																	optionValue="value"
+																	[filter]="true"
+																	[showClear]="true"
+																	placeholder="Выбрать"
+																	(ngModelChange)="
+																		updateParameterDefaultValue(
+																			index,
+																			$event ?? ''
+																		)
+																	"
+																></p-select>
+															}
+															@case ('item') {
+																<p-select
+																	[ngModel]="parameterTextValue(parameter)"
+																	[options]="
+																		parameterSelectOptions(parameter.type)
+																	"
+																	optionLabel="label"
+																	optionValue="value"
+																	[filter]="true"
+																	[showClear]="true"
+																	placeholder="Выбрать"
+																	(ngModelChange)="
+																		updateParameterDefaultValue(
+																			index,
+																			$event ?? ''
+																		)
+																	"
+																></p-select>
+															}
+															@default {
+																<input
+																	pInputText
+																	type="text"
+																	[value]="parameterTextValue(parameter)"
+																	(input)="
+																		updateParameterDefaultValue(
+																			index,
+																			$any($event.target).value
+																		)
+																	"
+																/>
+															}
+														}
+													</span>
+												</div>
+
+												<div class="admin-conditions-page__parameter-actions">
+													<span class="admin-conditions-page__switch-field">
+														<span>Обязательный</span>
+														<p-toggleswitch
+															[ngModel]="parameter.isRequired"
+															(ngModelChange)="
+																updateParameterRequired(index, $event)
+															"
+														></p-toggleswitch>
+													</span>
+													<p-button
+														icon="pi pi-arrow-up"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="index === 0"
+														(click)="moveParameter(index, -1)"
+													></p-button>
+													<p-button
+														icon="pi pi-arrow-down"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="
+															index === currentDraft.parameters.length - 1
+														"
+														(click)="moveParameter(index, 1)"
+													></p-button>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														text
+														rounded
+														(click)="removeParameter(index)"
+													></p-button>
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-conditions-page__empty-list">
+												Параметры пока не настроены.
+											</div>
+										}
+									</div>
+								</section>
+							</p-tabpanel>
+
+							<p-tabpanel value="text" class="admin-conditions-page__tabpanel">
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Текст для игрока</h3>
+										<div class="admin-conditions-page__section-actions">
+											<p-button
+												label="Текст"
+												icon="pi pi-align-left"
+												size="small"
+												severity="secondary"
+												(click)="addTextBlock()"
+											></p-button>
+											<p-button
+												label="Подстановка"
+												icon="pi pi-code"
+												size="small"
+												severity="secondary"
+												(click)="addTextTokenBlock()"
+											></p-button>
+										</div>
+									</div>
+
+									<div class="admin-conditions-page__text-preview">
+										{{ conditionTextPreview() }}
+									</div>
+
+									<div class="admin-conditions-page__text-blocks">
+										@for (
+											block of currentDraft.textBlocks;
+											track $index;
+											let index = $index
+										) {
+											<div class="admin-conditions-page__text-block">
+												<div class="admin-conditions-page__text-block-main">
+													@if (block.kind === 'text') {
+														<span class="admin-conditions-page__field">
+															<span>Текст</span>
+															<textarea
+																pTextarea
+																rows="2"
+																[value]="block.text"
+																(input)="
+																	updateTextBlockText(
+																		index,
+																		$any($event.target).value
+																	)
+																"
+															></textarea>
+														</span>
+													} @else {
+														<span class="admin-conditions-page__field">
+															<span>Подстановка</span>
+															<p-select
+																[ngModel]="block.token"
+																[options]="textTokenOptionsForDraft()"
+																optionLabel="label"
+																optionValue="value"
+																(ngModelChange)="
+																	updateTextBlockToken(index, $event)
+																"
+															></p-select>
+														</span>
+													}
+												</div>
+
+												<div class="admin-conditions-page__text-block-actions">
+													<p-toggleswitch
+														[ngModel]="block.isActive"
+														(ngModelChange)="
+															updateTextBlockActive(index, $event)
+														"
+													></p-toggleswitch>
+													<p-button
+														icon="pi pi-arrow-up"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="index === 0"
+														(click)="moveTextBlock(index, -1)"
+													></p-button>
+													<p-button
+														icon="pi pi-arrow-down"
+														severity="secondary"
+														text
+														rounded
+														[disabled]="
+															index === currentDraft.textBlocks.length - 1
+														"
+														(click)="moveTextBlock(index, 1)"
+													></p-button>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														text
+														rounded
+														(click)="removeTextBlock(index)"
+													></p-button>
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-conditions-page__empty-list">
+												Текст для игрока пока не настроен.
+											</div>
+										}
+									</div>
+								</section>
+							</p-tabpanel>
+
+							<p-tabpanel value="test" class="admin-conditions-page__tabpanel">
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Тест экземпляра</h3>
+									</div>
+
+									<div class="admin-conditions-page__instance-preview">
+										<div class="admin-conditions-page__form-grid">
+											<span class="admin-conditions-page__field">
+												<span>Владелец состояния</span>
+												<input
+													pInputText
+													type="text"
+													[value]="previewOwnerName()"
+													(input)="
+														updatePreviewOwnerName($any($event.target).value)
+													"
+												/>
+											</span>
+
+											<span class="admin-conditions-page__field">
+												<span>Текущий уровень</span>
+												<p-inputnumber
+													[ngModel]="previewCurrentLevel()"
+													[showButtons]="false"
+													[min]="1"
+													[max]="currentDraft.maxLevel"
+													(ngModelChange)="updatePreviewCurrentLevel($event)"
+												></p-inputnumber>
+											</span>
+
 											<span
 												class="admin-conditions-page__field admin-conditions-page__field--wide"
 											>
-												<span>Особое правило</span>
-												<textarea
-													pTextarea
-													rows="3"
-													[value]="effect.ruleText"
+												<span>Оставшаяся длительность</span>
+												<input
+													pInputText
+													type="text"
+													[value]="previewRemainingDuration()"
+													placeholder="Например: 2 раунда"
 													(input)="
-														updateEffectRuleText(
-															index,
+														updatePreviewRemainingDuration(
 															$any($event.target).value
 														)
 													"
-												></textarea>
+												/>
 											</span>
+										</div>
+
+										@if (currentDraft.parameters.length) {
+											<section class="admin-conditions-page__section">
+												<div class="admin-conditions-page__section-heading">
+													<h3>Параметры экземпляра</h3>
+												</div>
+
+												<div class="admin-conditions-page__form-grid">
+													@for (
+														parameter of currentDraft.parameters;
+														track parameter.key
+													) {
+														<span class="admin-conditions-page__field">
+															<span>{{ parameter.label }}</span>
+															@switch (parameter.type) {
+																@case ('number') {
+																	<p-inputnumber
+																		[ngModel]="
+																			previewParameterNumberValue(parameter)
+																		"
+																		[showButtons]="false"
+																		(ngModelChange)="
+																			updatePreviewParameterNumber(
+																				parameter.key,
+																				$event
+																			)
+																		"
+																	></p-inputnumber>
+																}
+																@case ('distance') {
+																	<p-inputnumber
+																		[ngModel]="
+																			previewParameterNumberValue(parameter)
+																		"
+																		[showButtons]="false"
+																		suffix=" м"
+																		[min]="0"
+																		(ngModelChange)="
+																			updatePreviewParameterNumber(
+																				parameter.key,
+																				$event
+																			)
+																		"
+																	></p-inputnumber>
+																}
+																@case ('boolean') {
+																	<p-toggleswitch
+																		[ngModel]="
+																			previewParameterBooleanValue(parameter)
+																		"
+																		(ngModelChange)="
+																			updatePreviewParameterBoolean(
+																				parameter.key,
+																				$event
+																			)
+																		"
+																	></p-toggleswitch>
+																}
+																@case ('rule_template') {
+																	<div
+																		class="admin-conditions-page__rule-template"
+																	>
+																		<p-select
+																			[ngModel]="
+																				previewParameterRuleTemplateValue(
+																					parameter
+																				).template
+																			"
+																			[options]="ruleTemplateTypeOptions"
+																			optionLabel="label"
+																			optionValue="value"
+																			(ngModelChange)="
+																				updatePreviewParameterRuleTemplate(
+																					parameter.key,
+																					parameter,
+																					{ template: $event }
+																				)
+																			"
+																		></p-select>
+
+																		@if (
+																			previewParameterRuleTemplateValue(
+																				parameter
+																			).template === 'opposed_check' ||
+																			previewParameterRuleTemplateValue(
+																				parameter
+																			).template === 'fixed_difficulty'
+																		) {
+																			<input
+																				pInputText
+																				type="text"
+																				[value]="
+																					previewParameterRuleTemplateValue(
+																						parameter
+																					).checkName
+																				"
+																				placeholder="Название проверки"
+																				(input)="
+																					updatePreviewParameterRuleTemplate(
+																						parameter.key,
+																						parameter,
+																						{
+																							checkName: $any($event.target)
+																								.value
+																						}
+																					)
+																				"
+																			/>
+																		}
+
+																		@if (
+																			previewParameterRuleTemplateValue(
+																				parameter
+																			).template !== 'remove_source'
+																		) {
+																			<p-inputnumber
+																				[ngModel]="
+																					previewParameterRuleTemplateValue(
+																						parameter
+																					).potentialCost
+																				"
+																				[showButtons]="false"
+																				[min]="0"
+																				suffix=" Потенциал"
+																				(ngModelChange)="
+																					updatePreviewParameterRuleTemplate(
+																						parameter.key,
+																						parameter,
+																						{
+																							potentialCost: $event ?? 0
+																						}
+																					)
+																				"
+																			></p-inputnumber>
+																		}
+
+																		@if (
+																			previewParameterRuleTemplateValue(
+																				parameter
+																			).template === 'fixed_difficulty'
+																		) {
+																			<p-inputnumber
+																				[ngModel]="
+																					previewParameterRuleTemplateValue(
+																						parameter
+																					).difficulty
+																				"
+																				[showButtons]="false"
+																				[min]="0"
+																				prefix="Сложность "
+																				(ngModelChange)="
+																					updatePreviewParameterRuleTemplate(
+																						parameter.key,
+																						parameter,
+																						{
+																							difficulty: $event ?? 0
+																						}
+																					)
+																				"
+																			></p-inputnumber>
+																		}
+
+																		<span
+																			class="admin-conditions-page__rule-template-preview"
+																		>
+																			{{
+																				ruleTemplatePreview(
+																					previewParameterRuleTemplateValue(
+																						parameter
+																					)
+																				)
+																			}}
+																		</span>
+																	</div>
+																}
+																@case ('rule') {
+																	<textarea
+																		pTextarea
+																		rows="3"
+																		[value]="
+																			previewParameterTextValue(parameter)
+																		"
+																		(input)="
+																			updatePreviewParameterText(
+																				parameter.key,
+																				$any($event.target).value
+																			)
+																		"
+																	></textarea>
+																}
+																@case ('check') {
+																	<textarea
+																		pTextarea
+																		rows="3"
+																		[value]="
+																			previewParameterTextValue(parameter)
+																		"
+																		(input)="
+																			updatePreviewParameterText(
+																				parameter.key,
+																				$any($event.target).value
+																			)
+																		"
+																	></textarea>
+																}
+																@case ('creature') {
+																	<p-select
+																		[ngModel]="
+																			previewParameterTextValue(parameter)
+																		"
+																		[options]="
+																			parameterSelectOptions(parameter.type)
+																		"
+																		optionLabel="label"
+																		optionValue="value"
+																		[filter]="true"
+																		[showClear]="true"
+																		placeholder="Выбрать"
+																		(ngModelChange)="
+																			updatePreviewParameterText(
+																				parameter.key,
+																				$event ?? ''
+																			)
+																		"
+																	></p-select>
+																}
+																@case ('combat_participant') {
+																	<p-select
+																		[ngModel]="
+																			previewParameterTextValue(parameter)
+																		"
+																		[options]="
+																			parameterSelectOptions(parameter.type)
+																		"
+																		optionLabel="label"
+																		optionValue="value"
+																		[showClear]="true"
+																		placeholder="Выбрать"
+																		(ngModelChange)="
+																			updatePreviewParameterText(
+																				parameter.key,
+																				$event ?? ''
+																			)
+																		"
+																	></p-select>
+																}
+																@case ('body_part') {
+																	<p-select
+																		[ngModel]="
+																			previewParameterTextValue(parameter)
+																		"
+																		[options]="
+																			parameterSelectOptions(parameter.type)
+																		"
+																		optionLabel="label"
+																		optionValue="value"
+																		[filter]="true"
+																		[showClear]="true"
+																		placeholder="Выбрать"
+																		(ngModelChange)="
+																			updatePreviewParameterText(
+																				parameter.key,
+																				$event ?? ''
+																			)
+																		"
+																	></p-select>
+																}
+																@case ('item') {
+																	<p-select
+																		[ngModel]="
+																			previewParameterTextValue(parameter)
+																		"
+																		[options]="
+																			parameterSelectOptions(parameter.type)
+																		"
+																		optionLabel="label"
+																		optionValue="value"
+																		[filter]="true"
+																		[showClear]="true"
+																		placeholder="Выбрать"
+																		(ngModelChange)="
+																			updatePreviewParameterText(
+																				parameter.key,
+																				$event ?? ''
+																			)
+																		"
+																	></p-select>
+																}
+																@default {
+																	<input
+																		pInputText
+																		type="text"
+																		[value]="
+																			previewParameterTextValue(parameter)
+																		"
+																		(input)="
+																			updatePreviewParameterText(
+																				parameter.key,
+																				$any($event.target).value
+																			)
+																		"
+																	/>
+																}
+															}
+														</span>
+													}
+												</div>
+											</section>
+										}
+
+										<section class="admin-conditions-page__section">
+											<div class="admin-conditions-page__section-heading">
+												<h3>Итоговый текст</h3>
+											</div>
+											<div class="admin-conditions-page__text-preview">
+												{{ conditionInstanceTextPreview() }}
+											</div>
+										</section>
+
+										<section class="admin-conditions-page__section">
+											<div class="admin-conditions-page__section-heading">
+												<h3>Условия применения</h3>
+											</div>
+											<div class="admin-conditions-page__test-list">
+												@for (
+													condition of currentDraft.applicationConditions;
+													track $index
+												) {
+													@if (condition.isActive) {
+														<div class="admin-conditions-page__test-list-item">
+															{{ applicationConditionText(condition) }}
+														</div>
+													}
+												} @empty {
+													<div class="admin-conditions-page__empty-list">
+														Условия применения не настроены.
+													</div>
+												}
+											</div>
+										</section>
+
+										<section class="admin-conditions-page__section">
+											<div class="admin-conditions-page__section-heading">
+												<h3>Эффекты</h3>
+											</div>
+											<div class="admin-conditions-page__text-preview">
+												{{ conditionEffectsPreview() }}
+											</div>
+										</section>
+									</div>
+								</section>
+							</p-tabpanel>
+
+							<p-tabpanel
+								value="effects"
+								class="admin-conditions-page__tabpanel"
+							>
+								<section class="admin-conditions-page__section">
+									<div class="admin-conditions-page__section-heading">
+										<h3>Эффекты состояния</h3>
+										<p-button
+											label="Добавить эффект"
+											icon="pi pi-plus"
+											size="small"
+											(click)="addEffect()"
+										></p-button>
+									</div>
+
+									<div class="admin-conditions-page__effects">
+										@for (
+											effect of currentDraft.effects;
+											track $index;
+											let index = $index
+										) {
+											<div class="admin-conditions-page__effect">
+												<div class="admin-conditions-page__effect-heading">
+													<strong>Эффект {{ index + 1 }}</strong>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														text
+														rounded
+														(click)="removeEffect(index)"
+													></p-button>
+												</div>
+
+												<div class="admin-conditions-page__form-grid">
+													<span class="admin-conditions-page__field">
+														<span>Тип эффекта</span>
+														<p-select
+															[ngModel]="effect.type"
+															[options]="effectTypeOptions"
+															optionLabel="label"
+															optionValue="value"
+															(ngModelChange)="updateEffectType(index, $event)"
+														></p-select>
+													</span>
+
+													<span class="admin-conditions-page__field">
+														<span>Область применения</span>
+														<p-select
+															[ngModel]="effect.scope"
+															[options]="effectScopeOptions"
+															optionLabel="label"
+															optionValue="value"
+															(ngModelChange)="updateEffectScope(index, $event)"
+														></p-select>
+													</span>
+
+													<span class="admin-conditions-page__field">
+														<span>Эффект применяется</span>
+														<p-select
+															[ngModel]="effect.targetScope"
+															[options]="effectTargetScopeOptions"
+															optionLabel="label"
+															optionValue="value"
+															(ngModelChange)="
+																updateEffectTargetScope(index, $event)
+															"
+														></p-select>
+													</span>
+
+													<span class="admin-conditions-page__field">
+														<span>Значение</span>
+														<p-inputnumber
+															[ngModel]="effect.value"
+															[showButtons]="false"
+															(ngModelChange)="updateEffectValue(index, $event)"
+														></p-inputnumber>
+													</span>
+
+													@if (needsEffectTarget(effect.scope)) {
+														<span class="admin-conditions-page__field">
+															<span>
+																{{
+																	effect.scope === 'skill'
+																		? 'Навык'
+																		: 'Характеристика'
+																}}
+															</span>
+															<p-select
+																[ngModel]="effect.targetId"
+																[options]="targetOptions(effect.scope)"
+																optionLabel="label"
+																optionValue="value"
+																[filter]="true"
+																[showClear]="true"
+																placeholder="Выбрать"
+																(ngModelChange)="
+																	updateEffectTargetId(index, $event)
+																"
+															></p-select>
+														</span>
+													}
+
+													@if (effect.type === 'periodic_damage') {
+														<span class="admin-conditions-page__field">
+															<span>Когда применяется</span>
+															<p-select
+																[ngModel]="effect.timing"
+																[options]="effectTimingOptions"
+																optionLabel="label"
+																optionValue="value"
+																(ngModelChange)="
+																	updateEffectTiming(index, $event)
+																"
+															></p-select>
+														</span>
+													}
+
+													@if (effect.type === 'special_rule') {
+														<span
+															class="admin-conditions-page__field admin-conditions-page__field--wide"
+														>
+															<span>Особое правило</span>
+															<textarea
+																pTextarea
+																rows="3"
+																[value]="effect.ruleText"
+																(input)="
+																	updateEffectRuleText(
+																		index,
+																		$any($event.target).value
+																	)
+																"
+															></textarea>
+														</span>
+													}
+												</div>
+											</div>
+										} @empty {
+											<div class="admin-conditions-page__empty-list">
+												Эффектов пока нет.
+											</div>
 										}
 									</div>
-								</div>
-							} @empty {
-								<div class="admin-conditions-page__empty-list">
-									Эффектов пока нет.
-								</div>
-							}
-						</div>
-					</section>
+								</section>
+							</p-tabpanel>
+						</p-tabpanels>
+					</p-tabs>
 				</div>
 
 				<app-editor-actions-bar

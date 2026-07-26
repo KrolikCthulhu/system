@@ -1,6 +1,13 @@
 import {
 	ConditionDurationType,
 	ConditionEffect,
+	ConditionApplicationCondition,
+	ConditionDuplicateInstanceMode,
+	ConditionInstanceLimitMode,
+	ConditionInstanceMode,
+	ConditionInstanceOverflowMode,
+	ConditionInstanceUniquenessMode,
+	ConditionParameter,
 	ConditionRepeatDurationMode,
 	ConditionRepeatLevelMode,
 	ConditionRemovalMethod,
@@ -15,9 +22,17 @@ export interface Condition {
 	durationType: ConditionDurationType;
 	repeatLevelMode: ConditionRepeatLevelMode;
 	repeatDurationMode: ConditionRepeatDurationMode;
+	instanceMode: ConditionInstanceMode;
+	instanceLimitMode: ConditionInstanceLimitMode;
+	maxInstances: number;
+	instanceOverflowMode: ConditionInstanceOverflowMode;
+	instanceUniquenessMode: ConditionInstanceUniquenessMode;
+	duplicateInstanceMode: ConditionDuplicateInstanceMode;
 	maxLevel: number;
 	removalMethods: ConditionRemovalMethod[];
 	effects: ConditionEffect[];
+	applicationConditions: ConditionApplicationCondition[];
+	parameters: ConditionParameter[];
 	textBlocks: ConditionTextBlock[];
 	isActive: boolean;
 	sortOrder: number;

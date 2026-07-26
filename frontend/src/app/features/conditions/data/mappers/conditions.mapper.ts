@@ -21,6 +21,12 @@ export function mapConditionDto(dto: ConditionDto): Condition {
 		durationType: dto.durationType,
 		repeatLevelMode: dto.repeatLevelMode,
 		repeatDurationMode: dto.repeatDurationMode,
+		instanceMode: dto.instanceMode,
+		instanceLimitMode: dto.instanceLimitMode,
+		maxInstances: dto.maxInstances,
+		instanceOverflowMode: dto.instanceOverflowMode,
+		instanceUniquenessMode: dto.instanceUniquenessMode,
+		duplicateInstanceMode: dto.duplicateInstanceMode,
 		maxLevel: dto.maxLevel,
 		removalMethods: dto.removalMethods,
 		effects: dto.effects.map((effect, index) => ({
@@ -30,6 +36,15 @@ export function mapConditionDto(dto: ConditionDto): Condition {
 			config: effect.config ?? {},
 			sortOrder: effect.sortOrder ?? index
 		})),
+		applicationConditions: (dto.applicationConditions ?? []).map(
+			(condition, index) => ({
+				...condition,
+				isActive: condition.isActive ?? true,
+				config: condition.config ?? {},
+				sortOrder: condition.sortOrder ?? index
+			})
+		),
+		parameters: dto.parameters ?? [],
 		textBlocks: (dto.textBlocks ?? []).map((block, index) => ({
 			...block,
 			isActive: block.isActive ?? true,

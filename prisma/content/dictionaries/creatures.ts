@@ -65,25 +65,295 @@ const wound = {
 	slug: 'ranit'
 };
 
-const targetedWound = {
-	name: 'Прицельно ранить',
-	slug: 'pricelno-ranit'
-};
-
-const bleeding = {
-	name: 'Вызвать кровотечение',
-	slug: 'vyzvat-krovotechenie'
-};
-
-const knockdown = {
-	name: 'Сбить с ног',
-	slug: 'sbit-s-nog'
-};
-
 const grab = {
 	name: 'Захватить',
 	slug: 'zahvatit'
 };
+
+const grabbed = {
+	name: 'Захвачен',
+	slug: 'zahvachen'
+};
+
+const holding = {
+	name: 'Удерживает',
+	slug: 'uderzhivaet'
+};
+
+const bleeding = {
+	name: 'Кровотечение',
+	slug: 'krovotechenie'
+};
+
+const markedTarget = {
+	name: 'Отмеченная цель',
+	slug: 'otmechennaya-cel'
+};
+
+const mouthFreeRule = {
+	type: 'resource_free',
+	label: 'Пасть свободна',
+	resourceKey: 'mouth',
+	unavailableText: 'Недоступно: пасть занята'
+} as const;
+
+const activeGrabRule = {
+	type: 'active_condition',
+	label: 'Активный захват',
+	condition: holding,
+	unavailableText: 'Доступно при активном захвате'
+} as const;
+
+function biteDamageOverride(
+	damageModifier: number
+): NonNullable<CreatureContent['tiers'][number]['attackOverrides']> {
+	return [
+		{
+			naturalAttack: bite,
+			profileKind: 'melee',
+			profileName: 'Ближняя атака',
+			damageModifier,
+			sortOrder: 0
+		}
+	];
+}
+
+function wolfActions(
+	baseDamage: number,
+	options: { includeAssignPrey?: boolean } = {}
+): NonNullable<CreatureContent['tiers'][number]['actions']> {
+	const actions: NonNullable<CreatureContent['tiers'][number]['actions']> = [
+		{
+			slug: 'ukus-ranit',
+			name: 'Укус — Ранить',
+			kind: 'attack',
+			source: {
+				type: 'natural_attack',
+				name: bite.name,
+				slug: bite.slug,
+				profileName: 'Ближняя атака',
+				intent: wound
+			},
+			cost: { mode: 'fixed', potential: 2 },
+			target: {
+				type: 'hostile_creature',
+				visibility: 'any',
+				description: 'Одна враждебная цель в дистанции укуса.'
+			},
+			availabilityRules: [mouthFreeRule],
+			roll: {
+				type: 'attack_profile',
+				characteristic: power,
+				skill: unarmed
+			},
+			defense: {
+				type: 'target_physical_defense',
+				canDodge: true,
+				canParry: false
+			},
+			effects: [
+				{
+					type: 'damage',
+					damageMode: 'clean_successes_plus_base',
+					damageType: piercing,
+					value: baseDamage,
+					appliesArmor: true,
+					sortOrder: 0
+				}
+			],
+			playerText: '{существо} кусает цель. {защита}. {эффекты}',
+			sortOrder: 0
+		},
+		{
+			slug: 'ukus-zahvatit',
+			name: 'Укус — Захватить',
+			kind: 'attack',
+			source: {
+				type: 'natural_attack',
+				name: bite.name,
+				slug: bite.slug,
+				profileName: 'Ближняя атака',
+				intent: grab
+			},
+			cost: { mode: 'fixed', potential: 3 },
+			target: {
+				type: 'hostile_creature',
+				visibility: 'any',
+				description: 'Одна враждебная цель в дистанции укуса.'
+			},
+			availabilityRules: [mouthFreeRule],
+			roll: {
+				type: 'attack_profile',
+				characteristic: power,
+				skill: unarmed
+			},
+			defense: {
+				type: 'target_physical_defense',
+				canDodge: true,
+				canParry: false
+			},
+			effects: [
+				{
+					type: 'damage',
+					damageMode: 'clean_successes',
+					damageType: piercing,
+					appliesArmor: true,
+					sortOrder: 0
+				},
+				{
+					type: 'create_grab',
+					condition: grabbed,
+					requiresDamageAfterArmor: true,
+					text: 'Если после брони прошёл хотя бы 1 урон, создаётся захват. Пасть становится занятой.',
+					sortOrder: 1
+				}
+			],
+			playerText: '{существо} пытается вцепиться в цель. {защита}. {эффекты}',
+			sortOrder: 1
+		},
+		{
+			slug: 'otpustit',
+			name: 'Отпустить',
+			kind: 'grab_action',
+			source: {
+				type: 'condition',
+				name: holding.name,
+				slug: holding.slug
+			},
+			cost: { mode: 'free', potential: 0 },
+			target: {
+				type: 'held_target',
+				visibility: 'any',
+				description: 'Одна цель, которую волк удерживает.'
+			},
+			availabilityRules: [activeGrabRule],
+			roll: { type: 'none' },
+			defense: { type: 'none' },
+			effects: [
+				{
+					type: 'release_grab',
+					text: 'Прекращает выбранный захват.',
+					sortOrder: 0
+				}
+			],
+			playerText:
+				'{существо} может использовать действие, пока удерживает цель. {эффекты}',
+			sortOrder: 2
+		},
+		{
+			slug: 'utaschit',
+			name: 'Утащить',
+			kind: 'grab_action',
+			source: {
+				type: 'condition',
+				name: holding.name,
+				slug: holding.slug
+			},
+			cost: { mode: 'per_meter', perMeter: 1 },
+			target: {
+				type: 'held_target',
+				visibility: 'any',
+				description: 'Одна цель, которую волк удерживает.'
+			},
+			availabilityRules: [activeGrabRule],
+			roll: { type: 'none' },
+			defense: { type: 'none' },
+			effects: [
+				{
+					type: 'move_with_grab',
+					value: 1,
+					text: '{существо} перемещается вместе с удерживаемой целью на одинаковое расстояние. Перемещение не может проходить через препятствия и не прекращает захват.',
+					sortOrder: 0
+				}
+			],
+			playerText:
+				'{существо} может использовать действие, пока удерживает цель. {стоимость}. {эффекты}',
+			sortOrder: 3
+		},
+		{
+			slug: 'trepat',
+			name: 'Трепать',
+			kind: 'grab_action',
+			source: {
+				type: 'condition',
+				name: holding.name,
+				slug: holding.slug
+			},
+			cost: { mode: 'fixed', potential: 2 },
+			target: {
+				type: 'held_target',
+				visibility: 'any',
+				description: 'Одна цель, которую волк удерживает пастью.'
+			},
+			availabilityRules: [activeGrabRule],
+			roll: { type: 'none' },
+			defense: { type: 'none' },
+			effects: [
+				{
+					type: 'damage',
+					damageMode: 'base_damage',
+					damageType: piercing,
+					value: baseDamage,
+					appliesArmor: true,
+					sortOrder: 0
+				},
+				{
+					type: 'apply_condition',
+					condition: bleeding,
+					conditionLevel: 1,
+					requiresDamageAfterArmor: true,
+					text: 'Если цель получила хотя бы 1 урон после брони, она получает 1 уровень Кровотечения.',
+					sortOrder: 1
+				}
+			],
+			playerText:
+				'{существо} может использовать действие, пока удерживает цель пастью. {стоимость}. {бросок}. {защита}. {эффекты}',
+			sortOrder: 4
+		}
+	];
+
+	if (options.includeAssignPrey) {
+		actions.push({
+			slug: 'naznachit-dobychu',
+			name: 'Назначить добычу',
+			kind: 'active_ability',
+			source: {
+				type: 'ability',
+				name: 'Назначить добычу',
+				slug: 'naznachit-dobychu'
+			},
+			cost: { mode: 'fixed', potential: 2 },
+			target: {
+				type: 'hostile_creature',
+				visibility: 'visible',
+				description: 'Одно видимое вожаку враждебное существо.'
+			},
+			roll: { type: 'none' },
+			defense: { type: 'none' },
+			effects: [
+				{
+					type: 'apply_condition',
+					condition: markedTarget,
+					conditionDisplayName: 'Добыча стаи',
+					targetScope: 'source_group_against_holder',
+					value: 1,
+					text: 'Волки этой стаи получают +1 кубик к атакам против Добычи и считают её приоритетной целью.',
+					sortOrder: 0
+				},
+				{
+					type: 'special_rule',
+					text: 'У стаи может быть только одна Добыча. Отметка снимается, если вожак назначает новую цель, теряет сознание или покидает столкновение.',
+					sortOrder: 1
+				}
+			],
+			playerText:
+				'{существо} тратит 2 Потенциала и выбирает одно видимое враждебное существо. {эффекты}',
+			sortOrder: actions.length
+		});
+	}
+
+	return actions;
+}
 
 export default {
 	creatures: [
@@ -108,18 +378,33 @@ export default {
 							name: 'Ближняя атака',
 							skill: unarmed,
 							characteristic: power,
-							baseCost: 1,
+							baseCost: 2,
 							baseDamage: 1,
 							rangeMeters: 1,
 							usesAmmo: false,
 							canBeParried: false,
 							damageTypes: [piercing],
-							combatIntents: [wound, targetedWound, bleeding, knockdown, grab],
+							availabilityRules: [mouthFreeRule],
+							combatIntents: [
+								{
+									...wound,
+									ruleText:
+										'Чистые успехи наносят урон. При наличии хотя бы одного чистого успеха добавляется полный базовый урон укуса.'
+								},
+								{
+									...grab,
+									costModifier: 1,
+									damageModifier: -1,
+									ruleText:
+										'Наносит только урон от чистых успехов, базовый урон укуса не добавляется. Если после брони прошёл хотя бы 1 урон, создаётся захват. Пасть становится занятой: существо теряет доступ к обычному укусу, пока не отпустит цель.'
+								}
+							],
 							sortOrder: 0
 						}
 					]
 				}
 			],
+			actions: wolfActions(1),
 			tiers: [
 				{
 					tier: 1,
@@ -127,6 +412,7 @@ export default {
 					hp: 3,
 					size: smallSize,
 					armorPreset: noArmor,
+					attackOverrides: biteDamageOverride(0),
 					characteristics: [
 						{ ...power, value: 1 },
 						{ ...reflexes, value: 2 },
@@ -144,6 +430,7 @@ export default {
 					hp: 5,
 					size: mediumSize,
 					armorPreset: noArmor,
+					attackOverrides: biteDamageOverride(0),
 					characteristics: [
 						{ ...power, value: 2 },
 						{ ...reflexes, value: 3 },
@@ -161,6 +448,8 @@ export default {
 					hp: 8,
 					size: mediumSize,
 					armorPreset: noArmor,
+					attackOverrides: biteDamageOverride(1),
+					actionOverrides: wolfActions(2),
 					characteristics: [
 						{ ...power, value: 3 },
 						{ ...reflexes, value: 4 },
@@ -178,6 +467,24 @@ export default {
 					hp: 12,
 					size: mediumSize,
 					armorPreset: noArmor,
+					attackOverrides: biteDamageOverride(1),
+					actionOverrides: wolfActions(2, { includeAssignPrey: true }),
+					abilities: [
+						{
+							name: 'Назначить добычу',
+							costPotential: 2,
+							target: 'Одно видимое вожаку враждебное существо.',
+							duration:
+								'Пока вожак не назначит другую добычу, не потеряет сознание или не покинет столкновение.',
+							description:
+								'Вожак выделяет одну цель для согласованной охоты. Цель получает состояние «Отмеченная цель» с отображаемым названием «Добыча стаи», связанное со стаей вожака.',
+							effectText:
+								'Вожак тратит 2 Потенциала и выбирает одно видимое враждебное существо. Выбранное существо становится Добычей стаи. Волки этой стаи получают +1 кубик к атакам против Добычи и считают её приоритетной целью. У стаи может быть только одна Добыча. Отметка снимается, если вожак назначает новую цель, теряет сознание или покидает столкновение.',
+							appliesCondition: markedTarget,
+							conditionDisplayName: 'Добыча стаи',
+							sortOrder: 0
+						}
+					],
 					characteristics: [
 						{ ...power, value: 3 },
 						{ ...reflexes, value: 5 },
@@ -195,6 +502,8 @@ export default {
 					hp: 18,
 					size: largeSize,
 					armorPreset: noArmor,
+					attackOverrides: biteDamageOverride(2),
+					actionOverrides: wolfActions(3),
 					characteristics: [
 						{ ...power, value: 5 },
 						{ ...reflexes, value: 4 },

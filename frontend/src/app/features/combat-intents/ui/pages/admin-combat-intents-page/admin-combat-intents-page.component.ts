@@ -69,6 +69,13 @@ type CombatIntentHitZoneKind =
 	| 'random_main_zone'
 	| 'targeted_main_zone'
 	| 'targeted_subzone';
+type CombatRelationType = 'grapple' | 'tether' | 'carry' | 'guard';
+type CombatRelationEscapeMode = 'opposed_check' | 'fixed_difficulty';
+type CombatRelationMovementMode =
+	| 'forbidden'
+	| 'within_distance'
+	| 'with_source'
+	| 'custom';
 
 interface CombatIntentMechanicDraft {
 	version: number;
@@ -101,6 +108,18 @@ interface CombatIntentMechanicDraft {
 	resultDamage: string;
 	healthDamage: boolean;
 	canCauseZoneTrauma: boolean;
+	relationEnabled: boolean;
+	relationType: CombatRelationType;
+	relationSourceConditionSlug: string;
+	relationSourceConditionName: string;
+	relationTargetConditionSlug: string;
+	relationTargetConditionName: string;
+	relationMaxDistanceMeters: number;
+	relationMovementMode: CombatRelationMovementMode;
+	relationMovementRule: string;
+	relationEscapeMode: CombatRelationEscapeMode;
+	relationEscapeCostPotential: number;
+	relationEscapeDifficulty: number;
 }
 
 const MECHANIC_INPUT_OPTIONS: SelectOption<string>[] = [
@@ -139,6 +158,26 @@ const HIT_ZONE_KIND_OPTIONS: SelectOption<CombatIntentHitZoneKind>[] = [
 	{ label: 'Выбранная основная зона', value: 'targeted_main_zone' },
 	{ label: 'Выбранная подзона', value: 'targeted_subzone' }
 ];
+
+const RELATION_TYPE_OPTIONS: SelectOption<CombatRelationType>[] = [
+	{ label: 'Захват', value: 'grapple' },
+	{ label: 'Привязка', value: 'tether' },
+	{ label: 'Перенос', value: 'carry' },
+	{ label: 'Охрана', value: 'guard' }
+];
+
+const RELATION_ESCAPE_MODE_OPTIONS: SelectOption<CombatRelationEscapeMode>[] = [
+	{ label: 'Встречная проверка', value: 'opposed_check' },
+	{ label: 'Фиксированная сложность', value: 'fixed_difficulty' }
+];
+
+const RELATION_MOVEMENT_MODE_OPTIONS: SelectOption<CombatRelationMovementMode>[] =
+	[
+		{ label: 'Не может двигаться', value: 'forbidden' },
+		{ label: 'Может двигаться рядом', value: 'within_distance' },
+		{ label: 'Только вместе с источником', value: 'with_source' },
+		{ label: 'Особое правило', value: 'custom' }
+	];
 
 const SCENARIO_STEP_OPTIONS: SelectOption<CombatIntentScenarioStep>[] = [
 	{ label: 'Доступность', value: 'availability' },
@@ -250,6 +289,10 @@ export class AdminCombatIntentsPageComponent {
 	protected readonly rollKindOptions = ROLL_KIND_OPTIONS;
 	protected readonly hitSuccessModeOptions = HIT_SUCCESS_MODE_OPTIONS;
 	protected readonly hitZoneKindOptions = HIT_ZONE_KIND_OPTIONS;
+	protected readonly relationTypeOptions = RELATION_TYPE_OPTIONS;
+	protected readonly relationEscapeModeOptions = RELATION_ESCAPE_MODE_OPTIONS;
+	protected readonly relationMovementModeOptions =
+		RELATION_MOVEMENT_MODE_OPTIONS;
 	protected readonly scenarioStepOptions = SCENARIO_STEP_OPTIONS;
 	protected readonly noCleanSuccessesOptions = NO_CLEAN_SUCCESSES_OPTIONS;
 	protected readonly damageFormulaOptions = DAMAGE_FORMULA_OPTIONS;
@@ -530,6 +573,87 @@ export class AdminCombatIntentsPageComponent {
 
 	protected updateMechanicCanCauseZoneTrauma(canCauseZoneTrauma: boolean) {
 		this.patchMechanic({ canCauseZoneTrauma });
+	}
+
+	protected updateMechanicRelationEnabled(relationEnabled: boolean) {
+		this.patchMechanic({ relationEnabled });
+	}
+
+	protected updateMechanicRelationType(relationType: CombatRelationType) {
+		this.patchMechanic({ relationType });
+	}
+
+	protected updateMechanicRelationSourceConditionSlug(
+		relationSourceConditionSlug: string | null
+	) {
+		const condition = relationSourceConditionSlug
+			? this.conditions().find(
+					item => item.slug === relationSourceConditionSlug
+				)
+			: null;
+
+		this.patchMechanic({
+			relationSourceConditionSlug: relationSourceConditionSlug ?? '',
+			relationSourceConditionName: condition?.name ?? ''
+		});
+	}
+
+	protected updateMechanicRelationTargetConditionSlug(
+		relationTargetConditionSlug: string | null
+	) {
+		const condition = relationTargetConditionSlug
+			? this.conditions().find(
+					item => item.slug === relationTargetConditionSlug
+				)
+			: null;
+
+		this.patchMechanic({
+			relationTargetConditionSlug: relationTargetConditionSlug ?? '',
+			relationTargetConditionName: condition?.name ?? ''
+		});
+	}
+
+	protected updateMechanicRelationMaxDistanceMeters(
+		relationMaxDistanceMeters: number | null
+	) {
+		this.patchMechanic({
+			relationMaxDistanceMeters: relationMaxDistanceMeters ?? 1
+		});
+	}
+
+	protected updateMechanicRelationMovementMode(
+		relationMovementMode: CombatRelationMovementMode
+	) {
+		this.patchMechanic({
+			relationMovementMode,
+			relationMovementRule: defaultRelationMovementRule(relationMovementMode)
+		});
+	}
+
+	protected updateMechanicRelationMovementRule(relationMovementRule: string) {
+		this.patchMechanic({ relationMovementRule });
+	}
+
+	protected updateMechanicRelationEscapeMode(
+		relationEscapeMode: CombatRelationEscapeMode
+	) {
+		this.patchMechanic({ relationEscapeMode });
+	}
+
+	protected updateMechanicRelationEscapeCostPotential(
+		relationEscapeCostPotential: number | null
+	) {
+		this.patchMechanic({
+			relationEscapeCostPotential: relationEscapeCostPotential ?? 2
+		});
+	}
+
+	protected updateMechanicRelationEscapeDifficulty(
+		relationEscapeDifficulty: number | null
+	) {
+		this.patchMechanic({
+			relationEscapeDifficulty: relationEscapeDifficulty ?? 1
+		});
 	}
 
 	protected conditionName(slug: string) {
@@ -893,7 +1017,19 @@ function createDefaultMechanic(): CombatIntentMechanicDraft {
 		resultConditionName: '',
 		resultDamage: '',
 		healthDamage: false,
-		canCauseZoneTrauma: false
+		canCauseZoneTrauma: false,
+		relationEnabled: false,
+		relationType: 'grapple',
+		relationSourceConditionSlug: '',
+		relationSourceConditionName: '',
+		relationTargetConditionSlug: '',
+		relationTargetConditionName: '',
+		relationMaxDistanceMeters: 1,
+		relationMovementMode: 'with_source',
+		relationMovementRule: defaultRelationMovementRule('with_source'),
+		relationEscapeMode: 'opposed_check',
+		relationEscapeCostPotential: 2,
+		relationEscapeDifficulty: 1
 	};
 }
 
@@ -1048,6 +1184,12 @@ function parseMechanic(
 			action['kind'] === 'target_condition_requirement'
 	);
 	const resultAction = actions.find(action => action['kind'] === 'result');
+	const relationAction = actions.find(
+		action => action['kind'] === 'create_relation'
+	);
+	const relationRelease = isRecord(relationAction?.['release'])
+		? relationAction['release']
+		: {};
 	const roll = isRecord(mechanic['roll']) ? mechanic['roll'] : {};
 	const effectiveRoll = rollAction ?? roll;
 	const attackDicePool = isRecord(effectiveRoll['attackDicePool'])
@@ -1159,6 +1301,57 @@ function parseMechanic(
 		canCauseZoneTrauma: readBoolean(
 			effectiveResult['canCauseZoneTrauma'],
 			draft.canCauseZoneTrauma
+		),
+		relationEnabled: relationAction
+			? readBoolean(relationAction['isActive'], true)
+			: draft.relationEnabled,
+		relationType: readRelationType(
+			relationAction?.['relationType'],
+			draft.relationType
+		),
+		relationSourceConditionSlug: readString(
+			relationAction?.['sourceCondition'],
+			draft.relationSourceConditionSlug
+		),
+		relationSourceConditionName: readString(
+			relationAction?.['sourceConditionName'],
+			draft.relationSourceConditionName
+		),
+		relationTargetConditionSlug: readString(
+			relationAction?.['targetCondition'],
+			draft.relationTargetConditionSlug
+		),
+		relationTargetConditionName: readString(
+			relationAction?.['targetConditionName'],
+			draft.relationTargetConditionName
+		),
+		relationMaxDistanceMeters: readNumber(
+			relationAction?.['maxDistanceMeters'],
+			draft.relationMaxDistanceMeters
+		),
+		relationMovementMode: readRelationMovementMode(
+			isRecord(relationAction?.['movement'])
+				? relationAction['movement']['mode']
+				: undefined,
+			draft.relationMovementMode
+		),
+		relationMovementRule: readString(
+			isRecord(relationAction?.['movement'])
+				? relationAction['movement']['text']
+				: undefined,
+			draft.relationMovementRule
+		),
+		relationEscapeMode: readRelationEscapeMode(
+			relationRelease['mode'],
+			draft.relationEscapeMode
+		),
+		relationEscapeCostPotential: readNumber(
+			relationRelease['costPotential'],
+			draft.relationEscapeCostPotential
+		),
+		relationEscapeDifficulty: readNumber(
+			relationRelease['difficulty'],
+			draft.relationEscapeDifficulty
 		)
 	};
 }
@@ -1260,6 +1453,41 @@ function buildMechanicActions(
 		});
 	}
 
+	if (draft.relationEnabled) {
+		actions.push({
+			kind: 'create_relation',
+			label: 'Создать связь',
+			relationType: draft.relationType,
+			source: 'attacker',
+			target: 'target',
+			sourceCondition: draft.relationSourceConditionSlug.trim() || undefined,
+			sourceConditionName:
+				draft.relationSourceConditionName.trim() || undefined,
+			targetCondition: draft.relationTargetConditionSlug.trim() || undefined,
+			targetConditionName:
+				draft.relationTargetConditionName.trim() || undefined,
+			holding: {
+				bodyParts: 'selected_or_required_attack_parts',
+				item: 'selected_or_required_attack_item'
+			},
+			maxDistanceMeters: draft.relationMaxDistanceMeters,
+			movement: {
+				mode: draft.relationMovementMode,
+				text: draft.relationMovementRule.trim()
+			},
+			release: {
+				mode: draft.relationEscapeMode,
+				costPotential: draft.relationEscapeCostPotential,
+				difficulty:
+					draft.relationEscapeMode === 'fixed_difficulty'
+						? draft.relationEscapeDifficulty
+						: undefined
+			},
+			sortOrder: 6,
+			isActive: true
+		});
+	}
+
 	actions.push({
 		kind: 'result',
 		label: 'Результат',
@@ -1268,7 +1496,7 @@ function buildMechanicActions(
 		damage: draft.resultDamage.trim() || undefined,
 		healthDamage: draft.healthDamage,
 		canCauseZoneTrauma: draft.canCauseZoneTrauma,
-		sortOrder: 6,
+		sortOrder: 7,
 		isActive:
 			Boolean(draft.resultConditionSlug.trim()) ||
 			Boolean(draft.resultDamage.trim()) ||
@@ -1377,6 +1605,46 @@ function readHitZoneKind(
 	return HIT_ZONE_KIND_OPTIONS.some(option => option.value === value)
 		? (value as CombatIntentHitZoneKind)
 		: fallback;
+}
+
+function readRelationType(
+	value: unknown,
+	fallback: CombatRelationType
+): CombatRelationType {
+	return RELATION_TYPE_OPTIONS.some(option => option.value === value)
+		? (value as CombatRelationType)
+		: fallback;
+}
+
+function readRelationEscapeMode(
+	value: unknown,
+	fallback: CombatRelationEscapeMode
+): CombatRelationEscapeMode {
+	return RELATION_ESCAPE_MODE_OPTIONS.some(option => option.value === value)
+		? (value as CombatRelationEscapeMode)
+		: fallback;
+}
+
+function readRelationMovementMode(
+	value: unknown,
+	fallback: CombatRelationMovementMode
+): CombatRelationMovementMode {
+	return RELATION_MOVEMENT_MODE_OPTIONS.some(option => option.value === value)
+		? (value as CombatRelationMovementMode)
+		: fallback;
+}
+
+function defaultRelationMovementRule(mode: CombatRelationMovementMode) {
+	switch (mode) {
+		case 'forbidden':
+			return 'Цель не может самостоятельно перемещаться, пока связь действует.';
+		case 'within_distance':
+			return 'Цель может перемещаться, если расстояние до источника не превышает допустимую дистанцию.';
+		case 'with_source':
+			return 'Цель может перемещаться только вместе с источником связи.';
+		case 'custom':
+			return '';
+	}
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

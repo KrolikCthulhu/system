@@ -1,0 +1,837 @@
+<section class="creature-tier-actions-editor">
+	<div class="creature-tier-actions-editor__head">
+		<h4>Действия</h4>
+		<p-button
+			label="Действие"
+			icon="pi pi-plus"
+			size="small"
+			text
+			(click)="addAction()"
+		></p-button>
+	</div>
+
+	@if (actionItems(); as items) {
+		@if (items.length) {
+			<div class="creature-tier-actions-editor__workspace">
+				<app-navigation-tree
+					class="creature-tier-actions-editor__action-tree"
+					[groups]="actionTreeGroups()"
+					[selectedItemId]="selectedActionItem()?.action?.slug ?? null"
+					(itemSelect)="selectAction($event)"
+				></app-navigation-tree>
+
+				@if (selectedActionItem(); as item) {
+					<article class="creature-tier-actions-editor__item">
+						<header class="creature-tier-actions-editor__item-head">
+							<div class="creature-tier-actions-editor__title">
+								<strong>{{ item.action.name }}</strong>
+								<small>{{ item.sourceText }}</small>
+							</div>
+							<div class="creature-tier-actions-editor__tags">
+								<p-tag [value]="item.kindLabel" severity="info"></p-tag>
+								<p-tag [value]="item.costText" severity="secondary"></p-tag>
+								<p-button
+									icon="pi pi-trash"
+									severity="danger"
+									text
+									rounded
+									(click)="removeAction(item.index)"
+								></p-button>
+							</div>
+						</header>
+
+						<p-tabs value="general" class="creature-tier-actions-editor__tabs">
+							<p-tablist>
+								<p-tab value="general">Основное</p-tab>
+								<p-tab value="cost">Стоимость</p-tab>
+								<p-tab value="target">Цель</p-tab>
+								<p-tab value="conditions">Условия</p-tab>
+								<p-tab value="roll">Бросок и защита</p-tab>
+								<p-tab value="effects">Эффекты</p-tab>
+								<p-tab value="text">Текст</p-tab>
+							</p-tablist>
+
+							<p-tabpanels class="creature-tier-actions-editor__tabpanels">
+								<p-tabpanel value="general">
+									<div class="creature-tier-actions-editor__grid">
+										<label class="creature-tier-actions-editor__field">
+											<span>Название</span>
+											<input
+												pInputText
+												[ngModel]="item.action.name"
+												(ngModelChange)="
+													updateAction(item.index, { name: $event })
+												"
+											/>
+										</label>
+										<label class="creature-tier-actions-editor__field">
+											<span>Тип действия</span>
+											<p-select
+												[ngModel]="item.action.kind"
+												[options]="kindOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="
+													updateAction(item.index, { kind: $event })
+												"
+											></p-select>
+										</label>
+										<div class="creature-tier-actions-editor__switch-field">
+											<span>Активно</span>
+											<p-toggleswitch
+												[ngModel]="item.action.isActive"
+												(ngModelChange)="
+													updateAction(item.index, { isActive: $event })
+												"
+											></p-toggleswitch>
+										</div>
+										<label class="creature-tier-actions-editor__field">
+											<span>Тип источника</span>
+											<p-select
+												[ngModel]="item.action.source?.type ?? 'custom'"
+												[options]="sourceTypeOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="updateSourceType(item.index, $event)"
+											></p-select>
+										</label>
+
+										@if (item.action.source?.type === 'natural_attack') {
+											<label class="creature-tier-actions-editor__field">
+												<span>Естественная атака</span>
+												<p-select
+													[ngModel]="item.action.source?.slug"
+													[options]="naturalAttacks()"
+													optionLabel="name"
+													optionValue="slug"
+													appendTo="body"
+													[fluid]="true"
+													(ngModelChange)="
+														updateSourceReference(item.index, $event)
+													"
+												></p-select>
+											</label>
+										} @else if (item.action.source?.type === 'condition') {
+											<label class="creature-tier-actions-editor__field">
+												<span>Состояние</span>
+												<p-select
+													[ngModel]="item.action.source?.slug"
+													[options]="conditions()"
+													optionLabel="name"
+													optionValue="slug"
+													appendTo="body"
+													[fluid]="true"
+													(ngModelChange)="
+														updateSourceReference(item.index, $event)
+													"
+												></p-select>
+											</label>
+										} @else {
+											<label class="creature-tier-actions-editor__field">
+												<span>Источник</span>
+												<input
+													pInputText
+													[ngModel]="item.action.source?.name ?? ''"
+													(ngModelChange)="
+														updateSource(item.index, { name: $event })
+													"
+												/>
+											</label>
+										}
+
+										<label class="creature-tier-actions-editor__field">
+											<span>Профиль источника</span>
+											<input
+												pInputText
+												[ngModel]="item.action.source?.profileName ?? ''"
+												(ngModelChange)="
+													updateSource(item.index, { profileName: $event })
+												"
+											/>
+										</label>
+										<label class="creature-tier-actions-editor__field">
+											<span>Намерение</span>
+											<p-select
+												[ngModel]="item.action.source?.intent?.slug ?? null"
+												[options]="combatIntents()"
+												optionLabel="name"
+												optionValue="slug"
+												appendTo="body"
+												[showClear]="true"
+												[fluid]="true"
+												(ngModelChange)="updateSourceIntent(item.index, $event)"
+											></p-select>
+										</label>
+									</div>
+								</p-tabpanel>
+
+								<p-tabpanel value="cost">
+									<div class="creature-tier-actions-editor__grid">
+										<label class="creature-tier-actions-editor__field">
+											<span>Тип стоимости</span>
+											<p-select
+												[ngModel]="item.action.cost.mode"
+												[options]="costModeOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="
+													updateCost(item.index, { mode: $event })
+												"
+											></p-select>
+										</label>
+										@if (item.action.cost.mode === 'fixed') {
+											<label class="creature-tier-actions-editor__field">
+												<span>Потенциал</span>
+												<p-inputnumber
+													[ngModel]="item.action.cost.potential"
+													[showButtons]="false"
+													[fluid]="true"
+													(ngModelChange)="
+														updateCost(item.index, { potential: $event ?? 0 })
+													"
+												></p-inputnumber>
+											</label>
+										}
+										@if (item.action.cost.mode === 'per_meter') {
+											<label class="creature-tier-actions-editor__field">
+												<span>Потенциал за метр</span>
+												<p-inputnumber
+													[ngModel]="item.action.cost.perMeter"
+													[showButtons]="false"
+													[fluid]="true"
+													(ngModelChange)="
+														updateCost(item.index, { perMeter: $event ?? 0 })
+													"
+												></p-inputnumber>
+											</label>
+										}
+									</div>
+								</p-tabpanel>
+
+								<p-tabpanel value="target">
+									<div class="creature-tier-actions-editor__grid">
+										<label class="creature-tier-actions-editor__field">
+											<span>Тип цели</span>
+											<p-select
+												[ngModel]="item.action.target?.type ?? 'none'"
+												[options]="targetTypeOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="
+													updateTarget(item.index, { type: $event })
+												"
+											></p-select>
+										</label>
+										<label class="creature-tier-actions-editor__field">
+											<span>Видимость</span>
+											<p-select
+												[ngModel]="item.action.target?.visibility ?? 'any'"
+												[options]="visibilityOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="
+													updateTarget(item.index, { visibility: $event })
+												"
+											></p-select>
+										</label>
+										<label
+											class="creature-tier-actions-editor__field creature-tier-actions-editor__field--wide"
+										>
+											<span>Описание цели</span>
+											<input
+												pInputText
+												[ngModel]="item.action.target?.description ?? ''"
+												(ngModelChange)="
+													updateTarget(item.index, { description: $event })
+												"
+											/>
+										</label>
+									</div>
+								</p-tabpanel>
+
+								<p-tabpanel value="conditions">
+									<div class="creature-tier-actions-editor__section-head">
+										<h4>Условия доступности</h4>
+										<p-button
+											label="Условие"
+											icon="pi pi-plus"
+											size="small"
+											text
+											(click)="addRule(item.index)"
+										></p-button>
+									</div>
+									@if (item.action.availabilityRules.length) {
+										<div class="creature-tier-actions-editor__nested-list">
+											@for (
+												rule of item.action.availabilityRules;
+												track rule.sortOrder;
+												let ruleIndex = $index
+											) {
+												<div class="creature-tier-actions-editor__nested-item">
+													<div class="creature-tier-actions-editor__grid">
+														<label class="creature-tier-actions-editor__field">
+															<span>Тип условия</span>
+															<p-select
+																[ngModel]="rule.type"
+																[options]="ruleTypeOptions"
+																optionLabel="label"
+																optionValue="value"
+																appendTo="body"
+																[fluid]="true"
+																(ngModelChange)="
+																	updateRule(item.index, ruleIndex, {
+																		type: $event
+																	})
+																"
+															></p-select>
+														</label>
+														<label class="creature-tier-actions-editor__field">
+															<span>Название условия</span>
+															<input
+																pInputText
+																[ngModel]="rule.label"
+																(ngModelChange)="
+																	updateRule(item.index, ruleIndex, {
+																		label: $event
+																	})
+																"
+															/>
+														</label>
+														@if (rule.type === 'active_condition') {
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Состояние</span>
+																<p-select
+																	[ngModel]="rule.condition?.slug ?? null"
+																	[options]="conditions()"
+																	optionLabel="name"
+																	optionValue="slug"
+																	appendTo="body"
+																	[showClear]="true"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateRuleCondition(
+																			item.index,
+																			ruleIndex,
+																			$event
+																		)
+																	"
+																></p-select>
+															</label>
+														}
+														<label
+															class="creature-tier-actions-editor__field creature-tier-actions-editor__field--wide"
+														>
+															<span>Сообщение при недоступности</span>
+															<input
+																pInputText
+																[ngModel]="rule.unavailableText"
+																(ngModelChange)="
+																	updateRule(item.index, ruleIndex, {
+																		unavailableText: $event
+																	})
+																"
+															/>
+														</label>
+													</div>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														text
+														rounded
+														(click)="removeRule(item.index, ruleIndex)"
+													></p-button>
+												</div>
+											}
+										</div>
+									} @else {
+										<div class="creature-tier-actions-editor__empty">
+											Условия доступности не заданы.
+										</div>
+									}
+								</p-tabpanel>
+
+								<p-tabpanel value="roll">
+									<div class="creature-tier-actions-editor__grid">
+										<label class="creature-tier-actions-editor__field">
+											<span>Тип броска</span>
+											<p-select
+												[ngModel]="item.action.roll?.type ?? 'none'"
+												[options]="rollTypeOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="
+													updateRoll(item.index, { type: $event })
+												"
+											></p-select>
+										</label>
+										<label class="creature-tier-actions-editor__field">
+											<span>Характеристика</span>
+											<p-select
+												[ngModel]="
+													item.action.roll?.characteristic?.name ?? null
+												"
+												[options]="characteristics()"
+												optionLabel="name"
+												optionValue="name"
+												appendTo="body"
+												[showClear]="true"
+												[fluid]="true"
+												(ngModelChange)="
+													updateRollCharacteristic(item.index, $event)
+												"
+											></p-select>
+										</label>
+										<label class="creature-tier-actions-editor__field">
+											<span>Навык</span>
+											<p-select
+												[ngModel]="item.action.roll?.skill?.slug ?? null"
+												[options]="skills()"
+												optionLabel="name"
+												optionValue="slug"
+												appendTo="body"
+												[showClear]="true"
+												[fluid]="true"
+												(ngModelChange)="updateRollSkill(item.index, $event)"
+											></p-select>
+										</label>
+										<label class="creature-tier-actions-editor__field">
+											<span>Защита</span>
+											<p-select
+												[ngModel]="item.action.defense?.type ?? 'none'"
+												[options]="defenseTypeOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="
+													updateDefense(item.index, { type: $event })
+												"
+											></p-select>
+										</label>
+										<div class="creature-tier-actions-editor__switch-field">
+											<span>Можно уклониться</span>
+											<p-toggleswitch
+												[ngModel]="item.action.defense?.canDodge ?? false"
+												(ngModelChange)="
+													updateDefense(item.index, { canDodge: $event })
+												"
+											></p-toggleswitch>
+										</div>
+										<div class="creature-tier-actions-editor__switch-field">
+											<span>Можно парировать</span>
+											<p-toggleswitch
+												[ngModel]="item.action.defense?.canParry ?? false"
+												(ngModelChange)="
+													updateDefense(item.index, { canParry: $event })
+												"
+											></p-toggleswitch>
+										</div>
+									</div>
+								</p-tabpanel>
+
+								<p-tabpanel value="effects">
+									<div class="creature-tier-actions-editor__section-head">
+										<h4>Эффекты</h4>
+										<p-button
+											label="Эффект"
+											icon="pi pi-plus"
+											size="small"
+											text
+											(click)="addEffect(item.index)"
+										></p-button>
+									</div>
+									@if (item.action.effects.length) {
+										<div class="creature-tier-actions-editor__nested-list">
+											@for (
+												effect of item.action.effects;
+												track effect.sortOrder;
+												let effectIndex = $index
+											) {
+												<div class="creature-tier-actions-editor__nested-item">
+													<div class="creature-tier-actions-editor__grid">
+														<label class="creature-tier-actions-editor__field">
+															<span>Тип эффекта</span>
+															<p-select
+																[ngModel]="effect.type"
+																[options]="effectTypeOptions"
+																optionLabel="label"
+																optionValue="value"
+																appendTo="body"
+																[fluid]="true"
+																(ngModelChange)="
+																	updateEffect(item.index, effectIndex, {
+																		type: $event
+																	})
+																"
+															></p-select>
+														</label>
+														<label class="creature-tier-actions-editor__field">
+															<span>Значение</span>
+															<p-inputnumber
+																[ngModel]="effect.value"
+																[showButtons]="false"
+																[fluid]="true"
+																(ngModelChange)="
+																	updateEffect(item.index, effectIndex, {
+																		value: $event
+																	})
+																"
+															></p-inputnumber>
+														</label>
+														@if (effect.type === 'damage') {
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Расчёт урона</span>
+																<p-select
+																	[ngModel]="effect.damageMode"
+																	[options]="damageModeOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	appendTo="body"
+																	[showClear]="true"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateEffect(item.index, effectIndex, {
+																			damageMode: $event
+																		})
+																	"
+																></p-select>
+															</label>
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Тип урона</span>
+																<p-select
+																	[ngModel]="effect.damageType?.slug ?? null"
+																	[options]="damageTypes()"
+																	optionLabel="name"
+																	optionValue="slug"
+																	appendTo="body"
+																	[showClear]="true"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateEffectDamageType(
+																			item.index,
+																			effectIndex,
+																			$event
+																		)
+																	"
+																></p-select>
+															</label>
+														}
+														@if (
+															effect.type === 'apply_condition' ||
+															effect.type === 'remove_condition' ||
+															effect.type === 'create_grab'
+														) {
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Состояние</span>
+																<p-select
+																	[ngModel]="effect.condition?.slug ?? null"
+																	[options]="conditions()"
+																	optionLabel="name"
+																	optionValue="slug"
+																	appendTo="body"
+																	[showClear]="true"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateEffectCondition(
+																			item.index,
+																			effectIndex,
+																			$event
+																		)
+																	"
+																></p-select>
+															</label>
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Название в бою</span>
+																<input
+																	pInputText
+																	[ngModel]="effect.conditionDisplayName"
+																	(ngModelChange)="
+																		updateEffect(item.index, effectIndex, {
+																			conditionDisplayName: $event
+																		})
+																	"
+																/>
+															</label>
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Уровень</span>
+																<p-inputnumber
+																	[ngModel]="effect.conditionLevel"
+																	[showButtons]="false"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateEffect(item.index, effectIndex, {
+																			conditionLevel: $event
+																		})
+																	"
+																></p-inputnumber>
+															</label>
+														}
+														<label class="creature-tier-actions-editor__field">
+															<span>Получатель эффекта</span>
+															<p-select
+																[ngModel]="effect.targetScope"
+																[options]="effectScopeOptions"
+																optionLabel="label"
+																optionValue="value"
+																appendTo="body"
+																[showClear]="true"
+																[fluid]="true"
+																(ngModelChange)="
+																	updateEffect(item.index, effectIndex, {
+																		targetScope: $event
+																	})
+																"
+															></p-select>
+														</label>
+														<div
+															class="creature-tier-actions-editor__switch-field"
+														>
+															<span>Применять броню</span>
+															<p-toggleswitch
+																[ngModel]="effect.appliesArmor"
+																(ngModelChange)="
+																	updateEffect(item.index, effectIndex, {
+																		appliesArmor: $event
+																	})
+																"
+															></p-toggleswitch>
+														</div>
+														<div
+															class="creature-tier-actions-editor__switch-field"
+														>
+															<span>Только если прошёл урон</span>
+															<p-toggleswitch
+																[ngModel]="effect.requiresDamageAfterArmor"
+																(ngModelChange)="
+																	updateEffect(item.index, effectIndex, {
+																		requiresDamageAfterArmor: $event
+																	})
+																"
+															></p-toggleswitch>
+														</div>
+														<label
+															class="creature-tier-actions-editor__field creature-tier-actions-editor__field--wide"
+														>
+															<span>Текст правила</span>
+															<textarea
+																pTextarea
+																rows="3"
+																[ngModel]="effect.text"
+																(ngModelChange)="
+																	updateEffect(item.index, effectIndex, {
+																		text: $event
+																	})
+																"
+															></textarea>
+														</label>
+													</div>
+													<p-button
+														icon="pi pi-trash"
+														severity="danger"
+														text
+														rounded
+														(click)="removeEffect(item.index, effectIndex)"
+													></p-button>
+												</div>
+											}
+										</div>
+									} @else {
+										<div class="creature-tier-actions-editor__empty">
+											Эффекты не заданы.
+										</div>
+									}
+								</p-tabpanel>
+
+								<p-tabpanel value="text">
+									<div class="creature-tier-actions-editor__text-panel">
+										<section class="creature-tier-actions-editor__text-preview">
+											<div
+												class="creature-tier-actions-editor__text-section-head"
+											>
+												<h4>Итоговый текст</h4>
+											</div>
+											<div
+												class="creature-tier-actions-editor__text-preview-content"
+											>
+												<p>{{ selectedActionPreview() }}</p>
+											</div>
+										</section>
+
+										<section class="creature-tier-actions-editor__text-builder">
+											<div
+												class="creature-tier-actions-editor__text-section-head"
+											>
+												<h4>Блоки текста</h4>
+												<div class="creature-tier-actions-editor__text-actions">
+													<p-button
+														label="Текст"
+														icon="pi pi-plus"
+														size="small"
+														severity="secondary"
+														variant="outlined"
+														(onClick)="addTextBlock(item.index, 'text')"
+													></p-button>
+													<p-button
+														label="Подстановка"
+														icon="pi pi-plus"
+														size="small"
+														severity="secondary"
+														variant="outlined"
+														(onClick)="addTextBlock(item.index, 'token')"
+													></p-button>
+												</div>
+											</div>
+
+											<div class="creature-tier-actions-editor__text-blocks">
+												@for (
+													block of actionTextBlocks(item.action);
+													track $index;
+													let blockIndex = $index
+												) {
+													<div class="creature-tier-actions-editor__text-block">
+														<div
+															class="creature-tier-actions-editor__text-block-toolbar"
+														>
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Тип блока</span>
+																<p-select
+																	[options]="textBlockKindOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="block.kind"
+																	(ngModelChange)="
+																		updateTextBlock(item.index, blockIndex, {
+																			kind: $event,
+																			value:
+																				$event === 'token' ? '{эффекты}' : ''
+																		})
+																	"
+																></p-select>
+															</label>
+
+															<div
+																class="creature-tier-actions-editor__text-block-actions"
+															>
+																<p-button
+																	icon="pi pi-arrow-up"
+																	severity="secondary"
+																	text
+																	rounded
+																	[disabled]="blockIndex === 0"
+																	(onClick)="
+																		moveTextBlock(item.index, blockIndex, -1)
+																	"
+																></p-button>
+																<p-button
+																	icon="pi pi-arrow-down"
+																	severity="secondary"
+																	text
+																	rounded
+																	[disabled]="
+																		blockIndex ===
+																		actionTextBlocks(item.action).length - 1
+																	"
+																	(onClick)="
+																		moveTextBlock(item.index, blockIndex, 1)
+																	"
+																></p-button>
+																<p-button
+																	icon="pi pi-trash"
+																	severity="danger"
+																	text
+																	rounded
+																	(onClick)="
+																		removeTextBlock(item.index, blockIndex)
+																	"
+																></p-button>
+															</div>
+														</div>
+
+														@if (block.kind === 'token') {
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Подстановка</span>
+																<p-select
+																	[options]="tokenOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	[ngModel]="block.value"
+																	(ngModelChange)="
+																		updateTextBlock(item.index, blockIndex, {
+																			value: $event
+																		})
+																	"
+																></p-select>
+															</label>
+														} @else {
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Текст</span>
+																<textarea
+																	pTextarea
+																	rows="3"
+																	[ngModel]="block.value"
+																	(ngModelChange)="
+																		updateTextBlock(item.index, blockIndex, {
+																			value: $event
+																		})
+																	"
+																></textarea>
+															</label>
+														}
+
+														<div
+															class="creature-tier-actions-editor__text-block-preview"
+														>
+															{{ textBlockPreview(item.action, block) }}
+														</div>
+													</div>
+												} @empty {
+													<div class="creature-tier-actions-editor__empty">
+														Текст пока не собран.
+													</div>
+												}
+											</div>
+										</section>
+									</div>
+								</p-tabpanel>
+							</p-tabpanels>
+						</p-tabs>
+					</article>
+				}
+			</div>
+		} @else {
+			<div class="creature-tier-actions-editor__empty">
+				Нет действий в выбранном фильтре.
+			</div>
+		}
+	}
+</section>

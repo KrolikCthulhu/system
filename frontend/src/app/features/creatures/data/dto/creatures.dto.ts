@@ -53,12 +53,42 @@ export interface CreatureDamageTypeOptionDto extends CreatureReferenceDto {
 	sortOrder: number;
 }
 
+export type CreatureConditionOptionDto = CreatureDamageTypeOptionDto;
+
+export interface CreatureAttackAvailabilityRuleDto {
+	type: 'resource_free' | 'active_condition';
+	label: string;
+	resourceKey?: string;
+	condition?: { id?: string; slug?: string; name?: string } | null;
+	unavailableText?: string;
+	sortOrder?: number;
+}
+
 export interface CreatureNaturalAttackProfileIntentDto {
 	combatIntentId: string;
+	nameOverride?: string;
 	costModifier: number;
 	damageModifier: number;
 	ruleText: string;
+	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
 	sortOrder: number;
+}
+
+export interface CreatureAttackFollowupActionDto {
+	kind?: 'release_grab' | 'drag_grab' | 'shake_grab' | 'custom';
+	name: string;
+	costMode?: 'fixed' | 'per_meter' | 'rule';
+	costPotential?: number | null;
+	costPerMeter?: number | null;
+	damageMode?: 'none' | 'base_attack_damage' | 'custom';
+	appliesArmor?: boolean;
+	conditionOnDamage?: { id?: string; slug?: string; name?: string } | null;
+	conditionLevel?: number | null;
+	keepsGrab?: boolean;
+	description?: string;
+	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
+	isActive?: boolean;
+	sortOrder?: number;
 }
 
 export interface CreatureNaturalAttackProfileDto {
@@ -71,8 +101,10 @@ export interface CreatureNaturalAttackProfileDto {
 	rangeMeters: number;
 	usesAmmo: boolean;
 	canBeParried: boolean;
+	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
 	damageTypeIds: string[];
 	intents: CreatureNaturalAttackProfileIntentDto[];
+	followupActions?: CreatureAttackFollowupActionDto[];
 	isActive: boolean;
 	sortOrder: number;
 }
@@ -99,6 +131,134 @@ export interface CreatureTierCharacteristicDto {
 	characteristic: CreatureCharacteristicOptionDto;
 }
 
+export interface CreatureTierAttackOverrideNaturalAttackDto {
+	name: string;
+	slug: string;
+}
+
+export interface CreatureTierAttackOverrideDto {
+	naturalAttack: CreatureTierAttackOverrideNaturalAttackDto;
+	profileKind: CreatureAttackProfileKindDto | null;
+	profileName: string;
+	isAvailable: boolean;
+	costModifier: number;
+	damageModifier: number;
+	rangeModifier: number;
+	dicePoolModifier: number;
+	sortOrder: number;
+}
+
+export interface CreatureTierAbilityDto {
+	name: string;
+	costPotential: number | null;
+	target: string;
+	duration: string;
+	description: string;
+	effectText: string;
+	appliesCondition: { name: string; slug: string } | null;
+	conditionDisplayName: string;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export type CreatureTierActionKindDto =
+	| 'attack'
+	| 'grab_action'
+	| 'active_ability'
+	| 'reaction'
+	| 'passive';
+
+export interface CreatureTierActionReferenceDto {
+	name: string;
+	slug: string;
+}
+
+export interface CreatureTierActionSourceDto {
+	type: 'natural_attack' | 'weapon' | 'condition' | 'ability' | 'custom';
+	name: string;
+	slug: string;
+	profileName: string;
+	intent: CreatureTierActionReferenceDto | null;
+}
+
+export interface CreatureTierActionCostDto {
+	mode: 'free' | 'fixed' | 'per_meter' | 'rule';
+	potential: number | null;
+	perMeter: number | null;
+}
+
+export interface CreatureTierActionTargetDto {
+	type:
+		| 'self'
+		| 'creature'
+		| 'hostile_creature'
+		| 'held_target'
+		| 'marked_target'
+		| 'none';
+	visibility: 'visible' | 'any';
+	description: string;
+}
+
+export interface CreatureTierActionRollDto {
+	type: 'none' | 'attack_profile' | 'check';
+	characteristic: CreatureTierActionReferenceDto | null;
+	skill: CreatureTierActionReferenceDto | null;
+}
+
+export interface CreatureTierActionDefenseDto {
+	type: 'none' | 'target_physical_defense';
+	canDodge: boolean;
+	canParry: boolean;
+}
+
+export interface CreatureTierActionEffectDto {
+	type:
+		| 'damage'
+		| 'apply_condition'
+		| 'remove_condition'
+		| 'create_grab'
+		| 'release_grab'
+		| 'move_with_grab'
+		| 'dice_pool_modifier'
+		| 'special_rule';
+	value: number | null;
+	damageMode:
+		| 'clean_successes'
+		| 'clean_successes_plus_base'
+		| 'base_damage'
+		| null;
+	damageType: CreatureTierActionReferenceDto | null;
+	condition: CreatureTierActionReferenceDto | null;
+	conditionDisplayName: string;
+	conditionLevel: number | null;
+	targetScope:
+		| 'holder'
+		| 'source_against_holder'
+		| 'source_group_against_holder'
+		| 'all_creatures_against_holder'
+		| null;
+	appliesArmor: boolean;
+	requiresDamageAfterArmor: boolean;
+	text: string;
+	sortOrder: number;
+}
+
+export interface CreatureTierActionDto {
+	slug: string;
+	name: string;
+	kind: CreatureTierActionKindDto;
+	source: CreatureTierActionSourceDto | null;
+	cost: CreatureTierActionCostDto;
+	target: CreatureTierActionTargetDto | null;
+	availabilityRules: CreatureAttackAvailabilityRuleDto[];
+	roll: CreatureTierActionRollDto | null;
+	defense: CreatureTierActionDefenseDto | null;
+	effects: CreatureTierActionEffectDto[];
+	playerText: string;
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface CreatureTierDto {
 	id: string;
 	tier: number;
@@ -108,6 +268,10 @@ export interface CreatureTierDto {
 	size: CreatureSizeOptionDto | null;
 	armorPresetId: string | null;
 	armorPreset: CreatureArmorPresetOptionDto | null;
+	attackOverrides: CreatureTierAttackOverrideDto[];
+	abilities: CreatureTierAbilityDto[];
+	actions: CreatureTierActionDto[];
+	actionOverrides: CreatureTierActionDto[];
 	skills: CreatureTierSkillDto[];
 	characteristics: CreatureTierCharacteristicDto[];
 	isActive: boolean;
@@ -153,6 +317,7 @@ export interface CreatureDto {
 	anatomyScheme: CreatureReferenceDto | null;
 	anatomyZones: CreatureAnatomyZoneDto[];
 	naturalAttacks: CreatureNaturalAttackDto[];
+	actions: CreatureTierActionDto[];
 	tiers: CreatureTierDto[];
 	isActive: boolean;
 	sortOrder: number;
@@ -171,6 +336,7 @@ export interface CreaturesCatalogResponseDto {
 	damageTypes: CreatureDamageTypeOptionDto[];
 	skills: CreatureSkillOptionDto[];
 	characteristics: CreatureCharacteristicOptionDto[];
+	conditions: CreatureConditionOptionDto[];
 }
 
 export interface CreatureTierSkillCommandDto {
@@ -183,12 +349,31 @@ export interface CreatureTierCharacteristicCommandDto {
 	value: number;
 }
 
+export interface CreatureTierAttackOverrideCommandDto {
+	naturalAttack: CreatureTierAttackOverrideNaturalAttackDto;
+	profileKind: CreatureAttackProfileKindDto | null;
+	profileName: string;
+	isAvailable: boolean;
+	costModifier: number;
+	damageModifier: number;
+	rangeModifier: number;
+	dicePoolModifier: number;
+	sortOrder: number;
+}
+
+export type CreatureTierAbilityCommandDto = CreatureTierAbilityDto;
+export type CreatureTierActionCommandDto = CreatureTierActionDto;
+
 export interface CreatureTierCommandDto {
 	tier: number;
 	name: string;
 	hp: number;
 	sizeId: string | null;
 	armorPresetId: string | null;
+	attackOverrides?: CreatureTierAttackOverrideCommandDto[];
+	abilities?: CreatureTierAbilityCommandDto[];
+	actions?: CreatureTierActionCommandDto[];
+	actionOverrides?: CreatureTierActionCommandDto[];
 	skills: CreatureTierSkillCommandDto[];
 	characteristics: CreatureTierCharacteristicCommandDto[];
 	isActive?: boolean;
@@ -226,6 +411,7 @@ export interface CreateCreatureDto {
 	anatomySchemeId?: string | null;
 	anatomyZones?: CreatureAnatomyZoneCommandDto[];
 	naturalAttacks?: CreatureNaturalAttackCommandDto[];
+	actions?: CreatureTierActionCommandDto[];
 	tiers: CreatureTierCommandDto[];
 	isActive?: boolean;
 	sortOrder?: number;
@@ -237,6 +423,7 @@ export interface UpdateCreatureDto {
 	anatomySchemeId?: string | null;
 	anatomyZones?: CreatureAnatomyZoneCommandDto[];
 	naturalAttacks?: CreatureNaturalAttackCommandDto[];
+	actions?: CreatureTierActionCommandDto[];
 	tiers?: CreatureTierCommandDto[];
 	isActive?: boolean;
 	sortOrder?: number;

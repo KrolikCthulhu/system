@@ -2,6 +2,18 @@ import type { ConditionContent, ContentDocument } from '../content-types';
 
 const automatic = ['automatic'] as const;
 
+const grabbedDescription =
+	'Захват ограничивает перемещение цели и не даёт ей свободно разорвать дистанцию с источником.';
+
+const holdingDescription =
+	'Источник удерживает цель. Удерживающая часть тела, предмет или эффект считаются занятыми, пока захват не прекращён.';
+
+const holdingRuleText =
+	'Удерживающий может отпустить цель без затрат Потенциала, если конкретный захват не указывает обратное. Удерживающий может выполнять действия, специально разрешённые во время удержания.';
+
+const holdingEndText =
+	'Захват прекращается, если удерживающий отпускает цель, теряет сознание или погибает, удерживающая часть тела становится недоступна, удерживающий предмет уничтожен или удалён, специальный эффект снимает захват, либо участники принудительно разнесены дальше допустимой дистанции. При прекращении захвата состояние «Захвачен» снимается с цели, состояние «Удерживает» снимается с источника, а занятые части тела или предметы освобождаются.';
+
 function condition(
 	name: string,
 	slug: string,
@@ -16,9 +28,16 @@ function condition(
 		durationType: overrides.durationType ?? 'until_next_round_start',
 		repeatLevelMode: overrides.repeatLevelMode ?? 'keep_highest',
 		repeatDurationMode: overrides.repeatDurationMode ?? 'keep_highest',
+		instanceMode: overrides.instanceMode ?? 'single',
+		instanceLimitMode: overrides.instanceLimitMode ?? 'fixed',
+		maxInstances: overrides.maxInstances ?? 1,
+		instanceOverflowMode: overrides.instanceOverflowMode ?? 'reject_new',
+		instanceUniquenessMode: overrides.instanceUniquenessMode ?? 'none',
+		duplicateInstanceMode: overrides.duplicateInstanceMode ?? 'update_existing',
 		maxLevel: overrides.maxLevel ?? 1,
 		removalMethods: overrides.removalMethods ?? [...automatic],
 		effects: overrides.effects ?? [],
+		parameters: overrides.parameters ?? [],
 		textBlocks: overrides.textBlocks ?? [
 			{ kind: 'token', token: 'description', sortOrder: 0 },
 			{ kind: 'text', text: ' ', sortOrder: 1 },
@@ -60,6 +79,47 @@ export default {
 					scope: 'movement',
 					value: -1,
 					sortOrder: 0
+				}
+			]
+		}),
+		condition('Отмеченная цель', 'otmechennaya-cel', 4, {
+			description:
+				'Существо отмечено источником эффекта. Указанные получатели эффекта получают преимущество против отмеченной цели.',
+			durationType: 'until_removed',
+			repeatLevelMode: 'keep_current',
+			repeatDurationMode: 'keep_current',
+			removalMethods: ['remove_source'],
+			effects: [
+				{
+					type: 'dice_pool_modifier',
+					scope: 'attacks',
+					targetScope: 'source_group_against_holder',
+					value: 1,
+					sortOrder: 0
+				},
+				{
+					type: 'special_rule',
+					scope: 'attacks',
+					targetScope: 'source_group_against_holder',
+					value: 1,
+					config: {
+						text: 'Получатели эффекта получают +1 кубик к атакам против отмеченной цели. Конкретная способность может задать отображаемое название, группу получателей и условия снятия.'
+					},
+					sortOrder: 1
+				}
+			],
+			textBlocks: [
+				{
+					kind: 'token',
+					token: 'conditionName',
+					isActive: true,
+					sortOrder: 0
+				},
+				{
+					kind: 'text',
+					text: '\n\nСущество отмечено источником эффекта. Получатели эффекта получают +1 кубик к атакам против отмеченной цели. Конкретное отображаемое название, группа получателей и условия снятия определяются источником состояния.',
+					isActive: true,
+					sortOrder: 1
 				}
 			]
 		}),
@@ -221,6 +281,297 @@ export default {
 					token: 'description',
 					isActive: true,
 					sortOrder: 0
+				}
+			]
+		}),
+		condition('Захвачен', 'zahvachen', 9, {
+			description: grabbedDescription,
+			durationType: 'until_removed',
+			repeatLevelMode: 'keep_highest',
+			repeatDurationMode: 'keep_highest',
+			instanceMode: 'multiple_independent',
+			instanceLimitMode: 'none',
+			maxInstances: 1,
+			instanceOverflowMode: 'reject_new',
+			instanceUniquenessMode: 'holding_part',
+			duplicateInstanceMode: 'reject_duplicate',
+			maxLevel: 5,
+			removalMethods: ['successful_check', 'remove_source'],
+			effects: [
+				{
+					type: 'special_rule',
+					scope: 'movement',
+					value: 1,
+					config: {
+						text: 'Захваченное существо не может самостоятельно увеличить расстояние до источника захвата больше допустимого. Обычное перемещение захваченного существа недоступно, пока захват не прекращён.'
+					},
+					sortOrder: 0
+				}
+			],
+			parameters: [
+				{
+					key: 'source_name',
+					label: 'Источник захвата',
+					type: 'combat_participant',
+					valueSource: 'source',
+					isRequired: true,
+					defaultValue: 'источник захвата',
+					sortOrder: 0
+				},
+				{
+					key: 'holding_part',
+					label: 'Способ удержания',
+					type: 'text',
+					valueSource: 'attack',
+					isRequired: true,
+					defaultValue: 'удерживающая часть или предмет',
+					sortOrder: 1
+				},
+				{
+					key: 'distance_rule',
+					label: 'Правило дистанции',
+					type: 'rule',
+					valueSource: 'attack',
+					isRequired: true,
+					defaultValue:
+						'Цель не может самостоятельно разорвать дистанцию больше допустимого значения.',
+					sortOrder: 2
+				},
+				{
+					key: 'movement_rule',
+					label: 'Правило перемещения',
+					type: 'rule',
+					valueSource: 'attack',
+					isRequired: true,
+					defaultValue:
+						'Обычное перемещение цели недоступно, пока захват не прекращён.',
+					sortOrder: 3
+				},
+				{
+					key: 'escape_rule',
+					label: 'Правило освобождения',
+					type: 'rule_template',
+					valueSource: 'attack',
+					isRequired: true,
+					defaultValue: {
+						template: 'opposed_check',
+						checkName: 'проверка освобождения',
+						potentialCost: 1,
+						difficulty: 1
+					},
+					sortOrder: 4
+				}
+			],
+			textBlocks: [
+				{
+					kind: 'text',
+					text: 'Захват удерживает цель ',
+					isActive: true,
+					sortOrder: 0
+				},
+				{
+					kind: 'token',
+					token: 'ownerName',
+					isActive: true,
+					sortOrder: 1
+				},
+				{
+					kind: 'text',
+					text: '. Источник захвата: ',
+					isActive: true,
+					sortOrder: 2
+				},
+				{
+					kind: 'token',
+					token: 'parameter:source_name',
+					isActive: true,
+					sortOrder: 3
+				},
+				{
+					kind: 'text',
+					text: '. Способ удержания: ',
+					isActive: true,
+					sortOrder: 4
+				},
+				{
+					kind: 'token',
+					token: 'parameter:holding_part',
+					isActive: true,
+					sortOrder: 5
+				},
+				{
+					kind: 'text',
+					text: '. ',
+					isActive: true,
+					sortOrder: 6
+				},
+				{
+					kind: 'token',
+					token: 'parameter:distance_rule',
+					isActive: true,
+					sortOrder: 7
+				},
+				{
+					kind: 'text',
+					text: '. ',
+					isActive: true,
+					sortOrder: 8
+				},
+				{
+					kind: 'token',
+					token: 'parameter:movement_rule',
+					isActive: true,
+					sortOrder: 9
+				},
+				{
+					kind: 'text',
+					text: ' ',
+					isActive: true,
+					sortOrder: 10
+				},
+				{
+					kind: 'token',
+					token: 'parameter:escape_rule',
+					isActive: true,
+					sortOrder: 11
+				}
+			]
+		}),
+		condition('Удерживает', 'uderzhivaet', 10, {
+			description: holdingDescription,
+			durationType: 'until_removed',
+			repeatLevelMode: 'keep_highest',
+			repeatDurationMode: 'keep_highest',
+			maxLevel: 5,
+			removalMethods: ['remove_source'],
+			effects: [
+				{
+					type: 'special_rule',
+					scope: 'all_checks',
+					value: 1,
+					config: {
+						text: 'Указанные части тела или предметы считаются занятыми. Все атаки и действия, требующие занятую часть тела или предмет, недоступны, пока захват не прекращён.'
+					},
+					sortOrder: 0
+				},
+				{
+					type: 'special_rule',
+					scope: 'all_checks',
+					value: 1,
+					config: {
+						text: holdingRuleText
+					},
+					sortOrder: 1
+				},
+				{
+					type: 'special_rule',
+					scope: 'all_checks',
+					value: 1,
+					config: {
+						text: holdingEndText
+					},
+					sortOrder: 2
+				}
+			],
+			parameters: [
+				{
+					key: 'target_name',
+					label: 'Цель захвата',
+					type: 'combat_participant',
+					valueSource: 'target',
+					isRequired: true,
+					defaultValue: 'цель',
+					sortOrder: 0
+				},
+				{
+					key: 'holding_part',
+					label: 'Способ удержания',
+					type: 'text',
+					valueSource: 'attack',
+					isRequired: true,
+					defaultValue: 'удерживающая часть или предмет',
+					sortOrder: 1
+				},
+				{
+					key: 'distance_rule',
+					label: 'Правило дистанции',
+					type: 'rule',
+					valueSource: 'attack',
+					isRequired: true,
+					defaultValue: 'Дистанция захвата определяется источником захвата.',
+					sortOrder: 2
+				},
+				{
+					key: 'movement_rule',
+					label: 'Правило перемещения',
+					type: 'rule',
+					valueSource: 'attack',
+					isRequired: true,
+					defaultValue:
+						'Удерживающий может перемещаться только по правилам источника захвата.',
+					sortOrder: 3
+				}
+			],
+			textBlocks: [
+				{
+					kind: 'text',
+					text: 'Источник захвата ',
+					isActive: true,
+					sortOrder: 0
+				},
+				{
+					kind: 'token',
+					token: 'ownerName',
+					isActive: true,
+					sortOrder: 1
+				},
+				{
+					kind: 'text',
+					text: ' удерживает цель ',
+					isActive: true,
+					sortOrder: 2
+				},
+				{
+					kind: 'token',
+					token: 'parameter:target_name',
+					isActive: true,
+					sortOrder: 3
+				},
+				{
+					kind: 'text',
+					text: '. Способ удержания: ',
+					isActive: true,
+					sortOrder: 4
+				},
+				{
+					kind: 'token',
+					token: 'parameter:holding_part',
+					isActive: true,
+					sortOrder: 5
+				},
+				{
+					kind: 'text',
+					text: '. ',
+					isActive: true,
+					sortOrder: 6
+				},
+				{
+					kind: 'token',
+					token: 'parameter:distance_rule',
+					isActive: true,
+					sortOrder: 7
+				},
+				{
+					kind: 'text',
+					text: '. ',
+					isActive: true,
+					sortOrder: 8
+				},
+				{
+					kind: 'token',
+					token: 'parameter:movement_rule',
+					isActive: true,
+					sortOrder: 9
 				}
 			]
 		})

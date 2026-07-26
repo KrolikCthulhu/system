@@ -11,9 +11,49 @@ import {
 	ValidateNested
 } from 'class-validator';
 
+export class CreatureAttackConditionRefDto {
+	@IsOptional()
+	@IsString()
+	name?: string;
+
+	@IsOptional()
+	@IsString()
+	slug?: string;
+}
+
+export class CreatureAttackAvailabilityRuleDto {
+	@IsIn(['resource_free', 'active_condition'])
+	type!: 'resource_free' | 'active_condition';
+
+	@IsString()
+	label!: string;
+
+	@IsOptional()
+	@IsString()
+	resourceKey?: string;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureAttackConditionRefDto)
+	condition?: CreatureAttackConditionRefDto;
+
+	@IsOptional()
+	@IsString()
+	unavailableText?: string;
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	sortOrder?: number;
+}
+
 export class CreatureNaturalAttackProfileIntentDto {
 	@IsUUID()
 	combatIntentId!: string;
+
+	@IsOptional()
+	@IsString()
+	nameOverride?: string;
 
 	@IsOptional()
 	@IsInt()
@@ -26,6 +66,76 @@ export class CreatureNaturalAttackProfileIntentDto {
 	@IsOptional()
 	@IsString()
 	ruleText?: string;
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CreatureAttackAvailabilityRuleDto)
+	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	sortOrder?: number;
+}
+
+export class CreatureAttackFollowupActionDto {
+	@IsOptional()
+	@IsIn(['release_grab', 'drag_grab', 'shake_grab', 'custom'])
+	kind?: 'release_grab' | 'drag_grab' | 'shake_grab' | 'custom';
+
+	@IsString()
+	name!: string;
+
+	@IsOptional()
+	@IsIn(['fixed', 'per_meter', 'rule'])
+	costMode?: 'fixed' | 'per_meter' | 'rule';
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	costPotential?: number | null;
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	costPerMeter?: number | null;
+
+	@IsOptional()
+	@IsIn(['none', 'base_attack_damage', 'custom'])
+	damageMode?: 'none' | 'base_attack_damage' | 'custom';
+
+	@IsOptional()
+	@IsBoolean()
+	appliesArmor?: boolean;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureAttackConditionRefDto)
+	conditionOnDamage?: CreatureAttackConditionRefDto;
+
+	@IsOptional()
+	@IsInt()
+	@Min(0)
+	conditionLevel?: number;
+
+	@IsOptional()
+	@IsBoolean()
+	keepsGrab?: boolean;
+
+	@IsOptional()
+	@IsString()
+	description?: string;
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CreatureAttackAvailabilityRuleDto)
+	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
+
+	@IsOptional()
+	@IsBoolean()
+	isActive?: boolean;
 
 	@IsOptional()
 	@IsInt()
@@ -68,6 +178,12 @@ export class CreatureNaturalAttackProfileDto {
 
 	@IsOptional()
 	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CreatureAttackAvailabilityRuleDto)
+	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
+
+	@IsOptional()
+	@IsArray()
 	@IsUUID('4', { each: true })
 	damageTypeIds?: string[];
 
@@ -76,6 +192,12 @@ export class CreatureNaturalAttackProfileDto {
 	@ValidateNested({ each: true })
 	@Type(() => CreatureNaturalAttackProfileIntentDto)
 	intents?: CreatureNaturalAttackProfileIntentDto[];
+
+	@IsOptional()
+	@IsArray()
+	@ValidateNested({ each: true })
+	@Type(() => CreatureAttackFollowupActionDto)
+	followupActions?: CreatureAttackFollowupActionDto[];
 
 	@IsOptional()
 	@IsBoolean()

@@ -2,6 +2,7 @@ import { Prisma } from '../__generated__/index.js';
 import type {
 	ContentDocument,
 	CreatureContent,
+	CreatureTierActionContent,
 	WeaponAttackProfileContent
 } from '../content/content-types';
 import { readContent } from './content';
@@ -46,6 +47,7 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 						name: seed.name,
 						typeId: type.id,
 						anatomySchemeId: anatomyScheme?.id ?? null,
+						actions: normalizeTierActions(seed.actions),
 						isActive: true,
 						sortOrder: seed.sortOrder
 					}
@@ -57,6 +59,7 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 						name: seed.name,
 						typeId: type.id,
 						anatomySchemeId: anatomyScheme?.id ?? null,
+						actions: normalizeTierActions(seed.actions),
 						isActive: true,
 						sortOrder: seed.sortOrder
 					}
@@ -113,6 +116,12 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 					hp: tierSeed.hp,
 					sizeId: size.id,
 					armorPresetId: armorPreset.id,
+					attackOverrides: normalizeTierAttackOverrides(
+						tierSeed.attackOverrides
+					),
+					abilities: normalizeTierAbilities(tierSeed.abilities),
+					actions: normalizeTierActions(tierSeed.actions),
+					actionOverrides: normalizeTierActions(tierSeed.actionOverrides),
 					isActive: tierSeed.isActive ?? true,
 					sortOrder: tierSeed.sortOrder ?? tierSeed.tier
 				},
@@ -121,6 +130,12 @@ export async function seedCreatures(tx: Prisma.TransactionClient) {
 					hp: tierSeed.hp,
 					sizeId: size.id,
 					armorPresetId: armorPreset.id,
+					attackOverrides: normalizeTierAttackOverrides(
+						tierSeed.attackOverrides
+					),
+					abilities: normalizeTierAbilities(tierSeed.abilities),
+					actions: normalizeTierActions(tierSeed.actions),
+					actionOverrides: normalizeTierActions(tierSeed.actionOverrides),
 					isActive: tierSeed.isActive ?? true,
 					sortOrder: tierSeed.sortOrder ?? tierSeed.tier
 				}
@@ -265,14 +280,18 @@ async function seedCreatureNaturalAttacks(
 					rangeMeters: profile.rangeMeters,
 					usesAmmo: profile.usesAmmo,
 					canBeParried: profile.canBeParried,
+					availabilityRules: [],
 					damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
 					intents: profile.intentLinks.map(link => ({
 						combatIntentId: link.combatIntentId,
+						nameOverride: '',
 						costModifier: link.costModifier,
 						damageModifier: link.damageModifier,
 						ruleText: link.ruleText ?? '',
+						availabilityRules: [],
 						sortOrder: link.sortOrder
 					})),
+					followupActions: [],
 					isActive: profile.isActive,
 					sortOrder: profile.sortOrder
 				}));
@@ -365,9 +384,13 @@ async function resolveCreatureNaturalAttackProfiles(
 
 			intents.push({
 				combatIntentId: combatIntent.id,
-				costModifier: 0,
-				damageModifier: 0,
-				ruleText: '',
+				nameOverride: intentSeed.nameOverride ?? '',
+				costModifier: intentSeed.costModifier ?? 0,
+				damageModifier: intentSeed.damageModifier ?? 0,
+				ruleText: intentSeed.ruleText ?? '',
+				availabilityRules: normalizeAttackAvailabilityRules(
+					intentSeed.availabilityRules
+				),
 				sortOrder: intentIndex
 			});
 		}
@@ -382,8 +405,36 @@ async function resolveCreatureNaturalAttackProfiles(
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo ?? false,
 			canBeParried: profile.canBeParried ?? profile.kind === 'melee',
+			availabilityRules: normalizeAttackAvailabilityRules(
+				profile.availabilityRules
+			),
 			damageTypeIds,
 			intents,
+			followupActions: (profile.followupActions ?? []).map(
+				(action, actionIndex) => ({
+					kind: action.kind ?? 'custom',
+					name: action.name,
+					costMode: action.costMode ?? 'fixed',
+					costPotential: action.costPotential ?? null,
+					costPerMeter: action.costPerMeter ?? null,
+					damageMode: action.damageMode ?? 'none',
+					appliesArmor: action.appliesArmor ?? false,
+					conditionOnDamage: action.conditionOnDamage
+						? {
+								name: action.conditionOnDamage.name,
+								slug: action.conditionOnDamage.slug
+							}
+						: null,
+					conditionLevel: action.conditionLevel ?? null,
+					keepsGrab: action.keepsGrab ?? true,
+					description: action.description ?? '',
+					availabilityRules: normalizeAttackAvailabilityRules(
+						action.availabilityRules
+					),
+					isActive: action.isActive ?? true,
+					sortOrder: action.sortOrder ?? actionIndex
+				})
+			),
 			isActive: profile.isActive ?? true,
 			sortOrder: profile.sortOrder ?? profileIndex
 		});
@@ -392,8 +443,157 @@ async function resolveCreatureNaturalAttackProfiles(
 	return resolvedProfiles;
 }
 
+function normalizeAttackAvailabilityRules(
+	rules: WeaponAttackProfileContent['availabilityRules']
+) {
+	return (rules ?? []).map((rule, index) => ({
+		type: rule.type,
+		label: rule.label,
+		resourceKey: rule.resourceKey ?? '',
+		condition: rule.condition
+			? {
+					name: rule.condition.name,
+					slug: rule.condition.slug
+				}
+			: null,
+		unavailableText: rule.unavailableText ?? '',
+		sortOrder: rule.sortOrder ?? index
+	}));
+}
+
 function defaultCreatureCharacteristicValue(defaultValue: number): number {
 	return Math.max(1, defaultValue);
+}
+
+function normalizeTierAttackOverrides(
+	overrides: CreatureContent['tiers'][number]['attackOverrides']
+): Prisma.InputJsonValue {
+	return (overrides ?? []).map((override, index) => ({
+		naturalAttack: {
+			name: override.naturalAttack.name,
+			slug: override.naturalAttack.slug
+		},
+		profileKind: override.profileKind ?? null,
+		profileName: override.profileName ?? '',
+		isAvailable: override.isAvailable ?? true,
+		costModifier: override.costModifier ?? 0,
+		damageModifier: override.damageModifier ?? 0,
+		rangeModifier: override.rangeModifier ?? 0,
+		dicePoolModifier: override.dicePoolModifier ?? 0,
+		sortOrder: override.sortOrder ?? index
+	})) as Prisma.InputJsonValue;
+}
+
+function normalizeTierAbilities(
+	abilities: CreatureContent['tiers'][number]['abilities']
+): Prisma.InputJsonValue {
+	return (abilities ?? []).map((ability, index) => ({
+		name: ability.name,
+		costPotential: ability.costPotential ?? null,
+		target: ability.target ?? '',
+		duration: ability.duration ?? '',
+		description: ability.description ?? '',
+		effectText: ability.effectText ?? '',
+		appliesCondition: ability.appliesCondition
+			? {
+					name: ability.appliesCondition.name,
+					slug: ability.appliesCondition.slug
+				}
+			: null,
+		conditionDisplayName: ability.conditionDisplayName ?? '',
+		isActive: ability.isActive ?? true,
+		sortOrder: ability.sortOrder ?? index
+	})) as Prisma.InputJsonValue;
+}
+
+function normalizeTierActions(
+	actions: CreatureTierActionContent[] | undefined
+): Prisma.InputJsonValue {
+	return (actions ?? []).map((action, actionIndex) => ({
+		slug: action.slug,
+		name: action.name,
+		kind: action.kind,
+		source: action.source
+			? {
+					type: action.source.type,
+					name: action.source.name ?? '',
+					slug: action.source.slug ?? '',
+					profileName: action.source.profileName ?? '',
+					intent: action.source.intent
+						? {
+								name: action.source.intent.name,
+								slug: action.source.intent.slug
+							}
+						: null
+				}
+			: null,
+		cost: {
+			mode: action.cost.mode,
+			potential: action.cost.potential ?? null,
+			perMeter: action.cost.perMeter ?? null
+		},
+		target: action.target
+			? {
+					type: action.target.type,
+					visibility: action.target.visibility ?? 'any',
+					description: action.target.description ?? ''
+				}
+			: null,
+		availabilityRules: normalizeAttackAvailabilityRules(
+			action.availabilityRules
+		),
+		roll: action.roll
+			? {
+					type: action.roll.type,
+					characteristic: action.roll.characteristic
+						? {
+								name: action.roll.characteristic.name,
+								slug: action.roll.characteristic.slug
+							}
+						: null,
+					skill: action.roll.skill
+						? {
+								name: action.roll.skill.name,
+								slug: action.roll.skill.slug
+							}
+						: null
+				}
+			: null,
+		defense: action.defense
+			? {
+					type: action.defense.type,
+					canDodge: action.defense.canDodge ?? false,
+					canParry: action.defense.canParry ?? false
+				}
+			: null,
+		effects: (action.effects ?? []).map((effect, effectIndex) => ({
+			type: effect.type,
+			value: effect.value ?? null,
+			damageMode: effect.damageMode ?? null,
+			damageType: effect.damageType
+				? {
+						name: effect.damageType.name,
+						slug: effect.damageType.slug
+					}
+				: null,
+			condition: effect.condition
+				? {
+						name: effect.condition.name,
+						slug: effect.condition.slug
+					}
+				: null,
+			conditionDisplayName: effect.conditionDisplayName ?? '',
+			conditionLevel: effect.conditionLevel ?? null,
+			targetScope: effect.targetScope ?? null,
+			appliesArmor: effect.appliesArmor ?? false,
+			requiresDamageAfterArmor: effect.requiresDamageAfterArmor ?? false,
+			text: effect.text ?? '',
+			sortOrder: effect.sortOrder ?? effectIndex
+		})),
+		playerText: action.playerText ?? '',
+		isActive: action.isActive ?? true,
+		sortOrder: action.sortOrder ?? actionIndex
+	})) as Prisma.InputJsonValue;
 }
 
 async function syncCreatureAnatomyFromScheme(

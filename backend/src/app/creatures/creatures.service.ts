@@ -110,6 +110,7 @@ const creatureSelect = {
 			name: true
 		}
 	},
+	actions: true,
 	anatomyZones: {
 		select: {
 			id: true,
@@ -187,6 +188,10 @@ const creatureSelect = {
 					protection: true
 				}
 			},
+			attackOverrides: true,
+			abilities: true,
+			actions: true,
+			actionOverrides: true,
 			skills: {
 				select: {
 					id: true,
@@ -257,7 +262,8 @@ export class CreaturesService {
 			combatIntents,
 			damageTypes,
 			skills,
-			characteristics
+			characteristics,
+			conditions
 		] = await this.prisma.$transaction([
 			this.prisma.creature.findMany({
 				select: creatureSelect,
@@ -385,6 +391,16 @@ export class CreaturesService {
 					sortOrder: true
 				},
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
+			}),
+			this.prisma.condition.findMany({
+				select: {
+					id: true,
+					slug: true,
+					name: true,
+					isActive: true,
+					sortOrder: true
+				},
+				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			})
 		]);
 
@@ -403,7 +419,8 @@ export class CreaturesService {
 			combatIntents,
 			damageTypes,
 			skills,
-			characteristics
+			characteristics,
+			conditions
 		};
 	}
 
@@ -424,6 +441,9 @@ export class CreaturesService {
 						name: dto.name.trim(),
 						typeId: dto.typeId,
 						anatomySchemeId: dto.anatomySchemeId ?? null,
+						actions: normalizeCreatureTierActions(
+							dto.actions
+						) as Prisma.InputJsonValue,
 						isActive: dto.isActive ?? true,
 						sortOrder: dto.sortOrder ?? 0,
 						tiers: {
@@ -482,6 +502,12 @@ export class CreaturesService {
 						name: dto.name === undefined ? undefined : dto.name.trim(),
 						typeId: dto.typeId,
 						anatomySchemeId: dto.anatomySchemeId,
+						actions:
+							dto.actions === undefined
+								? undefined
+								: (normalizeCreatureTierActions(
+										dto.actions
+									) as Prisma.InputJsonValue),
 						isActive: dto.isActive,
 						sortOrder: dto.sortOrder
 					}
@@ -711,6 +737,18 @@ export class CreaturesService {
 			hp: tier.hp,
 			sizeId: tier.sizeId ?? null,
 			armorPresetId: tier.armorPresetId ?? null,
+			attackOverrides: normalizeCreatureTierAttackOverrides(
+				tier.attackOverrides
+			) as Prisma.InputJsonValue,
+			abilities: normalizeCreatureTierAbilities(
+				tier.abilities
+			) as Prisma.InputJsonValue,
+			actions: normalizeCreatureTierActions(
+				tier.actions
+			) as Prisma.InputJsonValue,
+			actionOverrides: normalizeCreatureTierActions(
+				tier.actionOverrides
+			) as Prisma.InputJsonValue,
 			isActive: tier.isActive ?? true,
 			sortOrder: tier.sortOrder ?? tier.tier,
 			skills: {
@@ -824,14 +862,18 @@ export class CreaturesService {
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo,
 			canBeParried: profile.canBeParried,
+			availabilityRules: [],
 			damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
 			intents: profile.intentLinks.map(link => ({
 				combatIntentId: link.combatIntentId,
+				nameOverride: '',
 				costModifier: link.costModifier,
 				damageModifier: link.damageModifier,
 				ruleText: link.ruleText ?? '',
+				availabilityRules: [],
 				sortOrder: link.sortOrder
 			})),
+			followupActions: [],
 			isActive: profile.isActive,
 			sortOrder: profile.sortOrder
 		}));
@@ -850,14 +892,46 @@ export class CreaturesService {
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo ?? false,
 			canBeParried: profile.canBeParried ?? profile.kind === 'melee',
+			availabilityRules: normalizeAttackAvailabilityRules(
+				profile.availabilityRules
+			),
 			damageTypeIds: profile.damageTypeIds ?? [],
 			intents: (profile.intents ?? []).map((intent, intentIndex) => ({
 				combatIntentId: intent.combatIntentId,
+				nameOverride: intent.nameOverride?.trim() ?? '',
 				costModifier: intent.costModifier ?? 0,
 				damageModifier: intent.damageModifier ?? 0,
 				ruleText: intent.ruleText ?? '',
+				availabilityRules: normalizeAttackAvailabilityRules(
+					intent.availabilityRules
+				),
 				sortOrder: intent.sortOrder ?? intentIndex
 			})),
+			followupActions: (profile.followupActions ?? []).map(
+				(action, actionIndex) => ({
+					kind: action.kind ?? 'custom',
+					name: action.name.trim(),
+					costMode: action.costMode ?? 'fixed',
+					costPotential: action.costPotential ?? null,
+					costPerMeter: action.costPerMeter ?? null,
+					damageMode: action.damageMode ?? 'none',
+					appliesArmor: action.appliesArmor ?? false,
+					conditionOnDamage: action.conditionOnDamage
+						? {
+								name: action.conditionOnDamage.name?.trim() ?? '',
+								slug: action.conditionOnDamage.slug?.trim() ?? ''
+							}
+						: null,
+					conditionLevel: action.conditionLevel ?? null,
+					keepsGrab: action.keepsGrab ?? true,
+					description: action.description?.trim() ?? '',
+					availabilityRules: normalizeAttackAvailabilityRules(
+						action.availabilityRules
+					),
+					isActive: action.isActive ?? true,
+					sortOrder: action.sortOrder ?? actionIndex
+				})
+			),
 			isActive: profile.isActive ?? true,
 			sortOrder: profile.sortOrder ?? index
 		}));
@@ -988,6 +1062,7 @@ export class CreaturesService {
 				isActive: link.isActive,
 				sortOrder: link.sortOrder
 			})),
+			actions: normalizeCreatureTierActions(creature.actions),
 			tiers: creature.tiers.map(tier => ({
 				id: tier.id,
 				tier: tier.tier,
@@ -997,6 +1072,12 @@ export class CreaturesService {
 				size: tier.size,
 				armorPresetId: tier.armorPresetId,
 				armorPreset: tier.armorPreset,
+				attackOverrides: normalizeCreatureTierAttackOverrides(
+					tier.attackOverrides
+				),
+				abilities: normalizeCreatureTierAbilities(tier.abilities),
+				actions: normalizeCreatureTierActions(tier.actions),
+				actionOverrides: normalizeCreatureTierActions(tier.actionOverrides),
 				skills: tier.skills.map(skill => ({
 					id: skill.id,
 					skillId: skill.skillId,
@@ -1033,6 +1114,7 @@ export class CreaturesService {
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo,
 			canBeParried: profile.canBeParried,
+			availabilityRules: [],
 			damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
 			damageTypes: profile.damageTypeLinks.map(link => link.damageType),
 			isActive: profile.isActive,
@@ -1041,11 +1123,439 @@ export class CreaturesService {
 				id: link.id,
 				combatIntentId: link.combatIntentId,
 				combatIntent: link.combatIntent,
+				nameOverride: '',
 				costModifier: link.costModifier,
 				damageModifier: link.damageModifier,
 				ruleText: link.ruleText ?? '',
+				availabilityRules: [],
 				sortOrder: link.sortOrder
-			}))
+			})),
+			followupActions: []
 		};
 	}
+}
+
+function normalizeAttackAvailabilityRules(value: unknown) {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.flatMap((rule, index) => {
+		if (!isRecord(rule)) {
+			return [];
+		}
+
+		const condition = isRecord(rule['condition']) ? rule['condition'] : null;
+
+		return [
+			{
+				type: readAvailabilityRuleType(rule['type']),
+				label: readOptionalString(rule, 'label'),
+				resourceKey: readOptionalString(rule, 'resourceKey'),
+				condition: condition
+					? {
+							name: readOptionalString(condition, 'name'),
+							slug: readOptionalString(condition, 'slug')
+						}
+					: null,
+				unavailableText: readOptionalString(rule, 'unavailableText'),
+				sortOrder: readNumber(rule, 'sortOrder') ?? index
+			}
+		];
+	});
+}
+
+function normalizeCreatureTierAttackOverrides(value: unknown) {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.flatMap((item, index) => {
+		if (!isRecord(item)) {
+			return [];
+		}
+
+		const naturalAttack = isRecord(item['naturalAttack'])
+			? item['naturalAttack']
+			: {};
+
+		return [
+			{
+				naturalAttack: {
+					name: readOptionalString(naturalAttack, 'name'),
+					slug: readOptionalString(naturalAttack, 'slug')
+				},
+				profileKind: readProfileKind(item['profileKind']),
+				profileName: readOptionalString(item, 'profileName'),
+				isAvailable: readBoolean(item, 'isAvailable') ?? true,
+				costModifier: readNumber(item, 'costModifier') ?? 0,
+				damageModifier: readNumber(item, 'damageModifier') ?? 0,
+				rangeModifier: readNumber(item, 'rangeModifier') ?? 0,
+				dicePoolModifier: readNumber(item, 'dicePoolModifier') ?? 0,
+				sortOrder: readNumber(item, 'sortOrder') ?? index
+			}
+		];
+	});
+}
+
+function normalizeCreatureTierAbilities(value: unknown) {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.flatMap((item, index) => {
+		if (!isRecord(item)) {
+			return [];
+		}
+
+		const appliesCondition = isRecord(item['appliesCondition'])
+			? item['appliesCondition']
+			: null;
+
+		return [
+			{
+				name: readOptionalString(item, 'name'),
+				costPotential: readNumber(item, 'costPotential'),
+				target: readOptionalString(item, 'target'),
+				duration: readOptionalString(item, 'duration'),
+				description: readOptionalString(item, 'description'),
+				effectText: readOptionalString(item, 'effectText'),
+				appliesCondition: appliesCondition
+					? {
+							name: readOptionalString(appliesCondition, 'name'),
+							slug: readOptionalString(appliesCondition, 'slug')
+						}
+					: null,
+				conditionDisplayName: readOptionalString(item, 'conditionDisplayName'),
+				isActive: readBoolean(item, 'isActive') ?? true,
+				sortOrder: readNumber(item, 'sortOrder') ?? index
+			}
+		];
+	});
+}
+
+function normalizeCreatureTierActions(value: unknown) {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.flatMap((item, index) => {
+		if (!isRecord(item)) {
+			return [];
+		}
+
+		return [
+			{
+				slug: readOptionalString(item, 'slug'),
+				name: readOptionalString(item, 'name'),
+				kind: readActionKind(item['kind']),
+				source: normalizeCreatureActionSource(item['source']),
+				cost: normalizeCreatureActionCost(item['cost']),
+				target: normalizeCreatureActionTarget(item['target']),
+				availabilityRules: normalizeAttackAvailabilityRules(
+					item['availabilityRules']
+				),
+				roll: normalizeCreatureActionRoll(item['roll']),
+				defense: normalizeCreatureActionDefense(item['defense']),
+				effects: normalizeCreatureActionEffects(item['effects']),
+				playerText: readOptionalString(item, 'playerText'),
+				isActive: readBoolean(item, 'isActive') ?? true,
+				sortOrder: readNumber(item, 'sortOrder') ?? index
+			}
+		];
+	});
+}
+
+function normalizeCreatureActionSource(value: unknown) {
+	if (!isRecord(value)) {
+		return null;
+	}
+
+	const intent = isRecord(value['intent']) ? value['intent'] : null;
+
+	return {
+		type: readActionSourceType(value['type']),
+		name: readOptionalString(value, 'name'),
+		slug: readOptionalString(value, 'slug'),
+		profileName: readOptionalString(value, 'profileName'),
+		intent: intent
+			? {
+					name: readOptionalString(intent, 'name'),
+					slug: readOptionalString(intent, 'slug')
+				}
+			: null
+	};
+}
+
+function normalizeCreatureActionCost(value: unknown) {
+	if (!isRecord(value)) {
+		return {
+			mode: 'free',
+			potential: null,
+			perMeter: null
+		};
+	}
+
+	return {
+		mode: readActionCostMode(value['mode']),
+		potential: readNumber(value, 'potential'),
+		perMeter: readNumber(value, 'perMeter')
+	};
+}
+
+function normalizeCreatureActionTarget(value: unknown) {
+	if (!isRecord(value)) {
+		return null;
+	}
+
+	return {
+		type: readActionTargetType(value['type']),
+		visibility: readActionTargetVisibility(value['visibility']),
+		description: readOptionalString(value, 'description')
+	};
+}
+
+function normalizeCreatureActionRoll(value: unknown) {
+	if (!isRecord(value)) {
+		return null;
+	}
+
+	const characteristic = isRecord(value['characteristic'])
+		? value['characteristic']
+		: null;
+	const skill = isRecord(value['skill']) ? value['skill'] : null;
+
+	return {
+		type: readActionRollType(value['type']),
+		characteristic: characteristic
+			? {
+					name: readOptionalString(characteristic, 'name'),
+					slug: readOptionalString(characteristic, 'slug')
+				}
+			: null,
+		skill: skill
+			? {
+					name: readOptionalString(skill, 'name'),
+					slug: readOptionalString(skill, 'slug')
+				}
+			: null
+	};
+}
+
+function normalizeCreatureActionDefense(value: unknown) {
+	if (!isRecord(value)) {
+		return null;
+	}
+
+	return {
+		type: readActionDefenseType(value['type']),
+		canDodge: readBoolean(value, 'canDodge') ?? false,
+		canParry: readBoolean(value, 'canParry') ?? false
+	};
+}
+
+function normalizeCreatureActionEffects(value: unknown) {
+	if (!Array.isArray(value)) {
+		return [];
+	}
+
+	return value.flatMap((item, index) => {
+		if (!isRecord(item)) {
+			return [];
+		}
+
+		const damageType = isRecord(item['damageType']) ? item['damageType'] : null;
+		const condition = isRecord(item['condition']) ? item['condition'] : null;
+
+		return [
+			{
+				type: readActionEffectType(item['type']),
+				value: readNumber(item, 'value'),
+				damageMode: readDamageMode(item['damageMode']),
+				damageType: damageType
+					? {
+							name: readOptionalString(damageType, 'name'),
+							slug: readOptionalString(damageType, 'slug')
+						}
+					: null,
+				condition: condition
+					? {
+							name: readOptionalString(condition, 'name'),
+							slug: readOptionalString(condition, 'slug')
+						}
+					: null,
+				conditionDisplayName: readOptionalString(item, 'conditionDisplayName'),
+				conditionLevel: readNumber(item, 'conditionLevel'),
+				targetScope: readEffectTargetScope(item['targetScope']),
+				appliesArmor: readBoolean(item, 'appliesArmor') ?? false,
+				requiresDamageAfterArmor:
+					readBoolean(item, 'requiresDamageAfterArmor') ?? false,
+				text: readOptionalString(item, 'text'),
+				sortOrder: readNumber(item, 'sortOrder') ?? index
+			}
+		];
+	});
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readOptionalString(
+	value: Record<string, unknown>,
+	key: string
+): string {
+	const field = value[key];
+	return typeof field === 'string' ? field.trim() : '';
+}
+
+function readNumber(
+	value: Record<string, unknown>,
+	key: string
+): number | null {
+	const field = value[key];
+	return typeof field === 'number' && Number.isFinite(field) ? field : null;
+}
+
+function readBoolean(
+	value: Record<string, unknown>,
+	key: string
+): boolean | null {
+	const field = value[key];
+	return typeof field === 'boolean' ? field : null;
+}
+
+function readProfileKind(value: unknown): 'melee' | 'ranged' | null {
+	return value === 'melee' || value === 'ranged' ? value : null;
+}
+
+function readAvailabilityRuleType(
+	value: unknown
+): 'resource_free' | 'active_condition' {
+	return value === 'resource_free' || value === 'active_condition'
+		? value
+		: 'resource_free';
+}
+
+function readActionKind(
+	value: unknown
+): 'attack' | 'grab_action' | 'active_ability' | 'reaction' | 'passive' {
+	return value === 'attack' ||
+		value === 'grab_action' ||
+		value === 'active_ability' ||
+		value === 'reaction' ||
+		value === 'passive'
+		? value
+		: 'active_ability';
+}
+
+function readActionSourceType(
+	value: unknown
+): 'natural_attack' | 'weapon' | 'condition' | 'ability' | 'custom' {
+	return value === 'natural_attack' ||
+		value === 'weapon' ||
+		value === 'condition' ||
+		value === 'ability' ||
+		value === 'custom'
+		? value
+		: 'custom';
+}
+
+function readActionCostMode(
+	value: unknown
+): 'free' | 'fixed' | 'per_meter' | 'rule' {
+	return value === 'free' ||
+		value === 'fixed' ||
+		value === 'per_meter' ||
+		value === 'rule'
+		? value
+		: 'free';
+}
+
+function readActionTargetType(
+	value: unknown
+):
+	| 'self'
+	| 'creature'
+	| 'hostile_creature'
+	| 'held_target'
+	| 'marked_target'
+	| 'none' {
+	return value === 'self' ||
+		value === 'creature' ||
+		value === 'hostile_creature' ||
+		value === 'held_target' ||
+		value === 'marked_target' ||
+		value === 'none'
+		? value
+		: 'none';
+}
+
+function readActionTargetVisibility(value: unknown): 'visible' | 'any' {
+	return value === 'visible' || value === 'any' ? value : 'any';
+}
+
+function readActionRollType(
+	value: unknown
+): 'none' | 'attack_profile' | 'check' {
+	return value === 'none' || value === 'attack_profile' || value === 'check'
+		? value
+		: 'none';
+}
+
+function readActionDefenseType(
+	value: unknown
+): 'none' | 'target_physical_defense' {
+	return value === 'none' || value === 'target_physical_defense'
+		? value
+		: 'none';
+}
+
+function readActionEffectType(
+	value: unknown
+):
+	| 'damage'
+	| 'apply_condition'
+	| 'remove_condition'
+	| 'create_grab'
+	| 'release_grab'
+	| 'move_with_grab'
+	| 'dice_pool_modifier'
+	| 'special_rule' {
+	return value === 'damage' ||
+		value === 'apply_condition' ||
+		value === 'remove_condition' ||
+		value === 'create_grab' ||
+		value === 'release_grab' ||
+		value === 'move_with_grab' ||
+		value === 'dice_pool_modifier' ||
+		value === 'special_rule'
+		? value
+		: 'special_rule';
+}
+
+function readDamageMode(
+	value: unknown
+): 'clean_successes' | 'clean_successes_plus_base' | 'base_damage' | null {
+	return value === 'clean_successes' ||
+		value === 'clean_successes_plus_base' ||
+		value === 'base_damage'
+		? value
+		: null;
+}
+
+function readEffectTargetScope(
+	value: unknown
+):
+	| 'holder'
+	| 'source_against_holder'
+	| 'source_group_against_holder'
+	| 'all_creatures_against_holder'
+	| null {
+	return value === 'holder' ||
+		value === 'source_against_holder' ||
+		value === 'source_group_against_holder' ||
+		value === 'all_creatures_against_holder'
+		? value
+		: null;
 }

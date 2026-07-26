@@ -2,6 +2,13 @@ import {
 	ConditionDurationType,
 	ConditionEffectScope,
 	ConditionEffectType,
+	ConditionApplicationCondition,
+	ConditionDuplicateInstanceMode,
+	ConditionInstanceLimitMode,
+	ConditionInstanceMode,
+	ConditionInstanceOverflowMode,
+	ConditionInstanceUniquenessMode,
+	ConditionParameter,
 	ConditionRepeatDurationMode,
 	ConditionRepeatLevelMode,
 	ConditionRemovalMethod,
@@ -25,9 +32,17 @@ export interface ConditionDto {
 	durationType: ConditionDurationType;
 	repeatLevelMode: ConditionRepeatLevelMode;
 	repeatDurationMode: ConditionRepeatDurationMode;
+	instanceMode: ConditionInstanceMode;
+	instanceLimitMode: ConditionInstanceLimitMode;
+	maxInstances: number;
+	instanceOverflowMode: ConditionInstanceOverflowMode;
+	instanceUniquenessMode: ConditionInstanceUniquenessMode;
+	duplicateInstanceMode: ConditionDuplicateInstanceMode;
 	maxLevel: number;
 	removalMethods: ConditionRemovalMethod[];
 	effects: ConditionEffectDto[];
+	applicationConditions: ConditionApplicationCondition[];
+	parameters: ConditionParameter[];
 	textBlocks: ConditionTextBlockDto[];
 	isActive: boolean;
 	sortOrder: number;
@@ -59,9 +74,17 @@ export interface CreateConditionDto {
 	durationType?: ConditionDurationType;
 	repeatLevelMode?: ConditionRepeatLevelMode;
 	repeatDurationMode?: ConditionRepeatDurationMode;
+	instanceMode?: ConditionInstanceMode;
+	instanceLimitMode?: ConditionInstanceLimitMode;
+	maxInstances?: number;
+	instanceOverflowMode?: ConditionInstanceOverflowMode;
+	instanceUniquenessMode?: ConditionInstanceUniquenessMode;
+	duplicateInstanceMode?: ConditionDuplicateInstanceMode;
 	maxLevel?: number;
 	removalMethods?: ConditionRemovalMethod[];
 	effects?: ConditionEffectDto[];
+	applicationConditions?: ConditionApplicationCondition[];
+	parameters?: ConditionParameter[];
 	textBlocks?: ConditionTextBlock[];
 	isActive?: boolean;
 	sortOrder?: number;
@@ -73,9 +96,17 @@ export interface UpdateConditionDto {
 	durationType?: ConditionDurationType;
 	repeatLevelMode?: ConditionRepeatLevelMode;
 	repeatDurationMode?: ConditionRepeatDurationMode;
+	instanceMode?: ConditionInstanceMode;
+	instanceLimitMode?: ConditionInstanceLimitMode;
+	maxInstances?: number;
+	instanceOverflowMode?: ConditionInstanceOverflowMode;
+	instanceUniquenessMode?: ConditionInstanceUniquenessMode;
+	duplicateInstanceMode?: ConditionDuplicateInstanceMode;
 	maxLevel?: number;
 	removalMethods?: ConditionRemovalMethod[];
 	effects?: ConditionEffectDto[];
+	applicationConditions?: ConditionApplicationCondition[];
+	parameters?: ConditionParameter[];
 	textBlocks?: ConditionTextBlock[];
 	isActive?: boolean;
 	sortOrder?: number;

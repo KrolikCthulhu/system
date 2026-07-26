@@ -680,21 +680,29 @@ model DamageType {
 }
 
 model Condition {
-  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  slug               String   @unique @default(cuid())
-  name               String   @unique
-  description        String?
-  durationType       String   @default("until_owner_next_activation") @map("duration_type")
-  repeatLevelMode    String   @default("keep_highest") @map("repeat_level_mode")
-  repeatDurationMode String   @default("keep_highest") @map("repeat_duration_mode")
-  maxLevel           Int      @default(1) @map("max_level")
-  removalMethods     Json     @default("[]") @map("removal_methods")
-  effects            Json     @default("[]")
-  textBlocks         Json     @default("[]") @map("text_blocks")
-  isActive           Boolean  @default(true) @map("is_active")
-  sortOrder          Int      @default(0) @map("sort_order")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  slug                   String   @unique @default(cuid())
+  name                   String   @unique
+  description            String?
+  durationType           String   @default("until_owner_next_activation") @map("duration_type")
+  repeatLevelMode        String   @default("keep_highest") @map("repeat_level_mode")
+  repeatDurationMode     String   @default("keep_highest") @map("repeat_duration_mode")
+  instanceMode           String   @default("single") @map("instance_mode")
+  instanceLimitMode      String   @default("fixed") @map("instance_limit_mode")
+  maxInstances           Int      @default(1) @map("max_instances")
+  instanceOverflowMode   String   @default("reject_new") @map("instance_overflow_mode")
+  instanceUniquenessMode String   @default("none") @map("instance_uniqueness_mode")
+  duplicateInstanceMode  String   @default("update_existing") @map("duplicate_instance_mode")
+  maxLevel               Int      @default(1) @map("max_level")
+  removalMethods         Json     @default("[]") @map("removal_methods")
+  effects                Json     @default("[]")
+  applicationConditions  Json     @default("[]") @map("application_conditions")
+  parameters             Json     @default("[]")
+  textBlocks             Json     @default("[]") @map("text_blocks")
+  isActive               Boolean  @default(true) @map("is_active")
+  sortOrder              Int      @default(0) @map("sort_order")
+  createdAt              DateTime @default(now()) @map("created_at")
+  updatedAt              DateTime @updatedAt @map("updated_at")
 
   magicWordLinks                 MagicWordConditionLink[]
   spellMechanicParameterDefaults SpellMechanicParameter[]
@@ -1036,6 +1044,7 @@ model Creature {
   type               CreatureType                 @relation(fields: [typeId], references: [id], onDelete: Restrict)
   anatomySchemeId    String?                      @map("anatomy_scheme_id") @db.Uuid
   anatomyScheme      AnatomyScheme?               @relation(fields: [anatomySchemeId], references: [id], onDelete: SetNull)
+  actions            Json                         @default("[]")
   tiers              CreatureTier[]
   anatomyZones       CreatureAnatomyZone[]
   naturalAttackLinks CreatureNaturalAttack[]
@@ -1156,6 +1165,10 @@ model CreatureTier {
   size               CreatureSize?                @relation(fields: [sizeId], references: [id], onDelete: SetNull)
   armorPresetId      String?                      @map("armor_preset_id") @db.Uuid
   armorPreset        ArmorPreset?                 @relation(fields: [armorPresetId], references: [id], onDelete: SetNull)
+  attackOverrides    Json                         @default("[]") @map("attack_overrides")
+  abilities          Json                         @default("[]")
+  actions            Json                         @default("[]")
+  actionOverrides    Json                         @default("[]") @map("action_overrides")
   skills             CreatureTierSkill[]
   characteristics    CreatureTierCharacteristic[]
   combatParticipants CombatEncounterParticipant[]

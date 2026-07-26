@@ -19,26 +19,35 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
 import { Select } from 'primeng/select';
+import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
+import { TableModule } from 'primeng/table';
 import { Tag } from 'primeng/tag';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
 import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import { CREATURES_REPOSITORY } from '../../../data/creatures-repository.port';
+import { CreatureTierActionsEditorComponent } from '../../components/creature-tier-actions-editor/creature-tier-actions-editor.component';
 import {
 	Creature,
 	CreatureAnatomySchemeOption,
 	CreatureAnatomyZone,
 	CreatureAnatomyZoneKind,
 	CreatureArmorPresetOption,
+	CreatureAttackAvailabilityRule,
+	CreatureAttackFollowupAction,
 	CreatureAttackProfileKind,
 	CreatureCharacteristicOption,
 	CreatureCombatIntentOption,
+	CreatureConditionOption,
 	CreatureDamageTypeOption,
 	CreatureNaturalAttackOption,
 	CreatureNaturalAttackProfile,
 	CreatureSizeOption,
 	CreatureSkillOptionGroup,
 	CreatureSkillOption,
+	CreatureTierAbility,
+	CreatureTierAction,
+	CreatureTierAttackOverride,
 	CreatureTypeOption
 } from '../../../domain/creatures.models';
 
@@ -48,6 +57,10 @@ interface CreatureTierDraft {
 	hp: number;
 	sizeId: string | null;
 	armorPresetId: string | null;
+	attackOverrides: CreatureTierAttackOverride[];
+	abilities: CreatureTierAbility[];
+	actions: CreatureTierAction[];
+	actionOverrides: CreatureTierAction[];
 	characteristics: CreatureTierCharacteristicDraft[];
 	skills: CreatureTierSkillDraft[];
 	isActive: boolean;
@@ -71,6 +84,7 @@ interface CreatureDraft {
 	anatomySchemeId: string | null;
 	anatomyZones: CreatureAnatomyZone[];
 	naturalAttacks: CreatureNaturalAttackDraft[];
+	actions: CreatureTierAction[];
 	tiers: CreatureTierDraft[];
 	isActive: boolean;
 	sortOrder: number;
@@ -93,9 +107,21 @@ interface CreatureNaturalAttackProfileDraft {
 	rangeMeters: number;
 	usesAmmo: boolean;
 	canBeParried: boolean;
+	availabilityRules: CreatureAttackAvailabilityRule[];
 	damageTypeIds: string[];
-	combatIntentIds: string[];
+	intents: CreatureNaturalAttackProfileIntentDraft[];
+	followupActions: CreatureAttackFollowupAction[];
 	isActive: boolean;
+	sortOrder: number;
+}
+
+interface CreatureNaturalAttackProfileIntentDraft {
+	combatIntentId: string;
+	nameOverride: string;
+	costModifier: number;
+	damageModifier: number;
+	ruleText: string;
+	availabilityRules: CreatureAttackAvailabilityRule[];
 	sortOrder: number;
 }
 
@@ -103,6 +129,17 @@ interface CreatureAnatomyZoneViewItem {
 	zone: CreatureAnatomyZone;
 	index: number;
 	children: CreatureAnatomyZoneViewItem[];
+}
+
+interface CreatureTierAttackProfileOption {
+	label: string;
+	value: string;
+	naturalAttack: {
+		name: string;
+		slug: string;
+	};
+	profileKind: CreatureAttackProfileKind;
+	profileName: string;
 }
 
 interface CreatureAnatomyZoneViewGroup {
@@ -115,6 +152,8 @@ interface SelectOption<TValue extends string> {
 	label: string;
 	value: TValue;
 }
+
+type ActivityFilter = 'all' | 'active' | 'inactive';
 
 interface CreatureCombatIntentGroup {
 	label: string;
@@ -152,8 +191,15 @@ const ANATOMY_ZONE_KIND_OPTIONS: SelectOption<CreatureAnatomyZoneKind>[] = [
 		InputNumber,
 		InputText,
 		Select,
+		Tab,
+		TabList,
+		TabPanel,
+		TabPanels,
+		Tabs,
+		TableModule,
 		Tag,
 		ToggleSwitch,
+		CreatureTierActionsEditorComponent,
 		EditorActionsBarComponent
 	],
 	templateUrl: './admin-creatures-page.component.html',
@@ -175,6 +221,9 @@ export class AdminCreaturesPageComponent {
 	protected readonly anatomyZoneKindOptions = ANATOMY_ZONE_KIND_OPTIONS;
 	protected readonly selectedCreatureId = signal<string | null>(null);
 	protected readonly searchQuery = signal('');
+	protected readonly selectedTypeId = signal('');
+	protected readonly selectedAnatomySchemeId = signal('');
+	protected readonly selectedActivity = signal<ActivityFilter>('all');
 	protected readonly creatures = signal<Creature[]>([]);
 	protected readonly creatureTypes = signal<CreatureTypeOption[]>([]);
 	protected readonly creatureSizes = signal<CreatureSizeOption[]>([]);
@@ -183,6 +232,7 @@ export class AdminCreaturesPageComponent {
 	protected readonly naturalAttacks = signal<CreatureNaturalAttackOption[]>([]);
 	protected readonly combatIntents = signal<CreatureCombatIntentOption[]>([]);
 	protected readonly damageTypes = signal<CreatureDamageTypeOption[]>([]);
+	protected readonly conditions = signal<CreatureConditionOption[]>([]);
 	protected readonly skills = signal<CreatureSkillOption[]>([]);
 	protected readonly characteristics = signal<CreatureCharacteristicOption[]>(
 		[]
@@ -192,22 +242,37 @@ export class AdminCreaturesPageComponent {
 	protected readonly loading = signal(true);
 	protected readonly saving = signal(false);
 	protected readonly errorMessage = signal<string | null>(null);
+	protected readonly detailTab = signal('main');
+	protected readonly selectedTierTab = signal('1');
+	protected readonly selectedTierSectionTab = signal('main');
 	protected readonly isAnatomyExpanded = signal(false);
 	protected readonly expandedTierKeys = signal<Set<number>>(new Set([1]));
 
-	protected readonly hasChanges = computed(
-		() => draftSignature(this.draft()) !== this.savedDraftSignature()
-	);
+	protected readonly hasChanges = computed(() => {
+		const draft = this.draft();
+		return draft ? draftSignature(draft) !== this.savedDraftSignature() : false;
+	});
 	protected readonly selectedCreature = computed(() => {
 		const id = this.selectedCreatureId();
 		return id ? (this.creatures().find(item => item.id === id) ?? null) : null;
 	});
 	protected readonly filteredCreatures = computed(() => {
 		const query = this.searchQuery().trim().toLowerCase();
+		const typeId = this.selectedTypeId();
+		const anatomySchemeId = this.selectedAnatomySchemeId();
+		const activity = this.selectedActivity();
 		return this.creatures()
 			.filter(item => {
-				const haystack = `${item.name} ${item.type.name}`.toLowerCase();
-				return !query || haystack.includes(query);
+				const haystack =
+					`${item.name} ${item.type.name} ${item.anatomyScheme?.name ?? ''}`.toLowerCase();
+				const matchesQuery = !query || haystack.includes(query);
+				const matchesType = !typeId || item.typeId === typeId;
+				const matchesAnatomy =
+					!anatomySchemeId || item.anatomySchemeId === anatomySchemeId;
+				const matchesActivity =
+					activity === 'all' ||
+					(activity === 'active' ? item.isActive : !item.isActive);
+				return matchesQuery && matchesType && matchesAnatomy && matchesActivity;
 			})
 			.sort((first, second) => {
 				const orderDiff = first.sortOrder - second.sortOrder;
@@ -218,8 +283,49 @@ export class AdminCreaturesPageComponent {
 		const draft = this.draft();
 		return draft?.id ? draft.name || 'Существо' : 'Новое существо';
 	});
+	protected readonly listTitle = computed(() => {
+		const count = this.filteredCreatures().length;
+		return count ? `Бестиарий · ${count}` : 'Бестиарий';
+	});
+	protected readonly typeFilterOptions = computed(() => [
+		{ label: 'Все типы', value: '' },
+		...this.creatureTypes().map(type => ({
+			label: type.name,
+			value: type.id
+		}))
+	]);
+	protected readonly anatomyFilterOptions = computed(() => [
+		{ label: 'Все схемы', value: '' },
+		...this.anatomySchemes().map(scheme => ({
+			label: scheme.name,
+			value: scheme.id
+		}))
+	]);
+	protected readonly activityFilterOptions: SelectOption<ActivityFilter>[] = [
+		{ label: 'Все', value: 'all' },
+		{ label: 'Активные', value: 'active' },
+		{ label: 'Выключенные', value: 'inactive' }
+	];
 	protected readonly skillOptionGroups = computed(() =>
 		createSkillOptionGroups(this.skills())
+	);
+	protected readonly skillsById = computed(
+		() => new Map(this.skills().map(skill => [skill.id, skill]))
+	);
+	protected readonly characteristicsById = computed(
+		() =>
+			new Map(
+				this.characteristics().map(characteristic => [
+					characteristic.id,
+					characteristic
+				])
+			)
+	);
+	protected readonly creatureSizesById = computed(
+		() => new Map(this.creatureSizes().map(size => [size.id, size]))
+	);
+	protected readonly armorPresetsById = computed(
+		() => new Map(this.armorPresets().map(armor => [armor.id, armor]))
 	);
 	protected readonly combatIntentGroups = computed<CreatureCombatIntentGroup[]>(
 		() => createCombatIntentGroups(this.combatIntents())
@@ -227,6 +333,32 @@ export class AdminCreaturesPageComponent {
 	protected readonly anatomyZoneGroups = computed<
 		CreatureAnatomyZoneViewGroup[]
 	>(() => buildCreatureAnatomyZoneGroups(this.draft()?.anatomyZones ?? []));
+	protected readonly tierAttackProfileOptions = computed(() =>
+		createTierAttackProfileOptions(this.draft(), this.naturalAttacks())
+	);
+	protected readonly tierSkillOptionsByKey = computed(() =>
+		createTierSkillOptionsByKey(
+			this.draft()?.tiers ?? [],
+			this.skillOptionGroups()
+		)
+	);
+	protected readonly effectiveTierActionsByTier = computed(() => {
+		const draft = this.draft();
+		const result = new Map<number, CreatureTierAction[]>();
+
+		if (!draft) {
+			return result;
+		}
+
+		for (const tier of draft.tiers) {
+			result.set(
+				tier.tier,
+				mergeCreatureActions(draft.actions, tier.actionOverrides)
+			);
+		}
+
+		return result;
+	});
 
 	constructor() {
 		this.loadCatalog();
@@ -234,6 +366,25 @@ export class AdminCreaturesPageComponent {
 
 	protected setSearchQuery(query: string) {
 		this.searchQuery.set(query);
+	}
+
+	protected resetListFilters() {
+		this.searchQuery.set('');
+		this.selectedTypeId.set('');
+		this.selectedAnatomySchemeId.set('');
+		this.selectedActivity.set('all');
+	}
+
+	protected creatureAttackCount(creature: Creature): number {
+		return creature.naturalAttacks.filter(attack => attack.isActive).length;
+	}
+
+	protected creatureActionCount(creature: Creature): number {
+		return creature.actions.filter(action => action.isActive).length;
+	}
+
+	protected creatureTierCount(creature: Creature): number {
+		return creature.tiers.filter(tier => tier.isActive).length;
 	}
 
 	protected selectCreature(creature: Creature) {
@@ -248,6 +399,21 @@ export class AdminCreaturesPageComponent {
 		});
 	}
 
+	protected closeCreatureDetail() {
+		const close = () => {
+			this.selectedCreatureId.set(null);
+			this.draft.set(null);
+			this.savedDraftSignature.set('');
+			this.errorMessage.set(null);
+		};
+
+		this.unsavedChangesGuard.confirmDiscard({
+			hasChanges: this.hasChanges(),
+			discard: close,
+			proceed: close
+		});
+	}
+
 	protected createCreature() {
 		this.unsavedChangesGuard.confirmDiscard({
 			hasChanges: this.hasChanges(),
@@ -257,8 +423,34 @@ export class AdminCreaturesPageComponent {
 				this.selectedCreatureId.set(null);
 				this.draft.set(draft);
 				this.savedDraftSignature.set(draftSignature(draft));
+				this.detailTab.set('main');
+				this.selectedTierTab.set('1');
+				this.selectedTierSectionTab.set('main');
 			}
 		});
+	}
+
+	protected setDetailTab(value: string | number | undefined) {
+		if (value !== undefined) {
+			this.detailTab.set(String(value));
+		}
+	}
+
+	protected setSelectedTierTab(value: string | number | undefined) {
+		if (value !== undefined) {
+			this.selectedTierTab.set(String(value));
+			this.selectedTierSectionTab.set('main');
+		}
+	}
+
+	protected setSelectedTierSectionTab(value: string | number | undefined) {
+		if (value !== undefined) {
+			this.selectedTierSectionTab.set(String(value));
+		}
+	}
+
+	protected tierTabValue(tier: number): string {
+		return String(tier);
 	}
 
 	protected updateDraftName(name: string) {
@@ -365,10 +557,39 @@ export class AdminCreaturesPageComponent {
 		}
 
 		this.updateNaturalAttackProfile(naturalAttackId, profileIndex, {
-			combatIntentIds: checked
-				? [...profile.combatIntentIds, combatIntentId]
-				: profile.combatIntentIds.filter(id => id !== combatIntentId)
+			intents: checked
+				? [
+						...profile.intents,
+						{
+							combatIntentId,
+							nameOverride: '',
+							costModifier: 0,
+							damageModifier: 0,
+							ruleText: '',
+							availabilityRules: [],
+							sortOrder: profile.intents.length
+						}
+					]
+				: profile.intents.filter(
+						intent => intent.combatIntentId !== combatIntentId
+					)
 		});
+	}
+
+	protected hasNaturalAttackProfileIntent(
+		profile: CreatureNaturalAttackProfileDraft,
+		combatIntentId: string
+	) {
+		return profile.intents.some(
+			intent => intent.combatIntentId === combatIntentId
+		);
+	}
+
+	protected attackAvailabilityText(rules: CreatureAttackAvailabilityRule[]) {
+		return rules
+			.sort((first, second) => first.sortOrder - second.sortOrder)
+			.map(rule => rule.unavailableText || rule.label)
+			.join('; ');
 	}
 
 	protected toggleAnatomyExpanded() {
@@ -436,6 +657,26 @@ export class AdminCreaturesPageComponent {
 
 	protected updateTierArmor(tier: number, armorPresetId: string | null) {
 		this.patchTier(tier, { armorPresetId });
+	}
+
+	protected updateBaseActions(actions: CreatureTierAction[]) {
+		this.patchDraft({ actions });
+	}
+
+	protected effectiveTierActions(
+		tier: CreatureTierDraft
+	): CreatureTierAction[] {
+		return this.effectiveTierActionsByTier().get(tier.tier) ?? [];
+	}
+
+	protected updateTierActionOverrides(
+		tier: CreatureTierDraft,
+		actions: CreatureTierAction[]
+	) {
+		const baseActions = this.draft()?.actions ?? [];
+		this.patchTier(tier.tier, {
+			actionOverrides: createTierActionOverrides(baseActions, actions)
+		});
 	}
 
 	protected updateTierCharacteristic(
@@ -527,17 +768,11 @@ export class AdminCreaturesPageComponent {
 		tier: CreatureTierDraft,
 		currentSkillId: string
 	): CreatureSkillOptionGroup[] {
-		const selectedSkillIds = new Set(
-			tier.skills
-				.map(skill => skill.skillId)
-				.filter(skillId => skillId !== currentSkillId)
+		return (
+			this.tierSkillOptionsByKey().get(
+				createTierSkillOptionsKey(tier.tier, currentSkillId)
+			) ?? this.skillOptionGroups()
 		);
-		return this.skillOptionGroups()
-			.map(group => ({
-				label: group.label,
-				items: group.items.filter(skill => !selectedSkillIds.has(skill.id))
-			}))
-			.filter(group => group.items.length > 0);
 	}
 
 	protected resetDraft() {
@@ -626,22 +861,23 @@ export class AdminCreaturesPageComponent {
 						rangeMeters: profile.rangeMeters,
 						usesAmmo: profile.usesAmmo,
 						canBeParried: profile.canBeParried,
+						availabilityRules: profile.availabilityRules,
 						damageTypeIds: profile.damageTypeIds,
-						intents: profile.combatIntentIds.map(
-							(combatIntentId, intentIndex) => ({
-								combatIntentId,
-								costModifier: 0,
-								damageModifier: 0,
-								ruleText: '',
-								sortOrder: intentIndex
-							})
-						),
+						intents: profile.intents.map((intent, intentIndex) => ({
+							...intent,
+							sortOrder: intent.sortOrder ?? intentIndex
+						})),
+						followupActions: profile.followupActions,
 						isActive: profile.isActive,
 						sortOrder: profile.sortOrder ?? profileIndex
 					})
 				),
 				isActive: naturalAttack.isActive,
 				sortOrder: naturalAttack.sortOrder ?? sortOrder
+			})),
+			actions: draft.actions.map((action, actionIndex) => ({
+				...action,
+				sortOrder: action.sortOrder ?? actionIndex
 			})),
 			isActive: draft.isActive,
 			sortOrder: draft.sortOrder,
@@ -651,6 +887,21 @@ export class AdminCreaturesPageComponent {
 				hp: tier.hp,
 				sizeId: tier.sizeId,
 				armorPresetId: tier.armorPresetId,
+				attackOverrides: tier.attackOverrides.map(
+					(override, overrideIndex) => ({
+						...override,
+						sortOrder: override.sortOrder ?? overrideIndex
+					})
+				),
+				abilities: tier.abilities.map((ability, abilityIndex) => ({
+					...ability,
+					sortOrder: ability.sortOrder ?? abilityIndex
+				})),
+				actions: [],
+				actionOverrides: tier.actionOverrides.map((action, actionIndex) => ({
+					...action,
+					sortOrder: action.sortOrder ?? actionIndex
+				})),
 				characteristics: tier.characteristics.map(characteristic => ({
 					characteristicId: characteristic.characteristicId,
 					value: characteristic.value
@@ -702,24 +953,118 @@ export class AdminCreaturesPageComponent {
 	}
 
 	protected armorSummary(armorPresetId: string | null): string {
-		const armor = this.armorPresets().find(item => item.id === armorPresetId);
+		const armor = armorPresetId
+			? this.armorPresetsById().get(armorPresetId)
+			: null;
 		return armor ? `${armor.points} x ${armor.protection}` : 'нет';
 	}
 
 	protected sizeName(sizeId: string | null): string {
-		return (
-			this.creatureSizes().find(size => size.id === sizeId)?.name ?? 'размер'
+		return sizeId
+			? (this.creatureSizesById().get(sizeId)?.name ?? 'размер')
+			: 'размер';
+	}
+
+	protected tierAttackOverrideProfileKey(
+		override: CreatureTierAttackOverride
+	): string {
+		return createTierAttackProfileKey(
+			override.naturalAttack.slug,
+			override.profileKind,
+			override.profileName
+		);
+	}
+
+	protected addTierAttackOverride(tier: number) {
+		const option = this.tierAttackProfileOptions()[0];
+
+		if (!option) {
+			return;
+		}
+
+		this.draft.update(draft =>
+			draft
+				? {
+						...draft,
+						tiers: draft.tiers.map(item =>
+							item.tier === tier
+								? {
+										...item,
+										attackOverrides: [
+											...item.attackOverrides,
+											{
+												naturalAttack: option.naturalAttack,
+												profileKind: option.profileKind,
+												profileName: option.profileName,
+												isAvailable: true,
+												costModifier: 0,
+												damageModifier: 0,
+												rangeModifier: 0,
+												dicePoolModifier: 0,
+												sortOrder: item.attackOverrides.length
+											}
+										]
+									}
+								: item
+						)
+					}
+				: draft
+		);
+	}
+
+	protected updateTierAttackOverrideProfile(
+		tier: number,
+		index: number,
+		value: string
+	) {
+		const option = this.tierAttackProfileOptions().find(
+			item => item.value === value
+		);
+
+		if (!option) {
+			return;
+		}
+
+		this.patchTierAttackOverride(tier, index, {
+			naturalAttack: option.naturalAttack,
+			profileKind: option.profileKind,
+			profileName: option.profileName
+		});
+	}
+
+	protected updateTierAttackOverride(
+		tier: number,
+		index: number,
+		patch: Partial<CreatureTierAttackOverride>
+	) {
+		this.patchTierAttackOverride(tier, index, patch);
+	}
+
+	protected removeTierAttackOverride(tier: number, index: number) {
+		this.draft.update(draft =>
+			draft
+				? {
+						...draft,
+						tiers: draft.tiers.map(item =>
+							item.tier === tier
+								? {
+										...item,
+										attackOverrides: item.attackOverrides
+											.filter((_, itemIndex) => itemIndex !== index)
+											.map((override, overrideIndex) => ({
+												...override,
+												sortOrder: overrideIndex
+											}))
+									}
+								: item
+						)
+					}
+				: draft
 		);
 	}
 
 	protected skillName(skillId: string): string {
-		return this.skills().find(skill => skill.id === skillId)?.name ?? 'Навык';
-	}
-
-	protected characteristic(characteristicId: string) {
-		return (
-			this.characteristics().find(item => item.id === characteristicId) ?? null
-		);
+		return this.skillsById().get(skillId)?.name ?? 'Навык';
 	}
 
 	private loadCatalog() {
@@ -739,10 +1084,10 @@ export class AdminCreaturesPageComponent {
 					this.naturalAttacks.set(catalog.naturalAttacks);
 					this.combatIntents.set(catalog.combatIntents);
 					this.damageTypes.set(catalog.damageTypes);
+					this.conditions.set(catalog.conditions);
 					this.skills.set(catalog.skills);
 					this.characteristics.set(catalog.characteristics);
 					this.loading.set(false);
-					this.selectFirstCreature();
 				},
 				error: error => {
 					this.errorMessage.set(
@@ -755,27 +1100,13 @@ export class AdminCreaturesPageComponent {
 			});
 	}
 
-	private selectFirstCreature() {
-		const creature = [...this.creatures()].sort((first, second) => {
-			const orderDiff = first.sortOrder - second.sortOrder;
-			return orderDiff || first.name.localeCompare(second.name, 'ru');
-		})[0];
-
-		if (creature) {
-			this.setDraftFromCreature(creature);
-			return;
-		}
-
-		const draft = this.createEmptyDraft();
-		this.selectedCreatureId.set(null);
-		this.draft.set(draft);
-		this.savedDraftSignature.set(draftSignature(draft));
-	}
-
 	private setDraftFromCreature(creature: Creature) {
 		const evasionSkillId = this.defaultSkillId();
 		const noArmorPresetId = this.defaultArmorPresetId();
 		const defaultSizeId = this.defaultCreatureSizeId();
+		const baseActions = creature.actions.length
+			? creature.actions
+			: (creature.tiers.find(item => item.actions.length)?.actions ?? []);
 		const draft: CreatureDraft = {
 			id: creature.id,
 			name: creature.name,
@@ -792,15 +1123,23 @@ export class AdminCreaturesPageComponent {
 					isActive: item.isActive,
 					sortOrder: item.sortOrder ?? index
 				})),
+			actions: [...baseActions],
 			tiers: Array.from({ length: 5 }, (_, index) => {
 				const tierNumber = index + 1;
 				const tier = creature.tiers.find(item => item.tier === tierNumber);
+				const actionOverrides = tier?.actionOverrides.length
+					? tier.actionOverrides
+					: createTierActionOverrides(baseActions, tier?.actions ?? []);
 				return {
 					tier: tierNumber,
 					name: tier?.name ?? `Тир ${tierNumber}`,
 					hp: tier?.hp ?? 1,
 					sizeId: tier?.sizeId ?? defaultSizeId,
 					armorPresetId: tier?.armorPresetId ?? noArmorPresetId,
+					attackOverrides: [...(tier?.attackOverrides ?? [])],
+					abilities: [...(tier?.abilities ?? [])],
+					actions: [...(tier?.actions ?? [])],
+					actionOverrides,
 					characteristics: this.createTierCharacteristicDrafts(tier),
 					skills: tier?.skills.length
 						? tier.skills.map(skill => ({
@@ -819,6 +1158,9 @@ export class AdminCreaturesPageComponent {
 		this.selectedCreatureId.set(creature.id);
 		this.draft.set(draft);
 		this.savedDraftSignature.set(draftSignature(draft));
+		this.detailTab.set('main');
+		this.selectedTierTab.set('1');
+		this.selectedTierSectionTab.set('main');
 	}
 
 	private createEmptyDraft(): CreatureDraft {
@@ -833,6 +1175,7 @@ export class AdminCreaturesPageComponent {
 			anatomySchemeId: null,
 			anatomyZones: [],
 			naturalAttacks: [],
+			actions: [],
 			tiers: Array.from({ length: 5 }, (_, index) => {
 				const tier = index + 1;
 				return {
@@ -841,6 +1184,10 @@ export class AdminCreaturesPageComponent {
 					hp: 1,
 					sizeId: defaultSizeId,
 					armorPresetId: noArmorPresetId,
+					attackOverrides: [],
+					abilities: [],
+					actions: [],
+					actionOverrides: [],
 					characteristics: this.createTierCharacteristicDrafts(null),
 					skills: [{ skillId: evasionSkillId, level: 1 }],
 					isActive: true,
@@ -943,6 +1290,33 @@ export class AdminCreaturesPageComponent {
 		);
 	}
 
+	private patchTierAttackOverride(
+		tier: number,
+		index: number,
+		patch: Partial<CreatureTierAttackOverride>
+	) {
+		this.draft.update(draft =>
+			draft
+				? {
+						...draft,
+						tiers: draft.tiers.map(item =>
+							item.tier === tier
+								? {
+										...item,
+										attackOverrides: item.attackOverrides.map(
+											(override, overrideIndex) =>
+												overrideIndex === index
+													? { ...override, ...patch }
+													: override
+										)
+									}
+								: item
+						)
+					}
+				: draft
+		);
+	}
+
 	private createTierCharacteristicDrafts(
 		tier: Creature['tiers'][number] | null | undefined
 	): CreatureTierCharacteristicDraft[] {
@@ -1006,8 +1380,18 @@ export class AdminCreaturesPageComponent {
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo,
 			canBeParried: profile.canBeParried,
+			availabilityRules: [...(profile.availabilityRules ?? [])],
 			damageTypeIds: [...profile.damageTypeIds],
-			combatIntentIds: profile.intents.map(intent => intent.combatIntentId),
+			intents: profile.intents.map((intent, index) => ({
+				combatIntentId: intent.combatIntentId,
+				nameOverride: intent.nameOverride ?? '',
+				costModifier: intent.costModifier ?? 0,
+				damageModifier: intent.damageModifier ?? 0,
+				ruleText: intent.ruleText ?? '',
+				availabilityRules: [...(intent.availabilityRules ?? [])],
+				sortOrder: intent.sortOrder ?? index
+			})),
+			followupActions: [...(profile.followupActions ?? [])],
 			isActive: profile.isActive,
 			sortOrder: profile.sortOrder
 		};
@@ -1038,7 +1422,9 @@ export class AdminCreaturesPageComponent {
 				next: () => {
 					this.creatures.update(items => items.filter(item => item.id !== id));
 					this.saving.set(false);
-					this.selectFirstCreature();
+					this.selectedCreatureId.set(null);
+					this.draft.set(null);
+					this.savedDraftSignature.set('');
 				},
 				error: error => {
 					this.errorMessage.set(
@@ -1088,6 +1474,131 @@ function createSkillOptionGroups(
 			return orderDiff || first.name.localeCompare(second.name, 'ru');
 		})
 	}));
+}
+
+function createTierAttackProfileOptions(
+	draft: CreatureDraft | null,
+	naturalAttacks: CreatureNaturalAttackOption[]
+): CreatureTierAttackProfileOption[] {
+	const naturalAttackOptionsById = new Map(
+		naturalAttacks.map(attack => [attack.id, attack])
+	);
+
+	return (draft?.naturalAttacks ?? []).flatMap(naturalAttackDraft => {
+		const naturalAttack = naturalAttackOptionsById.get(
+			naturalAttackDraft.naturalAttackId
+		);
+
+		if (!naturalAttack) {
+			return [];
+		}
+
+		return naturalAttackDraft.attackProfiles.map(profile => ({
+			label: `${naturalAttack.name} · ${profile.name}`,
+			value: createTierAttackProfileKey(
+				naturalAttack.slug,
+				profile.kind,
+				profile.name
+			),
+			naturalAttack: {
+				name: naturalAttack.name,
+				slug: naturalAttack.slug
+			},
+			profileKind: profile.kind,
+			profileName: profile.name
+		}));
+	});
+}
+
+function createTierSkillOptionsByKey(
+	tiers: CreatureTierDraft[],
+	groups: CreatureSkillOptionGroup[]
+): Map<string, CreatureSkillOptionGroup[]> {
+	const optionsByKey = new Map<string, CreatureSkillOptionGroup[]>();
+
+	for (const tier of tiers) {
+		for (const skill of tier.skills) {
+			const selectedSkillIds = new Set(
+				tier.skills
+					.map(item => item.skillId)
+					.filter(skillId => skillId !== skill.skillId)
+			);
+
+			optionsByKey.set(
+				createTierSkillOptionsKey(tier.tier, skill.skillId),
+				groups
+					.map(group => ({
+						label: group.label,
+						items: group.items.filter(item => !selectedSkillIds.has(item.id))
+					}))
+					.filter(group => group.items.length > 0)
+			);
+		}
+	}
+
+	return optionsByKey;
+}
+
+function createTierSkillOptionsKey(tier: number, skillId: string): string {
+	return `${tier}:${skillId}`;
+}
+
+function mergeCreatureActions(
+	baseActions: CreatureTierAction[],
+	actionOverrides: CreatureTierAction[]
+): CreatureTierAction[] {
+	const overridesBySlug = new Map(
+		actionOverrides.map(action => [action.slug, action])
+	);
+	const inheritedActions = baseActions.map(action => ({
+		...action,
+		...(overridesBySlug.get(action.slug) ?? {})
+	}));
+	const inheritedSlugs = new Set(baseActions.map(action => action.slug));
+	const localActions = actionOverrides.filter(
+		action => !inheritedSlugs.has(action.slug)
+	);
+
+	return [...inheritedActions, ...localActions].sort(
+		(first, second) => first.sortOrder - second.sortOrder
+	);
+}
+
+function createTierActionOverrides(
+	baseActions: CreatureTierAction[],
+	effectiveActions: CreatureTierAction[]
+): CreatureTierAction[] {
+	const effectiveBySlug = new Map(
+		effectiveActions.map(action => [action.slug, action])
+	);
+	const overrides: CreatureTierAction[] = [];
+
+	for (const baseAction of baseActions) {
+		const effectiveAction = effectiveBySlug.get(baseAction.slug);
+
+		if (!effectiveAction) {
+			overrides.push({ ...baseAction, isActive: false });
+			continue;
+		}
+
+		if (!areCreatureActionsEqual(baseAction, effectiveAction)) {
+			overrides.push(effectiveAction);
+		}
+	}
+
+	const baseSlugs = new Set(baseActions.map(action => action.slug));
+	overrides.push(
+		...effectiveActions.filter(action => !baseSlugs.has(action.slug))
+	);
+
+	return overrides.sort((first, second) => first.sortOrder - second.sortOrder);
+}
+
+function areCreatureActionsEqual(
+	first: CreatureTierAction,
+	second: CreatureTierAction
+): boolean {
+	return JSON.stringify(first) === JSON.stringify(second);
 }
 
 function createCombatIntentGroups(
@@ -1205,4 +1716,12 @@ function addOverrideField(
 	field: CreatureAnatomyZoneOverrideField
 ): string[] {
 	return fields.includes(field) ? fields : [...fields, field];
+}
+
+function createTierAttackProfileKey(
+	naturalAttackSlug: string,
+	profileKind: CreatureAttackProfileKind | null,
+	profileName: string
+): string {
+	return [naturalAttackSlug, profileKind ?? '', profileName].join('::');
 }
