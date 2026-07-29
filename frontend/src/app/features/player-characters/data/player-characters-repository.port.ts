@@ -4,10 +4,15 @@ import {
 	CharacterSheetSandboxDraft,
 	CharacterSheetSandboxRollResult
 } from '../../character-sheet/domain/character-sheet-sandbox.models';
-import { PlayerCharacter } from '../domain/player-characters.models';
+import {
+	PlayerCharacter,
+	PlayerCharacterSummary
+} from '../domain/player-characters.models';
 
 export interface PlayerCharactersRepository {
-	loadCampaignCharacters(campaignId: string): Observable<PlayerCharacter[]>;
+	loadCampaignCharacters(
+		campaignId: string
+	): Observable<PlayerCharacterSummary[]>;
 	createCharacter(
 		campaignId: string,
 		command: {

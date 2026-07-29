@@ -16,7 +16,7 @@
 	height: 100%;
 	overflow-y: auto;
 	overflow-x: hidden;
-	padding: 0 0.75rem 0.75rem;
+	padding: 0 0.625rem 0 0;
 }
 
 .navigation-tree__item-list,
@@ -44,14 +44,8 @@
 	flex-direction: column;
 	align-items: stretch;
 	gap: 0.125rem;
-	margin-top: 0.5rem;
-	padding: 0.375rem;
-	border-radius: 0.75rem;
-	background: color-mix(
-		in srgb,
-		var(--p-surface-100) 52%,
-		transparent
-	);
+	margin-top: 0.375rem;
+	padding: 0;
 }
 
 .navigation-tree__group:first-child {
@@ -63,7 +57,7 @@
 	align-items: center;
 	gap: 0.375rem;
 	width: 100%;
-	padding: 0.125rem 0.25rem;
+	padding: 0.0625rem 0.25rem;
 	border: 0;
 	background: transparent;
 	color: var(--p-text-muted-color);
@@ -108,13 +102,14 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0;
-	margin-top: 0.3125rem;
-	padding-left: 0.375rem;
-	border-left: 1px solid color-mix(
-		in srgb,
-		var(--p-text-muted-color) 22%,
-		var(--p-content-border-color)
-	);
+	margin-top: 0.125rem;
+	padding-left: 0.5rem;
+	border-left: 1px solid
+		color-mix(
+			in srgb,
+			var(--p-text-muted-color) 22%,
+			var(--p-content-border-color)
+		);
 }
 
 .navigation-tree__subgroup:first-child {
@@ -126,15 +121,11 @@
 	align-items: center;
 	gap: 0.375rem;
 	width: 100%;
-	min-height: 1.5rem;
-	padding: 0.125rem 0.375rem;
+	min-height: 1.375rem;
+	padding: 0.0625rem 0.25rem;
 	border: 0;
-	border-radius: 0.4375rem;
-	background: color-mix(
-		in srgb,
-		var(--p-surface-100) 76%,
-		transparent
-	);
+	border-radius: 0.25rem;
+	background: transparent;
 	color: var(--p-text-muted-color);
 	font-size: 0.6875rem;
 	font-weight: 600;
@@ -146,23 +137,12 @@
 }
 
 .navigation-tree__subgroup-title:hover {
-	background: color-mix(
-		in srgb,
-		var(--p-surface-200) 70%,
-		transparent
-	);
+	background: color-mix(in srgb, var(--p-primary-color) 6%, transparent);
 	color: var(--p-text-color);
 }
 
 .navigation-tree__subgroup-title small {
 	margin-left: auto;
-	padding: 0 0.3125rem;
-	border-radius: 999rem;
-	background: color-mix(
-		in srgb,
-		var(--p-surface-200) 78%,
-		transparent
-	);
 	color: var(--p-text-muted-color);
 	font-size: 0.6875rem;
 	font-weight: 500;
@@ -178,10 +158,10 @@
 	justify-content: space-between;
 	gap: 0.5rem;
 	width: 100%;
-	min-height: 1.625rem;
-	padding: 0.1875rem 0.5rem;
+	min-height: 1.5rem;
+	padding: 0.125rem 0.375rem;
 	border: 0;
-	border-radius: 0.5rem;
+	border-radius: 0.375rem;
 	background: transparent;
 	color: var(--p-text-color);
 	font: inherit;

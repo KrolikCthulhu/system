@@ -3,8 +3,8 @@ import {
 	Injectable,
 	NotFoundException
 } from '@nestjs/common';
-import { randomInt } from 'crypto';
 import { Prisma, SystemValueOwnerType } from '@prisma/generated';
+import { DiceCheckRuntimeService } from '../game-events/dice-check-runtime.service';
 import { GameEventDispatcherService } from '../game-events/game-event-dispatcher.service';
 import { GameEventHandlersService } from '../game-events/game-event-handlers.service';
 import {
@@ -13,12 +13,11 @@ import {
 } from '../game-events/system-value-runtime.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-const D6_SIDES_COUNT = 6;
-
 @Injectable()
 export class CharacterSheetRuntimeService {
 	constructor(
 		private readonly prisma: PrismaService,
+		private readonly diceRuntime: DiceCheckRuntimeService,
 		private readonly dispatcher: GameEventDispatcherService,
 		private readonly eventHandlers: GameEventHandlersService,
 		private readonly systemValueRuntime: SystemValueRuntimeService
@@ -117,15 +116,11 @@ export class CharacterSheetRuntimeService {
 			},
 			where: { level: skillLevel }
 		});
-		const diceCount = Math.max(0, Math.floor(dicePoolValue));
-		const dice = Array.from({ length: diceCount }, () =>
-			randomInt(1, D6_SIDES_COUNT + 1)
-		);
-		const successes = this.countSuccesses(dice, levelRule);
-		const sixes = dice.filter(value => value === 6).length;
-		const ones = dice.filter(value => value === 1).length;
-		const ignoredOnes = Math.min(ones, levelRule?.ignoreOnesCount ?? 0);
-		const consequenceCount = Math.max(0, ones - ignoredOnes);
+		const roll = this.diceRuntime.roll({
+			diceCount: dicePoolValue,
+			skillLevel,
+			levelRule
+		});
 		const globalHandlers =
 			await this.eventHandlers.getActiveRollPerformedHandlers();
 		const handlers = [
@@ -145,13 +140,13 @@ export class CharacterSheetRuntimeService {
 		];
 		const dispatchResult = this.dispatcher.dispatchRollPerformed({
 			payload: {
-				diceCount,
-				successes,
-				sixes,
-				ones,
-				ignoredOnes,
-				consequenceCount,
-				skillLevel
+				diceCount: roll.diceCount,
+				successes: roll.successes,
+				sixes: roll.sixes,
+				ones: roll.ones,
+				ignoredOnes: roll.ignoredOnes,
+				consequenceCount: roll.consequenceCount,
+				skillLevel: roll.skillLevel
 			},
 			handlers,
 			values: runtimeValues.values,
@@ -167,13 +162,14 @@ export class CharacterSheetRuntimeService {
 			roll: {
 				skillId: skill.id,
 				skillName: skill.name,
-				diceCount,
-				dice,
-				successes,
-				sixes,
-				ones,
-				ignoredOnes,
-				consequenceCount,
+				diceCount: roll.diceCount,
+				dice: roll.dice,
+				successes: roll.successes,
+				sixes: roll.sixes,
+				ones: roll.ones,
+				ignoredOnes: roll.ignoredOnes,
+				consequenceCount: roll.consequenceCount,
+				skillLevel: roll.skillLevel,
 				consequenceName: skill.rollConsequence?.name ?? 'Без последствий',
 				eventLogs: dispatchResult.logs,
 				valueChanges: dispatchResult.valueChanges
@@ -254,29 +250,6 @@ export class CharacterSheetRuntimeService {
 				)
 			: 0;
 		return Math.max(0, attributeValue - penaltyValue);
-	}
-
-	private countSuccesses(
-		dice: number[],
-		levelRule: {
-			canRoll: boolean;
-			successMin: number | null;
-			doubleSuccessMin: number | null;
-		} | null
-	) {
-		if (!levelRule?.canRoll || levelRule.successMin === null) {
-			return 0;
-		}
-
-		return dice.reduce((total, die) => {
-			const normalSuccess = die >= levelRule.successMin ? 1 : 0;
-			const doubleSuccess =
-				levelRule.doubleSuccessMin !== null && die >= levelRule.doubleSuccessMin
-					? 1
-					: 0;
-
-			return total + normalSuccess + doubleSuccess;
-		}, 0);
 	}
 
 	private async loadRuntimeValues(): Promise<{

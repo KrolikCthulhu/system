@@ -150,6 +150,23 @@
 						</p>
 					}
 
+					<section class="campaigns-page__invite-form">
+						<h3>Настройки боя</h3>
+
+						<label class="campaigns-page__field">
+							<span>Режим разыгрывания действий</span>
+							<p-select
+								[ngModel]="campaign.combatActionResolutionMode"
+								[options]="actionResolutionModeOptions"
+								optionLabel="label"
+								optionValue="value"
+								[disabled]="!canInvite() || updatingSettings()"
+								[fluid]="true"
+								(ngModelChange)="updateActionResolutionMode($event)"
+							/>
+						</label>
+					</section>
+
 					@if (canInvite()) {
 						<section class="campaigns-page__invite-form">
 							<h3>Пригласить игрока</h3>
@@ -229,7 +246,7 @@
 											<div>
 												<strong>{{ encounter.name }}</strong>
 												<span>
-													{{ encounter.participants.length }} участников
+													{{ encounter.participantsCount }} участников
 												</span>
 											</div>
 

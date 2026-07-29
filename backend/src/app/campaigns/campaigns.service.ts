@@ -12,12 +12,14 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { InviteCampaignMemberDto } from './dto/invite-campaign-member.dto';
+import { UpdateCampaignSettingsDto } from './dto/update-campaign-settings.dto';
 
 const campaignSelect = {
 	id: true,
 	name: true,
 	description: true,
 	ownerId: true,
+	combatActionResolutionMode: true,
 	isActive: true,
 	createdAt: true,
 	updatedAt: true,
@@ -168,6 +170,24 @@ export class CampaignsService {
 		return this.getCampaignForMember(campaignId, inviterId);
 	}
 
+	async updateSettings(
+		campaignId: string,
+		userId: string,
+		dto: UpdateCampaignSettingsDto
+	) {
+		await this.assertCampaignGm(campaignId, userId);
+
+		const campaign = await this.prisma.campaign.update({
+			select: campaignSelect,
+			where: { id: campaignId },
+			data: {
+				combatActionResolutionMode: dto.combatActionResolutionMode
+			}
+		});
+
+		return this.mapCampaign(campaign, userId);
+	}
+
 	async acceptInvitation(campaignId: string, userId: string) {
 		const member = await this.prisma.campaignMember.findUnique({
 			select: { id: true, status: true },
@@ -302,6 +322,9 @@ export class CampaignsService {
 			id: campaign.id,
 			name: campaign.name,
 			description: campaign.description,
+			combatActionResolutionMode: normalizeCombatActionResolutionMode(
+				campaign.combatActionResolutionMode
+			),
 			owner: mapCampaignUser(campaign.owner),
 			currentUserRole: currentMember?.role ?? null,
 			currentUserStatus: currentMember?.status ?? null,
@@ -323,6 +346,10 @@ export class CampaignsService {
 function normalizeOptionalString(value: string | undefined) {
 	const normalized = value?.trim();
 	return normalized ? normalized : null;
+}
+
+function normalizeCombatActionResolutionMode(value: string) {
+	return value === 'immediate' ? 'immediate' : 'delayed';
 }
 
 function mapCampaignUser(user: CampaignRecord['owner']) {

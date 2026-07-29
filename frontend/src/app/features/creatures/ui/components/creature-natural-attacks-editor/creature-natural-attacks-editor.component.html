@@ -148,20 +148,6 @@
 											"
 										></p-toggleswitch>
 									</span>
-
-									<span class="admin-creatures-page__switch-field">
-										<span>Можно парировать</span>
-										<p-toggleswitch
-											[ngModel]="profile.canBeParried"
-											(ngModelChange)="
-												profileChange.emit({
-													naturalAttackId: naturalAttack.id,
-													profileIndex,
-													patch: { canBeParried: $event }
-												})
-											"
-										></p-toggleswitch>
-									</span>
 								</div>
 
 								@if (profile.availabilityRules.length) {
@@ -172,6 +158,89 @@
 										</span>
 									</div>
 								}
+
+								<div class="admin-creatures-page__attack-options-group">
+									<strong>Защита по умолчанию</strong>
+									<div class="admin-creatures-page__attack-fields">
+										<label class="admin-creatures-page__field">
+											<span>Защита</span>
+											<p-select
+												[ngModel]="profile.defaultDefense.type"
+												[options]="defenseTypeOptions"
+												optionLabel="label"
+												optionValue="value"
+												appendTo="body"
+												[fluid]="true"
+												(ngModelChange)="
+													updateDefaultDefense(
+														naturalAttack.id,
+														profileIndex,
+														profile,
+														{ type: $event }
+													)
+												"
+											></p-select>
+										</label>
+
+										<div class="admin-creatures-page__switch-field">
+											<span>Можно уклониться</span>
+											<p-toggleswitch
+												[ngModel]="profile.defaultDefense.canDodge"
+												(ngModelChange)="
+													updateDefaultDefense(
+														naturalAttack.id,
+														profileIndex,
+														profile,
+														{ canDodge: $event }
+													)
+												"
+											></p-toggleswitch>
+										</div>
+
+										<div class="admin-creatures-page__switch-field">
+											<span>Можно парировать</span>
+											<p-toggleswitch
+												[ngModel]="profile.defaultDefense.canParry"
+												(ngModelChange)="
+													updateDefaultDefense(
+														naturalAttack.id,
+														profileIndex,
+														profile,
+														{ canParry: $event }
+													)
+												"
+											></p-toggleswitch>
+										</div>
+
+										@if (
+											profile.defaultDefense.type ===
+												'target_physical_defense' &&
+											profile.defaultDefense.canParry
+										) {
+											<label
+												class="admin-creatures-page__field admin-creatures-page__field--wide"
+											>
+												<span>Чем можно парировать</span>
+												<p-multiselect
+													[ngModel]="profile.defaultDefense.parrySkillGroups"
+													[options]="parrySkillGroupOptions"
+													optionLabel="label"
+													optionValue="value"
+													appendTo="body"
+													[fluid]="true"
+													(ngModelChange)="
+														updateDefaultDefense(
+															naturalAttack.id,
+															profileIndex,
+															profile,
+															{ parrySkillGroups: $event }
+														)
+													"
+												></p-multiselect>
+											</label>
+										}
+									</div>
+								</div>
 
 								<div class="admin-creatures-page__attack-options">
 									<div class="admin-creatures-page__attack-options-group">

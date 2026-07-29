@@ -9,6 +9,7 @@ import {
 	CreatureTargetSelection,
 	CreatureTierAbility,
 	CreatureTierAction,
+	CreatureTierActionDefense,
 	CreatureTierAttackOverride
 } from '../../../domain/creatures.models';
 
@@ -69,6 +70,7 @@ export interface CreatureNaturalAttackProfileDraft {
 	rangeMeters: number;
 	usesAmmo: boolean;
 	canBeParried: boolean;
+	defaultDefense: CreatureTierActionDefense;
 	availabilityRules: CreatureAttackAvailabilityRule[];
 	damageTypeIds: string[];
 	intents: CreatureNaturalAttackProfileIntentDraft[];

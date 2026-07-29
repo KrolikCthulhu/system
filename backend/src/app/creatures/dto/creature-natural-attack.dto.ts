@@ -4,12 +4,31 @@ import {
 	IsBoolean,
 	IsIn,
 	IsInt,
+	IsNumber,
 	IsOptional,
 	IsString,
 	IsUUID,
 	Min,
 	ValidateNested
 } from 'class-validator';
+
+export class CreatureNaturalAttackProfileDefenseDto {
+	@IsIn(['none', 'target_physical_defense'])
+	type!: 'none' | 'target_physical_defense';
+
+	@IsOptional()
+	@IsBoolean()
+	canDodge?: boolean;
+
+	@IsOptional()
+	@IsBoolean()
+	canParry?: boolean;
+
+	@IsOptional()
+	@IsArray()
+	@IsIn(['unarmed', 'melee_weapon', 'shield'], { each: true })
+	parrySkillGroups?: ('unarmed' | 'melee_weapon' | 'shield')[];
+}
 
 export class CreatureAttackConditionRefDto {
 	@IsOptional()
@@ -21,9 +40,22 @@ export class CreatureAttackConditionRefDto {
 	slug?: string;
 }
 
+export class CreatureAttackAvailabilityComparisonOperandDto {
+	@IsIn(['actor_property', 'target_property', 'constant'])
+	kind!: 'actor_property' | 'target_property' | 'constant';
+
+	@IsOptional()
+	@IsIn(['sizeRank'])
+	property?: 'sizeRank' | null;
+
+	@IsOptional()
+	@IsNumber()
+	value?: number | null;
+}
+
 export class CreatureAttackAvailabilityRuleDto {
-	@IsIn(['resource_free', 'active_condition'])
-	type!: 'resource_free' | 'active_condition';
+	@IsIn(['resource_free', 'active_condition', 'comparison', 'special_rule'])
+	type!: 'resource_free' | 'active_condition' | 'comparison' | 'special_rule';
 
 	@IsString()
 	label!: string;
@@ -36,6 +68,20 @@ export class CreatureAttackAvailabilityRuleDto {
 	@ValidateNested()
 	@Type(() => CreatureAttackConditionRefDto)
 	condition?: CreatureAttackConditionRefDto;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureAttackAvailabilityComparisonOperandDto)
+	left?: CreatureAttackAvailabilityComparisonOperandDto | null;
+
+	@IsOptional()
+	@IsIn(['gt', 'gte', 'eq', 'ne', 'lte', 'lt'])
+	operator?: 'gt' | 'gte' | 'eq' | 'ne' | 'lte' | 'lt' | null;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureAttackAvailabilityComparisonOperandDto)
+	right?: CreatureAttackAvailabilityComparisonOperandDto | null;
 
 	@IsOptional()
 	@IsString()
@@ -81,8 +127,17 @@ export class CreatureNaturalAttackProfileIntentDto {
 
 export class CreatureAttackFollowupActionDto {
 	@IsOptional()
-	@IsIn(['release_grab', 'drag_grab', 'shake_grab', 'custom'])
-	kind?: 'release_grab' | 'drag_grab' | 'shake_grab' | 'custom';
+	@IsIn([
+		'unlink_condition',
+		'move_linked_target',
+		'damage_linked_target',
+		'custom'
+	])
+	kind?:
+		| 'unlink_condition'
+		| 'move_linked_target'
+		| 'damage_linked_target'
+		| 'custom';
 
 	@IsString()
 	name!: string;
@@ -121,7 +176,7 @@ export class CreatureAttackFollowupActionDto {
 
 	@IsOptional()
 	@IsBoolean()
-	keepsGrab?: boolean;
+	keepsLinkedCondition?: boolean;
 
 	@IsOptional()
 	@IsString()
@@ -175,6 +230,11 @@ export class CreatureNaturalAttackProfileDto {
 	@IsOptional()
 	@IsBoolean()
 	canBeParried?: boolean;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureNaturalAttackProfileDefenseDto)
+	defaultDefense?: CreatureNaturalAttackProfileDefenseDto;
 
 	@IsOptional()
 	@IsArray()

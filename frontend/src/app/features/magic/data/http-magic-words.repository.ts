@@ -45,10 +45,7 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 			.get<MagicWordsResponseDto>(`${this.baseUrl}/admin/magic/words`, {
 				withCredentials: true
 			})
-			.pipe(
-				map(mapMagicWordsResponseDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapMagicWordsResponseDto), catchError(handleApiError));
 	}
 
 	loadSpellFormulas(): Observable<MagicSpellFormulasCatalog> {
@@ -57,10 +54,7 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 				`${this.baseUrl}/admin/magic/words/spell-formulas`,
 				{ withCredentials: true }
 			)
-			.pipe(
-				map(mapMagicSpellFormulasResponseDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapMagicSpellFormulasResponseDto), catchError(handleApiError));
 	}
 
 	createWord(command: CreateMagicWordDto): Observable<MagicWord> {
@@ -68,10 +62,7 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 			.post<MagicWordDto>(`${this.baseUrl}/admin/magic/words`, command, {
 				withCredentials: true
 			})
-			.pipe(
-				map(mapMagicWordDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapMagicWordDto), catchError(handleApiError));
 	}
 
 	updateWord(id: string, command: UpdateMagicWordDto): Observable<MagicWord> {
@@ -79,10 +70,7 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 			.patch<MagicWordDto>(`${this.baseUrl}/admin/magic/words/${id}`, command, {
 				withCredentials: true
 			})
-			.pipe(
-				map(mapMagicWordDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapMagicWordDto), catchError(handleApiError));
 	}
 
 	deleteWord(id: string): Observable<void> {
@@ -95,13 +83,21 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 
 	loadSpellCatalog(): Observable<SpellCatalog> {
 		return this.http
-			.get<SpellCatalogResponseDto>(`${this.baseUrl}/admin/magic/spells/catalog`, {
+			.get<SpellCatalogResponseDto>(
+				`${this.baseUrl}/admin/magic/spells/catalog`,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapSpellCatalogResponseDto), catchError(handleApiError));
+	}
+
+	loadSpell(id: string): Observable<Spell> {
+		return this.http
+			.get<SpellDto>(`${this.baseUrl}/admin/magic/spells/${id}`, {
 				withCredentials: true
 			})
-			.pipe(
-				map(mapSpellCatalogResponseDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapSpellDto), catchError(handleApiError));
 	}
 
 	createSpell(command: SaveSpellDto): Observable<Spell> {
@@ -109,10 +105,7 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 			.post<SpellDto>(`${this.baseUrl}/admin/magic/spells`, command, {
 				withCredentials: true
 			})
-			.pipe(
-				map(mapSpellDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapSpellDto), catchError(handleApiError));
 	}
 
 	updateSpell(id: string, command: SaveSpellDto): Observable<Spell> {
@@ -120,10 +113,17 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 			.patch<SpellDto>(`${this.baseUrl}/admin/magic/spells/${id}`, command, {
 				withCredentials: true
 			})
-			.pipe(
-				map(mapSpellDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapSpellDto), catchError(handleApiError));
+	}
+
+	updateSpellActivity(id: string, isActive: boolean): Observable<Spell> {
+		return this.http
+			.patch<SpellDto>(
+				`${this.baseUrl}/admin/magic/spells/${id}/activity`,
+				{ isActive },
+				{ withCredentials: true }
+			)
+			.pipe(map(mapSpellDto), catchError(handleApiError));
 	}
 
 	deleteSpell(id: string): Observable<void> {
@@ -144,9 +144,6 @@ export class HttpMagicWordsRepository implements MagicWordsRepository {
 				command,
 				{ withCredentials: true }
 			)
-			.pipe(
-				map(mapSpellRuntimePreviewDto),
-				catchError(handleApiError)
-			);
+			.pipe(map(mapSpellRuntimePreviewDto), catchError(handleApiError));
 	}
 }

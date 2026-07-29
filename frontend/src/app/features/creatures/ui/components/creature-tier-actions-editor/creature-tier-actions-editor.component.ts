@@ -10,20 +10,28 @@ import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
+import { MultiSelect } from 'primeng/multiselect';
 import { Select } from 'primeng/select';
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from 'primeng/tabs';
 import { Tag } from 'primeng/tag';
 import { Textarea } from 'primeng/textarea';
 import { ToggleSwitch } from 'primeng/toggleswitch';
 import { NavigationTreeComponent } from '../../../../../shared/ui/navigation-tree/navigation-tree.component';
-import { NavigationTreeGroup } from '../../../../../shared/ui/navigation-tree/navigation-tree.models';
 import {
+	NavigationTreeGroup,
+	NavigationTreeItem,
+	NavigationTreeSubgroup
+} from '../../../../../shared/ui/navigation-tree/navigation-tree.models';
+import {
+	CreatureAttackAvailabilityComparisonOperand,
+	CreatureAttackAvailabilityComparisonOperator,
 	CreatureAttackAvailabilityRule,
 	CreatureCharacteristicOption,
 	CreatureCombatIntentOption,
 	CreatureConditionOption,
 	CreatureDamageTypeOption,
 	CreatureNaturalAttackOption,
+	CreatureParrySkillGroup,
 	CreatureSkillOption,
 	CreatureTierAction,
 	CreatureTierActionCost,
@@ -61,7 +69,7 @@ const TEXT_BLOCK_KIND_OPTIONS: SelectOption<ActionTextBlock['kind']>[] = [
 
 const KIND_OPTIONS: SelectOption<CreatureTierActionKind>[] = [
 	{ label: 'Атака', value: 'attack' },
-	{ label: 'Действие захвата', value: 'grab_action' },
+	{ label: 'Действие состояния', value: 'condition_action' },
 	{ label: 'Активная способность', value: 'active_ability' },
 	{ label: 'Реакция', value: 'reaction' },
 	{ label: 'Пассивное правило', value: 'passive' }
@@ -87,7 +95,10 @@ const TARGET_TYPE_OPTIONS: SelectOption<CreatureTierActionTarget['type']>[] = [
 	{ label: 'На себя', value: 'self' },
 	{ label: 'Существо', value: 'creature' },
 	{ label: 'Враждебное существо', value: 'hostile_creature' },
-	{ label: 'Удерживаемая цель', value: 'held_target' },
+	{
+		label: 'Цель по связанной паре состояний',
+		value: 'linked_condition_target'
+	},
 	{ label: 'Отмеченная цель', value: 'marked_target' }
 ];
 
@@ -110,13 +121,19 @@ const DEFENSE_TYPE_OPTIONS: SelectOption<CreatureTierActionDefense['type']>[] =
 		{ label: 'Физическая защита цели', value: 'target_physical_defense' }
 	];
 
+const PARRY_SKILL_GROUP_OPTIONS: SelectOption<CreatureParrySkillGroup>[] = [
+	{ label: 'Рукопашный бой', value: 'unarmed' },
+	{ label: 'Оружие ближнего боя', value: 'melee_weapon' },
+	{ label: 'Щит', value: 'shield' }
+];
+
 const EFFECT_TYPE_OPTIONS: SelectOption<CreatureTierActionEffect['type']>[] = [
 	{ label: 'Нанести урон', value: 'damage' },
 	{ label: 'Наложить состояние', value: 'apply_condition' },
 	{ label: 'Снять состояние', value: 'remove_condition' },
-	{ label: 'Создать захват', value: 'create_grab' },
-	{ label: 'Прекратить захват', value: 'release_grab' },
-	{ label: 'Переместить участников', value: 'move_with_grab' },
+	{ label: 'Связать состояния', value: 'link_condition' },
+	{ label: 'Разорвать связь состояний', value: 'unlink_condition' },
+	{ label: 'Переместить связанную цель', value: 'move_linked_target' },
 	{ label: 'Изменить пул кубиков', value: 'dice_pool_modifier' },
 	{ label: 'Особое текстовое правило', value: 'special_rule' }
 ];
@@ -132,6 +149,12 @@ const DAMAGE_MODE_OPTIONS: SelectOption<
 const EFFECT_SCOPE_OPTIONS: SelectOption<
 	NonNullable<CreatureTierActionEffect['targetScope']>
 >[] = [
+	{ label: 'Исполнитель', value: 'actor' },
+	{ label: 'Выбранная цель', value: 'selected_target' },
+	{
+		label: 'Цель по связанной паре состояний',
+		value: 'linked_condition_target'
+	},
 	{ label: 'Носитель', value: 'holder' },
 	{ label: 'Источник против носителя', value: 'source_against_holder' },
 	{
@@ -148,8 +171,28 @@ const RULE_TYPE_OPTIONS: SelectOption<
 	CreatureAttackAvailabilityRule['type']
 >[] = [
 	{ label: 'Ресурс свободен', value: 'resource_free' },
-	{ label: 'Активное состояние', value: 'active_condition' }
+	{ label: 'Активное состояние', value: 'active_condition' },
+	{ label: 'Сравнение', value: 'comparison' },
+	{ label: 'Текстовое условие', value: 'special_rule' }
 ];
+
+type ComparisonOperandValue = 'actor.sizeRank' | 'target.sizeRank' | 'constant';
+
+const COMPARISON_OPERAND_OPTIONS: SelectOption<ComparisonOperandValue>[] = [
+	{ label: 'Существо: размер', value: 'actor.sizeRank' },
+	{ label: 'Цель: размер', value: 'target.sizeRank' },
+	{ label: 'Число', value: 'constant' }
+];
+
+const COMPARISON_OPERATOR_OPTIONS: SelectOption<CreatureAttackAvailabilityComparisonOperator>[] =
+	[
+		{ label: 'Больше', value: 'gt' },
+		{ label: 'Больше или равно', value: 'gte' },
+		{ label: 'Равно', value: 'eq' },
+		{ label: 'Не равно', value: 'ne' },
+		{ label: 'Меньше или равно', value: 'lte' },
+		{ label: 'Меньше', value: 'lt' }
+	];
 
 const TOKEN_OPTIONS = [
 	{ label: 'Существо', value: '{существо}' },
@@ -172,6 +215,7 @@ const TOKEN_PATTERN = /(\{[^}]+\})/g;
 		Button,
 		InputNumber,
 		InputText,
+		MultiSelect,
 		Select,
 		Tab,
 		TabList,
@@ -204,13 +248,22 @@ export class CreatureTierActionsEditorComponent {
 	protected readonly visibilityOptions = VISIBILITY_OPTIONS;
 	protected readonly rollTypeOptions = ROLL_TYPE_OPTIONS;
 	protected readonly defenseTypeOptions = DEFENSE_TYPE_OPTIONS;
+	protected readonly parrySkillGroupOptions = PARRY_SKILL_GROUP_OPTIONS;
 	protected readonly effectTypeOptions = EFFECT_TYPE_OPTIONS;
 	protected readonly damageModeOptions = DAMAGE_MODE_OPTIONS;
 	protected readonly effectScopeOptions = EFFECT_SCOPE_OPTIONS;
 	protected readonly ruleTypeOptions = RULE_TYPE_OPTIONS;
+	protected readonly comparisonOperandOptions = COMPARISON_OPERAND_OPTIONS;
+	protected readonly comparisonOperatorOptions = COMPARISON_OPERATOR_OPTIONS;
 	protected readonly tokenOptions = TOKEN_OPTIONS;
 	protected readonly textBlockKindOptions = TEXT_BLOCK_KIND_OPTIONS;
 	protected readonly selectedActionSlug = signal<string | null>(null);
+	protected readonly collapsedActionGroups = signal<ReadonlySet<string>>(
+		new Set()
+	);
+	protected readonly collapsedActionSubgroups = signal<ReadonlySet<string>>(
+		new Set()
+	);
 	protected readonly actionItems = computed<ActionViewItem[]>(() => {
 		return this.actions()
 			.map((action, index) => ({
@@ -266,6 +319,24 @@ export class CreatureTierActionsEditorComponent {
 		this.selectedActionSlug.set(slug);
 	}
 
+	protected toggleActionGroup(label: string) {
+		this.collapsedActionGroups.update(groups =>
+			this.toggleSetValue(groups, label)
+		);
+	}
+
+	protected toggleActionSubgroup(event: {
+		groupLabel: string;
+		subgroupLabel: string;
+	}) {
+		this.collapsedActionSubgroups.update(subgroups =>
+			this.toggleSetValue(
+				subgroups,
+				`${event.groupLabel}::${event.subgroupLabel}`
+			)
+		);
+	}
+
 	protected updateAction(index: number, patch: Partial<CreatureTierAction>) {
 		this.actions.update(actions =>
 			actions.map((action, actionIndex) =>
@@ -294,13 +365,23 @@ export class CreatureTierActionsEditorComponent {
 		const action = this.actionAt(index);
 		const source = action?.source ?? this.defaultSource();
 		const reference = this.referenceForSource(source.type, slug);
+		const profileName =
+			source.type === 'natural_attack'
+				? (this.naturalAttacks().find(attack => attack.slug === slug)
+						?.attackProfiles[0]?.name ?? '')
+				: source.profileName;
 		this.updateAction(index, {
 			source: {
 				...source,
 				name: reference?.name ?? '',
-				slug: reference?.slug ?? ''
+				slug: reference?.slug ?? '',
+				profileName
 			}
 		});
+	}
+
+	protected updateNaturalAttackProfile(index: number, profileName: string) {
+		this.updateSource(index, { profileName });
 	}
 
 	protected updateSourceIntent(index: number, slug: string | null) {
@@ -338,6 +419,9 @@ export class CreatureTierActionsEditorComponent {
 					label: 'Ресурс свободен',
 					resourceKey: '',
 					condition: null,
+					left: null,
+					operator: null,
+					right: null,
 					unavailableText: '',
 					sortOrder: action.availabilityRules.length
 				}
@@ -356,6 +440,83 @@ export class CreatureTierActionsEditorComponent {
 			availabilityRules: action.availabilityRules.map((rule, index) =>
 				index === ruleIndex ? { ...rule, ...patch } : rule
 			)
+		});
+	}
+
+	protected updateRuleType(
+		actionIndex: number,
+		ruleIndex: number,
+		type: CreatureAttackAvailabilityRule['type']
+	) {
+		this.updateRule(actionIndex, ruleIndex, {
+			type,
+			label: this.defaultRuleLabel(type),
+			resourceKey: type === 'resource_free' ? '' : '',
+			condition: null,
+			left: type === 'comparison' ? this.defaultComparisonLeft() : null,
+			operator: type === 'comparison' ? 'lt' : null,
+			right: type === 'comparison' ? this.defaultComparisonRight() : null
+		});
+	}
+
+	protected comparisonOperandValue(
+		operand: CreatureAttackAvailabilityComparisonOperand | null
+	): ComparisonOperandValue {
+		if (operand?.kind === 'actor_property' && operand.property === 'sizeRank') {
+			return 'actor.sizeRank';
+		}
+		if (
+			operand?.kind === 'target_property' &&
+			operand.property === 'sizeRank'
+		) {
+			return 'target.sizeRank';
+		}
+		return 'constant';
+	}
+
+	protected updateRuleComparisonLeft(
+		actionIndex: number,
+		ruleIndex: number,
+		value: ComparisonOperandValue
+	) {
+		this.updateRule(actionIndex, ruleIndex, {
+			left: this.comparisonOperandFromValue(value)
+		});
+	}
+
+	protected updateRuleComparisonOperator(
+		actionIndex: number,
+		ruleIndex: number,
+		operator: CreatureAttackAvailabilityComparisonOperator
+	) {
+		this.updateRule(actionIndex, ruleIndex, { operator });
+	}
+
+	protected updateRuleComparisonRight(
+		actionIndex: number,
+		ruleIndex: number,
+		value: ComparisonOperandValue
+	) {
+		this.updateRule(actionIndex, ruleIndex, {
+			right: this.comparisonOperandFromValue(value)
+		});
+	}
+
+	protected updateRuleComparisonOperandValue(
+		actionIndex: number,
+		ruleIndex: number,
+		side: 'left' | 'right',
+		value: number | null
+	) {
+		const action = this.actionAt(actionIndex);
+		const operand = action?.availabilityRules[ruleIndex]?.[side];
+		this.updateRule(actionIndex, ruleIndex, {
+			[side]: {
+				...(operand ?? this.comparisonOperandFromValue('constant')),
+				kind: 'constant',
+				property: null,
+				value
+			}
 		});
 	}
 
@@ -408,8 +569,22 @@ export class CreatureTierActionsEditorComponent {
 		patch: Partial<CreatureTierActionDefense>
 	) {
 		const action = this.actionAt(index);
+		const current = action?.defense ?? this.effectiveDefense(action);
+		const next = { ...current, ...patch };
+
+		if (next.type === 'none' || !next.canParry) {
+			next.parrySkillGroups = [];
+		}
+
 		this.updateAction(index, {
-			defense: { ...(action?.defense ?? this.defaultDefense()), ...patch }
+			defense: next
+		});
+	}
+
+	protected updateDefenseOverride(index: number, enabled: boolean) {
+		const action = this.actionAt(index);
+		this.updateAction(index, {
+			defense: enabled ? this.cloneDefense(this.effectiveDefense(action)) : null
 		});
 	}
 
@@ -452,6 +627,16 @@ export class CreatureTierActionsEditorComponent {
 	) {
 		this.updateEffect(actionIndex, effectIndex, {
 			condition: this.referenceBySlug(this.conditions(), slug)
+		});
+	}
+
+	protected updateEffectLinkedCondition(
+		actionIndex: number,
+		effectIndex: number,
+		slug: string | null
+	) {
+		this.updateEffect(actionIndex, effectIndex, {
+			linkedCondition: this.referenceBySlug(this.conditions(), slug)
 		});
 	}
 
@@ -559,17 +744,51 @@ export class CreatureTierActionsEditorComponent {
 	}
 
 	protected sourceText(action: CreatureTierAction): string {
-		const parts = [
-			action.source?.name,
-			action.source?.profileName,
-			action.source?.intent?.name
-		].filter(Boolean);
+		const parts = [action.source?.name, action.source?.profileName].filter(
+			Boolean
+		);
 		return parts.length ? parts.join(' · ') : 'Источник не задан';
+	}
+
+	protected actionButtonLabel(action: CreatureTierAction): string {
+		return action.source?.intent?.name || action.name || 'Без названия';
 	}
 
 	protected renderText(action: CreatureTierAction): string {
 		const template = action.playerText.trim() || this.defaultText(action);
 		return this.renderTemplate(action, template, true);
+	}
+
+	protected defenseInheritanceText(action: CreatureTierAction): string {
+		const text = this.defenseText(action);
+		return action.defense
+			? `Переопределена: ${text}`
+			: `Как у источника: ${text}`;
+	}
+
+	protected effectiveDefense(
+		action: CreatureTierAction | null
+	): CreatureTierActionDefense {
+		return (
+			action?.defense ??
+			this.sourceNaturalAttackProfile(action)?.defaultDefense ??
+			this.defaultDefense()
+		);
+	}
+
+	protected naturalAttackProfileOptions(
+		action: CreatureTierAction
+	): SelectOption<string>[] {
+		if (action.source?.type !== 'natural_attack') return [];
+		const naturalAttack = this.naturalAttacks().find(
+			attack => attack.slug === action.source?.slug
+		);
+		return (
+			naturalAttack?.attackProfiles.map(profile => ({
+				label: profile.name,
+				value: profile.name
+			})) ?? []
+		);
 	}
 
 	protected tokenPreview(action: CreatureTierAction, token: string): string {
@@ -610,7 +829,7 @@ export class CreatureTierActionsEditorComponent {
 	): Map<string, string> {
 		return new Map<string, string>([
 			['{существо}', this.actorName().trim() || 'Существо'],
-			['{название действия}', action.name || 'Действие'],
+			['{название действия}', this.actionButtonLabel(action)],
 			['{стоимость}', this.costText(action)],
 			['{цель}', action.target?.description || this.targetLabel(action)],
 			['{источник}', this.sourceText(action)],
@@ -627,22 +846,83 @@ export class CreatureTierActionsEditorComponent {
 	private createActionTreeGroups(
 		items: ActionViewItem[]
 	): NavigationTreeGroup[] {
-		return KIND_OPTIONS.map(option => {
-			const groupItems = items
-				.filter(item => item.action.kind === option.value)
-				.map(item => ({
-					id: item.action.slug,
-					label: item.action.isActive
-						? item.action.name || 'Действие'
-						: `${item.action.name || 'Действие'} (выкл.)`
-				}));
-			return {
-				label: option.label,
-				count: groupItems.length,
-				subgroups: [],
-				items: groupItems
-			};
-		}).filter(group => group.items.length > 0);
+		const attacks = this.createSourceSubgroups(
+			items.filter(item => item.action.kind === 'attack')
+		);
+		const conditionActions = items.filter(
+			item => item.action.kind === 'condition_action'
+		);
+		const otherGroups = KIND_OPTIONS.filter(
+			option => option.value !== 'attack' && option.value !== 'condition_action'
+		)
+			.map(option =>
+				this.createFlatActionGroup(
+					option.label,
+					items.filter(item => item.action.kind === option.value)
+				)
+			)
+			.filter(group => group.count > 0);
+
+		return [
+			{
+				label: 'АТАКИ',
+				count: attacks.reduce(
+					(total, subgroup) => total + subgroup.items.length,
+					0
+				),
+				subgroups: attacks,
+				items: []
+			},
+			{
+				label: 'КОНТЕКСТ',
+				count: conditionActions.length,
+				subgroups: conditionActions.length
+					? [
+							{
+								label: 'По состоянию',
+								items: conditionActions.map(item => this.toActionTreeItem(item))
+							}
+						]
+					: [],
+				items: []
+			},
+			...otherGroups
+		].filter(group => group.count > 0);
+	}
+
+	private createSourceSubgroups(
+		items: ActionViewItem[]
+	): NavigationTreeSubgroup[] {
+		const groups = new Map<string, NavigationTreeSubgroup>();
+
+		for (const item of items) {
+			const label = item.action.source?.name || 'Источник не задан';
+			const group = groups.get(label) ?? { label, items: [] };
+			group.items.push(this.toActionTreeItem(item));
+			groups.set(label, group);
+		}
+
+		return [...groups.values()];
+	}
+
+	private createFlatActionGroup(
+		label: string,
+		items: ActionViewItem[]
+	): NavigationTreeGroup {
+		return {
+			label,
+			count: items.length,
+			subgroups: [],
+			items: items.map(item => this.toActionTreeItem(item))
+		};
+	}
+
+	private toActionTreeItem(item: ActionViewItem): NavigationTreeItem {
+		const label = this.actionButtonLabel(item.action);
+		return {
+			id: item.action.slug,
+			label: item.action.isActive ? label : `${label} (выкл.)`
+		};
 	}
 
 	private createAction(sortOrder: number): CreatureTierAction {
@@ -655,7 +935,7 @@ export class CreatureTierActionsEditorComponent {
 			target: this.defaultTarget(),
 			availabilityRules: [],
 			roll: this.defaultRoll(),
-			defense: this.defaultDefense(),
+			defense: null,
 			effects: [],
 			playerText:
 				'{существо} использует действие «{название действия}». {стоимость}. {цель}. {эффекты}',
@@ -674,6 +954,53 @@ export class CreatureTierActionsEditorComponent {
 		};
 	}
 
+	private defaultRuleLabel(type: CreatureAttackAvailabilityRule['type']) {
+		switch (type) {
+			case 'resource_free':
+				return 'Ресурс свободен';
+			case 'active_condition':
+				return 'Активное состояние';
+			case 'comparison':
+				return 'Сравнение';
+			case 'special_rule':
+				return 'Текстовое условие';
+		}
+	}
+
+	private defaultComparisonLeft(): CreatureAttackAvailabilityComparisonOperand {
+		return { kind: 'target_property', property: 'sizeRank', value: null };
+	}
+
+	private defaultComparisonRight(): CreatureAttackAvailabilityComparisonOperand {
+		return { kind: 'actor_property', property: 'sizeRank', value: null };
+	}
+
+	private comparisonOperandFromValue(
+		value: ComparisonOperandValue
+	): CreatureAttackAvailabilityComparisonOperand {
+		switch (value) {
+			case 'actor.sizeRank':
+				return { kind: 'actor_property', property: 'sizeRank', value: null };
+			case 'target.sizeRank':
+				return { kind: 'target_property', property: 'sizeRank', value: null };
+			case 'constant':
+				return { kind: 'constant', property: null, value: 0 };
+		}
+	}
+
+	private toggleSetValue(
+		values: ReadonlySet<string>,
+		value: string
+	): ReadonlySet<string> {
+		const nextValues = new Set(values);
+		if (nextValues.has(value)) {
+			nextValues.delete(value);
+		} else {
+			nextValues.add(value);
+		}
+		return nextValues;
+	}
+
 	private defaultCost(): CreatureTierActionCost {
 		return { mode: 'fixed', potential: 0, perMeter: null };
 	}
@@ -687,7 +1014,12 @@ export class CreatureTierActionsEditorComponent {
 	}
 
 	private defaultDefense(): CreatureTierActionDefense {
-		return { type: 'none', canDodge: false, canParry: false };
+		return {
+			type: 'none',
+			canDodge: false,
+			canParry: false,
+			parrySkillGroups: []
+		};
 	}
 
 	private createEffect(sortOrder: number): CreatureTierActionEffect {
@@ -697,6 +1029,7 @@ export class CreatureTierActionsEditorComponent {
 			damageMode: null,
 			damageType: null,
 			condition: null,
+			linkedCondition: null,
 			conditionDisplayName: '',
 			conditionLevel: null,
 			targetScope: null,
@@ -746,21 +1079,61 @@ export class CreatureTierActionsEditorComponent {
 	}
 
 	private defenseText(action: CreatureTierAction): string {
-		if (!action.defense || action.defense.type === 'none')
-			return 'Защита не выполняется';
-		if (action.defense.canDodge && !action.defense.canParry)
+		const defense = this.effectiveDefense(action);
+		if (defense.type === 'none') return 'Защита не выполняется';
+		if (defense.canDodge && !defense.canParry)
 			return 'Цель может защититься уклонением; парирование недоступно';
-		if (!action.defense.canDodge && action.defense.canParry)
-			return 'Цель может защититься парированием';
-		if (action.defense.canDodge && action.defense.canParry)
-			return 'Цель может защититься уклонением или парированием';
+		if (!defense.canDodge && defense.canParry)
+			return `Цель может защититься парированием${this.parrySkillGroupsText(defense)}`;
+		if (defense.canDodge && defense.canParry)
+			return `Цель может защититься уклонением или парированием${this.parrySkillGroupsText(defense)}`;
 		const options = [
-			action.defense.canDodge ? 'уклонение' : '',
-			action.defense.canParry ? 'парирование' : ''
+			defense.canDodge ? 'уклонение' : '',
+			defense.canParry ? 'парирование' : ''
 		].filter(Boolean);
 		return options.length
 			? `Цель может использовать: ${options.join(' или ')}`
 			: 'Физическая защита цели';
+	}
+
+	private sourceNaturalAttackProfile(action: CreatureTierAction | null) {
+		if (action?.source?.type !== 'natural_attack') {
+			return null;
+		}
+
+		const naturalAttack = this.naturalAttacks().find(
+			attack => attack.slug === action.source?.slug
+		);
+		return (
+			naturalAttack?.attackProfiles.find(
+				profile => profile.name === action.source?.profileName
+			) ??
+			naturalAttack?.attackProfiles[0] ??
+			null
+		);
+	}
+
+	private cloneDefense(
+		defense: CreatureTierActionDefense
+	): CreatureTierActionDefense {
+		return {
+			...defense,
+			parrySkillGroups: [...defense.parrySkillGroups]
+		};
+	}
+
+	private parrySkillGroupsText(defense: CreatureTierActionDefense): string {
+		if (!defense.parrySkillGroups.length) {
+			return '';
+		}
+
+		const labels = defense.parrySkillGroups.map(
+			group =>
+				PARRY_SKILL_GROUP_OPTIONS.find(option => option.value === group)
+					?.label ?? group
+		);
+
+		return ` (${labels.join(', ')})`;
 	}
 
 	private effectsText(action: CreatureTierAction): string {
@@ -782,18 +1155,18 @@ export class CreatureTierActionsEditorComponent {
 				return `Накладывает состояние ${this.conditionName(effect)}.`;
 			case 'remove_condition':
 				return `Снимает состояние ${this.conditionName(effect)}.`;
-			case 'create_grab':
+			case 'link_condition':
 				return effect.text
 					? this.renderTemplate(action, effect.text, false)
-					: 'Создаёт захват.';
-			case 'release_grab':
+					: `Связывает состояние ${this.conditionName(effect)} со связанным состоянием ${this.linkedConditionName(effect)}.`;
+			case 'unlink_condition':
 				return effect.text
 					? this.renderTemplate(action, effect.text, false)
-					: 'Прекращает захват.';
-			case 'move_with_grab':
+					: `Разрывает связь состояния ${this.conditionName(effect)} со связанным состоянием ${this.linkedConditionName(effect)}.`;
+			case 'move_linked_target':
 				return effect.text
 					? this.renderTemplate(action, effect.text, false)
-					: 'Перемещает участников.';
+					: 'Перемещает связанную цель.';
 			case 'dice_pool_modifier':
 				return `Изменяет пул кубиков на ${effect.value ?? 0}.`;
 			case 'special_rule':
@@ -820,9 +1193,13 @@ export class CreatureTierActionsEditorComponent {
 		return effect.conditionDisplayName || effect.condition?.name || 'состояние';
 	}
 
+	private linkedConditionName(effect: CreatureTierActionEffect): string {
+		return effect.linkedCondition?.name || 'состояние';
+	}
+
 	private defaultText(action: CreatureTierAction): string {
 		return [
-			action.name,
+			this.actionButtonLabel(action),
 			this.costText(action),
 			action.target?.description || this.targetLabel(action),
 			this.effectsText(action)

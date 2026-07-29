@@ -406,7 +406,7 @@ export type CreatureTierAbilityContent = {
 
 export type CreatureTierActionKindContent =
 	| 'attack'
-	| 'grab_action'
+	| 'condition_action'
 	| 'active_ability'
 	| 'reaction'
 	| 'passive';
@@ -430,7 +430,7 @@ export type CreatureTierActionTargetContent = {
 		| 'self'
 		| 'creature'
 		| 'hostile_creature'
-		| 'held_target'
+		| 'linked_condition_target'
 		| 'marked_target'
 		| 'none';
 	visibility?: 'visible' | 'any';
@@ -447,30 +447,43 @@ export type CreatureTierActionDefenseContent = {
 	type: 'none' | 'target_physical_defense';
 	canDodge?: boolean;
 	canParry?: boolean;
+	parrySkillGroups?: CreatureParrySkillGroupContent[];
 };
+
+export type CreatureParrySkillGroupContent =
+	| 'unarmed'
+	| 'melee_weapon'
+	| 'shield';
 
 export type CreatureTierActionEffectContent = {
 	type:
 		| 'damage'
 		| 'apply_condition'
 		| 'remove_condition'
-		| 'create_grab'
-		| 'release_grab'
-		| 'move_with_grab'
+		| 'link_condition'
+		| 'unlink_condition'
+		| 'move_linked_target'
 		| 'dice_pool_modifier'
 		| 'special_rule';
 	value?: number | null;
 	damageMode?: 'clean_successes' | 'clean_successes_plus_base' | 'base_damage';
 	damageType?: SlugRef;
 	condition?: SlugRef;
+	linkedCondition?: SlugRef;
 	conditionDisplayName?: string;
 	conditionLevel?: number | null;
-	targetScope?: ConditionEffectTargetScope;
+	targetScope?: CreatureTierActionEffectTargetScopeContent;
 	appliesArmor?: boolean;
 	requiresDamageAfterArmor?: boolean;
 	text?: string;
 	sortOrder?: number;
 };
+
+export type CreatureTierActionEffectTargetScopeContent =
+	| 'actor'
+	| 'selected_target'
+	| 'linked_condition_target'
+	| ConditionEffectTargetScope;
 
 export type CreatureTierActionContent = {
 	slug: string;
@@ -519,6 +532,7 @@ export type WeaponAttackProfileContent = {
 	rangeMeters: number;
 	usesAmmo?: boolean;
 	canBeParried?: boolean;
+	defaultDefense?: CreatureTierActionDefenseContent;
 	damageTypes?: SlugRef[];
 	availabilityRules?: AttackAvailabilityRuleContent[];
 	combatIntents?: AttackIntentContent[];
@@ -528,12 +542,29 @@ export type WeaponAttackProfileContent = {
 };
 
 export type AttackAvailabilityRuleContent = {
-	type: 'resource_free' | 'active_condition';
+	type: 'resource_free' | 'active_condition' | 'comparison' | 'special_rule';
 	label: string;
 	resourceKey?: string;
 	condition?: SlugRef;
+	left?: AttackAvailabilityComparisonOperandContent;
+	operator?: AttackAvailabilityComparisonOperatorContent;
+	right?: AttackAvailabilityComparisonOperandContent;
 	unavailableText?: string;
 	sortOrder?: number;
+};
+
+export type AttackAvailabilityComparisonOperatorContent =
+	| 'gt'
+	| 'gte'
+	| 'eq'
+	| 'ne'
+	| 'lte'
+	| 'lt';
+
+export type AttackAvailabilityComparisonOperandContent = {
+	kind: 'actor_property' | 'target_property' | 'constant';
+	property?: 'sizeRank';
+	value?: number;
 };
 
 export type AttackIntentContent = SlugRef & {
@@ -545,7 +576,11 @@ export type AttackIntentContent = SlugRef & {
 };
 
 export type AttackFollowupActionContent = {
-	kind?: 'release_grab' | 'drag_grab' | 'shake_grab' | 'custom';
+	kind?:
+		| 'unlink_condition'
+		| 'move_linked_target'
+		| 'damage_linked_target'
+		| 'custom';
 	name: string;
 	costMode?: 'fixed' | 'per_meter' | 'rule';
 	costPotential?: number | null;
@@ -554,7 +589,7 @@ export type AttackFollowupActionContent = {
 	appliesArmor?: boolean;
 	conditionOnDamage?: SlugRef;
 	conditionLevel?: number;
-	keepsGrab?: boolean;
+	keepsLinkedCondition?: boolean;
 	description?: string;
 	availabilityRules?: AttackAvailabilityRuleContent[];
 	sortOrder?: number;

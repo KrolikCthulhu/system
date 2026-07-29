@@ -219,6 +219,7 @@
 							<p-tab value="anatomy">Анатомия</p-tab>
 							<p-tab value="attacks">Естественные атаки</p-tab>
 							<p-tab value="actions">Действия</p-tab>
+							<p-tab value="demo">Демо</p-tab>
 							<p-tab value="tiers">Тиры</p-tab>
 						</p-tablist>
 
@@ -322,6 +323,15 @@
 										[skills]="skills()"
 										[characteristics]="characteristics()"
 									></app-creature-base-actions-editor>
+								}
+							</p-tabpanel>
+
+							<p-tabpanel value="demo" class="admin-creatures-page__tabpanel">
+								@if (detailTab() === 'demo') {
+									<app-creature-actions-demo
+										[draft]="currentDraft"
+										[effectiveActionsByTier]="effectiveTierActionsByTier()"
+									></app-creature-actions-demo>
 								}
 							</p-tabpanel>
 

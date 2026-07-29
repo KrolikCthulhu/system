@@ -1,0 +1,88 @@
+<div class="creature-actions-demo">
+	@for (tier of demoTiers(); track tier.tier) {
+		<section class="creature-actions-demo__tier">
+			<header class="creature-actions-demo__tier-head">
+				<div>
+					<h4>{{ tier.tier }}. {{ tier.name }}</h4>
+					<small>Как мастер увидит возможности существа</small>
+				</div>
+				<p-tag value="Демо" severity="secondary"></p-tag>
+			</header>
+
+			<div class="creature-actions-demo__section">
+				<h5>Атаки</h5>
+				@if (tier.attacks.length) {
+					<div class="creature-actions-demo__attack-list">
+						@for (attack of tier.attacks; track attack.sourceName) {
+							<div class="creature-actions-demo__attack">
+								<div class="creature-actions-demo__attack-head">
+									<div class="creature-actions-demo__attack-title">
+										<strong>{{ attack.sourceName }}</strong>
+										@if (attack.profileName) {
+											<small>{{ attack.profileName }}</small>
+										}
+									</div>
+									<p-tag [value]="attack.costText" severity="secondary"></p-tag>
+								</div>
+								<div class="creature-actions-demo__buttons">
+									@for (action of attack.actions; track action.label) {
+										<p-button
+											[label]="action.label"
+											size="small"
+											severity="secondary"
+											variant="outlined"
+											[title]="action.description"
+										></p-button>
+									}
+								</div>
+							</div>
+						}
+					</div>
+				} @else {
+					<p class="creature-actions-demo__empty">Атаки не заданы.</p>
+				}
+			</div>
+
+			<div class="creature-actions-demo__section">
+				<h5>Способности</h5>
+				@if (tier.abilities.length) {
+					<div class="creature-actions-demo__buttons">
+						@for (action of tier.abilities; track action.label) {
+							<p-button
+								[label]="action.label"
+								size="small"
+								severity="secondary"
+								variant="outlined"
+								[title]="action.description"
+							></p-button>
+						}
+					</div>
+				} @else {
+					<p class="creature-actions-demo__empty">Способности не заданы.</p>
+				}
+			</div>
+
+			<div class="creature-actions-demo__section">
+				<h5>Действия захвата</h5>
+				@if (tier.contextualActions.length) {
+					<div class="creature-actions-demo__buttons">
+						@for (action of tier.contextualActions; track action.label) {
+							<p-button
+								[label]="action.label"
+								size="small"
+								severity="secondary"
+								variant="outlined"
+								[title]="action.description"
+							></p-button>
+						}
+					</div>
+					<small>Доступны после успешного захвата.</small>
+				} @else {
+					<p class="creature-actions-demo__empty">
+						Действия захвата не заданы.
+					</p>
+				}
+			</div>
+		</section>
+	}
+</div>

@@ -3,6 +3,7 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { GameEventDispatcherService } from './game-event-dispatcher.service';
 import { GameEventHandlersService } from './game-event-handlers.service';
 import { GameEventsController } from './game-events.controller';
+import { DiceCheckRuntimeService } from './dice-check-runtime.service';
 import { RollEventGraphRuntimeService } from './roll-event-graph-runtime.service';
 import { SystemValueRuntimeService } from './system-value-runtime.service';
 
@@ -12,10 +13,12 @@ import { SystemValueRuntimeService } from './system-value-runtime.service';
 	providers: [
 		GameEventDispatcherService,
 		GameEventHandlersService,
+		DiceCheckRuntimeService,
 		RollEventGraphRuntimeService,
 		SystemValueRuntimeService
 	],
 	exports: [
+		DiceCheckRuntimeService,
 		GameEventDispatcherService,
 		GameEventHandlersService,
 		SystemValueRuntimeService

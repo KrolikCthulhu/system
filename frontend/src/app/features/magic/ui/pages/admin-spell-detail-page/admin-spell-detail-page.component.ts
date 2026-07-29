@@ -2809,7 +2809,6 @@ export class AdminSpellDetailPageComponent {
 					}
 
 					this.setDraftFromFormula(formula);
-					this.pageStore.completeLoading();
 				},
 				error: error => {
 					this.pageStore.failLoading(error);
@@ -2819,7 +2818,16 @@ export class AdminSpellDetailPageComponent {
 
 	private setDraftFromFormula(formula: SpellFormulaCandidate) {
 		if (formula.spell) {
-			this.setDraftFromSpell(formula.spell);
+			this.repository
+				.loadSpell(formula.spell.id)
+				.pipe(takeUntilDestroyed(this.destroyRef))
+				.subscribe({
+					next: spell => {
+						this.setDraftFromSpell(spell);
+						this.pageStore.completeLoading();
+					},
+					error: error => this.pageStore.failLoading(error)
+				});
 			return;
 		}
 
@@ -2829,6 +2837,7 @@ export class AdminSpellDetailPageComponent {
 				this.findAreaShapeByGestureId(formula.gesture.id)
 			)
 		);
+		this.pageStore.completeLoading();
 	}
 
 	private setDraftFromSpell(spell: Spell) {

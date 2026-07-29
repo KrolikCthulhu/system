@@ -55,11 +55,28 @@ export interface CreatureDamageTypeOptionDto extends CreatureReferenceDto {
 
 export type CreatureConditionOptionDto = CreatureDamageTypeOptionDto;
 
+export type CreatureAttackAvailabilityComparisonOperatorDto =
+	| 'gt'
+	| 'gte'
+	| 'eq'
+	| 'ne'
+	| 'lte'
+	| 'lt';
+
+export interface CreatureAttackAvailabilityComparisonOperandDto {
+	kind: 'actor_property' | 'target_property' | 'constant';
+	property?: 'sizeRank' | null;
+	value?: number | null;
+}
+
 export interface CreatureAttackAvailabilityRuleDto {
-	type: 'resource_free' | 'active_condition';
+	type: 'resource_free' | 'active_condition' | 'comparison' | 'special_rule';
 	label: string;
 	resourceKey?: string;
 	condition?: { id?: string; slug?: string; name?: string } | null;
+	left?: CreatureAttackAvailabilityComparisonOperandDto | null;
+	operator?: CreatureAttackAvailabilityComparisonOperatorDto | null;
+	right?: CreatureAttackAvailabilityComparisonOperandDto | null;
 	unavailableText?: string;
 	sortOrder?: number;
 }
@@ -75,7 +92,11 @@ export interface CreatureNaturalAttackProfileIntentDto {
 }
 
 export interface CreatureAttackFollowupActionDto {
-	kind?: 'release_grab' | 'drag_grab' | 'shake_grab' | 'custom';
+	kind?:
+		| 'unlink_condition'
+		| 'move_linked_target'
+		| 'damage_linked_target'
+		| 'custom';
 	name: string;
 	costMode?: 'fixed' | 'per_meter' | 'rule';
 	costPotential?: number | null;
@@ -84,7 +105,7 @@ export interface CreatureAttackFollowupActionDto {
 	appliesArmor?: boolean;
 	conditionOnDamage?: { id?: string; slug?: string; name?: string } | null;
 	conditionLevel?: number | null;
-	keepsGrab?: boolean;
+	keepsLinkedCondition?: boolean;
 	description?: string;
 	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
 	isActive?: boolean;
@@ -101,6 +122,7 @@ export interface CreatureNaturalAttackProfileDto {
 	rangeMeters: number;
 	usesAmmo: boolean;
 	canBeParried: boolean;
+	defaultDefense?: CreatureTierActionDefenseDto;
 	availabilityRules?: CreatureAttackAvailabilityRuleDto[];
 	damageTypeIds: string[];
 	intents: CreatureNaturalAttackProfileIntentDto[];
@@ -179,7 +201,7 @@ export interface CreatureTargetSelectionDto {
 
 export type CreatureTierActionKindDto =
 	| 'attack'
-	| 'grab_action'
+	| 'condition_action'
 	| 'active_ability'
 	| 'reaction'
 	| 'passive';
@@ -208,7 +230,7 @@ export interface CreatureTierActionTargetDto {
 		| 'self'
 		| 'creature'
 		| 'hostile_creature'
-		| 'held_target'
+		| 'linked_condition_target'
 		| 'marked_target'
 		| 'none';
 	visibility: 'visible' | 'any';
@@ -225,16 +247,19 @@ export interface CreatureTierActionDefenseDto {
 	type: 'none' | 'target_physical_defense';
 	canDodge: boolean;
 	canParry: boolean;
+	parrySkillGroups: CreatureParrySkillGroupDto[];
 }
+
+export type CreatureParrySkillGroupDto = 'unarmed' | 'melee_weapon' | 'shield';
 
 export interface CreatureTierActionEffectDto {
 	type:
 		| 'damage'
 		| 'apply_condition'
 		| 'remove_condition'
-		| 'create_grab'
-		| 'release_grab'
-		| 'move_with_grab'
+		| 'link_condition'
+		| 'unlink_condition'
+		| 'move_linked_target'
 		| 'dice_pool_modifier'
 		| 'special_rule';
 	value: number | null;
@@ -245,9 +270,13 @@ export interface CreatureTierActionEffectDto {
 		| null;
 	damageType: CreatureTierActionReferenceDto | null;
 	condition: CreatureTierActionReferenceDto | null;
+	linkedCondition: CreatureTierActionReferenceDto | null;
 	conditionDisplayName: string;
 	conditionLevel: number | null;
 	targetScope:
+		| 'actor'
+		| 'selected_target'
+		| 'linked_condition_target'
 		| 'holder'
 		| 'source_against_holder'
 		| 'source_group_against_holder'
@@ -342,6 +371,26 @@ export interface CreatureDto {
 	updatedAt: string;
 }
 
+export interface CreaturePublicTierSummaryDto {
+	id: string;
+	tier: number;
+	name: string;
+	hp: number;
+	sizeId: string | null;
+	size: CreatureSizeOptionDto | null;
+	isActive: boolean;
+	sortOrder: number;
+}
+
+export interface CreaturePublicSummaryDto {
+	id: string;
+	slug: string;
+	name: string;
+	tiers: CreaturePublicTierSummaryDto[];
+	isActive: boolean;
+	sortOrder: number;
+}
+
 export interface CreaturesCatalogResponseDto {
 	creatures: CreatureDto[];
 	creatureTypes: CreatureTypeOptionDto[];
@@ -354,6 +403,10 @@ export interface CreaturesCatalogResponseDto {
 	skills: CreatureSkillOptionDto[];
 	characteristics: CreatureCharacteristicOptionDto[];
 	conditions: CreatureConditionOptionDto[];
+}
+
+export interface CreaturePublicCatalogResponseDto {
+	creatures: CreaturePublicSummaryDto[];
 }
 
 export interface CreatureTierSkillCommandDto {

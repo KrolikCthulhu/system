@@ -1,3 +1,9 @@
+:host {
+	display: block;
+	height: 100%;
+	min-height: 0;
+}
+
 .combat-encounter-page {
 	display: flex;
 	flex-direction: column;
@@ -5,6 +11,8 @@
 	height: 100%;
 	min-height: 0;
 	color: var(--p-text-color);
+	overflow-x: hidden;
+	overflow-y: auto;
 }
 
 .combat-encounter-page__header {
@@ -40,14 +48,19 @@
 	color: var(--p-primary-color);
 }
 
+.combat-encounter-page__header-actions {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 0.5rem;
+}
+
 .combat-encounter-page__layout {
 	display: flex;
 	flex-direction: column;
 	gap: 1rem;
 	flex: 1 1 auto;
 	min-height: 0;
-	overflow-y: auto;
-	overflow-x: hidden;
 }
 
 .combat-encounter-page__quick-add {
@@ -86,10 +99,9 @@
 }
 
 .combat-encounter-page__creature-form {
-	grid-template-columns: minmax(12rem, 1.1fr) minmax(12rem, 1.2fr) minmax(
-			12rem,
-			1fr
-		) 8rem auto;
+	grid-template-columns:
+		minmax(12rem, 1.1fr) minmax(12rem, 1.2fr) minmax(12rem, 1fr)
+		8rem auto;
 }
 
 .combat-encounter-page__participant-fields {
@@ -120,6 +132,131 @@
 	flex-direction: column;
 	gap: 0.75rem;
 	min-height: 0;
+}
+
+.combat-encounter-page__battle-layout {
+	display: block;
+	min-height: 0;
+}
+
+.combat-encounter-page__battle-layout--active {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) minmax(18rem, 24rem);
+	align-items: start;
+	gap: 0.875rem;
+}
+
+.combat-encounter-page__battle-layout--collapsed {
+	grid-template-columns: minmax(0, 1fr) 3rem;
+}
+
+.combat-encounter-page__battle-main {
+	min-width: 0;
+}
+
+.combat-encounter-page__side-panel {
+	position: sticky;
+	top: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	max-height: calc(100vh - 10rem);
+	min-width: 0;
+	padding: 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 8px;
+	background: var(--p-content-background);
+	overflow: hidden;
+}
+
+.combat-encounter-page__side-panel--collapsed {
+	align-items: center;
+	width: 3rem;
+	min-width: 3rem;
+	padding: 0.5rem;
+}
+
+.combat-encounter-page__side-section {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	min-width: 0;
+}
+
+.combat-encounter-page__queue {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+	padding: 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 8px;
+	background: var(--p-content-background);
+}
+
+.combat-encounter-page__queue-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.combat-encounter-page__queue-item {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	padding: 0.375rem 0.625rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 999rem;
+	background: var(--p-surface-50);
+}
+
+.combat-encounter-page__queue-item--active {
+	border-color: var(--p-primary-color);
+	background: color-mix(in srgb, var(--p-primary-color) 10%, transparent);
+}
+
+.combat-encounter-page__queue-item span {
+	color: var(--p-text-muted-color);
+	font-weight: 700;
+}
+
+.combat-encounter-page__defense-requests,
+.combat-encounter-page__defense-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.625rem;
+}
+
+.combat-encounter-page__defense-request {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 8px;
+	background: var(--p-content-background);
+}
+
+.combat-encounter-page__side-panel .combat-encounter-page__defense-request {
+	flex-direction: column;
+}
+
+.combat-encounter-page__defense-request strong,
+.combat-encounter-page__defense-request span {
+	display: block;
+}
+
+.combat-encounter-page__defense-request span {
+	margin-top: 0.1875rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+}
+
+.combat-encounter-page__defense-actions {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: flex-end;
+	gap: 0.5rem;
 }
 
 .combat-encounter-page__section-head {
@@ -154,6 +291,15 @@
 	gap: 0.875rem;
 }
 
+.combat-encounter-page__participant--active {
+	border-color: var(--p-primary-color);
+	background: color-mix(
+		in srgb,
+		var(--p-primary-color) 5%,
+		var(--p-content-background)
+	);
+}
+
 .combat-encounter-page__participant-main {
 	display: flex;
 	align-items: flex-start;
@@ -171,6 +317,184 @@
 	margin-top: 0.1875rem;
 	color: var(--p-text-muted-color);
 	font-size: 0.8125rem;
+}
+
+.combat-encounter-page__condition-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.375rem;
+	margin-top: 0.5rem;
+}
+
+.combat-encounter-page__combat-stats {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.625rem;
+}
+
+.combat-encounter-page__combat-stat {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	padding: 0.375rem 0.5rem;
+	border: 1px solid var(--p-content-border-color);
+	border-radius: 8px;
+	background: var(--p-surface-50);
+}
+
+.combat-encounter-page__combat-stat span {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+}
+
+.combat-encounter-page__combat-stat strong {
+	min-width: 1.5rem;
+	text-align: center;
+}
+
+.combat-encounter-page__actions {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	padding-top: 0.25rem;
+}
+
+.combat-encounter-page__target-field {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	color: var(--p-text-muted-color);
+	font-size: 0.875rem;
+}
+
+.combat-encounter-page__action-section,
+.combat-encounter-page__attack-list,
+.combat-encounter-page__attack {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+}
+
+.combat-encounter-page__action-section {
+	gap: 0.5rem;
+}
+
+.combat-encounter-page__action-section h3 {
+	margin: 0;
+	font-size: 0.9375rem;
+	text-transform: uppercase;
+}
+
+.combat-encounter-page__attack-list {
+	gap: 0.75rem;
+}
+
+.combat-encounter-page__attack {
+	gap: 0.5rem;
+	padding-left: 0.75rem;
+	border-left: 2px solid
+		color-mix(in srgb, var(--p-primary-color) 36%, transparent);
+}
+
+.combat-encounter-page__attack-head,
+.combat-encounter-page__intent-list,
+.combat-encounter-page__intent {
+	display: flex;
+	align-items: center;
+	min-width: 0;
+}
+
+.combat-encounter-page__attack-head {
+	justify-content: flex-start;
+	gap: 0.625rem;
+}
+
+.combat-encounter-page__attack-title {
+	display: flex;
+	flex-direction: column;
+	gap: 0.125rem;
+	min-width: 0;
+}
+
+.combat-encounter-page__attack-title strong {
+	font-weight: 700;
+	text-transform: uppercase;
+}
+
+.combat-encounter-page__attack-title span {
+	color: var(--p-text-muted-color);
+	font-size: 0.8125rem;
+}
+
+.combat-encounter-page__intent-list {
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.combat-encounter-page__intent {
+	gap: 0.375rem;
+}
+
+.combat-encounter-page__target-select {
+	width: 8rem;
+}
+
+.combat-encounter-page__events {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding-top: 0.25rem;
+	min-height: 0;
+}
+
+.combat-encounter-page__events h2,
+.combat-encounter-page__events-head h2 {
+	margin: 0;
+	font-size: 1rem;
+}
+
+.combat-encounter-page__events-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.combat-encounter-page__event-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.375rem;
+	min-height: 0;
+	overflow-y: auto;
+}
+
+.combat-encounter-page__event {
+	display: flex;
+	align-items: flex-start;
+	gap: 0.5rem;
+	padding: 0.5rem 0;
+	border-bottom: 1px solid var(--p-content-border-color);
+	font-size: 0.875rem;
+}
+
+.combat-encounter-page__event span,
+.combat-encounter-page__event small {
+	color: var(--p-text-muted-color);
+}
+
+.combat-encounter-page__event > span {
+	flex: 0 0 auto;
+}
+
+.combat-encounter-page__event-body {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1875rem;
+	min-width: 0;
+}
+
+.combat-encounter-page__event-body strong {
+	font-weight: 700;
 }
 
 .combat-encounter-page__state,
@@ -194,6 +518,21 @@
 }
 
 @media (max-width: 80rem) {
+	.combat-encounter-page__battle-layout--active {
+		grid-template-columns: 1fr;
+	}
+
+	.combat-encounter-page__side-panel {
+		position: static;
+		max-height: none;
+	}
+
+	.combat-encounter-page__side-panel--collapsed {
+		align-items: flex-start;
+		width: auto;
+		min-width: 0;
+	}
+
 	.combat-encounter-page__quick-add,
 	.combat-encounter-page__creature-form,
 	.combat-encounter-page__participant-fields {

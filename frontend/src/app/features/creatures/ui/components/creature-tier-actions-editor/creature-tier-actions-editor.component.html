@@ -1,6 +1,5 @@
 <section class="creature-tier-actions-editor">
 	<div class="creature-tier-actions-editor__head">
-		<h4>Действия</h4>
 		<p-button
 			label="Действие"
 			icon="pi pi-plus"
@@ -17,14 +16,18 @@
 					class="creature-tier-actions-editor__action-tree"
 					[groups]="actionTreeGroups()"
 					[selectedItemId]="selectedActionItem()?.action?.slug ?? null"
+					[collapsedGroups]="collapsedActionGroups()"
+					[collapsedSubgroups]="collapsedActionSubgroups()"
 					(itemSelect)="selectAction($event)"
+					(groupToggle)="toggleActionGroup($event)"
+					(subgroupToggle)="toggleActionSubgroup($event)"
 				></app-navigation-tree>
 
 				@if (selectedActionItem(); as item) {
 					<article class="creature-tier-actions-editor__item">
 						<header class="creature-tier-actions-editor__item-head">
 							<div class="creature-tier-actions-editor__title">
-								<strong>{{ item.action.name }}</strong>
+								<strong>{{ actionButtonLabel(item.action) }}</strong>
 								<small>{{ item.sourceText }}</small>
 							</div>
 							<div class="creature-tier-actions-editor__tags">
@@ -54,16 +57,18 @@
 							<p-tabpanels class="creature-tier-actions-editor__tabpanels">
 								<p-tabpanel value="general">
 									<div class="creature-tier-actions-editor__grid">
-										<label class="creature-tier-actions-editor__field">
-											<span>Название</span>
-											<input
-												pInputText
-												[ngModel]="item.action.name"
-												(ngModelChange)="
-													updateAction(item.index, { name: $event })
-												"
-											/>
-										</label>
+										@if (!item.action.source?.intent) {
+											<label class="creature-tier-actions-editor__field">
+												<span>Название действия</span>
+												<input
+													pInputText
+													[ngModel]="item.action.name"
+													(ngModelChange)="
+														updateAction(item.index, { name: $event })
+													"
+												/>
+											</label>
+										}
 										<label class="creature-tier-actions-editor__field">
 											<span>Тип действия</span>
 											<p-select
@@ -115,6 +120,22 @@
 													"
 												></p-select>
 											</label>
+											@if (naturalAttackProfileOptions(item.action).length) {
+												<label class="creature-tier-actions-editor__field">
+													<span>Профиль</span>
+													<p-select
+														[ngModel]="item.action.source?.profileName ?? ''"
+														[options]="naturalAttackProfileOptions(item.action)"
+														optionLabel="label"
+														optionValue="value"
+														appendTo="body"
+														[fluid]="true"
+														(ngModelChange)="
+															updateNaturalAttackProfile(item.index, $event)
+														"
+													></p-select>
+												</label>
+											}
 										} @else if (item.action.source?.type === 'condition') {
 											<label class="creature-tier-actions-editor__field">
 												<span>Состояние</span>
@@ -142,17 +163,6 @@
 												/>
 											</label>
 										}
-
-										<label class="creature-tier-actions-editor__field">
-											<span>Профиль источника</span>
-											<input
-												pInputText
-												[ngModel]="item.action.source?.profileName ?? ''"
-												(ngModelChange)="
-													updateSource(item.index, { profileName: $event })
-												"
-											/>
-										</label>
 										<label class="creature-tier-actions-editor__field">
 											<span>Намерение</span>
 											<p-select
@@ -289,9 +299,7 @@
 																appendTo="body"
 																[fluid]="true"
 																(ngModelChange)="
-																	updateRule(item.index, ruleIndex, {
-																		type: $event
-																	})
+																	updateRuleType(item.index, ruleIndex, $event)
 																"
 															></p-select>
 														</label>
@@ -329,6 +337,108 @@
 																	"
 																></p-select>
 															</label>
+														}
+														@if (rule.type === 'comparison') {
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Левая часть</span>
+																<p-select
+																	[ngModel]="comparisonOperandValue(rule.left)"
+																	[options]="comparisonOperandOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	appendTo="body"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateRuleComparisonLeft(
+																			item.index,
+																			ruleIndex,
+																			$event
+																		)
+																	"
+																></p-select>
+															</label>
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Оператор</span>
+																<p-select
+																	[ngModel]="rule.operator ?? 'lt'"
+																	[options]="comparisonOperatorOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	appendTo="body"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateRuleComparisonOperator(
+																			item.index,
+																			ruleIndex,
+																			$event
+																		)
+																	"
+																></p-select>
+															</label>
+															<label
+																class="creature-tier-actions-editor__field"
+															>
+																<span>Правая часть</span>
+																<p-select
+																	[ngModel]="comparisonOperandValue(rule.right)"
+																	[options]="comparisonOperandOptions"
+																	optionLabel="label"
+																	optionValue="value"
+																	appendTo="body"
+																	[fluid]="true"
+																	(ngModelChange)="
+																		updateRuleComparisonRight(
+																			item.index,
+																			ruleIndex,
+																			$event
+																		)
+																	"
+																></p-select>
+															</label>
+															@if (rule.left?.kind === 'constant') {
+																<label
+																	class="creature-tier-actions-editor__field"
+																>
+																	<span>Значение слева</span>
+																	<p-inputnumber
+																		[ngModel]="rule.left?.value ?? 0"
+																		[showButtons]="true"
+																		[fluid]="true"
+																		(ngModelChange)="
+																			updateRuleComparisonOperandValue(
+																				item.index,
+																				ruleIndex,
+																				'left',
+																				$event
+																			)
+																		"
+																	></p-inputnumber>
+																</label>
+															}
+															@if (rule.right?.kind === 'constant') {
+																<label
+																	class="creature-tier-actions-editor__field"
+																>
+																	<span>Значение справа</span>
+																	<p-inputnumber
+																		[ngModel]="rule.right?.value ?? 0"
+																		[showButtons]="true"
+																		[fluid]="true"
+																		(ngModelChange)="
+																			updateRuleComparisonOperandValue(
+																				item.index,
+																				ruleIndex,
+																				'right',
+																				$event
+																			)
+																		"
+																	></p-inputnumber>
+																</label>
+															}
 														}
 														<label
 															class="creature-tier-actions-editor__field creature-tier-actions-editor__field--wide"
@@ -408,38 +518,79 @@
 												(ngModelChange)="updateRollSkill(item.index, $event)"
 											></p-select>
 										</label>
-										<label class="creature-tier-actions-editor__field">
-											<span>Защита</span>
-											<p-select
-												[ngModel]="item.action.defense?.type ?? 'none'"
-												[options]="defenseTypeOptions"
-												optionLabel="label"
-												optionValue="value"
-												appendTo="body"
-												[fluid]="true"
-												(ngModelChange)="
-													updateDefense(item.index, { type: $event })
-												"
-											></p-select>
-										</label>
 										<div class="creature-tier-actions-editor__switch-field">
-											<span>Можно уклониться</span>
+											<span>Переопределить защиту</span>
 											<p-toggleswitch
-												[ngModel]="item.action.defense?.canDodge ?? false"
+												[ngModel]="item.action.defense != null"
 												(ngModelChange)="
-													updateDefense(item.index, { canDodge: $event })
+													updateDefenseOverride(item.index, $event)
 												"
 											></p-toggleswitch>
+											<small>{{ defenseInheritanceText(item.action) }}</small>
 										</div>
-										<div class="creature-tier-actions-editor__switch-field">
-											<span>Можно парировать</span>
-											<p-toggleswitch
-												[ngModel]="item.action.defense?.canParry ?? false"
-												(ngModelChange)="
-													updateDefense(item.index, { canParry: $event })
-												"
-											></p-toggleswitch>
-										</div>
+
+										@if (item.action.defense) {
+											<label class="creature-tier-actions-editor__field">
+												<span>Защита</span>
+												<p-select
+													[ngModel]="effectiveDefense(item.action).type"
+													[options]="defenseTypeOptions"
+													optionLabel="label"
+													optionValue="value"
+													appendTo="body"
+													[fluid]="true"
+													(ngModelChange)="
+														updateDefense(item.index, { type: $event })
+													"
+												></p-select>
+											</label>
+											<div class="creature-tier-actions-editor__switch-field">
+												<span>Можно уклониться</span>
+												<p-toggleswitch
+													[ngModel]="effectiveDefense(item.action).canDodge"
+													(ngModelChange)="
+														updateDefense(item.index, { canDodge: $event })
+													"
+												></p-toggleswitch>
+											</div>
+											<div class="creature-tier-actions-editor__switch-field">
+												<span>Можно парировать</span>
+												<p-toggleswitch
+													[ngModel]="effectiveDefense(item.action).canParry"
+													(ngModelChange)="
+														updateDefense(item.index, { canParry: $event })
+													"
+												></p-toggleswitch>
+											</div>
+										}
+
+										@if (
+											item.action.defense &&
+											effectiveDefense(item.action).type ===
+												'target_physical_defense' &&
+											effectiveDefense(item.action).canParry
+										) {
+											<label
+												class="creature-tier-actions-editor__field creature-tier-actions-editor__field--wide"
+											>
+												<span>Чем можно парировать</span>
+												<p-multiselect
+													[ngModel]="
+														effectiveDefense(item.action).parrySkillGroups
+													"
+													[options]="parrySkillGroupOptions"
+													optionLabel="label"
+													optionValue="value"
+													appendTo="body"
+													[fluid]="true"
+													(ngModelChange)="
+														updateDefense(item.index, {
+															parrySkillGroups: $event
+														})
+													"
+												></p-multiselect>
+											</label>
+										}
 									</div>
 								</p-tabpanel>
 
@@ -537,7 +688,9 @@
 														@if (
 															effect.type === 'apply_condition' ||
 															effect.type === 'remove_condition' ||
-															effect.type === 'create_grab'
+															effect.type === 'link_condition' ||
+															effect.type === 'unlink_condition' ||
+															effect.type === 'move_linked_target'
 														) {
 															<label
 																class="creature-tier-actions-editor__field"
@@ -560,6 +713,34 @@
 																	"
 																></p-select>
 															</label>
+															@if (
+																effect.type === 'link_condition' ||
+																effect.type === 'unlink_condition'
+															) {
+																<label
+																	class="creature-tier-actions-editor__field"
+																>
+																	<span>Связанное состояние</span>
+																	<p-select
+																		[ngModel]="
+																			effect.linkedCondition?.slug ?? null
+																		"
+																		[options]="conditions()"
+																		optionLabel="name"
+																		optionValue="slug"
+																		appendTo="body"
+																		[showClear]="true"
+																		[fluid]="true"
+																		(ngModelChange)="
+																			updateEffectLinkedCondition(
+																				item.index,
+																				effectIndex,
+																				$event
+																			)
+																		"
+																	></p-select>
+																</label>
+															}
 															<label
 																class="creature-tier-actions-editor__field"
 															>

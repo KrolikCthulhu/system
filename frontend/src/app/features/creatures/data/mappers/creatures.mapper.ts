@@ -1,7 +1,16 @@
-import { Creature, CreaturesCatalog } from '../../domain/creatures.models';
 import {
+	Creature,
+	CreatureAttackAvailabilityRule,
+	CreatureAttackProfileKind,
+	CreaturePublicCatalog,
+	CreaturesCatalog,
+	CreatureTierActionDefense
+} from '../../domain/creatures.models';
+import {
+	CreatureAttackAvailabilityRuleDto,
 	CreatureDto,
 	CreatureNaturalAttackProfileDto,
+	CreaturePublicCatalogResponseDto,
 	CreaturesCatalogResponseDto
 } from '../dto/creatures.dto';
 
@@ -23,6 +32,21 @@ export function mapCreaturesCatalogResponseDto(
 		creatureSizes: dto.creatureSizes,
 		characteristics: dto.characteristics,
 		conditions: dto.conditions ?? []
+	};
+}
+
+export function mapCreaturePublicCatalogResponseDto(
+	dto: CreaturePublicCatalogResponseDto
+): CreaturePublicCatalog {
+	return {
+		creatures: dto.creatures.map(creature => ({
+			id: creature.id,
+			slug: creature.slug,
+			name: creature.name,
+			tiers: creature.tiers,
+			isActive: creature.isActive,
+			sortOrder: creature.sortOrder
+		}))
 	};
 }
 
@@ -114,24 +138,21 @@ function mapCreatureTierActions(
 			perMeter: action.cost?.perMeter ?? null
 		},
 		target: action.target ?? null,
-		availabilityRules: (action.availabilityRules ?? []).map(
-			(rule, ruleIndex) => ({
-				type: rule.type,
-				label: rule.label,
-				resourceKey: rule.resourceKey ?? '',
-				condition: rule.condition ?? null,
-				unavailableText: rule.unavailableText ?? '',
-				sortOrder: rule.sortOrder ?? ruleIndex
-			})
-		),
+		availabilityRules: mapAttackAvailabilityRules(action.availabilityRules),
 		roll: action.roll ?? null,
-		defense: action.defense ?? null,
+		defense: action.defense
+			? {
+					...action.defense,
+					parrySkillGroups: action.defense.parrySkillGroups ?? []
+				}
+			: null,
 		effects: (action.effects ?? []).map((effect, effectIndex) => ({
 			type: effect.type,
 			value: effect.value ?? null,
 			damageMode: effect.damageMode ?? null,
 			damageType: effect.damageType ?? null,
 			condition: effect.condition ?? null,
+			linkedCondition: effect.linkedCondition ?? null,
 			conditionDisplayName: effect.conditionDisplayName ?? '',
 			conditionLevel: effect.conditionLevel ?? null,
 			targetScope: effect.targetScope ?? null,
@@ -149,27 +170,12 @@ function mapCreatureTierActions(
 function mapNaturalAttackProfileDto(profile: CreatureNaturalAttackProfileDto) {
 	return {
 		...profile,
-		availabilityRules: (profile.availabilityRules ?? []).map((rule, index) => ({
-			type: rule.type,
-			label: rule.label,
-			resourceKey: rule.resourceKey ?? '',
-			condition: rule.condition ?? null,
-			unavailableText: rule.unavailableText ?? '',
-			sortOrder: rule.sortOrder ?? index
-		})),
+		defaultDefense: mapNaturalAttackProfileDefense(profile),
+		availabilityRules: mapAttackAvailabilityRules(profile.availabilityRules),
 		intents: profile.intents.map((intent, index) => ({
 			...intent,
 			nameOverride: intent.nameOverride ?? '',
-			availabilityRules: (intent.availabilityRules ?? []).map(
-				(rule, ruleIndex) => ({
-					type: rule.type,
-					label: rule.label,
-					resourceKey: rule.resourceKey ?? '',
-					condition: rule.condition ?? null,
-					unavailableText: rule.unavailableText ?? '',
-					sortOrder: rule.sortOrder ?? ruleIndex
-				})
-			),
+			availabilityRules: mapAttackAvailabilityRules(intent.availabilityRules),
 			sortOrder: intent.sortOrder ?? index
 		})),
 		followupActions: (profile.followupActions ?? []).map((action, index) => ({
@@ -182,20 +188,65 @@ function mapNaturalAttackProfileDto(profile: CreatureNaturalAttackProfileDto) {
 			appliesArmor: action.appliesArmor ?? false,
 			conditionOnDamage: action.conditionOnDamage ?? null,
 			conditionLevel: action.conditionLevel ?? null,
-			keepsGrab: action.keepsGrab ?? true,
+			keepsLinkedCondition: action.keepsLinkedCondition ?? true,
 			description: action.description ?? '',
-			availabilityRules: (action.availabilityRules ?? []).map(
-				(rule, ruleIndex) => ({
-					type: rule.type,
-					label: rule.label,
-					resourceKey: rule.resourceKey ?? '',
-					condition: rule.condition ?? null,
-					unavailableText: rule.unavailableText ?? '',
-					sortOrder: rule.sortOrder ?? ruleIndex
-				})
-			),
+			availabilityRules: mapAttackAvailabilityRules(action.availabilityRules),
 			isActive: action.isActive ?? true,
 			sortOrder: action.sortOrder ?? index
 		}))
+	};
+}
+
+function mapAttackAvailabilityRules(
+	rules: CreatureAttackAvailabilityRuleDto[] | undefined
+): CreatureAttackAvailabilityRule[] {
+	return (rules ?? []).map((rule, index) => ({
+		type: rule.type,
+		label: rule.label,
+		resourceKey: rule.resourceKey ?? '',
+		condition: rule.condition ?? null,
+		left: rule.left
+			? {
+					kind: rule.left.kind,
+					property: rule.left.property ?? null,
+					value: rule.left.value ?? null
+				}
+			: null,
+		operator: rule.operator ?? null,
+		right: rule.right
+			? {
+					kind: rule.right.kind,
+					property: rule.right.property ?? null,
+					value: rule.right.value ?? null
+				}
+			: null,
+		unavailableText: rule.unavailableText ?? '',
+		sortOrder: rule.sortOrder ?? index
+	}));
+}
+
+function mapNaturalAttackProfileDefense(
+	profile: CreatureNaturalAttackProfileDto
+): CreatureTierActionDefense {
+	if (profile.defaultDefense) {
+		return {
+			...profile.defaultDefense,
+			parrySkillGroups: profile.defaultDefense.parrySkillGroups ?? []
+		};
+	}
+
+	return defaultNaturalAttackProfileDefense(profile.kind, profile.canBeParried);
+}
+
+function defaultNaturalAttackProfileDefense(
+	kind: CreatureAttackProfileKind,
+	canBeParried: boolean | undefined
+): CreatureTierActionDefense {
+	const canParry = canBeParried ?? kind === 'melee';
+	return {
+		type: kind === 'melee' ? 'target_physical_defense' : 'none',
+		canDodge: kind === 'melee',
+		canParry,
+		parrySkillGroups: canParry ? ['melee_weapon', 'shield'] : []
 	};
 }

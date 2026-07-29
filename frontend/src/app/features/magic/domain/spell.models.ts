@@ -29,6 +29,23 @@ export interface Spell {
 	updatedAt: string;
 }
 
+export interface SpellSummary {
+	id: string;
+	actionId: string;
+	essenceId: string;
+	gestureId: string;
+	name: string;
+	status: PersistedSpellStatus;
+	isActive: boolean;
+	sortOrder: number;
+	formulaName: string;
+	action: SpellFormulaWord;
+	essence: SpellFormulaWord;
+	gesture: SpellFormulaWord;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface SpellConfig {
 	area?: SpellAreaConfig;
 }
@@ -209,7 +226,7 @@ export interface SpellFormulaCandidate {
 	gesture: SpellFormulaWord;
 	status: SpellStatus;
 	isActive: boolean;
-	spell: Spell | null;
+	spell: SpellSummary | null;
 }
 
 export interface SpellFormulaGroup {

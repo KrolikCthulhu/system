@@ -33,6 +33,7 @@ function meleeAttack(params: {
 	damageTypes: NaturalAttackContent['attackProfiles'][number]['damageTypes'];
 	combatIntents: NaturalAttackContent['attackProfiles'][number]['combatIntents'];
 	canBeParried?: boolean;
+	defaultDefense?: NaturalAttackContent['attackProfiles'][number]['defaultDefense'];
 	sortOrder: number;
 }): NaturalAttackContent {
 	return {
@@ -51,6 +52,7 @@ function meleeAttack(params: {
 				rangeMeters: 1,
 				usesAmmo: false,
 				canBeParried: params.canBeParried ?? true,
+				defaultDefense: params.defaultDefense,
 				damageTypes: params.damageTypes,
 				combatIntents: params.combatIntents,
 				sortOrder: 0
@@ -105,9 +107,16 @@ export default {
 				INTENTS.wound,
 				INTENTS.targetedWound,
 				INTENTS.vulnerableSpot,
+				INTENTS.knockdown,
 				INTENTS.grab
 			],
-			canBeParried: false,
+			canBeParried: true,
+			defaultDefense: {
+				type: 'target_physical_defense',
+				canDodge: true,
+				canParry: true,
+				parrySkillGroups: ['melee_weapon', 'shield']
+			},
 			sortOrder: 2
 		}),
 		meleeAttack({

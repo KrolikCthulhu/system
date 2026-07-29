@@ -1,4 +1,8 @@
-import type { ContentDocument, CreatureContent } from '../content-types';
+import type {
+	AttackAvailabilityRuleContent,
+	ContentDocument,
+	CreatureContent
+} from '../content-types';
 
 const noArmor = {
 	name: 'Без брони',
@@ -55,6 +59,11 @@ const bite = {
 	slug: 'ukus'
 };
 
+const pounce = {
+	name: 'Атака телом',
+	slug: 'ataka-telom'
+};
+
 const piercing = {
 	name: 'Колющий',
 	slug: 'kolyuschiy'
@@ -68,6 +77,11 @@ const wound = {
 const grab = {
 	name: 'Захватить',
 	slug: 'zahvatit'
+};
+
+const knockdown = {
+	name: 'Сбить с ног',
+	slug: 'sbit-s-nog'
 };
 
 const grabbed = {
@@ -85,24 +99,39 @@ const bleeding = {
 	slug: 'krovotechenie'
 };
 
+const prone = {
+	name: 'Лежит',
+	slug: 'lezhit'
+};
+
 const markedTarget = {
 	name: 'Отмеченная цель',
 	slug: 'otmechennaya-cel'
 };
 
-const mouthFreeRule = {
+const mouthFreeRule: AttackAvailabilityRuleContent = {
 	type: 'resource_free',
 	label: 'Пасть свободна',
 	resourceKey: 'mouth',
 	unavailableText: 'Недоступно: пасть занята'
-} as const;
+};
 
-const activeGrabRule = {
+const activeGrabRule: AttackAvailabilityRuleContent = {
 	type: 'active_condition',
 	label: 'Активный захват',
 	condition: holding,
 	unavailableText: 'Доступно при активном захвате'
-} as const;
+};
+
+const smallerHeldTargetRule: AttackAvailabilityRuleContent = {
+	type: 'comparison',
+	label: 'Цель меньшего размера',
+	left: { kind: 'target_property', property: 'sizeRank' },
+	operator: 'lt',
+	right: { kind: 'actor_property', property: 'sizeRank' },
+	unavailableText:
+		'Молодой волк может использовать «Утащить» только против цели меньшего размера.'
+};
 
 function biteDamageOverride(
 	damageModifier: number
@@ -125,7 +154,7 @@ function wolfActions(
 	const actions: NonNullable<CreatureContent['tiers'][number]['actions']> = [
 		{
 			slug: 'ukus-ranit',
-			name: 'Укус — Ранить',
+			name: 'Ранить',
 			kind: 'attack',
 			source: {
 				type: 'natural_attack',
@@ -146,11 +175,6 @@ function wolfActions(
 				characteristic: power,
 				skill: unarmed
 			},
-			defense: {
-				type: 'target_physical_defense',
-				canDodge: true,
-				canParry: false
-			},
 			effects: [
 				{
 					type: 'damage',
@@ -166,7 +190,7 @@ function wolfActions(
 		},
 		{
 			slug: 'ukus-zahvatit',
-			name: 'Укус — Захватить',
+			name: 'Захватить',
 			kind: 'attack',
 			source: {
 				type: 'natural_attack',
@@ -187,11 +211,6 @@ function wolfActions(
 				characteristic: power,
 				skill: unarmed
 			},
-			defense: {
-				type: 'target_physical_defense',
-				canDodge: true,
-				canParry: false
-			},
 			effects: [
 				{
 					type: 'damage',
@@ -201,20 +220,86 @@ function wolfActions(
 					sortOrder: 0
 				},
 				{
-					type: 'create_grab',
-					condition: grabbed,
+					type: 'apply_condition',
+					condition: holding,
+					targetScope: 'actor',
 					requiresDamageAfterArmor: true,
-					text: 'Если после брони прошёл хотя бы 1 урон, создаётся захват. Пасть становится занятой.',
+					text: 'Если после брони прошёл хотя бы 1 урон, волк получает состояние «Удерживает».',
 					sortOrder: 1
+				},
+				{
+					type: 'apply_condition',
+					condition: grabbed,
+					targetScope: 'selected_target',
+					requiresDamageAfterArmor: true,
+					text: 'Если после брони прошёл хотя бы 1 урон, цель получает состояние «Захвачен».',
+					sortOrder: 2
+				},
+				{
+					type: 'link_condition',
+					condition: holding,
+					linkedCondition: grabbed,
+					requiresDamageAfterArmor: true,
+					text: 'Связывает состояние «Удерживает» на волке с состоянием «Захвачен» на цели. Пасть становится занятой.',
+					sortOrder: 3
 				}
 			],
 			playerText: '{существо} пытается вцепиться в цель. {защита}. {эффекты}',
 			sortOrder: 1
 		},
 		{
+			slug: 'ataka-telom-sbit-s-nog',
+			name: 'Сбить с ног',
+			kind: 'attack',
+			source: {
+				type: 'custom',
+				name: pounce.name,
+				slug: pounce.slug,
+				profileName: '',
+				intent: knockdown
+			},
+			cost: { mode: 'fixed', potential: 3 },
+			target: {
+				type: 'hostile_creature',
+				visibility: 'any',
+				description: 'Одна враждебная цель в дистанции наскока.'
+			},
+			availabilityRules: [
+				{
+					type: 'special_rule',
+					label: 'Разбег 3 метра',
+					unavailableText:
+						'До атаки волк должен переместиться к цели минимум на 3 метра.'
+				}
+			],
+			roll: {
+				type: 'check',
+				characteristic: power,
+				skill: unarmed
+			},
+			defense: {
+				type: 'target_physical_defense',
+				canDodge: true,
+				canParry: true,
+				parrySkillGroups: ['unarmed', 'melee_weapon', 'shield']
+			},
+			effects: [
+				{
+					type: 'apply_condition',
+					condition: prone,
+					value: 1,
+					text: 'Если после защиты остался хотя бы 1 чистый успех, цель получает состояние «Лежит».',
+					sortOrder: 0
+				}
+			],
+			playerText:
+				'{существо} бросается на цель после разбега минимум 3 метра. {защита}. {эффекты}',
+			sortOrder: 2
+		},
+		{
 			slug: 'otpustit',
 			name: 'Отпустить',
-			kind: 'grab_action',
+			kind: 'condition_action',
 			source: {
 				type: 'condition',
 				name: holding.name,
@@ -222,7 +307,7 @@ function wolfActions(
 			},
 			cost: { mode: 'free', potential: 0 },
 			target: {
-				type: 'held_target',
+				type: 'linked_condition_target',
 				visibility: 'any',
 				description: 'Одна цель, которую волк удерживает.'
 			},
@@ -231,19 +316,35 @@ function wolfActions(
 			defense: { type: 'none' },
 			effects: [
 				{
-					type: 'release_grab',
-					text: 'Прекращает выбранный захват.',
+					type: 'unlink_condition',
+					condition: holding,
+					linkedCondition: grabbed,
+					text: 'Разрывает связь между состояниями «Удерживает» и «Захвачен».',
 					sortOrder: 0
+				},
+				{
+					type: 'remove_condition',
+					condition: holding,
+					targetScope: 'actor',
+					text: 'Снимает состояние «Удерживает».',
+					sortOrder: 1
+				},
+				{
+					type: 'remove_condition',
+					condition: grabbed,
+					targetScope: 'linked_condition_target',
+					text: 'Снимает состояние «Захвачен» со связанной цели.',
+					sortOrder: 2
 				}
 			],
 			playerText:
 				'{существо} может использовать действие, пока удерживает цель. {эффекты}',
-			sortOrder: 2
+			sortOrder: 3
 		},
 		{
 			slug: 'utaschit',
 			name: 'Утащить',
-			kind: 'grab_action',
+			kind: 'condition_action',
 			source: {
 				type: 'condition',
 				name: holding.name,
@@ -251,7 +352,7 @@ function wolfActions(
 			},
 			cost: { mode: 'per_meter', perMeter: 1 },
 			target: {
-				type: 'held_target',
+				type: 'linked_condition_target',
 				visibility: 'any',
 				description: 'Одна цель, которую волк удерживает.'
 			},
@@ -260,7 +361,8 @@ function wolfActions(
 			defense: { type: 'none' },
 			effects: [
 				{
-					type: 'move_with_grab',
+					type: 'move_linked_target',
+					condition: holding,
 					value: 1,
 					text: '{существо} перемещается вместе с удерживаемой целью на одинаковое расстояние. Перемещение не может проходить через препятствия и не прекращает захват.',
 					sortOrder: 0
@@ -268,12 +370,12 @@ function wolfActions(
 			],
 			playerText:
 				'{существо} может использовать действие, пока удерживает цель. {стоимость}. {эффекты}',
-			sortOrder: 3
+			sortOrder: 4
 		},
 		{
 			slug: 'trepat',
 			name: 'Трепать',
-			kind: 'grab_action',
+			kind: 'condition_action',
 			source: {
 				type: 'condition',
 				name: holding.name,
@@ -281,7 +383,7 @@ function wolfActions(
 			},
 			cost: { mode: 'fixed', potential: 2 },
 			target: {
-				type: 'held_target',
+				type: 'linked_condition_target',
 				visibility: 'any',
 				description: 'Одна цель, которую волк удерживает пастью.'
 			},
@@ -293,6 +395,7 @@ function wolfActions(
 					type: 'damage',
 					damageMode: 'base_damage',
 					damageType: piercing,
+					targetScope: 'linked_condition_target',
 					value: baseDamage,
 					appliesArmor: true,
 					sortOrder: 0
@@ -301,6 +404,7 @@ function wolfActions(
 					type: 'apply_condition',
 					condition: bleeding,
 					conditionLevel: 1,
+					targetScope: 'linked_condition_target',
 					requiresDamageAfterArmor: true,
 					text: 'Если цель получила хотя бы 1 урон после брони, она получает 1 уровень Кровотечения.',
 					sortOrder: 1
@@ -308,7 +412,7 @@ function wolfActions(
 			],
 			playerText:
 				'{существо} может использовать действие, пока удерживает цель пастью. {стоимость}. {бросок}. {защита}. {эффекты}',
-			sortOrder: 4
+			sortOrder: 5
 		}
 	];
 
@@ -353,6 +457,30 @@ function wolfActions(
 	}
 
 	return actions;
+}
+
+function youngWolfActionOverrides(): NonNullable<
+	CreatureContent['tiers'][number]['actionOverrides']
+> {
+	return wolfActions(1)
+		.filter(action =>
+			['ataka-telom-sbit-s-nog', 'utaschit'].includes(action.slug)
+		)
+		.map(action => {
+			if (action.slug === 'ataka-telom-sbit-s-nog') {
+				return {
+					...action,
+					isActive: false
+				};
+			}
+
+			return {
+				...action,
+				availabilityRules: [activeGrabRule, smallerHeldTargetRule],
+				playerText:
+					'{существо} может использовать действие, пока удерживает цель меньшего размера. {стоимость}. {эффекты}'
+			};
+		});
 }
 
 function wolfTargetSelection(
@@ -428,6 +556,7 @@ export default {
 					size: smallSize,
 					armorPreset: noArmor,
 					attackOverrides: biteDamageOverride(0),
+					actionOverrides: youngWolfActionOverrides(),
 					targetSelection: wolfTargetSelection(
 						'Молодой волк действует просто: выбирает ближайшую доступную цель, замечает явную слабость, но редко поддерживает сложную фокусировку стаи.',
 						[
@@ -464,6 +593,7 @@ export default {
 					size: mediumSize,
 					armorPreset: noArmor,
 					attackOverrides: biteDamageOverride(0),
+					actionOverrides: wolfActions(2),
 					targetSelection: wolfTargetSelection(
 						'Волк поддерживает атаку стаи: предпочитает Добычу стаи, захваченную, раненую или лежащую цель.',
 						[

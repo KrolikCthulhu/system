@@ -55,6 +55,15 @@ export class MagicController {
 		return this.magicService.getSpellCatalog();
 	}
 
+	@Get('spells/:id')
+	async getSpell(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string
+	) {
+		this.assertAdmin(user);
+		return this.magicService.getSpell(id);
+	}
+
 	@Post('spells')
 	async createSpell(
 		@CurrentUser() user: AuthenticatedUser,
@@ -72,6 +81,16 @@ export class MagicController {
 	) {
 		this.assertAdmin(user);
 		return this.magicService.updateSpell(id, dto);
+	}
+
+	@Patch('spells/:id/activity')
+	async updateSpellActivity(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: { isActive: boolean }
+	) {
+		this.assertAdmin(user);
+		return this.magicService.updateSpellActivity(id, dto.isActive);
 	}
 
 	@Delete('spells/:id')

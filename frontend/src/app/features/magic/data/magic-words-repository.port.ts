@@ -54,6 +54,7 @@ export interface MagicWordsRepository {
 	): Observable<MagicWord>;
 	deleteWord(id: string): Observable<void>;
 	loadSpellCatalog(): Observable<SpellCatalog>;
+	loadSpell(id: string): Observable<Spell>;
 	createSpell(command: {
 		actionId: string;
 		essenceId: string;
@@ -66,9 +67,7 @@ export interface MagicWordsRepository {
 		sortOrder?: number;
 		targetConfigs?: SpellTargetConfig[];
 		textBlocks?: SpellTextBlock[];
-		mechanicBlocks?: Array<
-			Omit<SpellMechanicBlock, 'createdAt' | 'updatedAt'>
-		>;
+		mechanicBlocks?: Array<Omit<SpellMechanicBlock, 'createdAt' | 'updatedAt'>>;
 	}): Observable<Spell>;
 	updateSpell(
 		id: string,
@@ -86,6 +85,7 @@ export interface MagicWordsRepository {
 			>;
 		}
 	): Observable<Spell>;
+	updateSpellActivity(id: string, isActive: boolean): Observable<Spell>;
 	deleteSpell(id: string): Observable<void>;
 	executeSpellRuntimePreview(
 		id: string,
@@ -93,5 +93,6 @@ export interface MagicWordsRepository {
 	): Observable<SpellRuntimePreview>;
 }
 
-export const MAGIC_WORDS_REPOSITORY =
-	new InjectionToken<MagicWordsRepository>('MAGIC_WORDS_REPOSITORY');
+export const MAGIC_WORDS_REPOSITORY = new InjectionToken<MagicWordsRepository>(
+	'MAGIC_WORDS_REPOSITORY'
+);

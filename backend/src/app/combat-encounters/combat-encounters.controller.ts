@@ -15,7 +15,13 @@ import { CombatEncountersService } from './combat-encounters.service';
 import { AddCreatureParticipantDto } from './dto/add-creature-participant.dto';
 import { AddPlayerCharacterParticipantDto } from './dto/add-player-character-participant.dto';
 import { CreateCombatEncounterDto } from './dto/create-combat-encounter.dto';
+import {
+	ExecuteCombatActionDto,
+	ResolveCombatDefenseDto,
+	ResolveDeclaredCombatActionDto
+} from './dto/execute-combat-action.dto';
 import { KnockdownSizeRuleQueryDto } from './dto/knockdown-size-rule-query.dto';
+import { UpdateCombatEncounterDto } from './dto/update-combat-encounter.dto';
 import { UpdateCombatParticipantDto } from './dto/update-combat-participant.dto';
 
 @Controller()
@@ -46,6 +52,15 @@ export class CombatEncountersController {
 		@Param('id') id: string
 	) {
 		return this.encountersService.getEncounter(id, user.id);
+	}
+
+	@Patch('combat-encounters/:id')
+	updateEncounter(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: UpdateCombatEncounterDto
+	) {
+		return this.encountersService.updateEncounter(id, user.id, dto);
 	}
 
 	@Get('combat-encounters/:id/rules/knockdown-size')
@@ -88,5 +103,45 @@ export class CombatEncountersController {
 			user.id,
 			dto
 		);
+	}
+
+	@Post('combat-encounters/:id/participants/:participantId/skip-turn')
+	skipParticipantTurn(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Param('participantId') participantId: string
+	) {
+		return this.encountersService.skipParticipantTurn(
+			id,
+			participantId,
+			user.id
+		);
+	}
+
+	@Post('combat-encounters/:id/actions/execute')
+	executeAction(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: ExecuteCombatActionDto
+	) {
+		return this.encountersService.executeAction(id, user.id, dto);
+	}
+
+	@Post('combat-encounters/:id/actions/resolve-declared')
+	resolveDeclaredAction(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: ResolveDeclaredCombatActionDto
+	) {
+		return this.encountersService.resolveDeclaredAction(id, user.id, dto);
+	}
+
+	@Post('combat-encounters/:id/defenses/resolve')
+	resolveDefense(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: ResolveCombatDefenseDto
+	) {
+		return this.encountersService.resolveDefense(id, user.id, dto);
 	}
 }

@@ -70,6 +70,6 @@ export class CreaturesReadController {
 
 	@Get('catalog')
 	getCatalog() {
-		return this.creaturesService.getCatalog();
+		return this.creaturesService.getPublicCatalog();
 	}
 }

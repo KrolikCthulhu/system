@@ -17,12 +17,13 @@ import { Textarea } from 'primeng/textarea';
 import { EMPTY, catchError, finalize } from 'rxjs';
 import { AuthFacade } from '../../../../auth/state/auth.facade';
 import { COMBAT_ENCOUNTERS_REPOSITORY } from '../../../../combat-encounters/data/combat-encounters-repository.port';
-import { CombatEncounter } from '../../../../combat-encounters/domain/combat-encounters.models';
+import { CombatEncounterSummary } from '../../../../combat-encounters/domain/combat-encounters.models';
 import { PLAYER_CHARACTERS_REPOSITORY } from '../../../../player-characters/data/player-characters-repository.port';
-import { PlayerCharacter } from '../../../../player-characters/domain/player-characters.models';
+import { PlayerCharacterSummary } from '../../../../player-characters/domain/player-characters.models';
 import { CAMPAIGNS_REPOSITORY } from '../../../data/campaigns-repository.port';
 import {
 	Campaign,
+	CampaignCombatActionResolutionMode,
 	CampaignMemberRole,
 	CampaignMemberStatus
 } from '../../../domain/campaigns.models';
@@ -53,8 +54,8 @@ export class CampaignsPageComponent {
 	private readonly authFacade = inject(AuthFacade);
 
 	protected readonly campaigns = signal<Campaign[]>([]);
-	protected readonly characters = signal<PlayerCharacter[]>([]);
-	protected readonly encounters = signal<CombatEncounter[]>([]);
+	protected readonly characters = signal<PlayerCharacterSummary[]>([]);
+	protected readonly encounters = signal<CombatEncounterSummary[]>([]);
 	protected readonly selectedCampaignId = signal<string | null>(null);
 	protected readonly loading = signal(true);
 	protected readonly loadingCharacters = signal(false);
@@ -63,6 +64,7 @@ export class CampaignsPageComponent {
 	protected readonly inviting = signal(false);
 	protected readonly creatingCharacter = signal(false);
 	protected readonly creatingEncounter = signal(false);
+	protected readonly updatingSettings = signal(false);
 	protected readonly errorMessage = signal<string | null>(null);
 	protected readonly inviteErrorMessage = signal<string | null>(null);
 	protected readonly characterErrorMessage = signal<string | null>(null);
@@ -79,6 +81,11 @@ export class CampaignsPageComponent {
 		{ label: 'Игрок', value: 'PLAYER' },
 		{ label: 'Мастер', value: 'GM' }
 	];
+	protected readonly actionResolutionModeOptions: SelectOption<CampaignCombatActionResolutionMode>[] =
+		[
+			{ label: 'Отложенное', value: 'delayed' },
+			{ label: 'Мгновенное', value: 'immediate' }
+		];
 
 	protected readonly selectedCampaign = computed(() => {
 		const id = this.selectedCampaignId();
@@ -240,9 +247,52 @@ export class CampaignsPageComponent {
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe(encounter => {
-				this.encounters.update(encounters => [encounter, ...encounters]);
+				this.encounters.update(encounters => [
+					{
+						id: encounter.id,
+						campaignId: encounter.campaignId,
+						name: encounter.name,
+						status: encounter.status,
+						isActive: encounter.isActive,
+						participantsCount: encounter.participants.length,
+						createdAt: encounter.createdAt,
+						updatedAt: encounter.updatedAt
+					},
+					...encounters
+				]);
 				void this.router.navigate(['/combat-encounters', encounter.id]);
 			});
+	}
+
+	protected updateActionResolutionMode(
+		mode: CampaignCombatActionResolutionMode
+	) {
+		const campaign = this.selectedCampaign();
+
+		if (!campaign || campaign.combatActionResolutionMode === mode) {
+			return;
+		}
+
+		this.updatingSettings.set(true);
+		this.errorMessage.set(null);
+
+		this.campaignsRepository
+			.updateSettings(campaign.id, {
+				combatActionResolutionMode: mode
+			})
+			.pipe(
+				catchError(error => {
+					this.errorMessage.set(
+						error instanceof Error
+							? error.message
+							: 'Не удалось обновить настройки кампании.'
+					);
+					return EMPTY;
+				}),
+				finalize(() => this.updatingSettings.set(false)),
+				takeUntilDestroyed(this.destroyRef)
+			)
+			.subscribe(updatedCampaign => this.replaceCampaign(updatedCampaign));
 	}
 
 	protected inviteMember() {

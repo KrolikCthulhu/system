@@ -55,7 +55,12 @@ interface SpellStatusFilterOption {
 }
 
 type ActivityFilterValue = 'ACTIVE' | 'INACTIVE';
-type FilterGroupKey = 'status' | 'activity' | 'actions' | 'essences' | 'gestures';
+type FilterGroupKey =
+	| 'status'
+	| 'activity'
+	| 'actions'
+	| 'essences'
+	| 'gestures';
 
 @Component({
 	selector: 'app-admin-spells-page',
@@ -95,12 +100,12 @@ export class AdminSpellsPageComponent {
 	protected readonly selectedActions = signal<ReadonlySet<string>>(new Set());
 	protected readonly selectedEssences = signal<ReadonlySet<string>>(new Set());
 	protected readonly selectedGestures = signal<ReadonlySet<string>>(new Set());
-	protected readonly selectedActivity = signal<ReadonlySet<ActivityFilterValue>>(
-		new Set()
-	);
-	protected readonly collapsedFilterGroups = signal<ReadonlySet<FilterGroupKey>>(
-		new Set()
-	);
+	protected readonly selectedActivity = signal<
+		ReadonlySet<ActivityFilterValue>
+	>(new Set());
+	protected readonly collapsedFilterGroups = signal<
+		ReadonlySet<FilterGroupKey>
+	>(new Set());
 	protected readonly loading = signal(true);
 	protected readonly savingActivityIds = signal<ReadonlySet<string>>(new Set());
 	protected readonly errorMessage = signal<string | null>(null);
@@ -136,8 +141,7 @@ export class AdminSpellsPageComponent {
 					const haystack =
 						`${group.label} ${formula.gesture.name} ${formula.spell?.name ?? ''}`.toLowerCase();
 					const matchesQuery = !query || haystack.includes(query);
-					const matchesStatus =
-						!statuses.size || statuses.has(formula.status);
+					const matchesStatus = !statuses.size || statuses.has(formula.status);
 					const matchesGesture =
 						!gestures.size || gestures.has(formula.gesture.id);
 					const matchesActivity =
@@ -150,10 +154,7 @@ export class AdminSpellsPageComponent {
 							!formula.isActive);
 
 					return (
-						matchesQuery &&
-						matchesStatus &&
-						matchesGesture &&
-						matchesActivity
+						matchesQuery && matchesStatus && matchesGesture && matchesActivity
 					);
 				})
 			}))
@@ -354,11 +355,15 @@ export class AdminSpellsPageComponent {
 	}
 
 	protected canToggleActivity(formula: SpellFormulaCandidate | null) {
-		return Boolean(formula?.spell && canManageSpellActivity(formula.spell.status));
+		return Boolean(
+			formula?.spell && canManageSpellActivity(formula.spell.status)
+		);
 	}
 
 	protected isActivitySaving(formula: SpellFormulaCandidate | null) {
-		return Boolean(formula?.spell && this.savingActivityIds().has(formula.spell.id));
+		return Boolean(
+			formula?.spell && this.savingActivityIds().has(formula.spell.id)
+		);
 	}
 
 	protected toggleSpellActivity(
@@ -367,20 +372,18 @@ export class AdminSpellsPageComponent {
 	) {
 		const spell = formula?.spell;
 
-		if (!spell || !canManageSpellActivity(spell.status) || this.isActivitySaving(formula)) {
+		if (
+			!spell ||
+			!canManageSpellActivity(spell.status) ||
+			this.isActivitySaving(formula)
+		) {
 			return;
 		}
 
 		this.savingActivityIds.update(ids => toggleSetValue(ids, spell.id));
 		this.errorMessage.set(null);
 		this.repository
-			.updateSpell(spell.id, {
-				name: spell.name,
-				description: spell.description,
-				status: spell.status,
-				isActive,
-				sortOrder: spell.sortOrder
-			})
+			.updateSpellActivity(spell.id, isActive)
 			.pipe(takeUntilDestroyed(this.destroyRef))
 			.subscribe({
 				next: saved => {
@@ -539,11 +542,15 @@ function uniqueOptions(options: SpellFilterOption[]) {
 		});
 	}
 
-	return Array.from(grouped.values())
-		.sort((first, second) => first.label.localeCompare(second.label, 'ru'));
+	return Array.from(grouped.values()).sort((first, second) =>
+		first.label.localeCompare(second.label, 'ru')
+	);
 }
 
-function updateSpellInCatalog(catalog: SpellCatalog, spell: Spell): SpellCatalog {
+function updateSpellInCatalog(
+	catalog: SpellCatalog,
+	spell: Spell
+): SpellCatalog {
 	return {
 		groups: catalog.groups.map(group => ({
 			...group,

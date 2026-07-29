@@ -243,6 +243,7 @@ async function seedCreatureNaturalAttacks(
 						rangeMeters: true,
 						usesAmmo: true,
 						canBeParried: true,
+						defaultDefense: true,
 						isActive: true,
 						sortOrder: true,
 						damageTypeLinks: {
@@ -282,6 +283,7 @@ async function seedCreatureNaturalAttacks(
 					rangeMeters: profile.rangeMeters,
 					usesAmmo: profile.usesAmmo,
 					canBeParried: profile.canBeParried,
+					defaultDefense: profile.defaultDefense,
 					availabilityRules: [],
 					damageTypeIds: profile.damageTypeLinks.map(link => link.damageTypeId),
 					intents: profile.intentLinks.map(link => ({
@@ -407,6 +409,9 @@ async function resolveCreatureNaturalAttackProfiles(
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo ?? false,
 			canBeParried: profile.canBeParried ?? profile.kind === 'melee',
+			defaultDefense:
+				profile.defaultDefense ??
+				defaultProfileDefense(profile.kind, profile.canBeParried),
 			availabilityRules: normalizeAttackAvailabilityRules(
 				profile.availabilityRules
 			),
@@ -428,7 +433,7 @@ async function resolveCreatureNaturalAttackProfiles(
 							}
 						: null,
 					conditionLevel: action.conditionLevel ?? null,
-					keepsGrab: action.keepsGrab ?? true,
+					keepsLinkedCondition: action.keepsLinkedCondition ?? true,
 					description: action.description ?? '',
 					availabilityRules: normalizeAttackAvailabilityRules(
 						action.availabilityRules
@@ -458,6 +463,9 @@ function normalizeAttackAvailabilityRules(
 					slug: rule.condition.slug
 				}
 			: null,
+		left: rule.left ?? null,
+		operator: rule.operator ?? null,
+		right: rule.right ?? null,
 		unavailableText: rule.unavailableText ?? '',
 		sortOrder: rule.sortOrder ?? index
 	}));
@@ -585,7 +593,10 @@ function normalizeTierActions(
 			? {
 					type: action.defense.type,
 					canDodge: action.defense.canDodge ?? false,
-					canParry: action.defense.canParry ?? false
+					canParry: action.defense.canParry ?? false,
+					parrySkillGroups: action.defense.canParry
+						? (action.defense.parrySkillGroups ?? [])
+						: []
 				}
 			: null,
 		effects: (action.effects ?? []).map((effect, effectIndex) => ({
@@ -604,6 +615,12 @@ function normalizeTierActions(
 						slug: effect.condition.slug
 					}
 				: null,
+			linkedCondition: effect.linkedCondition
+				? {
+						name: effect.linkedCondition.name,
+						slug: effect.linkedCondition.slug
+					}
+				: null,
 			conditionDisplayName: effect.conditionDisplayName ?? '',
 			conditionLevel: effect.conditionLevel ?? null,
 			targetScope: effect.targetScope ?? null,
@@ -616,6 +633,19 @@ function normalizeTierActions(
 		isActive: action.isActive ?? true,
 		sortOrder: action.sortOrder ?? actionIndex
 	})) as Prisma.InputJsonValue;
+}
+
+function defaultProfileDefense(
+	kind: WeaponAttackProfileContent['kind'],
+	canBeParried: boolean | undefined
+) {
+	const canParry = canBeParried ?? kind === 'melee';
+	return {
+		type: kind === 'melee' ? 'target_physical_defense' : 'none',
+		canDodge: kind === 'melee',
+		canParry,
+		parrySkillGroups: canParry ? ['melee_weapon', 'shield'] : []
+	};
 }
 
 async function syncCreatureAnatomyFromScheme(

@@ -1,13 +1,32 @@
-import { CombatEncounter } from '../../domain/combat-encounters.models';
+import {
+	CombatEncounter,
+	CombatEncounterSummary
+} from '../../domain/combat-encounters.models';
 import {
 	CombatEncounterDto,
-	CombatEncountersResponseDto
+	CombatEncountersResponseDto,
+	CombatEncounterSummaryDto
 } from '../dto/combat-encounters.dto';
 
 export function mapCombatEncountersResponseDto(
 	dto: CombatEncountersResponseDto
-): CombatEncounter[] {
-	return dto.encounters.map(mapCombatEncounterDto);
+): CombatEncounterSummary[] {
+	return dto.encounters.map(mapCombatEncounterSummaryDto);
+}
+
+export function mapCombatEncounterSummaryDto(
+	dto: CombatEncounterSummaryDto
+): CombatEncounterSummary {
+	return {
+		id: dto.id,
+		campaignId: dto.campaignId,
+		name: dto.name,
+		status: dto.status,
+		isActive: dto.isActive,
+		participantsCount: dto.participantsCount,
+		createdAt: dto.createdAt,
+		updatedAt: dto.updatedAt
+	};
 }
 
 export function mapCombatEncounterDto(
@@ -18,6 +37,7 @@ export function mapCombatEncounterDto(
 		campaignId: dto.campaignId,
 		name: dto.name,
 		status: dto.status,
+		currentUserRole: dto.currentUserRole,
 		isActive: dto.isActive,
 		participants: dto.participants.map(participant => ({
 			id: participant.id,
@@ -34,9 +54,14 @@ export function mapCombatEncounterDto(
 			initiative: participant.initiative,
 			isActive: participant.isActive,
 			sortOrder: participant.sortOrder,
+			conditions: participant.conditions,
 			createdAt: participant.createdAt,
 			updatedAt: participant.updatedAt
 		})),
+		conditionLinks: dto.conditionLinks,
+		defenseRequests: dto.defenseRequests,
+		declaredActions: dto.declaredActions ?? [],
+		events: dto.events,
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
 	};

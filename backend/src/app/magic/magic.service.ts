@@ -14,10 +14,7 @@ import { rethrowPrismaError } from '../shared/prisma-error.util';
 import { createSlug } from '../shared/slug.util';
 import { CreateMagicWordDto } from './dto/create-magic-word.dto';
 import { UpdateMagicWordDto } from './dto/update-magic-word.dto';
-import {
-	SaveSpellDto,
-	SaveSpellMechanicBlockDto
-} from './dto/save-spell.dto';
+import { SaveSpellDto, SaveSpellMechanicBlockDto } from './dto/save-spell.dto';
 
 const magicWordSelect = {
 	id: true,
@@ -47,9 +44,9 @@ const magicWordSelect = {
 			skillId: true,
 			skill: {
 				select: {
-							id: true,
-							slug: true,
-							name: true,
+					id: true,
+					slug: true,
+					name: true,
 					category: {
 						select: {
 							name: true
@@ -146,7 +143,26 @@ const spellSelect = {
 	}
 } satisfies Prisma.SpellSelect;
 
+const spellSummarySelect = {
+	id: true,
+	actionId: true,
+	essenceId: true,
+	gestureId: true,
+	name: true,
+	status: true,
+	isActive: true,
+	sortOrder: true,
+	createdAt: true,
+	updatedAt: true,
+	action: { select: { id: true, slug: true, name: true, sortOrder: true } },
+	essence: { select: { id: true, slug: true, name: true, sortOrder: true } },
+	gesture: { select: { id: true, slug: true, name: true, sortOrder: true } }
+} satisfies Prisma.SpellSelect;
+
 type SpellRecord = Prisma.SpellGetPayload<{ select: typeof spellSelect }>;
+type SpellSummaryRecord = Prisma.SpellGetPayload<{
+	select: typeof spellSummarySelect;
+}>;
 
 @Injectable()
 export class MagicService {
@@ -196,12 +212,15 @@ export class MagicService {
 			this.loadActiveWords(MagicWordType.ESSENCE),
 			this.loadActiveWords(MagicWordType.GESTURE),
 			this.prisma.spell.findMany({
-				select: spellSelect,
+				select: spellSummarySelect,
 				orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }]
 			})
 		]);
 		const spellsByFormula = new Map(
-			spells.map(spell => [formulaKey(spell.actionId, spell.essenceId, spell.gestureId), spell])
+			spells.map(spell => [
+				formulaKey(spell.actionId, spell.essenceId, spell.gestureId),
+				spell
+			])
 		);
 		const groups = actions.flatMap(action =>
 			essences.map(essence => {
@@ -216,7 +235,7 @@ export class MagicService {
 						gesture,
 						status: spell?.status ?? 'EMPTY',
 						isActive: spell?.isActive ?? false,
-						spell: spell ? this.mapSpell(spell) : null
+						spell: spell ? this.mapSpellSummary(spell) : null
 					};
 				});
 
@@ -231,6 +250,19 @@ export class MagicService {
 		);
 
 		return { groups };
+	}
+
+	async getSpell(id: string) {
+		const spell = await this.prisma.spell.findUnique({
+			select: spellSelect,
+			where: { id }
+		});
+
+		if (!spell) {
+			throw new NotFoundException('Заклинание не найдено.');
+		}
+
+		return this.mapSpell(spell);
 	}
 
 	async createSpell(dto: SaveSpellDto) {
@@ -299,9 +331,7 @@ export class MagicService {
 						name: dto.name.trim(),
 						description: dto.description?.trim() || null,
 						config:
-							dto.config === undefined
-								? undefined
-								: toJsonObject(dto.config),
+							dto.config === undefined ? undefined : toJsonObject(dto.config),
 						targetConfigs:
 							dto.targetConfigs === undefined
 								? undefined
@@ -329,6 +359,33 @@ export class MagicService {
 		} catch (error) {
 			rethrowPrismaError(error, 'Не удалось обновить заклинание.');
 		}
+	}
+
+	async updateSpellActivity(id: string, isActive: boolean) {
+		const existing = await this.prisma.spell.findUnique({
+			select: { id: true, status: true },
+			where: { id }
+		});
+
+		if (!existing) {
+			throw new NotFoundException('Заклинание не найдено.');
+		}
+
+		if (isActive && existing.status === SpellStatus.DRAFT) {
+			throw new BadRequestException(
+				'Черновик нельзя включить в активные заклинания.'
+			);
+		}
+
+		const spell = await this.prisma.spell.update({
+			select: spellSelect,
+			where: { id },
+			data: {
+				isActive: normalizeSpellActive(existing.status, isActive)
+			}
+		});
+
+		return this.mapSpell(spell);
 	}
 
 	async deleteSpell(id: string) {
@@ -387,12 +444,7 @@ export class MagicService {
 					dto.type,
 					dto.essenceProfile
 				);
-				await this.syncAreaShape(
-					tx,
-					created.id,
-					dto.type,
-					dto.areaShape
-				);
+				await this.syncAreaShape(tx, created.id, dto.type, dto.areaShape);
 
 				return created.id;
 			});
@@ -426,7 +478,9 @@ export class MagicService {
 			await this.assertAllowedGestureIds(nextType, allowedGestureIds);
 		}
 		await Promise.all([
-			dto.skillIds === undefined ? Promise.resolve() : this.assertSkillIds(dto.skillIds),
+			dto.skillIds === undefined
+				? Promise.resolve()
+				: this.assertSkillIds(dto.skillIds),
 			dto.damageTypeIds === undefined
 				? Promise.resolve()
 				: this.assertDamageTypeIds(dto.damageTypeIds),
@@ -471,12 +525,7 @@ export class MagicService {
 					});
 				}
 				if (dto.type !== undefined || dto.essenceProfile !== undefined) {
-					await this.syncEssenceProfile(
-						tx,
-						id,
-						nextType,
-						dto.essenceProfile
-					);
+					await this.syncEssenceProfile(tx, id, nextType, dto.essenceProfile);
 				}
 				if (dto.type !== undefined || dto.areaShape !== undefined) {
 					await this.syncAreaShape(tx, id, nextType, dto.areaShape);
@@ -851,7 +900,7 @@ export class MagicService {
 						durationAffinity: Number(word.essenceProfile.durationAffinity),
 						areaAffinity: Number(word.essenceProfile.areaAffinity),
 						stabilityAffinity: Number(word.essenceProfile.stabilityAffinity)
-				  }
+					}
 				: null,
 			areaShape: word.areaShape
 				? {
@@ -862,7 +911,7 @@ export class MagicService {
 						influenceConfig: toJsonObject(word.areaShape.influenceConfig),
 						isActive: word.areaShape.isActive,
 						sortOrder: word.areaShape.sortOrder
-				  }
+					}
 				: null,
 			createdAt: word.createdAt.toISOString(),
 			updatedAt: word.updatedAt.toISOString()
@@ -918,9 +967,21 @@ export class MagicService {
 			isActive: spell.isActive,
 			sortOrder: spell.sortOrder,
 			formulaName: `${spell.action.name} + ${spell.essence.name} + ${spell.gesture.name}`,
-			action: { id: spell.action.id, slug: spell.action.slug, name: spell.action.name },
-			essence: { id: spell.essence.id, slug: spell.essence.slug, name: spell.essence.name },
-			gesture: { id: spell.gesture.id, slug: spell.gesture.slug, name: spell.gesture.name },
+			action: {
+				id: spell.action.id,
+				slug: spell.action.slug,
+				name: spell.action.name
+			},
+			essence: {
+				id: spell.essence.id,
+				slug: spell.essence.slug,
+				name: spell.essence.name
+			},
+			gesture: {
+				id: spell.gesture.id,
+				slug: spell.gesture.slug,
+				name: spell.gesture.name
+			},
 			mechanicBlocks: spell.mechanicBlocks.map(block => ({
 				id: block.id,
 				mechanicId: block.mechanicId,
@@ -935,14 +996,41 @@ export class MagicService {
 			updatedAt: spell.updatedAt.toISOString()
 		};
 	}
+
+	private mapSpellSummary(spell: SpellSummaryRecord) {
+		return {
+			id: spell.id,
+			actionId: spell.actionId,
+			essenceId: spell.essenceId,
+			gestureId: spell.gestureId,
+			name: spell.name,
+			status: spell.status,
+			isActive: spell.isActive,
+			sortOrder: spell.sortOrder,
+			formulaName: `${spell.action.name} + ${spell.essence.name} + ${spell.gesture.name}`,
+			action: {
+				id: spell.action.id,
+				slug: spell.action.slug,
+				name: spell.action.name
+			},
+			essence: {
+				id: spell.essence.id,
+				slug: spell.essence.slug,
+				name: spell.essence.name
+			},
+			gesture: {
+				id: spell.gesture.id,
+				slug: spell.gesture.slug,
+				name: spell.gesture.name
+			},
+			createdAt: spell.createdAt.toISOString(),
+			updatedAt: spell.updatedAt.toISOString()
+		};
+	}
 }
 
 function toJsonObject(value: unknown) {
-	if (
-		!value ||
-		Array.isArray(value) ||
-		typeof value !== 'object'
-	) {
+	if (!value || Array.isArray(value) || typeof value !== 'object') {
 		return {};
 	}
 

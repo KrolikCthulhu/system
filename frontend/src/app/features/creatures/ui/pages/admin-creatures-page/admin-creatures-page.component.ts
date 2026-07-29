@@ -9,6 +9,7 @@ import {
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { ActivatedRoute, Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { Breadcrumb } from 'primeng/breadcrumb';
 import { Button } from 'primeng/button';
@@ -23,6 +24,7 @@ import { Tag } from 'primeng/tag';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
 import { EditorActionsBarComponent } from '../../../../../shared/ui/editor-actions-bar/editor-actions-bar.component';
 import { CREATURES_REPOSITORY } from '../../../data/creatures-repository.port';
+import { CreatureActionsDemoComponent } from '../../components/creature-actions-demo/creature-actions-demo.component';
 import { CreatureAnatomyEditorComponent } from '../../components/creature-anatomy-editor/creature-anatomy-editor.component';
 import { CreatureBaseActionsEditorComponent } from '../../components/creature-base-actions-editor/creature-base-actions-editor.component';
 import { CreatureMainEditorComponent } from '../../components/creature-main-editor/creature-main-editor.component';
@@ -107,6 +109,7 @@ const TARGET_SELECTION_RULE_OPTIONS: SelectOption<string>[] = [
 		Tabs,
 		TableModule,
 		Tag,
+		CreatureActionsDemoComponent,
 		CreatureAnatomyEditorComponent,
 		CreatureBaseActionsEditorComponent,
 		CreatureMainEditorComponent,
@@ -124,6 +127,8 @@ export class AdminCreaturesPageComponent {
 	private readonly confirmationService = inject(ConfirmationService);
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly destroyRef = inject(DestroyRef);
+	private readonly route = inject(ActivatedRoute);
+	private readonly router = inject(Router);
 
 	protected readonly breadcrumbs = [
 		{ label: 'Правила системы' },
@@ -132,6 +137,7 @@ export class AdminCreaturesPageComponent {
 	];
 	protected readonly anatomyZoneKindOptions = ANATOMY_ZONE_KIND_OPTIONS;
 	protected readonly selectedCreatureId = signal<string | null>(null);
+	protected readonly routeCreatureSlug = signal<string | null>(null);
 	protected readonly searchQuery = signal('');
 	protected readonly selectedTypeId = signal('');
 	protected readonly selectedAnatomySchemeId = signal('');
@@ -304,6 +310,7 @@ export class AdminCreaturesPageComponent {
 
 	constructor() {
 		this.loadCatalog();
+		this.watchRoute();
 	}
 
 	protected setSearchQuery(query: string) {
@@ -337,7 +344,7 @@ export class AdminCreaturesPageComponent {
 		this.unsavedChangesGuard.confirmDiscard({
 			hasChanges: this.hasChanges(),
 			discard: () => this.resetDraft(),
-			proceed: () => this.setDraftFromCreature(creature)
+			proceed: () => this.openCreatureRoute(creature.slug)
 		});
 	}
 
@@ -347,6 +354,7 @@ export class AdminCreaturesPageComponent {
 			this.draft.set(null);
 			this.savedDraftSignature.set('');
 			this.errorMessage.set(null);
+			this.openCreaturesListRoute();
 		};
 
 		this.unsavedChangesGuard.confirmDiscard({
@@ -948,6 +956,7 @@ export class AdminCreaturesPageComponent {
 						rangeMeters: profile.rangeMeters,
 						usesAmmo: profile.usesAmmo,
 						canBeParried: profile.canBeParried,
+						defaultDefense: profile.defaultDefense,
 						availabilityRules: profile.availabilityRules,
 						damageTypeIds: profile.damageTypeIds,
 						intents: profile.intents.map((intent, intentIndex) => ({
@@ -1026,6 +1035,7 @@ export class AdminCreaturesPageComponent {
 				this.upsertCreature(saved);
 				this.setDraftFromCreature(saved);
 				this.saving.set(false);
+				this.openCreatureRoute(saved.slug);
 			},
 			error: error => {
 				this.errorMessage.set(
@@ -1191,6 +1201,7 @@ export class AdminCreaturesPageComponent {
 					this.skills.set(catalog.skills);
 					this.characteristics.set(catalog.characteristics);
 					this.loading.set(false);
+					this.syncDraftWithRoute();
 				},
 				error: error => {
 					this.errorMessage.set(
@@ -1201,6 +1212,47 @@ export class AdminCreaturesPageComponent {
 					this.loading.set(false);
 				}
 			});
+	}
+
+	private watchRoute() {
+		this.route.paramMap
+			.pipe(takeUntilDestroyed(this.destroyRef))
+			.subscribe(params => {
+				this.routeCreatureSlug.set(params.get('slug'));
+				this.syncDraftWithRoute();
+			});
+	}
+
+	private syncDraftWithRoute() {
+		const slug = this.routeCreatureSlug();
+
+		if (!slug) {
+			if (this.selectedCreatureId()) {
+				this.selectedCreatureId.set(null);
+				this.draft.set(null);
+				this.savedDraftSignature.set('');
+			}
+			return;
+		}
+
+		const creature = this.creatures().find(item => item.slug === slug);
+
+		if (!creature) {
+			if (!this.loading()) {
+				this.selectedCreatureId.set(null);
+				this.draft.set(null);
+				this.savedDraftSignature.set('');
+				this.errorMessage.set('Существо не найдено.');
+			}
+			return;
+		}
+
+		if (this.selectedCreatureId() === creature.id) {
+			return;
+		}
+
+		this.errorMessage.set(null);
+		this.setDraftFromCreature(creature);
 	}
 
 	private setDraftFromCreature(creature: Creature) {
@@ -1239,6 +1291,14 @@ export class AdminCreaturesPageComponent {
 		this.detailTab.set('main');
 		this.selectedTierTab.set(String(draft.tiers[0]?.tier ?? 1));
 		this.selectedTierSectionTab.set('main');
+	}
+
+	private openCreatureRoute(slug: string) {
+		void this.router.navigate(['/admin/rules/creatures', slug]);
+	}
+
+	private openCreaturesListRoute() {
+		void this.router.navigate(['/admin/rules/creatures']);
 	}
 
 	private createEmptyDraft(): CreatureDraft {
@@ -1469,6 +1529,7 @@ export class AdminCreaturesPageComponent {
 			rangeMeters: profile.rangeMeters,
 			usesAmmo: profile.usesAmmo,
 			canBeParried: profile.canBeParried,
+			defaultDefense: profile.defaultDefense,
 			availabilityRules: [...(profile.availabilityRules ?? [])],
 			damageTypeIds: [...profile.damageTypeIds],
 			intents: profile.intents.map((intent, index) => ({
@@ -1514,6 +1575,7 @@ export class AdminCreaturesPageComponent {
 					this.selectedCreatureId.set(null);
 					this.draft.set(null);
 					this.savedDraftSignature.set('');
+					this.openCreaturesListRoute();
 				},
 				error: error => {
 					this.errorMessage.set(

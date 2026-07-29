@@ -3,16 +3,22 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, catchError, map } from 'rxjs';
 import { environment } from '../../../infrastructure/config/environment';
 import { handleApiError } from '../../../shared/http/api-error.util';
-import { Creature, CreaturesCatalog } from '../domain/creatures.models';
+import {
+	Creature,
+	CreaturePublicCatalog,
+	CreaturesCatalog
+} from '../domain/creatures.models';
 import { CreaturesRepository } from './creatures-repository.port';
 import {
 	CreateCreatureDto,
 	CreatureDto,
+	CreaturePublicCatalogResponseDto,
 	CreaturesCatalogResponseDto,
 	UpdateCreatureDto
 } from './dto/creatures.dto';
 import {
 	mapCreatureDto,
+	mapCreaturePublicCatalogResponseDto,
 	mapCreaturesCatalogResponseDto
 } from './mappers/creatures.mapper';
 
@@ -29,12 +35,18 @@ export class HttpCreaturesRepository implements CreaturesRepository {
 			.pipe(map(mapCreaturesCatalogResponseDto), catchError(handleApiError));
 	}
 
-	loadPublicCatalog(): Observable<CreaturesCatalog> {
+	loadPublicCatalog(): Observable<CreaturePublicCatalog> {
 		return this.http
-			.get<CreaturesCatalogResponseDto>(`${this.baseUrl}/creatures/catalog`, {
-				withCredentials: true
-			})
-			.pipe(map(mapCreaturesCatalogResponseDto), catchError(handleApiError));
+			.get<CreaturePublicCatalogResponseDto>(
+				`${this.baseUrl}/creatures/catalog`,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(
+				map(mapCreaturePublicCatalogResponseDto),
+				catchError(handleApiError)
+			);
 	}
 
 	createCreature(command: CreateCreatureDto): Observable<Creature> {

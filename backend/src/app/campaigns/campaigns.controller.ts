@@ -4,6 +4,7 @@ import {
 	Delete,
 	Get,
 	Param,
+	Patch,
 	Post,
 	UseGuards
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CampaignsService } from './campaigns.service';
 import { CreateCampaignDto } from './dto/create-campaign.dto';
 import { InviteCampaignMemberDto } from './dto/invite-campaign-member.dto';
+import { UpdateCampaignSettingsDto } from './dto/update-campaign-settings.dto';
 
 @Controller('campaigns')
 @UseGuards(JwtAuthGuard)
@@ -39,6 +41,15 @@ export class CampaignsController {
 		@Body() dto: InviteCampaignMemberDto
 	) {
 		return this.campaignsService.inviteMember(id, user.id, dto);
+	}
+
+	@Patch(':id/settings')
+	updateSettings(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: UpdateCampaignSettingsDto
+	) {
+		return this.campaignsService.updateSettings(id, user.id, dto);
 	}
 
 	@Post(':id/accept')

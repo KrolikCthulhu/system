@@ -19,6 +19,7 @@ export function mapCampaignDto(dto: CampaignDto): Campaign {
 		id: dto.id,
 		name: dto.name,
 		description: dto.description,
+		combatActionResolutionMode: dto.combatActionResolutionMode ?? 'delayed',
 		owner: mapCampaignUserDto(dto.owner),
 		currentUserRole: dto.currentUserRole,
 		currentUserStatus: dto.currentUserStatus,

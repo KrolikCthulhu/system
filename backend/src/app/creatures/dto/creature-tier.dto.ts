@@ -3,6 +3,7 @@ import {
 	IsBoolean,
 	IsIn,
 	IsInt,
+	IsNumber,
 	IsObject,
 	IsOptional,
 	IsString,
@@ -129,9 +130,22 @@ export class CreatureTierAttackAvailabilityRuleConditionDto {
 	slug?: string;
 }
 
+export class CreatureTierAttackAvailabilityComparisonOperandDto {
+	@IsIn(['actor_property', 'target_property', 'constant'])
+	kind!: 'actor_property' | 'target_property' | 'constant';
+
+	@IsOptional()
+	@IsIn(['sizeRank'])
+	property?: 'sizeRank' | null;
+
+	@IsOptional()
+	@IsNumber()
+	value?: number | null;
+}
+
 export class CreatureTierAttackAvailabilityRuleDto {
-	@IsIn(['resource_free', 'active_condition'])
-	type!: 'resource_free' | 'active_condition';
+	@IsIn(['resource_free', 'active_condition', 'comparison', 'special_rule'])
+	type!: 'resource_free' | 'active_condition' | 'comparison' | 'special_rule';
 
 	@IsString()
 	label!: string;
@@ -144,6 +158,20 @@ export class CreatureTierAttackAvailabilityRuleDto {
 	@ValidateNested()
 	@Type(() => CreatureTierAttackAvailabilityRuleConditionDto)
 	condition?: CreatureTierAttackAvailabilityRuleConditionDto | null;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureTierAttackAvailabilityComparisonOperandDto)
+	left?: CreatureTierAttackAvailabilityComparisonOperandDto | null;
+
+	@IsOptional()
+	@IsIn(['gt', 'gte', 'eq', 'ne', 'lte', 'lt'])
+	operator?: 'gt' | 'gte' | 'eq' | 'ne' | 'lte' | 'lt' | null;
+
+	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureTierAttackAvailabilityComparisonOperandDto)
+	right?: CreatureTierAttackAvailabilityComparisonOperandDto | null;
 
 	@IsOptional()
 	@IsString()
@@ -252,7 +280,7 @@ export class CreatureTierActionTargetDto {
 		'self',
 		'creature',
 		'hostile_creature',
-		'held_target',
+		'linked_condition_target',
 		'marked_target',
 		'none'
 	])
@@ -260,7 +288,7 @@ export class CreatureTierActionTargetDto {
 		| 'self'
 		| 'creature'
 		| 'hostile_creature'
-		| 'held_target'
+		| 'linked_condition_target'
 		| 'marked_target'
 		| 'none';
 
@@ -299,6 +327,11 @@ export class CreatureTierActionDefenseDto {
 	@IsOptional()
 	@IsBoolean()
 	canParry?: boolean;
+
+	@IsOptional()
+	@IsArray()
+	@IsIn(['unarmed', 'melee_weapon', 'shield'], { each: true })
+	parrySkillGroups?: ('unarmed' | 'melee_weapon' | 'shield')[];
 }
 
 export class CreatureTierActionEffectDto {
@@ -306,9 +339,9 @@ export class CreatureTierActionEffectDto {
 		'damage',
 		'apply_condition',
 		'remove_condition',
-		'create_grab',
-		'release_grab',
-		'move_with_grab',
+		'link_condition',
+		'unlink_condition',
+		'move_linked_target',
 		'dice_pool_modifier',
 		'special_rule'
 	])
@@ -316,9 +349,9 @@ export class CreatureTierActionEffectDto {
 		| 'damage'
 		| 'apply_condition'
 		| 'remove_condition'
-		| 'create_grab'
-		| 'release_grab'
-		| 'move_with_grab'
+		| 'link_condition'
+		| 'unlink_condition'
+		| 'move_linked_target'
 		| 'dice_pool_modifier'
 		| 'special_rule';
 
@@ -341,6 +374,11 @@ export class CreatureTierActionEffectDto {
 	condition?: CreatureTierActionReferenceDto | null;
 
 	@IsOptional()
+	@ValidateNested()
+	@Type(() => CreatureTierActionReferenceDto)
+	linkedCondition?: CreatureTierActionReferenceDto | null;
+
+	@IsOptional()
 	@IsString()
 	conditionDisplayName?: string;
 
@@ -351,12 +389,18 @@ export class CreatureTierActionEffectDto {
 
 	@IsOptional()
 	@IsIn([
+		'actor',
+		'selected_target',
+		'linked_condition_target',
 		'holder',
 		'source_against_holder',
 		'source_group_against_holder',
 		'all_creatures_against_holder'
 	])
 	targetScope?:
+		| 'actor'
+		| 'selected_target'
+		| 'linked_condition_target'
 		| 'holder'
 		| 'source_against_holder'
 		| 'source_group_against_holder'
@@ -387,8 +431,13 @@ export class CreatureTierActionDto {
 	@IsString()
 	name!: string;
 
-	@IsIn(['attack', 'grab_action', 'active_ability', 'reaction', 'passive'])
-	kind!: 'attack' | 'grab_action' | 'active_ability' | 'reaction' | 'passive';
+	@IsIn(['attack', 'condition_action', 'active_ability', 'reaction', 'passive'])
+	kind!:
+		| 'attack'
+		| 'condition_action'
+		| 'active_ability'
+		| 'reaction'
+		| 'passive';
 
 	@IsOptional()
 	@ValidateNested()

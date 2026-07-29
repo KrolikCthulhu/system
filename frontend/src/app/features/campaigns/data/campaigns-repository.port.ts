@@ -1,6 +1,10 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
-import { Campaign, CampaignMemberRole } from '../domain/campaigns.models';
+import {
+	Campaign,
+	CampaignCombatActionResolutionMode,
+	CampaignMemberRole
+} from '../domain/campaigns.models';
 
 export interface CampaignsRepository {
 	loadCampaigns(): Observable<Campaign[]>;
@@ -13,6 +17,12 @@ export interface CampaignsRepository {
 		command: {
 			identifier: string;
 			role?: CampaignMemberRole;
+		}
+	): Observable<Campaign>;
+	updateSettings(
+		campaignId: string,
+		command: {
+			combatActionResolutionMode: CampaignCombatActionResolutionMode;
 		}
 	): Observable<Campaign>;
 	acceptInvitation(campaignId: string): Observable<Campaign>;

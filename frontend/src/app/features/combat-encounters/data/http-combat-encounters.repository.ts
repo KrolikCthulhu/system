@@ -5,6 +5,7 @@ import { environment } from '../../../infrastructure/config/environment';
 import { handleApiError } from '../../../shared/http/api-error.util';
 import {
 	CombatEncounter,
+	CombatEncounterSummary,
 	KnockdownSizeRuleResult
 } from '../domain/combat-encounters.models';
 import { CombatEncountersRepository } from './combat-encounters-repository.port';
@@ -14,7 +15,11 @@ import {
 	CombatEncounterDto,
 	CombatEncountersResponseDto,
 	CreateCombatEncounterDto,
+	ExecuteCombatActionDto,
 	KnockdownSizeRuleResultDto,
+	ResolveCombatDefenseDto,
+	ResolveDeclaredCombatActionDto,
+	UpdateCombatEncounterDto,
 	UpdateCombatParticipantDto
 } from './dto/combat-encounters.dto';
 import {
@@ -29,7 +34,9 @@ export class HttpCombatEncountersRepository
 	private readonly http = inject(HttpClient);
 	private readonly baseUrl = environment.apiBaseUrl;
 
-	loadCampaignEncounters(campaignId: string): Observable<CombatEncounter[]> {
+	loadCampaignEncounters(
+		campaignId: string
+	): Observable<CombatEncounterSummary[]> {
 		return this.http
 			.get<CombatEncountersResponseDto>(
 				`${this.baseUrl}/campaigns/${campaignId}/combat-encounters`,
@@ -60,6 +67,21 @@ export class HttpCombatEncountersRepository
 			.get<CombatEncounterDto>(`${this.baseUrl}/combat-encounters/${id}`, {
 				withCredentials: true
 			})
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	updateEncounter(
+		id: string,
+		command: UpdateCombatEncounterDto
+	): Observable<CombatEncounter> {
+		return this.http
+			.patch<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}`,
+				command,
+				{
+					withCredentials: true
+				}
+			)
 			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
 	}
 
@@ -109,6 +131,21 @@ export class HttpCombatEncountersRepository
 			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
 	}
 
+	skipParticipantTurn(
+		id: string,
+		participantId: string
+	): Observable<CombatEncounter> {
+		return this.http
+			.post<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}/participants/${participantId}/skip-turn`,
+				{},
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
 	resolveKnockdownSizeRule(
 		id: string,
 		attackerParticipantId: string,
@@ -126,5 +163,50 @@ export class HttpCombatEncountersRepository
 				}
 			)
 			.pipe(catchError(handleApiError));
+	}
+
+	executeAction(
+		id: string,
+		command: ExecuteCombatActionDto
+	): Observable<CombatEncounter> {
+		return this.http
+			.post<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}/actions/execute`,
+				command,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	resolveDefense(
+		id: string,
+		command: ResolveCombatDefenseDto
+	): Observable<CombatEncounter> {
+		return this.http
+			.post<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}/defenses/resolve`,
+				command,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	resolveDeclaredAction(
+		id: string,
+		command: ResolveDeclaredCombatActionDto
+	): Observable<CombatEncounter> {
+		return this.http
+			.post<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}/actions/resolve-declared`,
+				command,
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
 	}
 }

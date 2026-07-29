@@ -42,8 +42,36 @@ const playerCharacterSelect = {
 	}
 } satisfies Prisma.PlayerCharacterSelect;
 
+const playerCharacterSummarySelect = {
+	id: true,
+	campaignId: true,
+	ownerUserId: true,
+	name: true,
+	status: true,
+	isActive: true,
+	createdAt: true,
+	updatedAt: true,
+	ownerUser: {
+		select: {
+			id: true,
+			username: true,
+			displayUsername: true,
+			email: true
+		}
+	},
+	campaign: {
+		select: {
+			id: true,
+			name: true
+		}
+	}
+} satisfies Prisma.PlayerCharacterSelect;
+
 type PlayerCharacterRecord = Prisma.PlayerCharacterGetPayload<{
 	select: typeof playerCharacterSelect;
+}>;
+type PlayerCharacterSummaryRecord = Prisma.PlayerCharacterGetPayload<{
+	select: typeof playerCharacterSummarySelect;
 }>;
 
 @Injectable()
@@ -57,7 +85,7 @@ export class PlayerCharactersService {
 		const member = await this.getActiveCampaignMember(campaignId, userId);
 
 		const characters = await this.prisma.playerCharacter.findMany({
-			select: playerCharacterSelect,
+			select: playerCharacterSummarySelect,
 			where: {
 				campaignId,
 				isActive: true,
@@ -69,7 +97,9 @@ export class PlayerCharactersService {
 		});
 
 		return {
-			characters: characters.map(character => this.mapCharacter(character))
+			characters: characters.map(character =>
+				this.mapCharacterSummary(character)
+			)
 		};
 	}
 
@@ -250,6 +280,10 @@ export class PlayerCharactersService {
 	}
 
 	private mapCharacter(character: PlayerCharacterRecord) {
+		return this.mapCharacterSummary(character);
+	}
+
+	private mapCharacterSummary(character: PlayerCharacterSummaryRecord) {
 		return {
 			id: character.id,
 			campaignId: character.campaignId,

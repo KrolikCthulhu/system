@@ -1,4 +1,5 @@
 import {
+	CampaignCombatActionResolutionMode,
 	CampaignMemberRole,
 	CampaignMemberStatus
 } from '../../domain/campaigns.models';
@@ -23,6 +24,7 @@ export interface CampaignDto {
 	id: string;
 	name: string;
 	description: string | null;
+	combatActionResolutionMode: CampaignCombatActionResolutionMode;
 	owner: CampaignUserDto;
 	currentUserRole: CampaignMemberRole | null;
 	currentUserStatus: CampaignMemberStatus | null;
@@ -44,4 +46,8 @@ export interface CreateCampaignDto {
 export interface InviteCampaignMemberDto {
 	identifier: string;
 	role?: CampaignMemberRole;
+}
+
+export interface UpdateCampaignSettingsDto {
+	combatActionResolutionMode: CampaignCombatActionResolutionMode;
 }

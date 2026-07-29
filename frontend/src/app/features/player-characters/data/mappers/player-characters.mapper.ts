@@ -1,5 +1,6 @@
 import {
 	PlayerCharacter,
+	PlayerCharacterSummary,
 	PlayerCharacterUser
 } from '../../domain/player-characters.models';
 import {
@@ -10,7 +11,7 @@ import {
 
 export function mapPlayerCharactersResponseDto(
 	dto: PlayerCharactersResponseDto
-): PlayerCharacter[] {
+): PlayerCharacterSummary[] {
 	return dto.characters.map(mapPlayerCharacterDto);
 }
 

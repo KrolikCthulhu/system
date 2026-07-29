@@ -1,7 +1,4 @@
-import {
-	AreaShapeKind,
-	MagicWordType
-} from '../../domain/magic-word.models';
+import { AreaShapeKind, MagicWordType } from '../../domain/magic-word.models';
 import {
 	SpellConfig,
 	SpellMechanicBlockConfig
@@ -144,6 +141,23 @@ export interface SpellDto {
 	updatedAt: string;
 }
 
+export interface SpellSummaryDto {
+	id: string;
+	actionId: string;
+	essenceId: string;
+	gestureId: string;
+	name: string;
+	status: SpellStatusDto;
+	isActive: boolean;
+	sortOrder: number;
+	formulaName: string;
+	action: SpellFormulaWordDto;
+	essence: SpellFormulaWordDto;
+	gesture: SpellFormulaWordDto;
+	createdAt: string;
+	updatedAt: string;
+}
+
 export interface SpellTextBlockDto {
 	id: string;
 	kind: string;
@@ -186,7 +200,7 @@ export interface SpellFormulaCandidateDto {
 	gesture: SpellFormulaWordDto;
 	status: SpellCatalogStatusDto;
 	isActive: boolean;
-	spell: SpellDto | null;
+	spell: SpellSummaryDto | null;
 }
 
 export interface SpellFormulaGroupDto {

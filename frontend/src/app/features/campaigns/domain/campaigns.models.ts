@@ -1,5 +1,6 @@
 export type CampaignMemberRole = 'GM' | 'PLAYER';
 export type CampaignMemberStatus = 'INVITED' | 'ACTIVE' | 'LEFT';
+export type CampaignCombatActionResolutionMode = 'delayed' | 'immediate';
 
 export interface CampaignUser {
 	id: string;
@@ -21,6 +22,7 @@ export interface Campaign {
 	id: string;
 	name: string;
 	description: string | null;
+	combatActionResolutionMode: CampaignCombatActionResolutionMode;
 	owner: CampaignUser;
 	currentUserRole: CampaignMemberRole | null;
 	currentUserStatus: CampaignMemberStatus | null;

@@ -8,6 +8,7 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Checkbox } from 'primeng/checkbox';
 import { InputNumber } from 'primeng/inputnumber';
+import { MultiSelect } from 'primeng/multiselect';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
 import { ToggleSwitch } from 'primeng/toggleswitch';
@@ -16,6 +17,7 @@ import {
 	CreatureCharacteristicOption,
 	CreatureDamageTypeOption,
 	CreatureNaturalAttackOption,
+	CreatureParrySkillGroup,
 	CreatureSkillOptionGroup
 } from '../../../domain/creatures.models';
 import {
@@ -25,6 +27,24 @@ import {
 	CreatureNaturalAttackProfilePatch
 } from '../../pages/admin-creatures-page/admin-creature-editor.models';
 
+interface SelectOption<T> {
+	label: string;
+	value: T;
+}
+
+const DEFENSE_TYPE_OPTIONS: SelectOption<
+	CreatureNaturalAttackProfileDraft['defaultDefense']['type']
+>[] = [
+	{ label: 'Без защиты', value: 'none' },
+	{ label: 'Физическая защита цели', value: 'target_physical_defense' }
+];
+
+const PARRY_SKILL_GROUP_OPTIONS: SelectOption<CreatureParrySkillGroup>[] = [
+	{ label: 'Рукопашный бой', value: 'unarmed' },
+	{ label: 'Оружие ближнего боя', value: 'melee_weapon' },
+	{ label: 'Щит', value: 'shield' }
+];
+
 @Component({
 	selector: 'app-creature-natural-attacks-editor',
 	standalone: true,
@@ -33,6 +53,7 @@ import {
 		FormsModule,
 		Checkbox,
 		InputNumber,
+		MultiSelect,
 		Select,
 		Tag,
 		ToggleSwitch
@@ -72,6 +93,9 @@ export class CreatureNaturalAttacksEditorComponent {
 		isSelected: boolean;
 	}>();
 
+	protected readonly defenseTypeOptions = DEFENSE_TYPE_OPTIONS;
+	protected readonly parrySkillGroupOptions = PARRY_SKILL_GROUP_OPTIONS;
+
 	protected attackDraft(
 		naturalAttackId: string
 	): CreatureNaturalAttackDraft | null {
@@ -93,6 +117,25 @@ export class CreatureNaturalAttacksEditorComponent {
 		return profile.intents.some(
 			intent => intent.combatIntentId === combatIntentId
 		);
+	}
+
+	protected updateDefaultDefense(
+		naturalAttackId: string,
+		profileIndex: number,
+		profile: CreatureNaturalAttackProfileDraft,
+		patch: Partial<CreatureNaturalAttackProfileDraft['defaultDefense']>
+	) {
+		const defaultDefense = { ...profile.defaultDefense, ...patch };
+
+		if (defaultDefense.type === 'none' || !defaultDefense.canParry) {
+			defaultDefense.parrySkillGroups = [];
+		}
+
+		this.profileChange.emit({
+			naturalAttackId,
+			profileIndex,
+			patch: { defaultDefense }
+		});
 	}
 
 	protected attackAvailabilityText(

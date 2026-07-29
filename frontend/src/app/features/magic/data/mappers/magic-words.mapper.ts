@@ -9,6 +9,7 @@ import {
 	Spell,
 	SpellCatalog,
 	SpellRuntimePreview,
+	SpellSummary,
 	SpellTextBlock,
 	SpellTargetConfig,
 	SpellTargetCountMode,
@@ -24,6 +25,7 @@ import {
 	SpellCatalogResponseDto,
 	SpellDto,
 	SpellRuntimePreviewDto,
+	SpellSummaryDto,
 	SpellTargetConfigDto
 } from '../dto/magic-words.dto';
 
@@ -59,7 +61,7 @@ export function mapSpellCatalogResponseDto(
 				gesture: formula.gesture,
 				status: formula.status,
 				isActive: formula.isActive,
-				spell: formula.spell ? mapSpellDto(formula.spell) : null
+				spell: formula.spell ? mapSpellSummaryDto(formula.spell) : null
 			}))
 		}))
 	};
@@ -90,7 +92,7 @@ export function mapMagicWordDto(dto: MagicWordDto): MagicWord {
 					durationAffinity: dto.essenceProfile.durationAffinity,
 					areaAffinity: dto.essenceProfile.areaAffinity,
 					stabilityAffinity: dto.essenceProfile.stabilityAffinity
-			  }
+				}
 			: null,
 		areaShape: dto.areaShape
 			? {
@@ -103,7 +105,7 @@ export function mapMagicWordDto(dto: MagicWordDto): MagicWord {
 					),
 					isActive: dto.areaShape.isActive,
 					sortOrder: dto.areaShape.sortOrder
-			  }
+				}
 			: null,
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
@@ -141,7 +143,8 @@ function normalizeAreaShapeDimensions(value: unknown): AreaShapeDimensions {
 				? value['orientation']
 				: undefined,
 		tileSize:
-			typeof value['tileSize'] === 'number' && Number.isFinite(value['tileSize'])
+			typeof value['tileSize'] === 'number' &&
+			Number.isFinite(value['tileSize'])
 				? value['tileSize']
 				: undefined
 	};
@@ -156,28 +159,25 @@ function normalizeAreaShapeInfluenceConfig(
 
 	return {
 		version: 1,
-		sources: value['sources']
-			.filter(isRecord)
-			.map(source => ({
-				sourceKind:
-					source['sourceKind'] === 'systemValue' ||
-					source['sourceKind'] === 'linkedSkill' ||
-					source['sourceKind'] === 'essenceProfile'
-						? source['sourceKind']
-						: 'systemValue',
-				sourceKey:
-					typeof source['sourceKey'] === 'string'
-						? source['sourceKey']
-						: '',
-				targetDimension:
-					typeof source['targetDimension'] === 'string'
-						? source['targetDimension']
-						: 'radius',
-				weight:
-					typeof source['weight'] === 'number' && Number.isFinite(source['weight'])
-						? source['weight']
-						: 0
-			}))
+		sources: value['sources'].filter(isRecord).map(source => ({
+			sourceKind:
+				source['sourceKind'] === 'systemValue' ||
+				source['sourceKind'] === 'linkedSkill' ||
+				source['sourceKind'] === 'essenceProfile'
+					? source['sourceKind']
+					: 'systemValue',
+			sourceKey:
+				typeof source['sourceKey'] === 'string' ? source['sourceKey'] : '',
+			targetDimension:
+				typeof source['targetDimension'] === 'string'
+					? source['targetDimension']
+					: 'radius',
+			weight:
+				typeof source['weight'] === 'number' &&
+				Number.isFinite(source['weight'])
+					? source['weight']
+					: 0
+		}))
 	};
 }
 
@@ -234,6 +234,25 @@ export function mapSpellDto(dto: SpellDto): Spell {
 			createdAt: block.createdAt,
 			updatedAt: block.updatedAt
 		})),
+		createdAt: dto.createdAt,
+		updatedAt: dto.updatedAt
+	};
+}
+
+export function mapSpellSummaryDto(dto: SpellSummaryDto): SpellSummary {
+	return {
+		id: dto.id,
+		actionId: dto.actionId,
+		essenceId: dto.essenceId,
+		gestureId: dto.gestureId,
+		name: dto.name,
+		status: dto.status,
+		isActive: dto.isActive,
+		sortOrder: dto.sortOrder,
+		formulaName: dto.formulaName,
+		action: dto.action,
+		essence: dto.essence,
+		gesture: dto.gesture,
 		createdAt: dto.createdAt,
 		updatedAt: dto.updatedAt
 	};
@@ -296,11 +315,15 @@ function isSpellTargetSource(value: string): value is SpellTargetSource {
 }
 
 function isSpellTargetRelation(value: string): value is SpellTargetRelation {
-	return value === 'self' || value === 'any' || value === 'enemy' || value === 'ally';
+	return (
+		value === 'self' || value === 'any' || value === 'enemy' || value === 'ally'
+	);
 }
 
 function isSpellTargetCountMode(value: string): value is SpellTargetCountMode {
-	return value === 'one' || value === 'all' || value === 'upTo' || value === 'exact';
+	return (
+		value === 'one' || value === 'all' || value === 'upTo' || value === 'exact'
+	);
 }
 
 function isSpellTargetCountValueMode(

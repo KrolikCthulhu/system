@@ -15,7 +15,10 @@ import {
 	mapCharacterSheetSandboxDraftDto,
 	mapCharacterSheetSandboxRollDto
 } from '../../character-sheet/data/mappers/character-sheet-sandbox.mapper';
-import { PlayerCharacter } from '../domain/player-characters.models';
+import {
+	PlayerCharacter,
+	PlayerCharacterSummary
+} from '../domain/player-characters.models';
 import {
 	CreatePlayerCharacterDto,
 	PlayerCharacterDto,
@@ -35,7 +38,9 @@ export class HttpPlayerCharactersRepository
 	private readonly http = inject(HttpClient);
 	private readonly baseUrl = environment.apiBaseUrl;
 
-	loadCampaignCharacters(campaignId: string): Observable<PlayerCharacter[]> {
+	loadCampaignCharacters(
+		campaignId: string
+	): Observable<PlayerCharacterSummary[]> {
 		return this.http
 			.get<PlayerCharactersResponseDto>(
 				`${this.baseUrl}/campaigns/${campaignId}/characters`,

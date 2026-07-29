@@ -20,8 +20,10 @@ export interface PlayerCharacterDto {
 	updatedAt: string;
 }
 
+export type PlayerCharacterSummaryDto = PlayerCharacterDto;
+
 export interface PlayerCharactersResponseDto {
-	characters: PlayerCharacterDto[];
+	characters: PlayerCharacterSummaryDto[];
 }
 
 export interface CreatePlayerCharacterDto {

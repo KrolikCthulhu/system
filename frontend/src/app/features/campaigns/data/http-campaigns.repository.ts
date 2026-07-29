@@ -9,7 +9,8 @@ import {
 	CampaignDto,
 	CampaignsResponseDto,
 	CreateCampaignDto,
-	InviteCampaignMemberDto
+	InviteCampaignMemberDto,
+	UpdateCampaignSettingsDto
 } from './dto/campaigns.dto';
 import {
 	mapCampaignDto,
@@ -57,6 +58,21 @@ export class HttpCampaignsRepository implements CampaignsRepository {
 			.post<CampaignDto>(
 				`${this.baseUrl}/campaigns/${campaignId}/accept`,
 				{},
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCampaignDto), catchError(handleApiError));
+	}
+
+	updateSettings(
+		campaignId: string,
+		command: UpdateCampaignSettingsDto
+	): Observable<Campaign> {
+		return this.http
+			.patch<CampaignDto>(
+				`${this.baseUrl}/campaigns/${campaignId}/settings`,
+				command,
 				{
 					withCredentials: true
 				}

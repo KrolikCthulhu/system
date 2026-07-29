@@ -149,6 +149,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.AdminCreaturesPageComponent)
 					},
 					{
+						path: 'creatures/:slug',
+						loadComponent: () =>
+							import(
+								'../../features/creatures/ui/pages/admin-creatures-page/admin-creatures-page.component'
+							).then(m => m.AdminCreaturesPageComponent)
+					},
+					{
 						path: 'values',
 						loadComponent: () =>
 							import(

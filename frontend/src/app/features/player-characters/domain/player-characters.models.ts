@@ -19,3 +19,5 @@ export interface PlayerCharacter {
 	createdAt: string;
 	updatedAt: string;
 }
+
+export type PlayerCharacterSummary = PlayerCharacter;

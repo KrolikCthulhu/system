@@ -114,6 +114,9 @@ async function seedNaturalAttackProfiles(
 				rangeMeters: profile.rangeMeters,
 				usesAmmo: profile.usesAmmo ?? false,
 				canBeParried: profile.canBeParried ?? profile.kind === 'melee',
+				defaultDefense:
+					profile.defaultDefense ??
+					defaultProfileDefense(profile.kind, profile.canBeParried),
 				isActive: profile.isActive ?? true,
 				sortOrder: profile.sortOrder ?? index,
 				damageTypeLinks: {
@@ -131,6 +134,19 @@ async function seedNaturalAttackProfiles(
 			}
 		});
 	}
+}
+
+function defaultProfileDefense(
+	kind: WeaponAttackProfileContent['kind'],
+	canBeParried: boolean | undefined
+) {
+	const canParry = canBeParried ?? kind === 'melee';
+	return {
+		type: kind === 'melee' ? 'target_physical_defense' : 'none',
+		canDodge: kind === 'melee',
+		canParry,
+		parrySkillGroups: canParry ? ['melee_weapon', 'shield'] : []
+	};
 }
 
 async function findSkill(

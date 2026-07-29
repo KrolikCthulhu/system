@@ -155,4 +155,10 @@ export class TokenService {
 			secret: this.authSettings.refreshTokenSecret
 		});
 	}
+
+	verifyAccessToken(token: string) {
+		return this.jwtService.verifyAsync<AccessTokenPayload>(token, {
+			secret: this.authSettings.accessTokenSecret
+		});
+	}
 }

@@ -9,19 +9,39 @@
 			<h1>{{ encounter()?.name || 'Боевое столкновение' }}</h1>
 
 			@if (encounter(); as currentEncounter) {
-				<p>{{ activeParticipants().length }} участников</p>
+				<p>
+					{{ encounterStatusText() }} ·
+					{{ activeParticipants().length }} участников
+				</p>
 			}
 		</div>
 
 		@if (encounter(); as currentEncounter) {
-			<p-tag
-				[value]="
-					currentEncounter.status === 'DRAFT'
-						? 'Черновик'
-						: currentEncounter.status
-				"
-				severity="info"
-			/>
+			<div class="combat-encounter-page__header-actions">
+				<p-tag [value]="encounterStatusText()" severity="info" />
+
+				@if (isCurrentUserGm() && currentEncounter.status === 'DRAFT') {
+					<p-button
+						label="Начать бой"
+						icon="pi pi-play"
+						size="small"
+						[loading]="updatingEncounterStatus()"
+						(onClick)="updateEncounterStatus('ACTIVE')"
+					/>
+				}
+
+				@if (isCurrentUserGm() && currentEncounter.status === 'ACTIVE') {
+					<p-button
+						label="Завершить"
+						icon="pi pi-flag"
+						size="small"
+						severity="secondary"
+						variant="outlined"
+						[loading]="updatingEncounterStatus()"
+						(onClick)="updateEncounterStatus('COMPLETED')"
+					/>
+				}
+			</div>
 		}
 	</header>
 
@@ -37,216 +57,737 @@
 		</section>
 	} @else if (encounter()) {
 		<div class="combat-encounter-page__layout">
-			<section class="combat-encounter-page__quick-add">
-				<article class="combat-encounter-page__panel">
-					<h2>Добавить персонажа</h2>
-
-					<div class="combat-encounter-page__inline-form">
-						<label class="combat-encounter-page__field">
-							<span>Персонаж кампании</span>
-							<p-select
-								[ngModel]="selectedCharacterId()"
-								[options]="characterOptions()"
-								optionLabel="label"
-								optionValue="value"
-								placeholder="Выберите персонажа"
-								(ngModelChange)="selectedCharacterId.set($event)"
-							/>
-						</label>
-
-						<p-button
-							icon="pi pi-plus"
-							label="Добавить"
-							[loading]="addingCharacter()"
-							[disabled]="!selectedCharacterId()"
-							(onClick)="addSelectedCharacter()"
-						/>
+			@if (isCombatActive()) {
+				<section class="combat-encounter-page__queue">
+					<div class="combat-encounter-page__section-head">
+						<h2>Могут действовать</h2>
+						<span>{{ potentialQueue().length }}</span>
 					</div>
-				</article>
 
-				<article class="combat-encounter-page__panel">
-					<h2>Добавить существ</h2>
-
-					<div class="combat-encounter-page__creature-form">
-						<label class="combat-encounter-page__field">
-							<span>Существо</span>
-							<p-select
-								[ngModel]="selectedCreatureId()"
-								[options]="creatureOptions()"
-								optionLabel="label"
-								optionValue="value"
-								placeholder="Выберите существо"
-								(ngModelChange)="updateSelectedCreature($event)"
-							/>
-						</label>
-
-						<label class="combat-encounter-page__field">
-							<span>Ранг</span>
-							<p-select
-								[ngModel]="selectedCreatureTierId()"
-								[options]="creatureTierOptions()"
-								optionLabel="label"
-								optionValue="value"
-								placeholder="Выберите ранг"
-								(ngModelChange)="selectedCreatureTierId.set($event)"
-							/>
-						</label>
-
-						<label class="combat-encounter-page__field">
-							<span>Имя на сцене</span>
-							<input
-								pInputText
-								[value]="creatureSceneName()"
-								placeholder="По умолчанию название существа"
-								(input)="creatureSceneName.set($any($event.target).value)"
-							/>
-						</label>
-
-						<label
-							class="combat-encounter-page__field combat-encounter-page__field--small"
-						>
-							<span>Количество</span>
-							<p-inputnumber
-								[ngModel]="creatureCount()"
-								(ngModelChange)="creatureCount.set($event ?? 1)"
-								[min]="1"
-								[max]="20"
-								[showButtons]="false"
-								[fluid]="true"
-							/>
-						</label>
-
-						<p-button
-							icon="pi pi-plus"
-							label="Добавить"
-							[loading]="addingCreature()"
-							[disabled]="!selectedCreatureId()"
-							(onClick)="addSelectedCreature()"
-						/>
+					<div class="combat-encounter-page__queue-list">
+						@for (participant of potentialQueue(); track participant.id) {
+							<div
+								class="combat-encounter-page__queue-item"
+								[class.combat-encounter-page__queue-item--active]="
+									activeActor()?.id === participant.id
+								"
+							>
+								<strong>{{ participant.sceneName }}</strong>
+								<span>{{ participant.currentPotential }}</span>
+							</div>
+						}
 					</div>
-				</article>
-			</section>
+				</section>
+			}
 
-			<section class="combat-encounter-page__participants">
-				<div class="combat-encounter-page__section-head">
-					<h2>Участники</h2>
-					<span>{{ activeParticipants().length }}</span>
-				</div>
+			@if (!isCombatStarted() && isCurrentUserGm()) {
+				<section class="combat-encounter-page__quick-add">
+					<article class="combat-encounter-page__panel">
+						<h2>Добавить персонажа</h2>
 
-				@if (!activeParticipants().length) {
-					<div class="combat-encounter-page__empty">
-						Добавьте персонажей или существ, чтобы начать сцену.
+						<div class="combat-encounter-page__inline-form">
+							<label class="combat-encounter-page__field">
+								<span>Персонаж кампании</span>
+								<p-select
+									[ngModel]="selectedCharacterId()"
+									[options]="characterOptions()"
+									optionLabel="label"
+									optionValue="value"
+									placeholder="Выберите персонажа"
+									(ngModelChange)="selectedCharacterId.set($event)"
+								/>
+							</label>
+
+							<p-button
+								icon="pi pi-plus"
+								label="Добавить"
+								[loading]="addingCharacter()"
+								[disabled]="!selectedCharacterId()"
+								(onClick)="addSelectedCharacter()"
+							/>
+						</div>
+					</article>
+
+					<article class="combat-encounter-page__panel">
+						<h2>Добавить существ</h2>
+
+						<div class="combat-encounter-page__creature-form">
+							<label class="combat-encounter-page__field">
+								<span>Существо</span>
+								<p-select
+									[ngModel]="selectedCreatureId()"
+									[options]="creatureOptions()"
+									optionLabel="label"
+									optionValue="value"
+									placeholder="Выберите существо"
+									(ngModelChange)="updateSelectedCreature($event)"
+								/>
+							</label>
+
+							<label class="combat-encounter-page__field">
+								<span>Ранг</span>
+								<p-select
+									[ngModel]="selectedCreatureTierId()"
+									[options]="creatureTierOptions()"
+									optionLabel="label"
+									optionValue="value"
+									placeholder="Выберите ранг"
+									(ngModelChange)="selectedCreatureTierId.set($event)"
+								/>
+							</label>
+
+							<label class="combat-encounter-page__field">
+								<span>Имя на сцене</span>
+								<input
+									pInputText
+									[value]="creatureSceneName()"
+									placeholder="По умолчанию название существа"
+									(input)="creatureSceneName.set($any($event.target).value)"
+								/>
+							</label>
+
+							<label
+								class="combat-encounter-page__field combat-encounter-page__field--small"
+							>
+								<span>Количество</span>
+								<p-inputnumber
+									[ngModel]="creatureCount()"
+									(ngModelChange)="creatureCount.set($event ?? 1)"
+									[min]="1"
+									[max]="20"
+									[showButtons]="false"
+									[fluid]="true"
+								/>
+							</label>
+
+							<p-button
+								icon="pi pi-plus"
+								label="Добавить"
+								[loading]="addingCreature()"
+								[disabled]="!selectedCreatureId()"
+								(onClick)="addSelectedCreature()"
+							/>
+						</div>
+					</article>
+				</section>
+			}
+
+			@if (!isCombatStarted() && visibleDefenseRequests().length) {
+				<section class="combat-encounter-page__defense-requests">
+					<div class="combat-encounter-page__section-head">
+						<h2>Требуется защита</h2>
+						<span>{{ visibleDefenseRequests().length }}</span>
 					</div>
-				} @else {
-					<div class="combat-encounter-page__participant-list">
-						@for (participant of activeParticipants(); track participant.id) {
-							@let draft = getParticipantDraft(participant);
 
-							<article class="combat-encounter-page__participant">
-								<div class="combat-encounter-page__participant-main">
-									<div>
-										<strong>{{ participant.sceneName }}</strong>
-										<span>
-											{{ participantKindLabel(participant) }}
-											@if (participant.playerCharacter) {
-												·
-												{{ participant.playerCharacter.owner.displayUsername }}
-											}
-											@if (participant.creatureTier) {
-												· {{ participant.creatureTier.name }} ·
-												{{ participant.creatureTier.size?.name ?? 'Средний' }}
-											}
-										</span>
+					<div class="combat-encounter-page__defense-list">
+						@for (request of visibleDefenseRequests(); track request.id) {
+							@let actor = participantById(request.actorParticipantId);
+							@let target = participantById(request.targetParticipantId);
+
+							<article class="combat-encounter-page__defense-request">
+								<div>
+									<strong>
+										{{ actor?.sceneName ?? 'Атакующий' }} атакует
+										{{ target?.sceneName ?? 'цель' }}
+									</strong>
+									<span>
+										@if (canResolveDefenseRequest(request)) {
+											Выберите способ защиты.
+										} @else {
+											{{ defenseRequestWaitingText(request) }}
+										}
+									</span>
+								</div>
+
+								@if (canResolveDefenseRequest(request)) {
+									<div class="combat-encounter-page__defense-actions">
+										@for (
+											option of request.defenseOptions;
+											track option.mode + ':' + option.skillSlug
+										) {
+											<p-button
+												[label]="option.label"
+												size="small"
+												severity="secondary"
+												variant="outlined"
+												[loading]="resolvingDefenseRequestId() === request.id"
+												(onClick)="
+													resolveDefense(request, option.mode, option.skillSlug)
+												"
+											/>
+										}
 									</div>
-
-									<p-tag
-										[value]="participantKindLabel(participant)"
-										[severity]="
-											participant.kind === 'PLAYER_CHARACTER'
-												? 'success'
-												: 'warn'
-										"
-									/>
-								</div>
-
-								<div class="combat-encounter-page__participant-fields">
-									<label class="combat-encounter-page__field">
-										<span>Имя на сцене</span>
-										<input
-											pInputText
-											[value]="draft.sceneName"
-											(input)="
-												patchParticipantDraft(participant.id, {
-													sceneName: $any($event.target).value
-												})
-											"
-										/>
-									</label>
-
-									<label
-										class="combat-encounter-page__field combat-encounter-page__field--small"
-									>
-										<span>Здоровье</span>
-										<p-inputnumber
-											[ngModel]="draft.currentHealth"
-											(ngModelChange)="
-												patchParticipantDraft(participant.id, {
-													currentHealth: $event ?? 0
-												})
-											"
-											[min]="0"
-											[showButtons]="false"
-											[fluid]="true"
-										/>
-									</label>
-
-									<label
-										class="combat-encounter-page__field combat-encounter-page__field--small"
-									>
-										<span>Потенциал</span>
-										<p-inputnumber
-											[ngModel]="draft.currentPotential"
-											(ngModelChange)="
-												patchParticipantDraft(participant.id, {
-													currentPotential: $event ?? 0
-												})
-											"
-											[min]="0"
-											[showButtons]="false"
-											[fluid]="true"
-										/>
-									</label>
-
-									<label
-										class="combat-encounter-page__field combat-encounter-page__field--small"
-									>
-										<span>Инициатива</span>
-										<p-inputnumber
-											[ngModel]="draft.initiative"
-											(ngModelChange)="
-												patchParticipantDraft(participant.id, {
-													initiative: $event
-												})
-											"
-											[showButtons]="false"
-											[fluid]="true"
-										/>
-									</label>
-
-									<p-button
-										icon="pi pi-save"
-										label="Сохранить"
-										severity="secondary"
-										variant="outlined"
-										[loading]="savingParticipantId() === participant.id"
-										(onClick)="saveParticipant(participant)"
-									/>
-								</div>
+								}
 							</article>
 						}
 					</div>
+				</section>
+			}
+
+			<div
+				class="combat-encounter-page__battle-layout"
+				[class.combat-encounter-page__battle-layout--active]="isCombatStarted()"
+				[class.combat-encounter-page__battle-layout--collapsed]="
+					isCombatStarted() && combatLogCollapsed()
+				"
+			>
+				<div class="combat-encounter-page__battle-main">
+					<section class="combat-encounter-page__participants">
+						<div class="combat-encounter-page__section-head">
+							<h2>Участники</h2>
+							<span>{{ activeParticipants().length }}</span>
+						</div>
+
+						@if (!activeParticipants().length) {
+							<div class="combat-encounter-page__empty">
+								Добавьте персонажей или существ, чтобы начать сцену.
+							</div>
+						} @else {
+							<div class="combat-encounter-page__participant-list">
+								@for (
+									participant of displayedParticipants();
+									track participant.id
+								) {
+									@let draft = getParticipantDraft(participant);
+
+									<article
+										class="combat-encounter-page__participant"
+										[class.combat-encounter-page__participant--active]="
+											isCombatActive() && activeActor()?.id === participant.id
+										"
+									>
+										<div class="combat-encounter-page__participant-main">
+											<div>
+												<strong>{{ participant.sceneName }}</strong>
+												@if (
+													isCombatActive() &&
+													activeActor()?.id === participant.id
+												) {
+													<p-tag value="Сейчас действует" severity="info" />
+												}
+												<span>
+													{{ participantKindLabel(participant) }}
+													@if (participant.playerCharacter) {
+														·
+														{{
+															participant.playerCharacter.owner.displayUsername
+														}}
+													}
+													@if (participant.creatureTier) {
+														· {{ participant.creatureTier.name }} ·
+														{{
+															participant.creatureTier.size?.name ?? 'Средний'
+														}}
+													}
+												</span>
+												@if (participant.conditions.length) {
+													<div class="combat-encounter-page__condition-list">
+														@for (
+															condition of participant.conditions;
+															track condition.id
+														) {
+															<p-tag
+																[value]="participantConditionLabel(condition)"
+																severity="secondary"
+															/>
+														}
+													</div>
+												}
+											</div>
+
+											<p-tag
+												[value]="participantKindLabel(participant)"
+												[severity]="
+													participant.kind === 'PLAYER_CHARACTER'
+														? 'success'
+														: 'warn'
+												"
+											/>
+										</div>
+
+										@if (isCombatActive()) {
+											<div class="combat-encounter-page__combat-stats">
+												<div class="combat-encounter-page__combat-stat">
+													<span>Здоровье</span>
+													<strong>{{ participant.currentHealth }}</strong>
+													@if (isCurrentUserGm()) {
+														<p-button
+															icon="pi pi-minus"
+															severity="secondary"
+															variant="outlined"
+															size="small"
+															[loading]="
+																savingParticipantId() === participant.id
+															"
+															(onClick)="
+																adjustParticipantValue(
+																	participant,
+																	'currentHealth',
+																	-1
+																)
+															"
+														/>
+														<p-button
+															icon="pi pi-plus"
+															severity="secondary"
+															variant="outlined"
+															size="small"
+															[loading]="
+																savingParticipantId() === participant.id
+															"
+															(onClick)="
+																adjustParticipantValue(
+																	participant,
+																	'currentHealth',
+																	1
+																)
+															"
+														/>
+													}
+												</div>
+
+												<div class="combat-encounter-page__combat-stat">
+													<span>Потенциал</span>
+													<strong>{{ participant.currentPotential }}</strong>
+													@if (isCurrentUserGm()) {
+														<p-button
+															icon="pi pi-minus"
+															severity="secondary"
+															variant="outlined"
+															size="small"
+															[loading]="
+																savingParticipantId() === participant.id
+															"
+															(onClick)="
+																adjustParticipantValue(
+																	participant,
+																	'currentPotential',
+																	-1
+																)
+															"
+														/>
+														<p-button
+															icon="pi pi-plus"
+															severity="secondary"
+															variant="outlined"
+															size="small"
+															[loading]="
+																savingParticipantId() === participant.id
+															"
+															(onClick)="
+																adjustParticipantValue(
+																	participant,
+																	'currentPotential',
+																	1
+																)
+															"
+														/>
+													}
+												</div>
+											</div>
+										} @else {
+											<div class="combat-encounter-page__participant-fields">
+												<label class="combat-encounter-page__field">
+													<span>Имя на сцене</span>
+													<input
+														pInputText
+														[value]="draft.sceneName"
+														(input)="
+															patchParticipantDraft(participant.id, {
+																sceneName: $any($event.target).value
+															})
+														"
+													/>
+												</label>
+
+												<label
+													class="combat-encounter-page__field combat-encounter-page__field--small"
+												>
+													<span>Здоровье</span>
+													<p-inputnumber
+														[ngModel]="draft.currentHealth"
+														(ngModelChange)="
+															patchParticipantDraft(participant.id, {
+																currentHealth: $event ?? 0
+															})
+														"
+														[min]="0"
+														[showButtons]="false"
+														[fluid]="true"
+													/>
+												</label>
+
+												<label
+													class="combat-encounter-page__field combat-encounter-page__field--small"
+												>
+													<span>Потенциал</span>
+													<p-inputnumber
+														[ngModel]="draft.currentPotential"
+														(ngModelChange)="
+															patchParticipantDraft(participant.id, {
+																currentPotential: $event ?? 0
+															})
+														"
+														[min]="0"
+														[showButtons]="false"
+														[fluid]="true"
+													/>
+												</label>
+
+												<p-button
+													icon="pi pi-save"
+													label="Сохранить"
+													severity="secondary"
+													variant="outlined"
+													[loading]="savingParticipantId() === participant.id"
+													(onClick)="saveParticipant(participant)"
+												/>
+											</div>
+										}
+
+										@let sections = actionSections(participant);
+
+										@if (
+											sections.attacks.length ||
+											sections.abilities.length ||
+											sections.contextualActions.length ||
+											canSkipParticipantTurn(participant)
+										) {
+											<section class="combat-encounter-page__actions">
+												@if (canSkipParticipantTurn(participant)) {
+													<div class="combat-encounter-page__action-section">
+														<div class="combat-encounter-page__intent-list">
+															<p-button
+																label="Пропустить ход"
+																icon="pi pi-forward"
+																size="small"
+																severity="secondary"
+																variant="outlined"
+																[loading]="
+																	skippingParticipantId() === participant.id
+																"
+																(onClick)="skipParticipantTurn(participant)"
+															/>
+														</div>
+													</div>
+												}
+
+												@if (targetOptions(participant).length) {
+													<label class="combat-encounter-page__target-field">
+														<span>Цель</span>
+														<p-select
+															[ngModel]="selectedTargetId(participant)"
+															[options]="targetOptions(participant)"
+															optionLabel="label"
+															optionValue="value"
+															placeholder="Цель"
+															size="small"
+															styleClass="combat-encounter-page__target-select"
+															(ngModelChange)="
+																updateSelectedTarget(participant, $event)
+															"
+														/>
+													</label>
+												}
+
+												@if (sections.attacks.length) {
+													<div class="combat-encounter-page__action-section">
+														<h3>Атаки</h3>
+
+														<div class="combat-encounter-page__attack-list">
+															@for (
+																attack of sections.attacks;
+																track attack.sourceName
+															) {
+																<div class="combat-encounter-page__attack">
+																	<div
+																		class="combat-encounter-page__attack-head"
+																	>
+																		<div
+																			class="combat-encounter-page__attack-title"
+																		>
+																			<strong>{{ attack.sourceName }}</strong>
+																			<span>
+																				@if (attack.profileName) {
+																					{{ attack.profileName }}
+																				}
+																				@if (attack.rangeText) {
+																					· {{ attack.rangeText }}
+																				}
+																			</span>
+																		</div>
+																		<p-tag
+																			[value]="attack.costText + ' Потенциала'"
+																			severity="secondary"
+																		/>
+																	</div>
+
+																	<div
+																		class="combat-encounter-page__intent-list"
+																	>
+																		@for (
+																			action of attack.actions;
+																			track action.slug
+																		) {
+																			<div
+																				class="combat-encounter-page__intent"
+																			>
+																				<p-button
+																					[label]="action.name"
+																					size="small"
+																					severity="secondary"
+																					variant="outlined"
+																					[loading]="
+																						executingActionKey() ===
+																						participant.id + ':' + action.slug
+																					"
+																					(onClick)="
+																						executeAction(participant, action)
+																					"
+																				/>
+																			</div>
+																		}
+																	</div>
+																</div>
+															}
+														</div>
+													</div>
+												}
+
+												@if (sections.abilities.length) {
+													<div class="combat-encounter-page__action-section">
+														<h3>Способности</h3>
+
+														<div class="combat-encounter-page__intent-list">
+															@for (
+																action of sections.abilities;
+																track action.slug
+															) {
+																<div class="combat-encounter-page__intent">
+																	<p-button
+																		[label]="action.name"
+																		size="small"
+																		severity="secondary"
+																		variant="outlined"
+																		[loading]="
+																			executingActionKey() ===
+																			participant.id + ':' + action.slug
+																		"
+																		(onClick)="
+																			executeAction(participant, action)
+																		"
+																	/>
+																</div>
+															}
+														</div>
+													</div>
+												}
+
+												@if (sections.contextualActions.length) {
+													<div class="combat-encounter-page__action-section">
+														<h3>Действия захвата</h3>
+
+														<div class="combat-encounter-page__intent-list">
+															@for (
+																action of sections.contextualActions;
+																track action.slug
+															) {
+																<div class="combat-encounter-page__intent">
+																	<p-button
+																		[label]="action.name"
+																		size="small"
+																		severity="secondary"
+																		variant="outlined"
+																		[loading]="
+																			executingActionKey() ===
+																			participant.id + ':' + action.slug
+																		"
+																		(onClick)="
+																			executeAction(participant, action)
+																		"
+																	/>
+																</div>
+															}
+														</div>
+													</div>
+												}
+											</section>
+										}
+									</article>
+								}
+							</div>
+						}
+					</section>
+				</div>
+
+				@if (isCombatStarted()) {
+					<aside
+						class="combat-encounter-page__side-panel"
+						[class.combat-encounter-page__side-panel--collapsed]="
+							combatLogCollapsed()
+						"
+					>
+						@if (!combatLogCollapsed()) {
+							@if (visibleDefenseRequests().length) {
+								<section class="combat-encounter-page__side-section">
+									<div class="combat-encounter-page__section-head">
+										<h2>Ожидается решение</h2>
+										<span>{{ visibleDefenseRequests().length }}</span>
+									</div>
+
+									<div class="combat-encounter-page__defense-list">
+										@for (
+											request of visibleDefenseRequests();
+											track request.id
+										) {
+											@let actor = participantById(request.actorParticipantId);
+											@let target =
+												participantById(request.targetParticipantId);
+
+											<article class="combat-encounter-page__defense-request">
+												<div>
+													<strong>
+														{{ actor?.sceneName ?? 'Атакующий' }} →
+														{{ target?.sceneName ?? 'цель' }}
+													</strong>
+													<span>
+														@if (canResolveDefenseRequest(request)) {
+															Выберите способ защиты.
+														} @else {
+															{{ defenseRequestWaitingText(request) }}
+														}
+													</span>
+												</div>
+
+												@if (canResolveDefenseRequest(request)) {
+													<div class="combat-encounter-page__defense-actions">
+														@for (
+															option of request.defenseOptions;
+															track option.mode + ':' + option.skillSlug
+														) {
+															<p-button
+																[label]="option.label"
+																size="small"
+																severity="secondary"
+																variant="outlined"
+																[loading]="
+																	resolvingDefenseRequestId() === request.id
+																"
+																(onClick)="
+																	resolveDefense(
+																		request,
+																		option.mode,
+																		option.skillSlug
+																	)
+																"
+															/>
+														}
+													</div>
+												}
+											</article>
+										}
+									</div>
+								</section>
+							}
+
+							@if (pendingDeclaredActions().length) {
+								<section class="combat-encounter-page__side-section">
+									<div class="combat-encounter-page__section-head">
+										<h2>Заявленные действия</h2>
+										<span>{{ pendingDeclaredActions().length }}</span>
+									</div>
+
+									<div class="combat-encounter-page__defense-list">
+										@for (action of pendingDeclaredActions(); track action.id) {
+											<article class="combat-encounter-page__defense-request">
+												<div>
+													<strong>{{ declaredActionTitle(action) }}</strong>
+													<span>{{ declaredActionStateText(action) }}</span>
+												</div>
+
+												@if (isCurrentUserGm() && action.status === 'pending') {
+													<p-button
+														label="Разыграть"
+														size="small"
+														severity="secondary"
+														variant="outlined"
+														[loading]="
+															resolvingDeclaredActionId() === action.id
+														"
+														[disabled]="!canResolveDeclaredAction(action)"
+														(onClick)="resolveDeclaredAction(action)"
+													/>
+												}
+											</article>
+										}
+									</div>
+								</section>
+							}
+
+							<section class="combat-encounter-page__events">
+								<div class="combat-encounter-page__events-head">
+									<h2>Журнал</h2>
+									<p-button
+										icon="pi pi-angle-right"
+										severity="secondary"
+										variant="text"
+										size="small"
+										(onClick)="combatLogCollapsed.set(true)"
+									/>
+								</div>
+
+								@if (encounter()?.events?.length) {
+									<div class="combat-encounter-page__event-list">
+										@for (event of encounter()?.events ?? []; track event.id) {
+											<div class="combat-encounter-page__event">
+												<span>{{ event.createdAt | date: 'HH:mm:ss' }}</span>
+												<div class="combat-encounter-page__event-body">
+													<strong>{{ eventTitle(event) }}</strong>
+													@for (detail of eventDetails(event); track detail) {
+														<small>{{ detail }}</small>
+													}
+												</div>
+											</div>
+										}
+									</div>
+								} @else {
+									<div class="combat-encounter-page__empty">
+										Событий пока нет.
+									</div>
+								}
+							</section>
+						} @else {
+							<p-button
+								icon="pi pi-angle-left"
+								severity="secondary"
+								variant="outlined"
+								size="small"
+								(onClick)="combatLogCollapsed.set(false)"
+							/>
+						}
+					</aside>
 				}
-			</section>
+			</div>
+
+			@if (!isCombatStarted() && encounter()?.events?.length) {
+				<section class="combat-encounter-page__events">
+					<h2>Журнал</h2>
+
+					<div class="combat-encounter-page__event-list">
+						@for (event of encounter()?.events ?? []; track event.id) {
+							<div class="combat-encounter-page__event">
+								<span>{{ event.createdAt | date: 'HH:mm:ss' }}</span>
+								<div class="combat-encounter-page__event-body">
+									<strong>{{ eventTitle(event) }}</strong>
+									@for (detail of eventDetails(event); track detail) {
+										<small>{{ detail }}</small>
+									}
+								</div>
+							</div>
+						}
+					</div>
+				</section>
+			}
 		</div>
 	}
 </section>
