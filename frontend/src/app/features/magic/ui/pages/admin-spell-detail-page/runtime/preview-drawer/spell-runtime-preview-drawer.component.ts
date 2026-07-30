@@ -1,9 +1,4 @@
-import {
-	ChangeDetectionStrategy,
-	Component,
-	input,
-	output
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Drawer } from 'primeng/drawer';
@@ -24,6 +19,42 @@ import {
 	TagSeverity
 } from '../../models/spell-detail-page.types';
 
+export interface SpellRuntimePreviewDrawerViewModel {
+	visible: boolean;
+	loading: boolean;
+	error: string | null;
+	preview: SpellRuntimePreview | null;
+	skillLevelOptions: CommandSelectOption<number>[];
+}
+
+export interface SpellRuntimePreviewDrawerRenderers {
+	rollKey(roll: SpellRuntimePendingRoll): string;
+	choiceKey(choice: SpellRuntimePendingChoice): string;
+	rollDraft(roll: SpellRuntimePendingRoll): RuntimeRollDraft;
+	valueLabel(value: unknown): string;
+	statusLabel(status: SpellRuntimePreview['status']): string;
+	statusSeverity(status: SpellRuntimePreview['status']): TagSeverity;
+	effectTitle(effect: SpellRuntimeEffect): string;
+	effectText(effect: SpellRuntimeEffect): string;
+	traceSeverity(trace: RuntimeTraceRow): TagSeverity;
+	traceRows(trace: SpellRuntimeTraceEntry[]): RuntimeTraceRow[];
+}
+
+export interface SpellRuntimePreviewDrawerActions {
+	setVisible(visible: boolean): void;
+	rerun(): void;
+	updateRollDiceCount(
+		roll: SpellRuntimePendingRoll,
+		diceCount: number | null
+	): void;
+	updateRollSkillLevel(
+		roll: SpellRuntimePendingRoll,
+		skillLevel: number | null
+	): void;
+	submitRoll(roll: SpellRuntimePendingRoll): void;
+	selectChoice(choice: SpellRuntimePendingChoice, optionId: string): void;
+}
+
 @Component({
 	selector: 'app-spell-runtime-preview-drawer',
 	standalone: true,
@@ -33,45 +64,7 @@ import {
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SpellRuntimePreviewDrawerComponent {
-	readonly visible = input.required<boolean>();
-	readonly loading = input.required<boolean>();
-	readonly error = input<string | null>(null);
-	readonly preview = input<SpellRuntimePreview | null>(null);
-	readonly skillLevelOptions = input.required<CommandSelectOption<number>[]>();
-
-	readonly rollKey =
-		input.required<(roll: SpellRuntimePendingRoll) => string>();
-	readonly choiceKey =
-		input.required<(choice: SpellRuntimePendingChoice) => string>();
-	readonly rollDraft =
-		input.required<(roll: SpellRuntimePendingRoll) => RuntimeRollDraft>();
-	readonly valueLabel = input.required<(value: unknown) => string>();
-	readonly statusLabel =
-		input.required<(status: SpellRuntimePreview['status']) => string>();
-	readonly statusSeverity =
-		input.required<(status: SpellRuntimePreview['status']) => TagSeverity>();
-	readonly effectTitle =
-		input.required<(effect: SpellRuntimeEffect) => string>();
-	readonly effectText =
-		input.required<(effect: SpellRuntimeEffect) => string>();
-	readonly traceSeverity =
-		input.required<(trace: RuntimeTraceRow) => TagSeverity>();
-	readonly traceRows =
-		input.required<(trace: SpellRuntimeTraceEntry[]) => RuntimeTraceRow[]>();
-
-	readonly visibleChange = output<boolean>();
-	readonly rerun = output<void>();
-	readonly rollDiceCountChange = output<{
-		roll: SpellRuntimePendingRoll;
-		diceCount: number | null;
-	}>();
-	readonly rollSkillLevelChange = output<{
-		roll: SpellRuntimePendingRoll;
-		skillLevel: number | null;
-	}>();
-	readonly rollSubmit = output<SpellRuntimePendingRoll>();
-	readonly choiceSelect = output<{
-		choice: SpellRuntimePendingChoice;
-		optionId: string;
-	}>();
+	readonly viewModel = input.required<SpellRuntimePreviewDrawerViewModel>();
+	readonly renderers = input.required<SpellRuntimePreviewDrawerRenderers>();
+	readonly actions = input.required<SpellRuntimePreviewDrawerActions>();
 }

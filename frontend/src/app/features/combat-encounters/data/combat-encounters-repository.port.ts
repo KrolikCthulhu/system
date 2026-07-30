@@ -47,7 +47,8 @@ export interface CombatEncountersRepository {
 	): Observable<CombatEncounter>;
 	skipParticipantTurn(
 		id: string,
-		participantId: string
+		participantId: string,
+		command: { expectedVersion: number }
 	): Observable<CombatEncounter>;
 	resolveKnockdownSizeRule(
 		id: string,
@@ -57,6 +58,7 @@ export interface CombatEncountersRepository {
 	executeAction(
 		id: string,
 		command: {
+			expectedVersion: number;
 			actorParticipantId: string;
 			actionSlug: string;
 			targetParticipantId?: string | null;
@@ -65,6 +67,7 @@ export interface CombatEncountersRepository {
 	resolveDefense(
 		id: string,
 		command: {
+			expectedVersion: number;
 			defenseRequestId: string;
 			mode: CombatDefenseMode;
 			skillSlug?: string | null;
@@ -73,6 +76,7 @@ export interface CombatEncountersRepository {
 	resolveDeclaredAction(
 		id: string,
 		command: {
+			expectedVersion: number;
 			declaredActionId: string;
 		}
 	): Observable<CombatEncounter>;

@@ -37,6 +37,7 @@ export function mapCombatEncounterDto(
 		campaignId: dto.campaignId,
 		name: dto.name,
 		status: dto.status,
+		stateVersion: dto.stateVersion,
 		currentUserRole: dto.currentUserRole,
 		isActive: dto.isActive,
 		participants: dto.participants.map(participant => ({

@@ -154,6 +154,7 @@ model User {
   ownedCampaigns          Campaign[]               @relation("CampaignOwner")
   campaignMemberships     CampaignMember[]
   playerCharacters        PlayerCharacter[]
+  combatEncounterCommands CombatEncounterCommand[]
   createdAt               DateTime                 @default(now())
   updatedAt               DateTime                 @updatedAt
 
@@ -225,12 +226,14 @@ model CombatEncounter {
   campaign        Campaign                              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   name            String
   status          CombatEncounterStatus                 @default(DRAFT)
+  stateVersion    Int                                   @default(0) @map("state_version")
   participants    CombatEncounterParticipant[]
   conditions      CombatEncounterParticipantCondition[]
   conditionLinks  CombatEncounterConditionLink[]
   events          CombatEncounterEvent[]
   defenseRequests CombatEncounterDefenseRequest[]
   declaredActions CombatEncounterDeclaredAction[]
+  commands        CombatEncounterCommand[]
   isActive        Boolean                               @default(true) @map("is_active")
   createdAt       DateTime                              @default(now()) @map("created_at")
   updatedAt       DateTime                              @updatedAt @map("updated_at")
@@ -238,6 +241,22 @@ model CombatEncounter {
   @@index([campaignId, status])
   @@index([campaignId, isActive, updatedAt])
   @@map("combat_encounters")
+}
+
+model CombatEncounterCommand {
+  id          String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  encounterId String          @map("encounter_id") @db.Uuid
+  encounter   CombatEncounter @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  userId      String          @map("user_id") @db.Uuid
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  requestId   String          @map("request_id")
+  commandType String          @map("command_type")
+  createdAt   DateTime        @default(now()) @map("created_at")
+
+  @@unique([encounterId, userId, requestId])
+  @@index([encounterId, commandType, createdAt])
+  @@index([userId, createdAt])
+  @@map("combat_encounter_commands")
 }
 
 model CombatEncounterParticipant {

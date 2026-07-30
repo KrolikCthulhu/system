@@ -1,12 +1,21 @@
 import {
 	IsIn,
+	IsInt,
 	IsNotEmpty,
 	IsOptional,
 	IsString,
-	IsUUID
+	IsUUID,
+	Min
 } from 'class-validator';
 
 export class ExecuteCombatActionDto {
+	@IsUUID()
+	requestId!: string;
+
+	@IsInt()
+	@Min(0)
+	expectedVersion!: number;
+
 	@IsUUID()
 	actorParticipantId!: string;
 
@@ -20,6 +29,13 @@ export class ExecuteCombatActionDto {
 
 export class ResolveCombatDefenseDto {
 	@IsUUID()
+	requestId!: string;
+
+	@IsInt()
+	@Min(0)
+	expectedVersion!: number;
+
+	@IsUUID()
 	defenseRequestId!: string;
 
 	@IsIn(['dodge', 'parry', 'none'])
@@ -31,6 +47,13 @@ export class ResolveCombatDefenseDto {
 }
 
 export class ResolveDeclaredCombatActionDto {
+	@IsUUID()
+	requestId!: string;
+
+	@IsInt()
+	@Min(0)
+	expectedVersion!: number;
+
 	@IsString()
 	@IsNotEmpty()
 	declaredActionId!: string;

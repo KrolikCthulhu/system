@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+	BadRequestException,
+	Injectable,
+	NotFoundException
+} from '@nestjs/common';
 import { CombatEncounterParticipantKind, Prisma } from '@prisma/generated';
 import { CharacterSheetRuntimeService } from '../character-sheet/character-sheet-runtime.service';
 import {
@@ -6,69 +10,22 @@ import {
 	DiceCheckRuntimeService
 } from '../game-events/dice-check-runtime.service';
 import { PrismaService } from '../prisma/prisma.service';
-
-type DefenseMode = 'dodge' | 'parry' | 'none';
-type ParrySkillGroup = 'unarmed' | 'melee_weapon' | 'shield';
-
-export interface CombatActionReference {
-	name: string;
-	slug: string;
-}
-
-export interface CombatActionRollConfig {
-	type: 'none' | 'attack_profile' | 'check';
-	characteristic: CombatActionReference | null;
-	skill: CombatActionReference | null;
-}
-
-export interface CombatActionDefenseConfig {
-	type: 'none' | 'target_physical_defense';
-	canDodge: boolean;
-	canParry: boolean;
-	parrySkillGroups: ParrySkillGroup[];
-}
-
-export interface CombatCheckAction {
-	slug: string;
-	name: string;
-	roll?: CombatActionRollConfig | null;
-	defense?: CombatActionDefenseConfig | null;
-	source?: {
-		type: string;
-		name: string;
-		slug: string;
-		profileName: string;
-	} | null;
-}
-
-export interface CombatDefenseOption {
-	mode: DefenseMode;
-	label: string;
-	skillSlug: string | null;
-	skillName: string | null;
-}
-
-export interface CombatResolvedRoll {
-	skillSlug: string | null;
-	skillName: string;
-	characteristicSlug: string | null;
-	characteristicName: string;
-	diceCount: number;
-	dice: number[];
-	successes: number;
-	sixes: number;
-	ones: number;
-	ignoredOnes: number;
-	consequenceCount: number;
-	skillLevel: number;
-}
+import { CombatActionCheckEngine } from './domain/combat-action-check.engine';
+import {
+	CombatActionDefenseConfig,
+	CombatCheckAction,
+	CombatDefenseOption,
+	CombatResolvedRoll,
+	DefenseMode
+} from './domain/combat-action-check.types';
 
 @Injectable()
 export class CombatActionCheckRuntimeService {
 	constructor(
 		private readonly prisma: PrismaService,
 		private readonly diceRuntime: DiceCheckRuntimeService,
-		private readonly characterSheetRuntime: CharacterSheetRuntimeService
+		private readonly characterSheetRuntime: CharacterSheetRuntimeService,
+		private readonly checkEngine: CombatActionCheckEngine
 	) {}
 
 	async rollActionAttack(
@@ -120,7 +77,14 @@ export class CombatActionCheckRuntimeService {
 		);
 
 		if (!defense || defense.type === 'none') {
-			return [{ mode: 'none', label: 'Не защищаться', skillSlug: null, skillName: null }];
+			return [
+				{
+					mode: 'none',
+					label: 'Не защищаться',
+					skillSlug: null,
+					skillName: null
+				}
+			];
 		}
 
 		const options: CombatDefenseOption[] = [];
@@ -160,20 +124,16 @@ export class CombatActionCheckRuntimeService {
 		mode: DefenseMode;
 		skillSlug?: string | null;
 	}) {
-		const option =
-			params.options.find(
-				item =>
-					item.mode === params.mode &&
-					(params.mode === 'none' ||
-						!params.skillSlug ||
-						item.skillSlug === params.skillSlug)
-			) ?? null;
+		const result = this.checkEngine.resolveSelectedDefenseOption(params);
 
-		if (!option) {
-			throw new BadRequestException('Выбранный способ защиты недоступен.');
+		if (result.ok === false) {
+			throw new BadRequestException({
+				code: result.error.code,
+				message: result.error.message
+			});
 		}
 
-		return option;
+		return result.value;
 	}
 
 	private async rollParticipantSkill(params: {
@@ -181,42 +141,44 @@ export class CombatActionCheckRuntimeService {
 		skillSlug: string;
 		characteristicSlug: string | null;
 	}): Promise<CombatResolvedRoll> {
-		const participant = await this.prisma.combatEncounterParticipant.findUnique({
-			select: {
-				id: true,
-				kind: true,
-				playerCharacter: {
-					select: {
-						id: true,
-						sheetInputValues: true
-					}
-				},
-				creatureTier: {
-					select: {
-						skills: {
-							select: {
-								level: true,
-								skill: {
-									select: {
-										id: true,
-										slug: true,
-										name: true,
-										defaultLevel: true
+		const participant = await this.prisma.combatEncounterParticipant.findUnique(
+			{
+				select: {
+					id: true,
+					kind: true,
+					playerCharacter: {
+						select: {
+							id: true,
+							sheetInputValues: true
+						}
+					},
+					creatureTier: {
+						select: {
+							skills: {
+								select: {
+									level: true,
+									skill: {
+										select: {
+											id: true,
+											slug: true,
+											name: true,
+											defaultLevel: true
+										}
 									}
 								}
-							}
-						},
-						characteristics: {
-							select: {
-								value: true,
-								characteristic: {
-									select: {
-										id: true,
-										name: true,
-										defaultValue: true,
-										systemValue: {
-											select: {
-												slug: true
+							},
+							characteristics: {
+								select: {
+									value: true,
+									characteristic: {
+										select: {
+											id: true,
+											name: true,
+											defaultValue: true,
+											systemValue: {
+												select: {
+													slug: true
+												}
 											}
 										}
 									}
@@ -224,10 +186,10 @@ export class CombatActionCheckRuntimeService {
 							}
 						}
 					}
-				}
-			},
-			where: { id: params.participantId }
-		});
+				},
+				where: { id: params.participantId }
+			}
+		);
 
 		if (!participant) {
 			throw new NotFoundException('Участник столкновения не найден.');
@@ -268,7 +230,8 @@ export class CombatActionCheckRuntimeService {
 		const tierSkill = participant.creatureTier.skills.find(
 			item => item.skill.slug === params.skillSlug
 		);
-		const skill = tierSkill?.skill ?? (await this.findSkillBySlug(params.skillSlug));
+		const skill =
+			tierSkill?.skill ?? (await this.findSkillBySlug(params.skillSlug));
 		const skillLevel = tierSkill?.level ?? skill.defaultLevel;
 		const characteristic = this.resolveCreatureCharacteristic(
 			participant.creatureTier.characteristics,
@@ -367,15 +330,13 @@ export class CombatActionCheckRuntimeService {
 			return null;
 		}
 
-		const profile = link.attackProfiles.find(
-			item =>
-				isJsonObject(item) &&
-				(readString(item, 'name') === action.source?.profileName ||
-					readString(item, 'kind') === 'melee')
+		const profile = this.checkEngine.findAttackProfile(
+			link.attackProfiles as Prisma.JsonValue[],
+			action.source.profileName
 		);
 
-		return isJsonObject(profile)
-			? readDefense(profile['defaultDefense'])
+		return profile
+			? this.checkEngine.readDefense(profile['defaultDefense'])
 			: null;
 	}
 
@@ -396,60 +357,4 @@ export class CombatActionCheckRuntimeService {
 
 		return skill;
 	}
-}
-
-function readDefense(value: Prisma.JsonValue): CombatActionDefenseConfig | null {
-	if (!isJsonObject(value)) {
-		return null;
-	}
-
-	const type = readString(value, 'type');
-
-	if (type !== 'target_physical_defense') {
-		return { type: 'none', canDodge: false, canParry: false, parrySkillGroups: [] };
-	}
-
-	const canParry = readBoolean(value, 'canParry') ?? false;
-
-	return {
-		type,
-		canDodge: readBoolean(value, 'canDodge') ?? false,
-		canParry,
-		parrySkillGroups: canParry
-			? readParrySkillGroups(value['parrySkillGroups'])
-			: []
-	};
-}
-
-function readParrySkillGroups(value: Prisma.JsonValue): ParrySkillGroup[] {
-	if (!Array.isArray(value)) {
-		return [];
-	}
-
-	return value.filter(
-		(item): item is ParrySkillGroup =>
-			item === 'unarmed' || item === 'melee_weapon' || item === 'shield'
-	);
-}
-
-function isJsonObject(
-	value: Prisma.JsonValue | undefined
-): value is Record<string, Prisma.JsonValue> {
-	return !!value && typeof value === 'object' && !Array.isArray(value);
-}
-
-function readString(
-	value: Record<string, Prisma.JsonValue>,
-	key: string
-): string | null {
-	const rawValue = value[key];
-	return typeof rawValue === 'string' ? rawValue : null;
-}
-
-function readBoolean(
-	value: Record<string, Prisma.JsonValue>,
-	key: string
-): boolean | null {
-	const rawValue = value[key];
-	return typeof rawValue === 'boolean' ? rawValue : null;
 }

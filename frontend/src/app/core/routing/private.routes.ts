@@ -9,24 +9,24 @@ export const privateRoutes: Route[] = [
 	},
 	{
 		path: 'campaigns',
-		loadComponent: () =>
-			import(
-				'../../features/campaigns/ui/pages/campaigns-page/campaigns-page.component'
-			).then(m => m.CampaignsPageComponent)
+		loadChildren: () =>
+			import('../../features/campaigns/campaigns.routes').then(
+				m => m.campaignsRoutes
+			)
 	},
 	{
 		path: 'characters/:id',
-		loadComponent: () =>
-			import(
-				'../../features/player-characters/ui/pages/player-character-editor-page/player-character-editor-page.component'
-			).then(m => m.PlayerCharacterEditorPageComponent)
+		loadChildren: () =>
+			import('../../features/player-characters/player-characters.routes').then(
+				m => m.playerCharacterEditorRoutes
+			)
 	},
 	{
 		path: 'combat-encounters/:id',
-		loadComponent: () =>
-			import(
-				'../../features/combat-encounters/ui/pages/combat-encounter-page/combat-encounter-page.component'
-			).then(m => m.CombatEncounterPageComponent)
+		loadChildren: () =>
+			import('../../features/combat-encounters/combat-encounters.routes').then(
+				m => m.combatEncounterRoutes
+			)
 	},
 	...adminRoutes
 ];

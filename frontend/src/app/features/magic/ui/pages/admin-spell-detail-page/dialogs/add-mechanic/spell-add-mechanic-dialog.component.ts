@@ -1,9 +1,4 @@
-import {
-	ChangeDetectionStrategy,
-	Component,
-	input,
-	output
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Dialog } from 'primeng/dialog';
@@ -15,6 +10,22 @@ import {
 } from '../../../../../../spell-mechanics/domain/spell-mechanics.models';
 import { CommandSelectOption } from '../../models/spell-detail-page.types';
 
+export interface SpellAddMechanicDialogViewModel {
+	visible: boolean;
+	mechanicOptions: CommandSelectOption[];
+	selectedMechanicId: string | null;
+	selectedMechanic: SpellMechanic | null;
+	requiredParameters(mechanic: SpellMechanic): SpellMechanicParameter[];
+	parameterDefaultLabel(parameter: SpellMechanicParameter): string;
+	parameterReady(parameter: SpellMechanicParameter): boolean;
+}
+
+export interface SpellAddMechanicDialogActions {
+	setVisible(visible: boolean): void;
+	updateMechanic(mechanicId: string | null): void;
+	confirm(): void;
+}
+
 @Component({
 	selector: 'app-spell-add-mechanic-dialog',
 	standalone: true,
@@ -24,18 +35,6 @@ import { CommandSelectOption } from '../../models/spell-detail-page.types';
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SpellAddMechanicDialogComponent {
-	readonly visible = input.required<boolean>();
-	readonly mechanicOptions = input.required<CommandSelectOption[]>();
-	readonly selectedMechanicId = input<string | null>(null);
-	readonly selectedMechanic = input<SpellMechanic | null>(null);
-	readonly requiredParameters =
-		input.required<(mechanic: SpellMechanic) => SpellMechanicParameter[]>();
-	readonly parameterDefaultLabel =
-		input.required<(parameter: SpellMechanicParameter) => string>();
-	readonly parameterReady =
-		input.required<(parameter: SpellMechanicParameter) => boolean>();
-
-	readonly visibleChange = output<boolean>();
-	readonly mechanicChange = output<string | null>();
-	readonly confirm = output<void>();
+	readonly viewModel = input.required<SpellAddMechanicDialogViewModel>();
+	readonly actions = input.required<SpellAddMechanicDialogActions>();
 }

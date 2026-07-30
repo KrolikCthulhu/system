@@ -160,6 +160,7 @@ export interface CombatEncounter {
 	campaignId: string;
 	name: string;
 	status: CombatEncounterStatus;
+	stateVersion: number;
 	currentUserRole: CombatEncounterCurrentUserRole;
 	isActive: boolean;
 	participants: CombatEncounterParticipant[];

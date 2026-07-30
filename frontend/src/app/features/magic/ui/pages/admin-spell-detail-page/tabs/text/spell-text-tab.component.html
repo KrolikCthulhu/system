@@ -4,12 +4,12 @@
 			<h3>Итоговый текст</h3>
 			<div class="admin-spell-detail-page__text-actions">
 				<p-selectbutton
-					[options]="previewModeOptions()"
-					[ngModel]="previewMode()"
+					[options]="viewModel().previewModeOptions"
+					[ngModel]="viewModel().previewMode"
 					optionLabel="label"
 					optionValue="value"
 					size="small"
-					(ngModelChange)="previewModeChange.emit($event)"
+					(ngModelChange)="actions().updatePreviewMode($event)"
 				></p-selectbutton>
 				<p-button
 					label="Из механик"
@@ -17,14 +17,14 @@
 					size="small"
 					severity="secondary"
 					variant="outlined"
-					(onClick)="syncFromMechanics.emit()"
+					(onClick)="actions().syncFromMechanics()"
 				></p-button>
 			</div>
 		</div>
 
-		@if (previewParts().length) {
+		@if (viewModel().previewParts.length) {
 			<div class="admin-spell-detail-page__text-preview-content">
-				@for (part of previewParts(); track $index) {
+				@for (part of viewModel().previewParts; track $index) {
 					@if (part.kind === 'paragraph') {
 						<p>{{ part.text }}</p>
 					} @else {
@@ -41,7 +41,9 @@
 								<tbody>
 									@for (item of part.items; track item.id) {
 										<tr>
-											<td>{{ effectScaleRequirementText()(item) }}</td>
+											<td>
+												{{ viewModel().effectScaleRequirementText(item) }}
+											</td>
 											<td>{{ item.name }}</td>
 											<td>{{ item.description }}</td>
 										</tr>
@@ -69,7 +71,7 @@
 					size="small"
 					severity="secondary"
 					variant="outlined"
-					(onClick)="addTextBlock.emit('text')"
+					(onClick)="actions().addTextBlock('text')"
 				></p-button>
 				<p-button
 					label="Механика"
@@ -77,27 +79,28 @@
 					size="small"
 					severity="secondary"
 					variant="outlined"
-					(onClick)="addTextBlock.emit('mechanicText')"
+					(onClick)="actions().addTextBlock('mechanicText')"
 				></p-button>
 			</div>
 		</div>
 
 		<div class="admin-spell-detail-page__text-blocks">
-			@for (block of textBlocks(); track block.id; let blockIndex = $index) {
+			@for (
+				block of viewModel().textBlocks;
+				track block.id;
+				let blockIndex = $index
+			) {
 				<div class="admin-spell-detail-page__text-block">
 					<div class="admin-spell-detail-page__text-block-toolbar">
 						<span class="admin-spell-detail-page__field">
 							<span>Тип блока</span>
 							<p-select
-								[options]="blockKindOptions()"
+								[options]="viewModel().blockKindOptions"
 								optionLabel="label"
 								optionValue="value"
 								[ngModel]="block.kind"
 								(ngModelChange)="
-									updateTextBlock.emit({
-										blockId: block.id,
-										patch: { kind: $event }
-									})
+									actions().updateTextBlock(block.id, { kind: $event })
 								"
 							></p-select>
 						</span>
@@ -107,10 +110,7 @@
 							<p-toggleswitch
 								[ngModel]="block.isActive"
 								(ngModelChange)="
-									updateTextBlock.emit({
-										blockId: block.id,
-										patch: { isActive: $event }
-									})
+									actions().updateTextBlock(block.id, { isActive: $event })
 								"
 							></p-toggleswitch>
 						</span>
@@ -122,9 +122,7 @@
 								text
 								rounded
 								[disabled]="isFirstBlock(blockIndex)"
-								(onClick)="
-									moveTextBlock.emit({ index: blockIndex, direction: -1 })
-								"
+								(onClick)="actions().moveTextBlock(blockIndex, -1)"
 							></p-button>
 							<p-button
 								icon="pi pi-arrow-down"
@@ -132,16 +130,14 @@
 								text
 								rounded
 								[disabled]="isLastBlock(blockIndex)"
-								(onClick)="
-									moveTextBlock.emit({ index: blockIndex, direction: 1 })
-								"
+								(onClick)="actions().moveTextBlock(blockIndex, 1)"
 							></p-button>
 							<p-button
 								icon="pi pi-trash"
 								severity="danger"
 								text
 								rounded
-								(onClick)="deleteTextBlock.emit(block.id)"
+								(onClick)="actions().deleteTextBlock(block.id)"
 							></p-button>
 						</div>
 					</div>
@@ -150,16 +146,15 @@
 						<span class="admin-spell-detail-page__field">
 							<span>Механика</span>
 							<p-select
-								[options]="mechanicOptions()"
+								[options]="viewModel().mechanicOptions"
 								optionLabel="label"
 								optionValue="value"
 								placeholder="Не выбрано"
 								[showClear]="true"
 								[ngModel]="block.mechanicBlockId || null"
 								(ngModelChange)="
-									updateTextBlock.emit({
-										blockId: block.id,
-										patch: { mechanicBlockId: $event || '' }
+									actions().updateTextBlock(block.id, {
+										mechanicBlockId: $event || ''
 									})
 								"
 							></p-select>
@@ -172,9 +167,8 @@
 								rows="3"
 								[value]="block.text"
 								(input)="
-									updateTextBlock.emit({
-										blockId: block.id,
-										patch: { text: $any($event.target).value }
+									actions().updateTextBlock(block.id, {
+										text: $any($event.target).value
 									})
 								"
 							></textarea>
@@ -182,7 +176,7 @@
 					}
 
 					<div class="admin-spell-detail-page__text-block-preview">
-						{{ blockPreview()(block) }}
+						{{ viewModel().blockPreview(block) }}
 					</div>
 				</div>
 			} @empty {

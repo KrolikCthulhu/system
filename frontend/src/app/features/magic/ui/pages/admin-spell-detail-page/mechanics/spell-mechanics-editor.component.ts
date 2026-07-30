@@ -2,21 +2,11 @@ import {
 	ChangeDetectionStrategy,
 	Component,
 	inject,
-	input,
 	output
 } from '@angular/core';
-import { SpellMechanicParameter } from '../../../../../spell-mechanics/domain/spell-mechanics.models';
-import { SpellTargetConfigEditorValue } from '../../../../../../shared/ui/spell-target-config-editor/spell-target-config-editor.component';
-import { TargetTemplateId } from '../utils/spell-target-config.utils';
-import {
-	ProgressionSourceKind,
-	SpellAutoParameterSource,
-	SpellAutoParameterValue
-} from '../utils/spell-numeric-parameter.utils';
+import { SpellAutoParameterValue } from '../utils/spell-numeric-parameter.utils';
 import {
 	AutoHelpKey,
-	CommandSelectOption,
-	CommandSelectOptionGroup,
 	SpellMechanicBlockDraft,
 	SpellMechanicBlockListItem
 } from '../models/spell-detail-page.types';
@@ -32,31 +22,6 @@ import { SpellNumericParameterPreviewComponent } from '../parameters/numeric-pre
 import { SpellProgressionParameterEditorComponent } from '../parameters/editors/spell-progression-parameter-editor.component';
 import { SpellStaticParameterEditorComponent } from '../parameters/editors/spell-static-parameter-editor.component';
 import { SpellTargetParameterEditorComponent } from '../parameters/editors/spell-target-parameter-editor.component';
-
-export interface SpellMechanicsEditorContext {
-	autoValueRangeModeOptions: CommandSelectOption<
-		SpellAutoParameterValue['rangeMode']
-	>[];
-	updateSelectedProgressionSourceKind: (
-		block: SpellMechanicBlockDraft,
-		parameterId: string,
-		sourceKind: ProgressionSourceKind
-	) => void;
-	autoTransformSourceOptionsRenderer: (
-		value: SpellAutoParameterValue,
-		source: SpellAutoParameterSource
-	) => CommandSelectOptionGroup[];
-	updateMechanicTargetTemplate: (
-		block: SpellMechanicBlockDraft,
-		parameter: SpellMechanicParameter,
-		templateId: TargetTemplateId
-	) => void;
-	updateMechanicTargetConfig: (
-		block: SpellMechanicBlockDraft,
-		parameterId: string,
-		config: Partial<SpellTargetConfigEditorValue>
-	) => void;
-}
 
 @Component({
 	selector: 'app-spell-mechanics-editor',
@@ -80,8 +45,6 @@ export interface SpellMechanicsEditorContext {
 	providers: [SpellMechanicsEditorFacade]
 })
 export class SpellMechanicsEditorComponent {
-	readonly context = input.required<SpellMechanicsEditorContext>();
-
 	readonly helpClick = output<{ event: MouseEvent; key: AutoHelpKey }>();
 
 	protected readonly facade = inject(SpellMechanicsEditorFacade);

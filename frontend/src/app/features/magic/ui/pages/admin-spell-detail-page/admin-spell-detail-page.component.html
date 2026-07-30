@@ -102,7 +102,6 @@
 							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--mechanics"
 						>
 							<app-spell-mechanics-editor
-								[context]="mechanicsEditorContext"
 								(helpClick)="
 									showAutoHelp($event.event, $event.key, autoHelpPopover)
 								"
@@ -114,26 +113,8 @@
 							class="admin-spell-detail-page__tabpanel admin-spell-detail-page__tabpanel--text"
 						>
 							<app-spell-text-tab
-								[previewModeOptions]="spellTextPreviewModeOptions"
-								[previewMode]="spellTextPreviewMode()"
-								[previewParts]="spellTextPreviewBlocks()"
-								[textBlocks]="currentDraft.textBlocks"
-								[blockKindOptions]="spellTextBlockKindOptions"
-								[mechanicOptions]="textMechanicBlockOptions()"
-								[blockPreview]="spellTextBlockPreviewRenderer"
-								[effectScaleRequirementText]="
-									effectScaleRequirementTextRenderer
-								"
-								(previewModeChange)="updateSpellTextPreviewMode($event)"
-								(addTextBlock)="addSpellTextBlock($event)"
-								(syncFromMechanics)="addSpellMechanicTextBlocks()"
-								(updateTextBlock)="
-									updateSpellTextBlock($event.blockId, $event.patch)
-								"
-								(deleteTextBlock)="deleteSpellTextBlock($event)"
-								(moveTextBlock)="
-									moveSpellTextBlock($event.index, $event.direction)
-								"
+								[viewModel]="spellTextTabViewModel()"
+								[actions]="spellTextTabActions"
 							></app-spell-text-tab>
 						</p-tabpanel>
 
@@ -177,16 +158,8 @@
 </section>
 
 <app-spell-add-mechanic-dialog
-	[visible]="addMechanicWizardVisible()"
-	[mechanicOptions]="mechanicOptions()"
-	[selectedMechanicId]="selectedWizardMechanicId()"
-	[selectedMechanic]="selectedWizardMechanic()"
-	[requiredParameters]="wizardRequiredParametersRenderer"
-	[parameterDefaultLabel]="wizardParameterDefaultLabelRenderer"
-	[parameterReady]="wizardParameterReadyRenderer"
-	(visibleChange)="setAddMechanicWizardVisible($event)"
-	(mechanicChange)="updateWizardMechanic($event)"
-	(confirm)="confirmAddMechanicBlock()"
+	[viewModel]="addMechanicDialogViewModel()"
+	[actions]="addMechanicDialogActions"
 ></app-spell-add-mechanic-dialog>
 
 <p-dialog
@@ -210,29 +183,7 @@
 </p-dialog>
 
 <app-spell-runtime-preview-drawer
-	[visible]="runtimePreviewVisible()"
-	[loading]="runtimePreviewLoading()"
-	[error]="runtimePreviewError()"
-	[preview]="runtimePreview()"
-	[skillLevelOptions]="skillLevelOptions()"
-	[rollKey]="runtimeRollKeyRenderer"
-	[choiceKey]="runtimeChoiceKeyRenderer"
-	[rollDraft]="runtimeRollDraftRenderer"
-	[valueLabel]="runtimeValueLabelRenderer"
-	[statusLabel]="runtimePreviewStatusLabelRenderer"
-	[statusSeverity]="runtimePreviewStatusSeverityRenderer"
-	[effectTitle]="runtimeEffectTitleRenderer"
-	[effectText]="runtimeEffectTextRenderer"
-	[traceSeverity]="runtimeTraceSeverityRenderer"
-	[traceRows]="runtimeTraceRowsRenderer"
-	(visibleChange)="setRuntimePreviewVisible($event)"
-	(rerun)="runRuntimePreview()"
-	(rollDiceCountChange)="
-		updateRuntimeRollDiceCount($event.roll, $event.diceCount)
-	"
-	(rollSkillLevelChange)="
-		updateRuntimeRollSkillLevel($event.roll, $event.skillLevel)
-	"
-	(rollSubmit)="rollRuntimePendingRoll($event)"
-	(choiceSelect)="chooseRuntimePendingChoice($event.choice, $event.optionId)"
+	[viewModel]="runtimePreviewDrawerViewModel()"
+	[renderers]="runtimePreviewDrawerRenderers"
+	[actions]="runtimePreviewDrawerActions"
 ></app-spell-runtime-preview-drawer>

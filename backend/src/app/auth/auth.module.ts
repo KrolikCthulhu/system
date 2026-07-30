@@ -10,8 +10,10 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { authConfig } from './config/auth.config';
 import { EmailVerificationService } from './email-verification.service';
+import { WsAuthGuard } from './guards/ws-auth.guard';
 import { PasswordService } from './password.service';
 import { SessionService } from './session.service';
+import { SocketAuthService } from './socket-auth.service';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { TokenService } from './token.service';
 
@@ -39,9 +41,18 @@ import { TokenService } from './token.service';
 		EmailVerificationService,
 		PasswordService,
 		SessionService,
+		SocketAuthService,
 		TokenService,
+		WsAuthGuard,
 		JwtStrategy
 	],
-	exports: [AuthService, PasswordService, SessionService, TokenService]
+	exports: [
+		AuthService,
+		PasswordService,
+		SessionService,
+		SocketAuthService,
+		TokenService,
+		WsAuthGuard
+	]
 })
 export class AuthModule {}

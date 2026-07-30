@@ -4,22 +4,22 @@
 	[draggable]="false"
 	[resizable]="false"
 	[style]="{ width: 'min(96vw, 42rem)' }"
-	[visible]="visible()"
-	(visibleChange)="visibleChange.emit($event)"
+	[visible]="viewModel().visible"
+	(visibleChange)="actions().setVisible($event)"
 >
 	<div class="admin-spell-detail-page__mechanic-wizard">
 		<span class="admin-spell-detail-page__field">
 			<span>Механика</span>
 			<p-select
-				[options]="mechanicOptions()"
+				[options]="viewModel().mechanicOptions"
 				optionLabel="label"
 				optionValue="value"
-				[ngModel]="selectedMechanicId()"
-				(ngModelChange)="mechanicChange.emit($event)"
+				[ngModel]="viewModel().selectedMechanicId"
+				(ngModelChange)="actions().updateMechanic($event)"
 			></p-select>
 		</span>
 
-		@if (selectedMechanic(); as mechanic) {
+		@if (viewModel().selectedMechanic; as mechanic) {
 			<div class="admin-spell-detail-page__mechanic-wizard-summary">
 				<strong>{{ mechanic.name }}</strong>
 				@if (mechanic.description) {
@@ -27,27 +27,31 @@
 				}
 			</div>
 
-			@if (requiredParameters()(mechanic).length) {
+			@if (viewModel().requiredParameters(mechanic).length) {
 				<div class="admin-spell-detail-page__mechanic-wizard-parameters">
 					<div class="admin-spell-detail-page__mechanic-wizard-section-title">
 						Обязательные параметры
 					</div>
 
 					@for (
-						parameter of requiredParameters()(mechanic);
+						parameter of viewModel().requiredParameters(mechanic);
 						track parameter.id
 					) {
 						<div class="admin-spell-detail-page__mechanic-wizard-parameter">
 							<div>
 								<strong>{{ parameter.name }}</strong>
-								<span>{{ parameterDefaultLabel()(parameter) }}</span>
+								<span>{{ viewModel().parameterDefaultLabel(parameter) }}</span>
 							</div>
 
 							<p-tag
 								[value]="
-									parameterReady()(parameter) ? 'Заполнится' : 'Нужно настроить'
+									viewModel().parameterReady(parameter)
+										? 'Заполнится'
+										: 'Нужно настроить'
 								"
-								[severity]="parameterReady()(parameter) ? 'success' : 'warn'"
+								[severity]="
+									viewModel().parameterReady(parameter) ? 'success' : 'warn'
+								"
 							></p-tag>
 						</div>
 					}
@@ -64,13 +68,13 @@
 				label="Отмена"
 				severity="secondary"
 				variant="outlined"
-				(onClick)="visibleChange.emit(false)"
+				(onClick)="actions().setVisible(false)"
 			></p-button>
 			<p-button
 				label="Добавить"
 				icon="pi pi-plus"
-				[disabled]="!selectedMechanic()"
-				(onClick)="confirm.emit()"
+				[disabled]="!viewModel().selectedMechanic"
+				(onClick)="actions().confirm()"
 			></p-button>
 		</div>
 	</div>

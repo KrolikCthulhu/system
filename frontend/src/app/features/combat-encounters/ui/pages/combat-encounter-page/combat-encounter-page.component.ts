@@ -626,6 +626,7 @@ export class CombatEncounterPageComponent {
 
 		this.encountersRepository
 			.executeAction(encounter.id, {
+				expectedVersion: encounter.stateVersion,
 				actorParticipantId: participant.id,
 				actionSlug: action.slug,
 				targetParticipantId
@@ -656,7 +657,9 @@ export class CombatEncounterPageComponent {
 		this.errorMessage.set(null);
 
 		this.encountersRepository
-			.skipParticipantTurn(encounter.id, participant.id)
+			.skipParticipantTurn(encounter.id, participant.id, {
+				expectedVersion: encounter.stateVersion
+			})
 			.pipe(
 				catchError(error => {
 					this.errorMessage.set(
@@ -721,6 +724,7 @@ export class CombatEncounterPageComponent {
 
 		this.encountersRepository
 			.resolveDeclaredAction(encounter.id, {
+				expectedVersion: encounter.stateVersion,
 				declaredActionId: action.id
 			})
 			.pipe(
@@ -754,6 +758,7 @@ export class CombatEncounterPageComponent {
 
 		this.encountersRepository
 			.resolveDefense(encounter.id, {
+				expectedVersion: encounter.stateVersion,
 				defenseRequestId: request.id,
 				mode,
 				skillSlug

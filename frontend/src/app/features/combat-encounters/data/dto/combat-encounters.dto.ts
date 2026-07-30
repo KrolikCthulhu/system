@@ -154,6 +154,7 @@ export interface CombatEncounterDto {
 	campaignId: string;
 	name: string;
 	status: CombatEncounterStatus;
+	stateVersion: number;
 	currentUserRole: CombatEncounterCurrentUserRole;
 	isActive: boolean;
 	participants: CombatEncounterParticipantDto[];
@@ -208,18 +209,24 @@ export interface UpdateCombatEncounterDto {
 }
 
 export interface ExecuteCombatActionDto {
+	requestId?: string;
+	expectedVersion: number;
 	actorParticipantId: string;
 	actionSlug: string;
 	targetParticipantId?: string | null;
 }
 
 export interface ResolveCombatDefenseDto {
+	requestId?: string;
+	expectedVersion: number;
 	defenseRequestId: string;
 	mode: 'dodge' | 'parry' | 'none';
 	skillSlug?: string | null;
 }
 
 export interface ResolveDeclaredCombatActionDto {
+	requestId?: string;
+	expectedVersion: number;
 	declaredActionId: string;
 }
 

@@ -45,6 +45,7 @@ import {
 	AutoValueSourceMode,
 	ESSENCE_PROFILE_SOURCE_OPTIONS,
 	PROGRESSION_SOURCE_KIND_OPTIONS,
+	ProgressionSourceKind,
 	ROUNDING_MODE_OPTIONS,
 	SpellAutoParameterSource,
 	SpellAutoParameterValue,
@@ -94,6 +95,7 @@ import {
 	SpellParameterValueMode
 } from '../models/spell-detail-page.types';
 import { AdminSpellDetailPageStore } from '../state/admin-spell-detail-page.store';
+import { SpellMechanicDraftFacade } from '../application/spell-mechanic-draft.facade';
 import {
 	formatFormulaSourceValueSummary,
 	formatParameterPreviewLabel
@@ -102,6 +104,7 @@ import {
 @Injectable()
 export class SpellMechanicsEditorFacade {
 	private readonly pageStore = inject(AdminSpellDetailPageStore);
+	private readonly draftFacade = inject(SpellMechanicDraftFacade);
 
 	readonly parameterValueModeOptions: Array<{
 		label: string;
@@ -131,6 +134,13 @@ export class SpellMechanicsEditorFacade {
 	readonly autoValueSourceCurveOptions = AUTO_VALUE_SOURCE_CURVE_OPTIONS;
 	readonly autoValueSourceTransformOptions =
 		AUTO_VALUE_SOURCE_TRANSFORM_OPTIONS;
+	readonly autoValueRangeModeOptions: Array<{
+		label: string;
+		value: SpellAutoParameterValue['rangeMode'];
+	}> = [
+		{ label: 'Без диапазона', value: 'none' },
+		{ label: 'Масштабировать', value: 'scale' }
+	];
 	readonly autoPresetPanelStyle = {
 		width: '12rem',
 		maxWidth: '12rem',
@@ -706,6 +716,27 @@ export class SpellMechanicsEditorFacade {
 		return targetRuntimeSummary(config);
 	}
 
+	updateMechanicTargetConfig(
+		block: SpellMechanicBlockDraft,
+		parameterId: string,
+		patch: Partial<SpellTargetConfig>
+	) {
+		const targetId = this.parameterValue(block, parameterId);
+		this.draftFacade.updateMechanicTargetConfig(targetId, patch);
+	}
+
+	updateMechanicTargetTemplate(
+		block: SpellMechanicBlockDraft,
+		parameter: SpellMechanicParameter,
+		templateId: TargetTemplateId
+	) {
+		this.draftFacade.updateMechanicTargetTemplate(
+			block,
+			parameter.id,
+			templateId
+		);
+	}
+
 	progressionConfigFields(
 		value: SpellProgressionParameterValue
 	): ConfigField[] {
@@ -746,6 +777,48 @@ export class SpellMechanicsEditorFacade {
 
 		return [];
 	}
+
+	updateSelectedProgressionSourceKind(
+		block: SpellMechanicBlockDraft,
+		parameterId: string,
+		sourceKind: ProgressionSourceKind
+	) {
+		const nextSourceKey =
+			sourceKind === 'skillLevel'
+				? (this.progressionSourceKeyOptions(block, {
+						mode: 'progression',
+						sourceKind,
+						sourceKey: '',
+						presetId: '',
+						config: {}
+					})[0]?.value ?? '')
+				: sourceKind === 'essenceProfile'
+					? 'damage'
+					: '';
+
+		this.draftFacade.updateSelectedProgressionSourceKind(
+			parameterId,
+			sourceKind,
+			nextSourceKey
+		);
+	}
+
+	readonly autoTransformSourceOptions = (
+		value: SpellAutoParameterValue,
+		currentSource: SpellAutoParameterSource
+	) => {
+		return [
+			{
+				label: 'Влияния',
+				items: value.sources
+					.filter(source => source.id !== currentSource.id)
+					.map((source, index) => ({
+						label: `${index + 1}. ${this.autoSourceKindLabel(source.sourceKind)}`,
+						value: source.sourceKey || source.id
+					}))
+			}
+		];
+	};
 
 	progressionParameterValue(
 		block: SpellMechanicBlockDraft,

@@ -9,30 +9,10 @@ import { provideRouter } from '@angular/router';
 import { providePrimeNG } from 'primeng/config';
 import { definePreset } from '@primeuix/themes';
 import Aura from '@primeuix/themes/aura';
-import { provideAnatomySchemesInfrastructure } from './features/anatomy-schemes/data/provide-anatomy-schemes-infrastructure';
-import { provideArmorPresetsInfrastructure } from './features/armor-presets/data/provide-armor-presets-infrastructure';
-import { provideAttributesInfrastructure } from './features/attributes/data/provide-attributes-infrastructure';
 import { AuthFacade } from './features/auth/state/auth.facade';
 import { appRoutes } from './app.routes';
 import { authInterceptor } from './features/auth/data/auth.interceptor';
 import { provideAuthInfrastructure } from './features/auth/data/provide-auth-infrastructure';
-import { provideCampaignsInfrastructure } from './features/campaigns/data/provide-campaigns-infrastructure';
-import { provideCharacterSheetInfrastructure } from './features/character-sheet/data/provide-character-sheet-infrastructure';
-import { provideCombatEncountersInfrastructure } from './features/combat-encounters/data/provide-combat-encounters-infrastructure';
-import { provideCombatIntentsInfrastructure } from './features/combat-intents/data/provide-combat-intents-infrastructure';
-import { provideConditionsInfrastructure } from './features/conditions/data/provide-conditions-infrastructure';
-import { provideCreatureTypesInfrastructure } from './features/creature-types/data/provide-creature-types-infrastructure';
-import { provideCreaturesInfrastructure } from './features/creatures/data/provide-creatures-infrastructure';
-import { provideDamageTypesInfrastructure } from './features/damage-types/data/provide-damage-types-infrastructure';
-import { provideGameEventsInfrastructure } from './features/events/data/provide-game-events-infrastructure';
-import { provideMagicWordsInfrastructure } from './features/magic/data/provide-magic-words-infrastructure';
-import { providePlayerCharactersInfrastructure } from './features/player-characters/data/provide-player-characters-infrastructure';
-import { provideProgressionPresetsInfrastructure } from './features/progression-presets/data/provide-progression-presets-infrastructure';
-import { provideRollConsequencesInfrastructure } from './features/roll-consequences/data/provide-roll-consequences-infrastructure';
-import { provideSkillsInfrastructure } from './features/skills/data/provide-skills-infrastructure';
-import { provideSpellMechanicsInfrastructure } from './features/spell-mechanics/data/provide-spell-mechanics-infrastructure';
-import { provideValuesInfrastructure } from './features/values/data/provide-values-infrastructure';
-import { provideWeaponsInfrastructure } from './features/weapons/data/provide-weapons-infrastructure';
 
 const appThemePreset = definePreset(Aura, {
 	semantic: {
@@ -130,26 +110,6 @@ export const appConfig: ApplicationConfig = {
 	providers: [
 		provideBrowserGlobalErrorListeners(),
 		...provideAuthInfrastructure(),
-		...provideAnatomySchemesInfrastructure(),
-		...provideArmorPresetsInfrastructure(),
-		...provideAttributesInfrastructure(),
-		...provideCampaignsInfrastructure(),
-		...provideCharacterSheetInfrastructure(),
-		...provideCombatEncountersInfrastructure(),
-		...provideCombatIntentsInfrastructure(),
-		...provideConditionsInfrastructure(),
-		...provideCreatureTypesInfrastructure(),
-		...provideCreaturesInfrastructure(),
-		...provideDamageTypesInfrastructure(),
-		...provideGameEventsInfrastructure(),
-		...provideMagicWordsInfrastructure(),
-		...providePlayerCharactersInfrastructure(),
-		...provideProgressionPresetsInfrastructure(),
-		...provideRollConsequencesInfrastructure(),
-		...provideSkillsInfrastructure(),
-		...provideSpellMechanicsInfrastructure(),
-		...provideValuesInfrastructure(),
-		...provideWeaponsInfrastructure(),
 		provideAppInitializer(() => inject(AuthFacade).initializeSession()),
 		provideHttpClient(withInterceptors([authInterceptor])),
 		provideRouter(appRoutes),

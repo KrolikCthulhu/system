@@ -83,7 +83,7 @@
 										"
 										[roundingModeOptions]="facade.roundingModeOptions"
 										(sourceKindChange)="
-											context().updateSelectedProgressionSourceKind(
+											facade.updateSelectedProgressionSourceKind(
 												block,
 												parameter.id,
 												$event
@@ -137,7 +137,7 @@
 										[scope]="'mechanic:' + parameter.id"
 										[characterOptions]="facade.autoValueCharacterOptions"
 										[scaleOptions]="facade.autoValueScaleOptions"
-										[rangeModeOptions]="context().autoValueRangeModeOptions"
+										[rangeModeOptions]="facade.autoValueRangeModeOptions"
 										[sourceModeOptions]="facade.autoValueSourceModeOptions"
 										[sourceKindOptions]="facade.autoValueSourceKindOptions"
 										[sourceTargetOptions]="facade.autoValueSourceTargetOptions"
@@ -149,9 +149,7 @@
 										[sourceKeyOptions]="
 											facade.mechanicAutoSourceKeyOptionsRenderer(block)
 										"
-										[transformSourceOptions]="
-											context().autoTransformSourceOptionsRenderer
-										"
+										[transformSourceOptions]="facade.autoTransformSourceOptions"
 										[defaultSourceKey]="
 											facade.defaultAutoSourceKeyRenderer(block)
 										"
@@ -223,14 +221,14 @@
 											facade.targetCountParameterOptions(block, parameter.id)
 										"
 										(templateChange)="
-											context().updateMechanicTargetTemplate(
+											facade.updateMechanicTargetTemplate(
 												block,
 												parameter,
 												$event
 											)
 										"
 										(configChange)="
-											context().updateMechanicTargetConfig(
+											facade.updateMechanicTargetConfig(
 												block,
 												parameter.id,
 												$event

@@ -1,9 +1,4 @@
-import {
-	ChangeDetectionStrategy,
-	Component,
-	input,
-	output
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Button } from 'primeng/button';
 import { Select } from 'primeng/select';
@@ -35,6 +30,26 @@ interface SpellTextMechanicOption {
 	value: string;
 }
 
+export interface SpellTextTabViewModel {
+	previewModeOptions: SpellTextPreviewModeOption[];
+	previewMode: SpellTextPreviewMode;
+	previewParts: SpellTextPreviewPart[];
+	textBlocks: SpellTextBlock[];
+	blockKindOptions: SpellTextBlockKindOption[];
+	mechanicOptions: SpellTextMechanicOption[];
+	blockPreview(block: SpellTextBlock): string;
+	effectScaleRequirementText(item: SpellEffectScaleItemConfig): string;
+}
+
+export interface SpellTextTabActions {
+	updatePreviewMode(mode: SpellTextPreviewMode): void;
+	addTextBlock(kind: SpellTextBlockKind): void;
+	syncFromMechanics(): void;
+	updateTextBlock(blockId: string, patch: Partial<SpellTextBlock>): void;
+	deleteTextBlock(blockId: string): void;
+	moveTextBlock(index: number, direction: -1 | 1): void;
+}
+
 @Component({
 	selector: 'app-spell-text-tab',
 	standalone: true,
@@ -44,32 +59,14 @@ interface SpellTextMechanicOption {
 	changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SpellTextTabComponent {
-	readonly previewModeOptions = input.required<SpellTextPreviewModeOption[]>();
-	readonly previewMode = input.required<SpellTextPreviewMode>();
-	readonly previewParts = input.required<SpellTextPreviewPart[]>();
-	readonly textBlocks = input.required<SpellTextBlock[]>();
-	readonly blockKindOptions = input.required<SpellTextBlockKindOption[]>();
-	readonly mechanicOptions = input.required<SpellTextMechanicOption[]>();
-
-	readonly previewModeChange = output<SpellTextPreviewMode>();
-	readonly addTextBlock = output<SpellTextBlockKind>();
-	readonly syncFromMechanics = output<void>();
-	readonly updateTextBlock = output<{
-		blockId: string;
-		patch: Partial<SpellTextBlock>;
-	}>();
-	readonly deleteTextBlock = output<string>();
-	readonly moveTextBlock = output<{ index: number; direction: -1 | 1 }>();
-
-	readonly blockPreview = input.required<(block: SpellTextBlock) => string>();
-	readonly effectScaleRequirementText =
-		input.required<(item: SpellEffectScaleItemConfig) => string>();
+	readonly viewModel = input.required<SpellTextTabViewModel>();
+	readonly actions = input.required<SpellTextTabActions>();
 
 	protected isFirstBlock(index: number) {
 		return index === 0;
 	}
 
 	protected isLastBlock(index: number) {
-		return index === this.textBlocks().length - 1;
+		return index === this.viewModel().textBlocks.length - 1;
 	}
 }

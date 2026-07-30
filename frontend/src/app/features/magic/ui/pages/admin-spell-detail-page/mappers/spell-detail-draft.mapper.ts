@@ -189,7 +189,7 @@ function normalizeSpellTextBlocks(blocks: SpellTextBlock[]): SpellTextBlock[] {
 		}));
 }
 
-function normalizeParameterValues(
+export function normalizeParameterValues(
 	values: Record<string, unknown>,
 	parameters: SpellMechanicParameter[]
 ) {
@@ -462,7 +462,7 @@ function readRoundingMode(value: unknown): ProgressionPresetRoundingMode {
 		: 'round';
 }
 
-function parameterStorageKey(parameter: SpellMechanicParameter) {
+export function parameterStorageKey(parameter: SpellMechanicParameter) {
 	return parameter.slug || parameter.id;
 }
 

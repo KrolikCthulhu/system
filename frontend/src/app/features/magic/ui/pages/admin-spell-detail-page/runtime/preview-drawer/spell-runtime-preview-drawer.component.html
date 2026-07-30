@@ -3,23 +3,23 @@
 	position="right"
 	[modal]="true"
 	[style]="{ width: 'min(96vw, 42rem)' }"
-	[visible]="visible()"
-	(visibleChange)="visibleChange.emit($event)"
+	[visible]="viewModel().visible"
+	(visibleChange)="actions().setVisible($event)"
 >
 	<div class="admin-spell-detail-page__runtime-preview">
-		@if (error()) {
+		@if (viewModel().error) {
 			<div class="admin-spell-detail-page__form-error">
-				{{ error() }}
+				{{ viewModel().error }}
 			</div>
 		}
 
-		@if (preview(); as currentPreview) {
+		@if (viewModel().preview; as currentPreview) {
 			<div class="admin-spell-detail-page__runtime-toolbar">
 				<div class="admin-spell-detail-page__runtime-title">
 					<span>Статус выполнения</span>
 					<p-tag
-						[value]="statusLabel()(currentPreview.status)"
-						[severity]="statusSeverity()(currentPreview.status)"
+						[value]="renderers().statusLabel(currentPreview.status)"
+						[severity]="renderers().statusSeverity(currentPreview.status)"
 					></p-tag>
 				</div>
 
@@ -29,8 +29,8 @@
 					size="small"
 					severity="secondary"
 					variant="outlined"
-					[loading]="loading()"
-					(onClick)="rerun.emit()"
+					[loading]="viewModel().loading"
+					(onClick)="actions().rerun()"
 				></p-button>
 			</div>
 
@@ -41,8 +41,11 @@
 						<span>{{ currentPreview.pendingRolls.length }}</span>
 					</div>
 
-					@for (roll of currentPreview.pendingRolls; track rollKey()(roll)) {
-						@let currentRollDraft = rollDraft()(roll);
+					@for (
+						roll of currentPreview.pendingRolls;
+						track renderers().rollKey(roll)
+					) {
+						@let currentRollDraft = renderers().rollDraft(roll);
 
 						<div class="admin-spell-detail-page__runtime-roll">
 							<div class="admin-spell-detail-page__runtime-roll-head">
@@ -59,11 +62,11 @@
 							<div class="admin-spell-detail-page__runtime-meta">
 								<div>
 									<span>Актор</span>
-									<strong>{{ valueLabel()(roll.actor) }}</strong>
+									<strong>{{ renderers().valueLabel(roll.actor) }}</strong>
 								</div>
 								<div>
 									<span>Навык</span>
-									<strong>{{ valueLabel()(roll.skill) }}</strong>
+									<strong>{{ renderers().valueLabel(roll.skill) }}</strong>
 								</div>
 							</div>
 
@@ -79,10 +82,7 @@
 										[style]="{ width: '5.5rem' }"
 										[inputStyle]="{ width: '3rem' }"
 										(ngModelChange)="
-											rollDiceCountChange.emit({
-												roll,
-												diceCount: $event
-											})
+											actions().updateRollDiceCount(roll, $event)
 										"
 									></p-inputnumber>
 								</span>
@@ -92,15 +92,12 @@
 								>
 									<span>Уровень навыка</span>
 									<p-select
-										[options]="skillLevelOptions()"
+										[options]="viewModel().skillLevelOptions"
 										optionLabel="label"
 										optionValue="value"
 										[ngModel]="currentRollDraft.skillLevel"
 										(ngModelChange)="
-											rollSkillLevelChange.emit({
-												roll,
-												skillLevel: $event
-											})
+											actions().updateRollSkillLevel(roll, $event)
 										"
 									></p-select>
 								</span>
@@ -111,8 +108,8 @@
 									label="Бросить"
 									icon="pi pi-bolt"
 									size="small"
-									[loading]="loading()"
-									(onClick)="rollSubmit.emit(roll)"
+									[loading]="viewModel().loading"
+									(onClick)="actions().submitRoll(roll)"
 								></p-button>
 							</div>
 
@@ -143,7 +140,7 @@
 
 					@for (
 						choice of currentPreview.pendingChoices;
-						track choiceKey()(choice)
+						track renderers().choiceKey(choice)
 					) {
 						<div class="admin-spell-detail-page__runtime-roll">
 							<div class="admin-spell-detail-page__runtime-roll-head">
@@ -170,12 +167,7 @@
 									<button
 										type="button"
 										class="admin-spell-detail-page__runtime-choice-option"
-										(click)="
-											choiceSelect.emit({
-												choice,
-												optionId: option.id
-											})
-										"
+										(click)="actions().selectChoice(choice, option.id)"
 									>
 										<strong>
 											{{
@@ -207,14 +199,14 @@
 						track effect.actionId + effect.kind
 					) {
 						<div class="admin-spell-detail-page__runtime-row">
-							<strong>{{ effectTitle()(effect) }}</strong>
-							<span>{{ effectText()(effect) }}</span>
+							<strong>{{ renderers().effectTitle(effect) }}</strong>
+							<span>{{ renderers().effectText(effect) }}</span>
 						</div>
 					}
 				</section>
 			}
 
-			@if (traceRows()(currentPreview.trace); as rows) {
+			@if (renderers().traceRows(currentPreview.trace); as rows) {
 				@if (rows.length) {
 					<section class="admin-spell-detail-page__runtime-section">
 						<div class="admin-spell-detail-page__runtime-section-head">
@@ -234,7 +226,7 @@
 									<strong>{{ trace.actionName }}</strong>
 									<p-tag
 										[value]="trace.status === 'pending' ? 'Ожидает' : 'Готово'"
-										[severity]="traceSeverity()(trace)"
+										[severity]="renderers().traceSeverity(trace)"
 									></p-tag>
 								</div>
 								<span>{{ trace.message }}</span>
@@ -243,7 +235,7 @@
 					</section>
 				}
 			}
-		} @else if (!loading() && !error()) {
+		} @else if (!viewModel().loading && !viewModel().error) {
 			<div class="admin-spell-detail-page__empty-block">
 				Запусти проверку, чтобы увидеть выполнение заклинания.
 			</div>

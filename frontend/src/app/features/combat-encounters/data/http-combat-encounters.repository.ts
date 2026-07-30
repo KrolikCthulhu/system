@@ -133,12 +133,13 @@ export class HttpCombatEncountersRepository
 
 	skipParticipantTurn(
 		id: string,
-		participantId: string
+		participantId: string,
+		command: { expectedVersion: number }
 	): Observable<CombatEncounter> {
 		return this.http
 			.post<CombatEncounterDto>(
 				`${this.baseUrl}/combat-encounters/${id}/participants/${participantId}/skip-turn`,
-				{},
+				this.withRequestId(command),
 				{
 					withCredentials: true
 				}
@@ -172,7 +173,7 @@ export class HttpCombatEncountersRepository
 		return this.http
 			.post<CombatEncounterDto>(
 				`${this.baseUrl}/combat-encounters/${id}/actions/execute`,
-				command,
+				this.withRequestId(command),
 				{
 					withCredentials: true
 				}
@@ -187,7 +188,7 @@ export class HttpCombatEncountersRepository
 		return this.http
 			.post<CombatEncounterDto>(
 				`${this.baseUrl}/combat-encounters/${id}/defenses/resolve`,
-				command,
+				this.withRequestId(command),
 				{
 					withCredentials: true
 				}
@@ -202,11 +203,22 @@ export class HttpCombatEncountersRepository
 		return this.http
 			.post<CombatEncounterDto>(
 				`${this.baseUrl}/combat-encounters/${id}/actions/resolve-declared`,
-				command,
+				this.withRequestId(command),
 				{
 					withCredentials: true
 				}
 			)
 			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	private withRequestId<TCommand extends object>(command: TCommand) {
+		return {
+			...command,
+			requestId: this.createRequestId()
+		};
+	}
+
+	private createRequestId() {
+		return crypto.randomUUID();
 	}
 }
