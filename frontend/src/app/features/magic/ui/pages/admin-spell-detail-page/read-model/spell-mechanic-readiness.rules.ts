@@ -16,7 +16,7 @@ import {
 	normalizeParameterValues,
 	parameterStorageKey
 } from '../mappers/spell-detail-draft.mapper';
-import { readSpellEffectScaleConfig } from './spell-effect-scale-config.presenter';
+import { readSpellEffectScaleConfig } from './spell-effect-scale-config.mapper';
 
 export interface MechanicReadinessStatus {
 	label: string;

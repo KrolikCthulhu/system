@@ -3,7 +3,7 @@ import {
 	SpellTextBlockKind
 } from '../../../../../domain/spell.models';
 import { SpellDraft } from '../../models/spell-detail-page.types';
-import { createSpellTextBlockDraft } from '../../read-model/spell-mechanic-draft.helpers';
+import { createSpellTextBlockDraft } from './spell-mechanic-block-draft.commands';
 
 export function addSpellTextBlockCommand(
 	draft: SpellDraft,

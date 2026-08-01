@@ -10,7 +10,7 @@ import {
 	skillFromParameterValue,
 	SpellRuntimeSourceResolverContext,
 	systemValueRuntimeValue
-} from './spell-runtime-source-resolver.presenter';
+} from './spell-runtime-source-resolver.read-model';
 
 const SPELL_CASTING_UNAVAILABLE_REASON =
 	'Недоступно: требуется хотя бы одно связанное Понимание выше 0.';

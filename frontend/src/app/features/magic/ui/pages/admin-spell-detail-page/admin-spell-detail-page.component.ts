@@ -22,60 +22,24 @@ import { SpellMainEditorComponent } from './main/spell-main-editor.component';
 import { SpellBalanceTabComponent } from './tabs/balance/spell-balance-tab.component';
 import { SpellProblemsTabComponent } from './tabs/problems/spell-problems-tab.component';
 import { SpellRuntimePreviewDrawerComponent } from './runtime/preview-drawer/spell-runtime-preview-drawer.component';
-import { readSpellEffectScaleConfig } from './read-model/spell-effect-scale-config.presenter';
-import {
-	normalizeApplicationConfig,
-	readDefaultApplicationConfig
-} from './read-model/spell-mechanic-draft.helpers';
-import { evaluateAutoParameterForGameText } from './read-model/spell-auto-parameter-runtime.presenter';
-import { createMechanicProblems } from './read-model/spell-mechanic-readiness.presenter';
-import {
-	parameterValueLabel as parameterValuePreviewLabel,
-	SpellTextPreviewContext
-} from './read-model/spell-text-preview.presenter';
-import {
-	formulaSourceGroupsForBlock as formulaSourcePreviewGroupsForBlock,
-	SpellParameterSourceOptionsContext
-} from './read-model/spell-parameter-source-options.presenter';
-import {
-	autoSourceRuntimeValue as resolveAutoSourceRuntimeValue,
-	SpellRuntimeSourceResolverContext
-} from './read-model/spell-runtime-source-resolver.presenter';
+import { createMechanicProblems } from './read-model/spell-mechanic-readiness.rules';
 import { SpellTextTabComponent } from './tabs/text/spell-text-tab.component';
 import { SpellTextTabFacade } from './tabs/text/spell-text-tab.facade';
 import { SpellTargetConfigsEditorComponent } from './targets/spell-target-configs-editor.component';
 import { AdminSpellDetailPageStore } from './state/admin-spell-detail-page.store';
-import {
-	MechanicProblemItem,
-	SpellMechanicBlockDraft
-} from './models/spell-detail-page.types';
-import {
-	MechanicCalculationGraphState,
-	MechanicCalculationSourceGroup
-} from '../../../../spell-mechanics/ui/mechanic-calculation-graph.models';
-import {
-	SpellMechanicParameter,
-	SpellMechanicParameterKind
-} from '../../../../spell-mechanics/domain/spell-mechanics.models';
+import { MechanicProblemItem } from './models/spell-detail-page.types';
 import {
 	PersistedSpellStatus,
-	SpellMechanicApplicationConfig,
-	SpellEffectScaleConfig,
 	spellStatusLabel
 } from '../../../domain/spell.models';
 import { AdminSpellDetailPageFacade } from './application/admin-spell-detail-page.facade';
 import { DeleteSpellUseCase } from './application/delete-spell.use-case';
 import { LoadSpellDetailPageUseCase } from './application/load-spell-detail-page.use-case';
 import { SaveSpellDetailUseCase } from './application/save-spell-detail.use-case';
+import { SpellFormulaGraphEditorFacade } from './application/spell-formula-graph-editor.facade';
 import { SpellMechanicDraftFacade } from './application/spell-mechanic-draft.facade';
 import { SpellRuntimePreviewFacade } from './application/spell-runtime-preview.facade';
 import { SpellTextDraftFacade } from './application/spell-text-draft.facade';
-import {
-	SpellAutoParameterSource,
-	SpellAutoParameterValue,
-	SpellFormulaParameterValue,
-	isFormulaParameterValue,
-} from './utils/spell-numeric-parameter.utils';
 
 type AutoHelpKey =
 	| 'character'
@@ -144,6 +108,7 @@ interface AutoHelpContent {
 		SpellTextDraftFacade,
 		SpellMechanicDraftFacade,
 		SpellRuntimePreviewFacade,
+		SpellFormulaGraphEditorFacade,
 		SpellTextTabFacade,
 		SpellAddMechanicDialogFacade,
 		LoadSpellDetailPageUseCase,
@@ -158,6 +123,9 @@ export class AdminSpellDetailPageComponent {
 	private readonly spellRuntimePreviewFacade = inject(
 		SpellRuntimePreviewFacade
 	);
+	protected readonly formulaGraphEditorFacade = inject(
+		SpellFormulaGraphEditorFacade
+	);
 	private readonly spellTextTabFacade = inject(SpellTextTabFacade);
 	private readonly addMechanicDialogFacade = inject(
 		SpellAddMechanicDialogFacade
@@ -166,20 +134,13 @@ export class AdminSpellDetailPageComponent {
 
 	protected readonly draft = this.pageStore.draft;
 	protected readonly spellMechanics = this.pageStore.spellMechanics;
-	protected readonly magicWords = this.pageStore.magicWords;
 	protected readonly skills = this.pageStore.skills;
-	protected readonly skillCategories = this.pageStore.skillCategories;
 	protected readonly skillLevels = this.pageStore.skillLevels;
-	protected readonly damageTypes = this.pageStore.damageTypes;
-	protected readonly conditions = this.pageStore.conditions;
 	protected readonly creatures = this.pageStore.creatures;
 	protected readonly creatureCharacteristics =
 		this.pageStore.creatureCharacteristics;
 	protected readonly progressionPresets = this.pageStore.progressionPresets;
 	protected readonly systemValues = this.pageStore.systemValues;
-	protected readonly sandboxInputValues = this.pageStore.sandboxInputValues;
-	protected readonly selectedFormulaParameter =
-		this.pageStore.selectedFormulaParameter;
 	protected readonly activeTab = this.pageStore.activeTab;
 	protected readonly loading = this.pageStore.loading;
 	protected readonly saving = this.pageStore.saving;
@@ -203,7 +164,6 @@ export class AdminSpellDetailPageComponent {
 	protected readonly mechanicProblems = computed<MechanicProblemItem[]>(() => {
 		return createMechanicProblems(this.draft(), this.spellMechanics());
 	});
-	protected readonly spellTextPreviewMode = this.pageStore.spellTextPreviewMode;
 	protected readonly spellTextTabViewModel = this.spellTextTabFacade.viewModel;
 	protected readonly spellTextTabActions = this.spellTextTabFacade.actions;
 	protected readonly activeAutoHelpKey = this.pageStore.activeAutoHelpKey;
@@ -562,24 +522,6 @@ export class AdminSpellDetailPageComponent {
 			]
 		}
 	};
-	protected readonly formulaSourceGroups = computed<
-		MechanicCalculationSourceGroup[]
-	>(() => {
-		const selection = this.selectedFormulaParameter();
-		const block = selection
-			? (this.draft()?.mechanicBlocks[selection.blockIndex] ?? null)
-			: null;
-
-		return this.formulaSourceGroupsForBlock(block);
-	});
-	protected readonly formulaSourceNames = computed(
-		() =>
-			new Map(
-				this.formulaSourceGroups()
-					.flatMap(group => group.items)
-					.map(item => [item.id, item.name] as const)
-			)
-	);
 	constructor() {
 		this.pageFacade.loadFromRoute();
 	}
@@ -590,101 +532,6 @@ export class AdminSpellDetailPageComponent {
 
 	protected selectMechanicProblem(problem: MechanicProblemItem) {
 		this.pageStore.selectMechanicProblem(problem.blockIndex);
-	}
-
-	protected mechanicBlockMechanic(block: SpellMechanicBlockDraft) {
-		return this.findMechanic(block.mechanicId);
-	}
-
-	protected effectScaleConfig(
-		block: SpellMechanicBlockDraft
-	): SpellEffectScaleConfig {
-		return readSpellEffectScaleConfig(block.config['effectScale']);
-	}
-
-	protected mechanicApplicationConfig(
-		block: SpellMechanicBlockDraft
-	): SpellMechanicApplicationConfig {
-		return normalizeApplicationConfig(
-			block.config.application ??
-				readDefaultApplicationConfig(
-					this.mechanicBlockMechanic(block)?.configSchema ?? {}
-				)
-		);
-	}
-
-	protected formulaParameterValue(
-		block: SpellMechanicBlockDraft,
-		parameterId: string
-	): SpellFormulaParameterValue | null {
-		const value = this.rawParameterValue(block, parameterId);
-		return isFormulaParameterValue(value) ? value : null;
-	}
-
-	private maxActiveSkillLevel() {
-		return Math.max(
-			0,
-			...this.skillLevels()
-				.filter(level => level.isActive)
-				.map(level => level.level)
-		);
-	}
-
-	protected formulaSourceGroupsForBlock(
-		block: SpellMechanicBlockDraft | null
-	): MechanicCalculationSourceGroup[] {
-		return formulaSourcePreviewGroupsForBlock(
-			block,
-			this.parameterSourceOptionsContext()
-		);
-	}
-
-	private rawParameterValue(
-		block: SpellMechanicBlockDraft,
-		parameterIdOrSlug: string
-	) {
-		const key = this.parameterStorageKey(block, parameterIdOrSlug);
-
-		return block.parameterValues[key];
-	}
-
-	private parameterStorageKey(
-		block: SpellMechanicBlockDraft,
-		parameterIdOrSlug: string
-	) {
-		const parameter = this.mechanicBlockMechanic(block)?.parameters.find(
-			item => item.id === parameterIdOrSlug || item.slug === parameterIdOrSlug
-		);
-
-		return parameter ? parameterStorageKey(parameter) : parameterIdOrSlug;
-	}
-
-	protected closeFormulaGraphEditor() {
-		this.pageStore.setSelectedFormulaParameter(null);
-	}
-
-	protected setFormulaGraphEditorVisible(visible: boolean) {
-		if (!visible) {
-			this.closeFormulaGraphEditor();
-		}
-	}
-
-	protected selectedFormulaGraph() {
-		const selection = this.selectedFormulaParameter();
-		const block = selection
-			? (this.draft()?.mechanicBlocks[selection.blockIndex] ?? null)
-			: null;
-
-		return block
-			? (this.formulaParameterValue(block, selection?.parameterId ?? '')
-					?.graph ?? null)
-			: null;
-	}
-
-	protected updateSelectedFormulaGraph(
-		graph: MechanicCalculationGraphState | null
-	) {
-		this.spellMechanicDraftFacade.updateSelectedFormulaGraph(graph);
 	}
 
 	protected showAutoHelp(event: Event, key: AutoHelpKey, popover: Popover) {
@@ -752,94 +599,4 @@ export class AdminSpellDetailPageComponent {
 	protected runRuntimePreview(resetRolls = true) {
 		this.spellRuntimePreviewFacade.runRuntimePreview(resetRolls);
 	}
-
-	private findMechanic(mechanicId: string) {
-		return (
-			this.spellMechanics().find(mechanic => mechanic.id === mechanicId) ?? null
-		);
-	}
-
-	private essenceMagicWord() {
-		const essenceId = this.draft()?.essenceId;
-		return (
-			this.magicWords().find(
-				word => word.id === essenceId && word.type === 'ESSENCE'
-			) ?? null
-		);
-	}
-
-	private spellTextPreviewContext(): SpellTextPreviewContext {
-		return {
-			draft: this.draft(),
-			mechanics: this.spellMechanics(),
-			progressionPresets: this.progressionPresets(),
-			skills: this.skills(),
-			damageTypes: this.damageTypes(),
-			conditions: this.conditions(),
-			formulaSourceNames: this.formulaSourceNames(),
-			mode: this.spellTextPreviewMode(),
-			mechanicApplicationConfig: block => this.mechanicApplicationConfig(block),
-			effectScaleConfig: block => this.effectScaleConfig(block),
-			evaluateAutoParameterForGameText: (block, value) =>
-				this.evaluateAutoParameterForGameText(block, value)
-		};
-	}
-
-	private parameterSourceOptionsContext(): SpellParameterSourceOptionsContext {
-		return {
-			mechanics: this.spellMechanics(),
-			skillCategories: this.skillCategories(),
-			skills: this.skills(),
-			systemValues: this.systemValues(),
-			parameterValueLabel: (kind, value) =>
-				this.parameterValueLabel(kind, value)
-		};
-	}
-
-	private runtimeSourceResolverContext(): SpellRuntimeSourceResolverContext {
-		return {
-			essenceProfile: this.essenceMagicWord()?.essenceProfile ?? null,
-			mechanics: this.spellMechanics(),
-			sandboxInputValues: this.sandboxInputValues(),
-			skills: this.skills(),
-			systemValues: this.systemValues()
-		};
-	}
-
-	private parameterValueLabel(
-		kind: SpellMechanicParameterKind,
-		value: unknown
-	): string {
-		return parameterValuePreviewLabel(
-			kind,
-			value,
-			this.spellTextPreviewContext()
-		);
-	}
-
-	private evaluateAutoParameterForGameText(
-		block: SpellMechanicBlockDraft,
-		value: SpellAutoParameterValue
-	) {
-		return evaluateAutoParameterForGameText(block, value, {
-			maxActiveSkillLevel: this.maxActiveSkillLevel(),
-			sourceValue: (sourceBlock, source) =>
-				this.autoSourceRuntimeValue(sourceBlock, source)
-		});
-	}
-
-	private autoSourceRuntimeValue(
-		block: SpellMechanicBlockDraft,
-		source: SpellAutoParameterSource
-	) {
-		return resolveAutoSourceRuntimeValue(
-			block,
-			source,
-			this.runtimeSourceResolverContext()
-		);
-	}
-}
-
-function parameterStorageKey(parameter: SpellMechanicParameter) {
-	return parameter.slug || parameter.id;
 }

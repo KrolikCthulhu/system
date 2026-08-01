@@ -1,0 +1,87 @@
+<section class="spell-area-editor__dimension">
+	<div class="spell-area-editor__dimension-head">
+		<div>
+			<strong>{{ vm().dimension.label }}</strong>
+			<p-tag [value]="vm().dimension.unitLabel" severity="secondary"></p-tag>
+		</div>
+		<p-selectbutton
+			[options]="vm().modeOptions"
+			optionLabel="label"
+			optionValue="value"
+			size="small"
+			[allowEmpty]="false"
+			[ngModel]="vm().valueMode"
+			(ngModelChange)="vm().actions.changeMode($event)"
+		></p-selectbutton>
+	</div>
+
+	@if (vm().auto; as auto) {
+		<app-spell-auto-parameter-editor
+			[value]="auto.value"
+			[scope]="auto.scope"
+			[characterOptions]="auto.characterOptions"
+			[scaleOptions]="auto.scaleOptions"
+			[rangeModeOptions]="auto.rangeModeOptions"
+			[sourceModeOptions]="auto.sourceModeOptions"
+			[sourceKindOptions]="auto.sourceKindOptions"
+			[sourceTargetOptions]="auto.sourceTargetOptions"
+			[sourceCurveOptions]="auto.sourceCurveOptions"
+			[sourceTransformOptions]="auto.sourceTransformOptions"
+			[roundingModeOptions]="auto.roundingModeOptions"
+			[sourceKeyOptions]="auto.sourceKeyOptions"
+			[transformSourceOptions]="auto.transformSourceOptions"
+			[defaultSourceKey]="auto.defaultSourceKey"
+			[sourceKeyLabel]="auto.sourceKeyLabel"
+			[sourceSummary]="auto.sourceSummary"
+			[isSourceCollapsed]="auto.isSourceCollapsed"
+			(parameterPatch)="vm().actions.patchAuto($event)"
+			(sourceModeChange)="vm().actions.changeAutoSourceMode($event)"
+			(sourceAdd)="vm().actions.addAutoSource()"
+			(sourcePatch)="vm().actions.patchAutoSource($event)"
+			(sourceDelete)="vm().actions.deleteAutoSource($event)"
+			(sourceCollapseToggle)="vm().actions.toggleSourceCollapsed($event)"
+			(helpClick)="helpClick.emit($event)"
+		></app-spell-auto-parameter-editor>
+	} @else {
+		<span class="spell-area-editor__field">
+			<span>Значение</span>
+			<input
+				pInputText
+				type="text"
+				[value]="vm().staticValue"
+				(input)="vm().actions.changeStaticValue($any($event.target).value)"
+			/>
+		</span>
+	}
+
+	@if (vm().preview; as itemPreview) {
+		<div class="spell-area-editor__numeric-preview">
+			<div class="spell-area-editor__numeric-preview-row">
+				<span>Формула</span>
+				<strong>{{ itemPreview.formula }}</strong>
+			</div>
+			<div class="spell-area-editor__numeric-preview-row">
+				<span>Данные</span>
+				<strong>
+					@if (itemPreview.sources.length) {
+						{{ itemPreview.sources.join(', ') }}
+					} @else {
+						Не используются
+					}
+				</strong>
+			</div>
+			<div class="spell-area-editor__numeric-preview-row">
+				<span>Округление</span>
+				<strong>{{ itemPreview.rounding }}</strong>
+			</div>
+			<div class="spell-area-editor__numeric-preview-values">
+				@for (item of itemPreview.values; track item.x) {
+					<span>
+						{{ item.x }}:
+						<strong>{{ item.value }}</strong>
+					</span>
+				}
+			</div>
+		</div>
+	}
+</section>

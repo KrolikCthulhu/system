@@ -3,32 +3,21 @@ import { SpellMechanicBlockDraft } from '../../models/spell-detail-page.types';
 import { AdminSpellDetailPageStore } from '../../state/admin-spell-detail-page.store';
 import { SpellTextDraftFacade } from '../../application/spell-text-draft.facade';
 import {
-	normalizeApplicationConfig,
-	readDefaultApplicationConfig
-} from '../../read-model/spell-mechanic-draft.helpers';
-import { readSpellEffectScaleConfig } from '../../read-model/spell-effect-scale-config.presenter';
-import {
-	spellCastingUnavailableReason,
-	SpellCastingReadinessContext
-} from '../../read-model/spell-casting-readiness.presenter';
-import { evaluateAutoParameterForGameText } from '../../read-model/spell-auto-parameter-runtime.presenter';
-import {
-	autoSourceRuntimeValue,
-	SpellRuntimeSourceResolverContext
-} from '../../read-model/spell-runtime-source-resolver.presenter';
+	createFormulaSourceNameMap,
+	createSpellCastingReadinessContext,
+	createSpellParameterSourceOptionsContext,
+	createSpellTextPreviewContext,
+	spellMechanicBlockMechanic,
+	SpellPreviewContextSource
+} from '../../read-model/spell-preview-context.factory';
+import { spellCastingUnavailableReason } from '../../read-model/spell-casting-readiness.rules';
 import {
 	effectScaleRequirementText,
-	parameterValueLabel,
-	renderSpellTextBlock,
 	renderSpellTextBlockParts,
 	spellTextBlockPreview,
 	SpellTextPreviewContext
-} from '../../read-model/spell-text-preview.presenter';
-import {
-	formulaSourceGroupsForBlock,
-	SpellParameterSourceOptionsContext
-} from '../../read-model/spell-parameter-source-options.presenter';
-import { SpellAutoParameterValue } from '../../utils/spell-numeric-parameter.utils';
+} from '../../read-model/spell-text-preview.read-model';
+import { formulaSourceGroupsForBlock } from '../../read-model/spell-parameter-source-options.read-model';
 import {
 	SpellTextTabActions,
 	SpellTextTabViewModel
@@ -49,6 +38,21 @@ const SPELL_TEXT_PREVIEW_MODE_OPTIONS: SpellTextTabViewModel['previewModeOptions
 export class SpellTextTabFacade {
 	private readonly store = inject(AdminSpellDetailPageStore);
 	private readonly draftFacade = inject(SpellTextDraftFacade);
+	private readonly previewContextSource: SpellPreviewContextSource = {
+		draft: () => this.store.draft(),
+		mechanics: () => this.store.spellMechanics(),
+		progressionPresets: () => this.store.progressionPresets(),
+		skills: () => this.store.skills(),
+		skillCategories: () => this.store.skillCategories(),
+		skillLevels: () => this.store.skillLevels(),
+		damageTypes: () => this.store.damageTypes(),
+		conditions: () => this.store.conditions(),
+		magicWords: () => this.store.magicWords(),
+		systemValues: () => this.store.systemValues(),
+		sandboxInputValues: () => this.store.sandboxInputValues(),
+		textPreviewMode: () => this.store.spellTextPreviewMode(),
+		formulaSourceNames: () => this.formulaSourceNames()
+	};
 
 	readonly viewModel = computed<SpellTextTabViewModel>(() => ({
 		previewModeOptions: SPELL_TEXT_PREVIEW_MODE_OPTIONS,
@@ -110,13 +114,8 @@ export class SpellTextTabFacade {
 			? [{ kind: 'paragraph' as const, text: unavailableReason }, ...parts]
 			: parts;
 	});
-	private readonly formulaSourceNames = computed(
-		() =>
-			new Map(
-				this.formulaSourceGroups()
-					.flatMap(group => group.items)
-					.map(item => [item.id, item.name] as const)
-			)
+	private readonly formulaSourceNames = computed(() =>
+		createFormulaSourceNameMap(this.formulaSourceGroups())
 	);
 	private readonly formulaSourceGroups = computed(() => {
 		const selection = this.store.selectedFormulaParameter();
@@ -126,109 +125,19 @@ export class SpellTextTabFacade {
 
 		return formulaSourceGroupsForBlock(
 			block,
-			this.parameterSourceOptionsContext()
+			createSpellParameterSourceOptionsContext(this.previewContextSource)
 		);
 	});
 
 	previewContext(): SpellTextPreviewContext {
-		return {
-			draft: this.store.draft(),
-			mechanics: this.store.spellMechanics(),
-			progressionPresets: this.store.progressionPresets(),
-			skills: this.store.skills(),
-			damageTypes: this.store.damageTypes(),
-			conditions: this.store.conditions(),
-			formulaSourceNames: this.formulaSourceNames(),
-			mode: this.store.spellTextPreviewMode(),
-			mechanicApplicationConfig: block => this.mechanicApplicationConfig(block),
-			effectScaleConfig: block =>
-				readSpellEffectScaleConfig(block.config['effectScale']),
-			evaluateAutoParameterForGameText: (block, value) =>
-				this.evaluateAutoParameterForGameText(block, value)
-		};
+		return createSpellTextPreviewContext(this.previewContextSource);
 	}
 
-	private parameterSourceOptionsContext(): SpellParameterSourceOptionsContext {
-		return {
-			mechanics: this.store.spellMechanics(),
-			skillCategories: this.store.skillCategories(),
-			skills: this.store.skills(),
-			systemValues: this.store.systemValues(),
-			parameterValueLabel: (kind, value) =>
-				parameterValueLabel(kind, value, this.previewContext())
-		};
-	}
-
-	private runtimeSourceResolverContext(): SpellRuntimeSourceResolverContext {
-		const essence = this.essenceMagicWord();
-
-		return {
-			essenceProfile: essence?.essenceProfile ?? null,
-			mechanics: this.store.spellMechanics(),
-			sandboxInputValues: this.store.sandboxInputValues(),
-			skills: this.store.skills(),
-			systemValues: this.store.systemValues()
-		};
-	}
-
-	private castingReadinessContext(): SpellCastingReadinessContext {
-		return {
-			draft: this.store.draft(),
-			essence: this.essenceMagicWord(),
-			mechanics: this.store.spellMechanics(),
-			runtime: this.runtimeSourceResolverContext(),
-			skills: this.store.skills()
-		};
+	private castingReadinessContext() {
+		return createSpellCastingReadinessContext(this.previewContextSource);
 	}
 
 	private mechanicBlockMechanic(block: SpellMechanicBlockDraft) {
-		return (
-			this.store
-				.spellMechanics()
-				.find(mechanic => mechanic.id === block.mechanicId) ?? null
-		);
-	}
-
-	private mechanicApplicationConfig(block: SpellMechanicBlockDraft) {
-		return normalizeApplicationConfig(
-			block.config.application ??
-				readDefaultApplicationConfig(
-					this.mechanicBlockMechanic(block)?.configSchema ?? {}
-				)
-		);
-	}
-
-	private evaluateAutoParameterForGameText(
-		block: SpellMechanicBlockDraft,
-		value: SpellAutoParameterValue
-	) {
-		return evaluateAutoParameterForGameText(block, value, {
-			maxActiveSkillLevel: this.maxActiveSkillLevel(),
-			sourceValue: (sourceBlock, source) =>
-				autoSourceRuntimeValue(
-					sourceBlock,
-					source,
-					this.runtimeSourceResolverContext()
-				)
-		});
-	}
-
-	private maxActiveSkillLevel() {
-		return (
-			this.store
-				.skillLevels()
-				.filter(level => level.isActive)
-				.sort((left, right) => right.level - left.level)[0]?.level ?? 0
-		);
-	}
-
-	private essenceMagicWord() {
-		const essenceId = this.store.draft()?.essenceId;
-
-		return (
-			this.store
-				.magicWords()
-				.find(word => word.id === essenceId && word.type === 'ESSENCE') ?? null
-		);
+		return spellMechanicBlockMechanic(block, this.store.spellMechanics());
 	}
 }

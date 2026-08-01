@@ -18,7 +18,7 @@ import {
 	runtimePreviewStatusSeverity,
 	runtimeTraceSeverity,
 	runtimeValueLabel
-} from '../runtime/spell-runtime-preview.presenter';
+} from '../runtime/spell-runtime-preview.view-model';
 import { AdminSpellDetailPageStore } from '../state/admin-spell-detail-page.store';
 
 @Injectable()

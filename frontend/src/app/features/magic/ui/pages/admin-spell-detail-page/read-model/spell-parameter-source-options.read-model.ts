@@ -19,7 +19,7 @@ import {
 	createSingleCommandOptionGroup,
 	createSingleOptionGroup,
 	createSkillOptionGroups
-} from './spell-detail-options.presenter';
+} from './spell-detail-options.read-model';
 import {
 	AutoValueSourceKind,
 	AutoValueSourceTarget,

@@ -1,0 +1,93 @@
+@if (cards().length) {
+	<div class="admin-spell-detail-page__mechanic-parameters">
+		@for (card of cards(); track card.parameter.id) {
+			<app-spell-mechanic-parameter-card-shell
+				[name]="card.parameter.name"
+				[kindLabel]="card.kindLabel"
+				[expanded]="card.expanded"
+				[preview]="card.headerPreview"
+				(expandedToggle)="card.actions.toggleExpanded()"
+			>
+				@if (card.supportsProgression) {
+					<app-spell-numeric-parameter-mode-switch
+						[mode]="card.valueMode"
+						[options]="card.modeOptions"
+						(modeChange)="card.actions.changeMode($event)"
+					></app-spell-numeric-parameter-mode-switch>
+				}
+
+				@if (card.progression; as progression) {
+					<app-spell-progression-parameter-editor
+						[value]="progression.value"
+						[sourceKindOptions]="progression.sourceKindOptions"
+						[showSourceKey]="progression.showSourceKey"
+						[sourceKeyLabel]="progression.sourceKeyLabel"
+						[sourceKeyOptions]="progression.sourceKeyOptions"
+						[presetOptions]="progression.presetOptions"
+						[configFields]="progression.configFields"
+						[roundingModeOptions]="progression.roundingModeOptions"
+						(sourceKindChange)="
+							card.actions.changeProgressionSourceKind($event)
+						"
+						(sourceKeyChange)="
+							card.actions.patchProgression({ sourceKey: $event })
+						"
+						(presetChange)="card.actions.changeProgressionPreset($event)"
+						(configChange)="card.actions.changeProgressionConfig($event)"
+						(roundingModeChange)="
+							card.actions.changeProgressionRoundingMode($event)
+						"
+						(roundingHelpClick)="
+							helpClick.emit({ event: $event, key: 'rounding' })
+						"
+						(openFormulaEditor)="card.actions.openProgressionFormulaEditor()"
+					></app-spell-progression-parameter-editor>
+				} @else if (card.auto) {
+					<app-spell-mechanic-auto-section
+						[card]="card"
+						(helpClick)="helpClick.emit($event)"
+					></app-spell-mechanic-auto-section>
+				} @else if (card.supportsProgression && card.valueMode === 'formula') {
+					<app-spell-mechanic-formula-section
+						[card]="card"
+					></app-spell-mechanic-formula-section>
+				} @else {
+					@if (card.target; as target) {
+						<app-spell-target-parameter-editor
+							[templateOptions]="target.templateOptions"
+							[template]="target.template"
+							[previewText]="target.previewText"
+							[runtimeSummary]="target.runtimeSummary"
+							[defaultText]="target.defaultText"
+							[config]="target.config"
+							[countParameterOptions]="target.countParameterOptions"
+							(templateChange)="card.actions.changeTargetTemplate($event)"
+							(configChange)="card.actions.changeTargetConfig($event)"
+						></app-spell-target-parameter-editor>
+					} @else if (card.staticParameter; as staticParameter) {
+						<app-spell-static-parameter-editor
+							[showValueLabel]="staticParameter.showValueLabel"
+							[usesSelect]="staticParameter.usesSelect"
+							[options]="staticParameter.options"
+							[selectValue]="staticParameter.selectValue"
+							[plainValue]="staticParameter.plainValue"
+							(selectValueChange)="card.actions.changeSelectedParameter($event)"
+							(plainValueChange)="card.actions.changePlainParameter($event)"
+						></app-spell-static-parameter-editor>
+					}
+				}
+
+				@if (card.numericPreview; as numericPreview) {
+					<app-spell-numeric-parameter-preview
+						[preview]="numericPreview.preview"
+						[casterLevelMatrix]="numericPreview.casterLevelMatrix"
+						[casterLevelMatrixExpanded]="
+							numericPreview.casterLevelMatrixExpanded
+						"
+						(casterLevelMatrixToggle)="card.actions.toggleCasterLevelMatrix()"
+					></app-spell-numeric-parameter-preview>
+				}
+			</app-spell-mechanic-parameter-card-shell>
+		}
+	</div>
+}

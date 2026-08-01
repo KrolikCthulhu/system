@@ -18,7 +18,7 @@ import {
 import {
 	createMechanicBlockPatch,
 	createSpellTextBlockDraft
-} from '../../read-model/spell-mechanic-draft.helpers';
+} from './spell-mechanic-block-draft.commands';
 import {
 	AutoValueSourceMode,
 	createAutoParameterValue,

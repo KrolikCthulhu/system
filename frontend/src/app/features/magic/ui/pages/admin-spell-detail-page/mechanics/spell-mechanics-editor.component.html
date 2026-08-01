@@ -1,316 +1,50 @@
 <div class="admin-spell-detail-page__mechanics-layout">
+	@let listVm = vm.blockListVm();
 	<app-spell-mechanic-block-list
-		[items]="blockListItems()"
-		[selectedIndex]="facade.selectedIndex()"
-		(addMechanic)="facade.addMechanicBlock()"
-		(selectMechanic)="facade.selectMechanicBlock($event)"
-		(moveMechanic)="facade.moveMechanicBlock($event.index, $event.direction)"
+		[items]="listVm.items"
+		[selectedIndex]="listVm.selectedIndex"
+		(addMechanic)="listVm.actions.add()"
+		(selectMechanic)="listVm.actions.select($event)"
+		(moveMechanic)="listVm.actions.move($event)"
 	></app-spell-mechanic-block-list>
 
 	<section class="admin-spell-detail-page__mechanics-editor">
-		@if (facade.selectedBlock(); as block) {
+		@if (vm.selectedBlockVm(); as blockVm) {
 			<app-spell-mechanic-block-summary
-				[mechanicId]="block.mechanicId"
-				[isActive]="block.isActive"
-				[mechanicOptions]="facade.mechanicOptions()"
-				[previewText]="facade.mechanicBlockTextPreview(block)"
-				[applicationText]="facade.mechanicApplicationText(block)"
-				[applicationConfig]="facade.mechanicApplicationConfig(block)"
-				(mechanicChange)="facade.updateSelectedMechanicBlockMechanic($event)"
-				(activeChange)="facade.updateSelectedMechanicBlockActive($event)"
-				(deleteBlock)="facade.deleteSelectedMechanicBlock()"
-				(applicationChange)="facade.updateSelectedMechanicApplication($event)"
+				[mechanicId]="blockVm.block.mechanicId"
+				[isActive]="blockVm.block.isActive"
+				[mechanicOptions]="blockVm.mechanicOptions"
+				[previewText]="blockVm.previewText"
+				[applicationText]="blockVm.applicationText"
+				[applicationConfig]="blockVm.applicationConfig"
+				(mechanicChange)="blockVm.actions.changeMechanic($event)"
+				(activeChange)="blockVm.actions.changeActive($event)"
+				(deleteBlock)="blockVm.actions.delete()"
+				(applicationChange)="blockVm.actions.changeApplication($event)"
 			></app-spell-mechanic-block-summary>
 
-			@if (facade.mechanicBlockParameters(block).length) {
-				<div class="admin-spell-detail-page__mechanic-parameters">
-					@for (
-						parameter of facade.mechanicBlockParameters(block);
-						track parameter.id
-					) {
-						<app-spell-mechanic-parameter-card-shell
-							[name]="parameter.name"
-							[kindLabel]="facade.parameterKindLabel(parameter.kind)"
-							[expanded]="facade.isMechanicParameterExpanded(block, parameter)"
-							[preview]="
-								facade.supportsProgression(parameter)
-									? facade.parameterHeaderPreview(block, parameter)
-									: null
-							"
-							(expandedToggle)="
-								facade.toggleMechanicParameterExpanded(block, parameter)
-							"
-						>
-							@if (facade.supportsProgression(parameter)) {
-								<app-spell-numeric-parameter-mode-switch
-									[mode]="facade.parameterValueMode(block, parameter.id)"
-									[options]="facade.parameterValueModeOptions"
-									(modeChange)="
-										facade.updateSelectedMechanicBlockParameterMode(
-											parameter.id,
-											$event
-										)
-									"
-								></app-spell-numeric-parameter-mode-switch>
-							}
+			<app-spell-mechanic-parameters-section
+				[cards]="vm.parameterCardsVm()"
+				(helpClick)="helpClick.emit($event)"
+			></app-spell-mechanic-parameters-section>
 
-							@if (
-								facade.supportsProgression(parameter) &&
-								facade.parameterValueMode(block, parameter.id) === 'progression'
-							) {
-								@if (
-									facade.progressionParameterValue(block, parameter.id);
-									as progressionValue
-								) {
-									<app-spell-progression-parameter-editor
-										[value]="progressionValue"
-										[sourceKindOptions]="facade.progressionSourceKindOptions"
-										[showSourceKey]="
-											facade.shouldShowProgressionSourceKey(progressionValue)
-										"
-										[sourceKeyLabel]="
-											facade.progressionSourceKeyLabel(progressionValue)
-										"
-										[sourceKeyOptions]="
-											facade.progressionSourceKeyOptions(
-												block,
-												progressionValue
-											)
-										"
-										[presetOptions]="facade.progressionPresetOptions()"
-										[configFields]="
-											facade.progressionConfigFields(progressionValue)
-										"
-										[roundingModeOptions]="facade.roundingModeOptions"
-										(sourceKindChange)="
-											facade.updateSelectedProgressionSourceKind(
-												block,
-												parameter.id,
-												$event
-											)
-										"
-										(sourceKeyChange)="
-											facade.updateSelectedProgressionParameter(parameter.id, {
-												sourceKey: $event
-											})
-										"
-										(presetChange)="
-											facade.updateSelectedProgressionPreset(
-												parameter.id,
-												$event ?? ''
-											)
-										"
-										(configChange)="
-											facade.updateSelectedProgressionConfig(
-												parameter.id,
-												$event.key,
-												$event.value
-											)
-										"
-										(roundingModeChange)="
-											facade.updateSelectedProgressionRoundingMode(
-												parameter.id,
-												$event
-											)
-										"
-										(roundingHelpClick)="
-											helpClick.emit({ event: $event, key: 'rounding' })
-										"
-										(openFormulaEditor)="
-											facade.openProgressionAsFormulaGraphEditor(
-												block,
-												parameter.id
-											)
-										"
-									></app-spell-progression-parameter-editor>
-								}
-							} @else if (
-								facade.supportsProgression(parameter) &&
-								facade.parameterValueMode(block, parameter.id) === 'auto'
-							) {
-								@if (
-									facade.autoParameterValue(block, parameter.id);
-									as autoValue
-								) {
-									<app-spell-auto-parameter-editor
-										[value]="autoValue"
-										[scope]="'mechanic:' + parameter.id"
-										[characterOptions]="facade.autoValueCharacterOptions"
-										[scaleOptions]="facade.autoValueScaleOptions"
-										[rangeModeOptions]="facade.autoValueRangeModeOptions"
-										[sourceModeOptions]="facade.autoValueSourceModeOptions"
-										[sourceKindOptions]="facade.autoValueSourceKindOptions"
-										[sourceTargetOptions]="facade.autoValueSourceTargetOptions"
-										[sourceCurveOptions]="facade.autoValueSourceCurveOptions"
-										[sourceTransformOptions]="
-											facade.autoValueSourceTransformOptions
-										"
-										[roundingModeOptions]="facade.roundingModeOptions"
-										[sourceKeyOptions]="
-											facade.mechanicAutoSourceKeyOptionsRenderer(block)
-										"
-										[transformSourceOptions]="facade.autoTransformSourceOptions"
-										[defaultSourceKey]="
-											facade.defaultAutoSourceKeyRenderer(block)
-										"
-										[sourceKeyLabel]="facade.autoSourceKeyLabel"
-										[sourceSummary]="facade.autoSourceSummary"
-										[isSourceCollapsed]="facade.isAutoSourceCollapsed"
-										[presetOptions]="facade.autoPresetOptions(parameter)"
-										[presetPanelStyle]="facade.autoPresetPanelStyle"
-										(parameterPatch)="
-											facade.updateSelectedAutoParameter(parameter.id, $event)
-										"
-										(sourceModeChange)="
-											facade.updateSelectedAutoSourceMode(parameter.id, $event)
-										"
-										(sourceAdd)="facade.addSelectedAutoSource(parameter.id)"
-										(sourcePatch)="
-											facade.updateSelectedAutoSource(
-												parameter.id,
-												$event.sourceId,
-												$event.patch
-											)
-										"
-										(sourceDelete)="
-											facade.deleteSelectedAutoSource(parameter.id, $event)
-										"
-										(sourceCollapseToggle)="
-											facade.toggleAutoSourceCollapsed(
-												'mechanic:' + parameter.id,
-												$event
-											)
-										"
-										(presetApply)="
-											facade.applySelectedAutoPreset(block, parameter, $event)
-										"
-										(helpClick)="helpClick.emit($event)"
-									></app-spell-auto-parameter-editor>
-								}
-							} @else if (
-								facade.supportsProgression(parameter) &&
-								facade.parameterValueMode(block, parameter.id) === 'formula'
-							) {
-								<app-spell-formula-parameter-editor
-									(openFormulaEditor)="
-										facade.openSelectedFormulaGraphEditor(parameter.id)
-									"
-								></app-spell-formula-parameter-editor>
-							} @else {
-								@if (parameter.kind === 'target') {
-									<app-spell-target-parameter-editor
-										[templateOptions]="
-											facade.targetTemplateOptionGroupsForParameter(parameter)
-										"
-										[template]="facade.mechanicTargetTemplate(block, parameter)"
-										[previewText]="
-											facade.mechanicTargetPreview(block, parameter)
-										"
-										[runtimeSummary]="
-											facade.mechanicTargetRuntimeSummary(block, parameter)
-										"
-										[defaultText]="
-											parameter.defaultTargetConfig &&
-											facade.mechanicTargetTemplate(block, parameter) ===
-												'mechanicDefault'
-												? facade.targetConfigText(parameter.defaultTargetConfig)
-												: null
-										"
-										[config]="facade.mechanicTargetConfig(block, parameter.id)"
-										[countParameterOptions]="
-											facade.targetCountParameterOptions(block, parameter.id)
-										"
-										(templateChange)="
-											facade.updateMechanicTargetTemplate(
-												block,
-												parameter,
-												$event
-											)
-										"
-										(configChange)="
-											facade.updateMechanicTargetConfig(
-												block,
-												parameter.id,
-												$event
-											)
-										"
-									></app-spell-target-parameter-editor>
-								} @else {
-									<app-spell-static-parameter-editor
-										[showValueLabel]="facade.supportsProgression(parameter)"
-										[usesSelect]="facade.usesParameterSelect(parameter.kind)"
-										[options]="facade.parameterOptions(parameter)"
-										[selectValue]="
-											facade.parameterValue(block, parameter.id) || null
-										"
-										[plainValue]="
-											facade.staticParameterValue(block, parameter.id)
-										"
-										(selectValueChange)="
-											facade.updateSelectedMechanicBlockParameter(
-												parameter.id,
-												$event
-											)
-										"
-										(plainValueChange)="
-											facade.updateSelectedPlainParameterValue(
-												parameter,
-												$event
-											)
-										"
-									></app-spell-static-parameter-editor>
-								}
-							}
-
-							@if (facade.supportsProgression(parameter)) {
-								@if (
-									facade.numericParameterPreview(block, parameter);
-									as preview
-								) {
-									<app-spell-numeric-parameter-preview
-										[preview]="preview"
-										[casterLevelMatrix]="
-											facade.casterLevelMatrixPreview(block, parameter)
-										"
-										[casterLevelMatrixExpanded]="
-											facade.isCasterLevelMatrixExpanded(block, parameter)
-										"
-										(casterLevelMatrixToggle)="
-											facade.toggleCasterLevelMatrix(block, parameter)
-										"
-									></app-spell-numeric-parameter-preview>
-								}
-							}
-						</app-spell-mechanic-parameter-card-shell>
-					}
-				</div>
-			}
-
-			@if (facade.isEffectScaleBlock(block)) {
-				@if (facade.effectScaleConfig(block); as scaleConfig) {
-					<app-spell-mechanic-effect-scale-section
-						[block]="block"
-						[config]="scaleConfig"
-						[mechanicOptions]="facade.mechanicOptions()"
-						[modeOptions]="facade.effectScaleModeOptions"
-						[mechanicParameters]="facade.effectScaleMechanicParameters"
-						[usesParameterSelect]="facade.effectScaleUsesParameterSelect"
-						[parameterOptions]="facade.effectScaleParameterOptions"
-						[parameterValue]="facade.effectScaleParameterValue"
-						[staticParameterValue]="facade.effectScaleStaticParameterValue"
-						[updateConfig]="facade.effectScaleConfigChangeHandler"
-						[addNestedMechanic]="facade.effectScaleNestedMechanicAddHandler"
-						[updateNestedMechanic]="
-							facade.effectScaleNestedMechanicChangeHandler
-						"
-						[deleteNestedMechanic]="
-							facade.effectScaleNestedMechanicDeleteHandler
-						"
-						[updateNestedParameter]="
-							facade.effectScaleNestedParameterChangeHandler
-						"
-					></app-spell-mechanic-effect-scale-section>
-				}
+			@if (vm.effectScaleVm(); as scaleVm) {
+				<app-spell-mechanic-effect-scale-section
+					[block]="scaleVm.block"
+					[config]="scaleVm.config"
+					[mechanicOptions]="scaleVm.mechanicOptions"
+					[modeOptions]="scaleVm.modeOptions"
+					[mechanicParameters]="scaleVm.mechanicParameters"
+					[usesParameterSelect]="scaleVm.usesParameterSelect"
+					[parameterOptions]="scaleVm.parameterOptions"
+					[parameterValue]="scaleVm.parameterValue"
+					[staticParameterValue]="scaleVm.staticParameterValue"
+					[updateConfig]="scaleVm.actions.updateConfig"
+					[addNestedMechanic]="scaleVm.actions.addNestedMechanic"
+					[updateNestedMechanic]="scaleVm.actions.updateNestedMechanic"
+					[deleteNestedMechanic]="scaleVm.actions.deleteNestedMechanic"
+					[updateNestedParameter]="scaleVm.actions.updateNestedParameter"
+				></app-spell-mechanic-effect-scale-section>
 			}
 		} @else {
 			<div class="admin-spell-detail-page__empty-block">

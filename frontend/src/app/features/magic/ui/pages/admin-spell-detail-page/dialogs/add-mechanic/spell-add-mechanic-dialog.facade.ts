@@ -3,9 +3,9 @@ import {
 	SpellMechanic,
 	SpellMechanicParameter
 } from '../../../../../../spell-mechanics/domain/spell-mechanics.models';
-import { defaultParameterValue } from '../../read-model/spell-mechanic-draft.helpers';
-import { isConfiguredParameterValue } from '../../read-model/spell-mechanic-readiness.presenter';
-import { parameterValueLabel } from '../../read-model/spell-text-preview.presenter';
+import { defaultParameterValue } from '../../application/commands/spell-mechanic-block-draft.commands';
+import { isConfiguredParameterValue } from '../../read-model/spell-mechanic-readiness.rules';
+import { parameterValueLabel } from '../../read-model/spell-text-preview.read-model';
 import { SpellTextTabFacade } from '../../tabs/text/spell-text-tab.facade';
 import { targetConfigText } from '../../utils/spell-target-config.utils';
 import { isStaticParameterValue } from '../../utils/spell-numeric-parameter.utils';

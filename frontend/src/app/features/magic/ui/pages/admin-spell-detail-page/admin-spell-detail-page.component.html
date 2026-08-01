@@ -170,14 +170,14 @@
 	[maximizable]="true"
 	[style]="{ width: 'min(96vw, 88rem)', height: '86vh' }"
 	[contentStyle]="{ height: '100%', overflow: 'hidden' }"
-	[visible]="!!selectedFormulaParameter()"
-	(visibleChange)="setFormulaGraphEditorVisible($event)"
+	[visible]="!!formulaGraphEditorFacade.selectedFormulaParameter()"
+	(visibleChange)="formulaGraphEditorFacade.setVisible($event)"
 >
-	@if (selectedFormulaParameter()) {
+	@if (formulaGraphEditorFacade.selectedFormulaParameter()) {
 		<app-mechanic-calculation-graph-editor
-			[graph]="selectedFormulaGraph()"
-			[sourceGroups]="formulaSourceGroups()"
-			(graphChange)="updateSelectedFormulaGraph($event)"
+			[graph]="formulaGraphEditorFacade.selectedGraph()"
+			[sourceGroups]="formulaGraphEditorFacade.sourceGroups()"
+			(graphChange)="formulaGraphEditorFacade.updateGraph($event)"
 		></app-mechanic-calculation-graph-editor>
 	}
 </p-dialog>

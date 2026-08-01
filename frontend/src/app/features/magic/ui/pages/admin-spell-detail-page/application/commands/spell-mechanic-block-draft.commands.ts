@@ -1,32 +1,26 @@
-import { MagicWord } from '../../../../domain/magic-word.models';
+import { SpellMechanic } from '../../../../../../spell-mechanics/domain/spell-mechanics.models';
+import { MagicWord } from '../../../../../domain/magic-word.models';
 import {
 	SpellMechanicApplicationConfig,
 	SpellMechanicBlockConfig,
 	SpellTextBlock,
 	SpellTextBlockKind
-} from '../../../../domain/spell.models';
-import {
-	SpellMechanic,
-	SpellMechanicParameter
-} from '../../../../../spell-mechanics/domain/spell-mechanics.models';
-import {
-	createStaticParameterValue,
-	SpellParameterValue
-} from '../utils/spell-numeric-parameter.utils';
+} from '../../../../../domain/spell.models';
+import { parameterStorageKey } from '../../mappers/spell-detail-draft.mapper';
 import {
 	SpellDraft,
 	SpellMechanicBlockDraft
-} from '../models/spell-detail-page.types';
-import { parameterStorageKey } from '../mappers/spell-detail-draft.mapper';
-import { createTargetConfigFromMechanicDefault } from '../utils/spell-target-config.utils';
-import { readSpellEffectScaleConfig } from './spell-effect-scale-config.presenter';
+} from '../../models/spell-detail-page.types';
+import { readSpellEffectScaleConfig } from '../../read-model/spell-effect-scale-config.mapper';
+import { createStaticParameterValue } from '../../utils/spell-numeric-parameter.utils';
+import { createTargetConfigFromMechanicDefault } from '../../utils/spell-target-config.utils';
 
 export function createMechanicBlockDraft(
 	mechanic: SpellMechanic,
 	sortOrder: number,
 	essence: MagicWord | null,
 	targetIdsByParameterId: Record<string, string>,
-	id: string
+	id: string = crypto.randomUUID()
 ): SpellMechanicBlockDraft {
 	return {
 		id,
@@ -149,11 +143,126 @@ export function createMechanicBlockPatch(
 	};
 }
 
+export function replaceMechanicBlockCommand(
+	draft: SpellDraft,
+	index: number,
+	mechanic: SpellMechanic,
+	essence: MagicWord | null
+): Partial<SpellDraft> | null {
+	const existingBlock = draft.mechanicBlocks[index];
+
+	if (!existingBlock) {
+		return null;
+	}
+
+	return createMechanicBlockPatch(
+		{
+			...draft,
+			mechanicBlocks: draft.mechanicBlocks.filter(
+				(_, blockIndex) => blockIndex !== index
+			)
+		},
+		mechanic,
+		essence,
+		{
+			blockId: existingBlock.id,
+			insertIndex: index
+		}
+	);
+}
+
+export function moveMechanicBlockCommand(
+	draft: SpellDraft,
+	index: number,
+	direction: -1 | 1
+): Partial<SpellDraft> | null {
+	const nextIndex = index + direction;
+
+	if (nextIndex < 0 || nextIndex >= draft.mechanicBlocks.length) {
+		return null;
+	}
+
+	const blocks = draft.mechanicBlocks.slice();
+	const current = blocks[index];
+	const next = blocks[nextIndex];
+
+	if (!current || !next) {
+		return null;
+	}
+
+	blocks[index] = next;
+	blocks[nextIndex] = current;
+
+	return {
+		mechanicBlocks: blocks.map((block, blockIndex) => ({
+			...block,
+			sortOrder: blockIndex
+		}))
+	};
+}
+
+export function updateMechanicBlockActiveCommand(
+	draft: SpellDraft,
+	index: number,
+	isActive: boolean
+): Partial<SpellDraft> | null {
+	const block = draft.mechanicBlocks[index];
+
+	return block
+		? updateMechanicBlockCommand(draft, index, { ...block, isActive })
+		: null;
+}
+
+export function updateMechanicBlockApplicationCommand(
+	draft: SpellDraft,
+	index: number,
+	application: SpellMechanicApplicationConfig,
+	patch: Partial<SpellMechanicApplicationConfig>
+): Partial<SpellDraft> | null {
+	const block = draft.mechanicBlocks[index];
+
+	return block
+		? updateMechanicBlockCommand(draft, index, {
+				...block,
+				config: {
+					...block.config,
+					application: {
+						...application,
+						...patch
+					}
+				}
+			})
+		: null;
+}
+
+export function deleteMechanicBlockCommand(
+	draft: SpellDraft,
+	index: number
+): Partial<SpellDraft> | null {
+	const block = draft.mechanicBlocks[index];
+
+	if (!block) {
+		return null;
+	}
+
+	return {
+		mechanicBlocks: draft.mechanicBlocks
+			.filter((_, blockIndex) => blockIndex !== index)
+			.map((item, blockIndex) => ({ ...item, sortOrder: blockIndex })),
+		textBlocks: draft.textBlocks
+			.filter(textBlock => textBlock.mechanicBlockId !== block.id)
+			.map((textBlock, blockIndex) => ({
+				...textBlock,
+				sortOrder: blockIndex
+			}))
+	};
+}
+
 export function defaultParameterValue(
-	parameter: SpellMechanicParameter,
+	parameter: SpellMechanic['parameters'][number],
 	essence: MagicWord | null,
 	targetIdsByParameterId: Record<string, string>
-): SpellParameterValue {
+) {
 	if (parameter.kind === 'target') {
 		return targetIdsByParameterId[parameter.id] ?? '';
 	}
@@ -184,6 +293,18 @@ export function defaultParameterValue(
 		default:
 			return '';
 	}
+}
+
+function updateMechanicBlockCommand(
+	draft: SpellDraft,
+	index: number,
+	block: SpellMechanicBlockDraft
+): Partial<SpellDraft> {
+	return {
+		mechanicBlocks: draft.mechanicBlocks.map((item, blockIndex) =>
+			blockIndex === index ? block : item
+		)
+	};
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
