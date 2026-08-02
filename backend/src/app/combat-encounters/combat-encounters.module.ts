@@ -15,15 +15,24 @@ import {
 } from './application/combat-encounter-query.use-cases';
 import { COMBAT_ENCOUNTER_REPOSITORY } from './application/combat-encounter-repository.port';
 import { COMBAT_PARTICIPANT_REPOSITORY } from './application/combat-participant-repository.port';
+import { END_ROUND_PARTICIPATION_INFRASTRUCTURE } from './application/end-round-participation.port';
+import { EndRoundParticipationUseCase } from './application/end-round-participation.use-case';
+import { ENTER_DEFENSE_STANCE_INFRASTRUCTURE } from './application/enter-defense-stance.port';
+import { EnterDefenseStanceUseCase } from './application/enter-defense-stance.use-case';
 import { EXECUTE_COMBAT_ACTION_INFRASTRUCTURE } from './application/execute-combat-action.port';
 import { ExecuteCombatActionUseCase } from './application/execute-combat-action.use-case';
 import { RESOLVE_COMBAT_DEFENSE_INFRASTRUCTURE } from './application/resolve-combat-defense.port';
 import { ResolveCombatDefenseUseCase } from './application/resolve-combat-defense.use-case';
 import { RESOLVE_DECLARED_COMBAT_ACTION_INFRASTRUCTURE } from './application/resolve-declared-combat-action.port';
 import { ResolveDeclaredCombatActionUseCase } from './application/resolve-declared-combat-action.use-case';
-import { SKIP_COMBAT_TURN_INFRASTRUCTURE } from './application/skip-combat-turn.port';
-import { SkipCombatTurnUseCase } from './application/skip-combat-turn.use-case';
+import { WAIT_COMBAT_TURN_INFRASTRUCTURE } from './application/wait-combat-turn.port';
+import { WaitCombatTurnUseCase } from './application/wait-combat-turn.use-case';
 import { CombatActionCheckRuntimeService } from './combat-action-check-runtime.service';
+import { CombatActionAvailabilityService } from './combat-action-availability.service';
+import { BasicCombatActionProvider } from './combat-action-providers/basic-combat-action.provider';
+import { ConditionCombatActionProvider } from './combat-action-providers/condition-combat-action.provider';
+import { CreatureCombatActionProvider } from './combat-action-providers/creature-combat-action.provider';
+import { CombatAvailableActionsService } from './combat-available-actions.service';
 import { CombatEncounterEffectRuntimeService } from './combat-encounter-effect-runtime.service';
 import { CombatEncounterHttpRateLimitService } from './combat-encounter-http-rate-limit.service';
 import { CombatEncounterPolicyService } from './combat-encounter-policy.service';
@@ -37,11 +46,14 @@ import { CombatCommandRepository } from './infrastructure/combat-command.reposit
 import { CombatEncounterRepository } from './infrastructure/combat-encounter.repository';
 import { CombatEventRepository } from './infrastructure/combat-event.repository';
 import { CombatParticipantRepository } from './infrastructure/combat-participant.repository';
+import { CombatParticipantInitialValuesService } from './combat-participant-initial-values.service';
 import {
+	EndRoundParticipationInfrastructureAdapter,
+	EnterDefenseStanceInfrastructureAdapter,
 	ExecuteCombatActionInfrastructureAdapter,
 	ResolveCombatDefenseInfrastructureAdapter,
 	ResolveDeclaredCombatActionInfrastructureAdapter,
-	SkipCombatTurnInfrastructureAdapter
+	WaitCombatTurnInfrastructureAdapter
 } from './infrastructure/combat-encounter-action-infrastructure.adapters';
 import { CombatEncountersController } from './presentation/combat-encounters.controller';
 import { CombatEncountersGateway } from './presentation/combat-encounters.gateway';
@@ -56,18 +68,26 @@ import { CombatEncountersGateway } from './presentation/combat-encounters.gatewa
 	controllers: [CombatEncountersController],
 	providers: [
 		CombatActionCheckEngine,
+		CombatActionAvailabilityService,
 		CombatActionCheckRuntimeService,
 		CombatActionEffectEngine,
+		BasicCombatActionProvider,
+		ConditionCombatActionProvider,
+		CreatureCombatActionProvider,
+		CombatAvailableActionsService,
 		CombatEncounterEffectRuntimeService,
 		CombatEncounterHttpRateLimitService,
 		CombatEncounterPolicyService,
 		CombatEncounterRuntimeService,
 		CombatEncounterViewService,
+		CombatParticipantInitialValuesService,
 		CombatCommandRepository,
 		CombatEncounterRepository,
 		CombatEventRepository,
 		CombatParticipantRepository,
-		SkipCombatTurnInfrastructureAdapter,
+		EndRoundParticipationInfrastructureAdapter,
+		EnterDefenseStanceInfrastructureAdapter,
+		WaitCombatTurnInfrastructureAdapter,
 		ExecuteCombatActionInfrastructureAdapter,
 		ResolveDeclaredCombatActionInfrastructureAdapter,
 		ResolveCombatDefenseInfrastructureAdapter,
@@ -80,8 +100,16 @@ import { CombatEncountersGateway } from './presentation/combat-encounters.gatewa
 			useExisting: CombatParticipantRepository
 		},
 		{
-			provide: SKIP_COMBAT_TURN_INFRASTRUCTURE,
-			useExisting: SkipCombatTurnInfrastructureAdapter
+			provide: ENTER_DEFENSE_STANCE_INFRASTRUCTURE,
+			useExisting: EnterDefenseStanceInfrastructureAdapter
+		},
+		{
+			provide: END_ROUND_PARTICIPATION_INFRASTRUCTURE,
+			useExisting: EndRoundParticipationInfrastructureAdapter
+		},
+		{
+			provide: WAIT_COMBAT_TURN_INFRASTRUCTURE,
+			useExisting: WaitCombatTurnInfrastructureAdapter
 		},
 		{
 			provide: EXECUTE_COMBAT_ACTION_INFRASTRUCTURE,
@@ -103,7 +131,9 @@ import { CombatEncountersGateway } from './presentation/combat-encounters.gatewa
 		AddPlayerCharacterParticipantUseCase,
 		AddCreatureParticipantUseCase,
 		UpdateCombatParticipantUseCase,
-		SkipCombatTurnUseCase,
+		EndRoundParticipationUseCase,
+		EnterDefenseStanceUseCase,
+		WaitCombatTurnUseCase,
 		ExecuteCombatActionUseCase,
 		ResolveDeclaredCombatActionUseCase,
 		ResolveCombatDefenseUseCase,

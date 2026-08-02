@@ -10,6 +10,7 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputText } from 'primeng/inputtext';
 import { Popover } from 'primeng/popover';
 import { Tag } from 'primeng/tag';
+import { Textarea } from 'primeng/textarea';
 import { ConfirmationService } from 'primeng/api';
 import { forkJoin, of } from 'rxjs';
 import { UnsavedChangesGuard } from '../../../../../shared/forms/unsaved-changes.guard';
@@ -19,10 +20,11 @@ import {
 	NavigationTreeSubgroup
 } from '../../../../../shared/ui/navigation-tree/navigation-tree.models';
 import { NavigationTreeComponent } from '../../../../../shared/ui/navigation-tree/navigation-tree.component';
-import { VALUES_REPOSITORY, ValuesRepository } from '../../../data/values-repository.port';
 import {
-	SystemValueCalculationDraftController
-} from '../../../domain/system-value-calculation-draft';
+	VALUES_REPOSITORY,
+	ValuesRepository
+} from '../../../data/values-repository.port';
+import { SystemValueCalculationDraftController } from '../../../domain/system-value-calculation-draft';
 import { SystemValueCalculationDefinition } from '../../../domain/system-value-calculation.models';
 import { SystemValue } from '../../../domain/values.models';
 import { SystemValuesCatalogFacade } from '../../../state/system-values-catalog.facade';
@@ -48,6 +50,7 @@ interface FilterOption {
 		InputText,
 		Popover,
 		Tag,
+		Textarea,
 		EditorActionsBarComponent,
 		NavigationTreeComponent,
 		SystemValueCalculationEditorComponent
@@ -57,11 +60,13 @@ interface FilterOption {
 	providers: [ConfirmationService, UnsavedChangesGuard]
 })
 export class AdminValuesPageComponent {
-	private readonly valuesRepository = inject<ValuesRepository>(VALUES_REPOSITORY);
+	private readonly valuesRepository =
+		inject<ValuesRepository>(VALUES_REPOSITORY);
 	private readonly valuesCatalogFacade = inject(SystemValuesCatalogFacade);
 	private readonly unsavedChangesGuard = inject(UnsavedChangesGuard);
 	private readonly confirmationService = inject(ConfirmationService);
-	private readonly calculationDraft = new SystemValueCalculationDraftController();
+	private readonly calculationDraft =
+		new SystemValueCalculationDraftController();
 
 	protected readonly breadcrumbs = [
 		{ label: 'Правила системы' },
@@ -73,11 +78,18 @@ export class AdminValuesPageComponent {
 	protected readonly createValueSaving = signal(false);
 	protected readonly selectedValueId = signal<string | null>(null);
 	protected readonly collapsedGroups = signal<ReadonlySet<string>>(new Set());
-	protected readonly collapsedSubgroups = signal<ReadonlySet<string>>(new Set());
-	protected readonly selectedGroupFilters = signal<ReadonlySet<string>>(new Set());
-	protected readonly selectedContextFilters = signal<ReadonlySet<string>>(new Set());
+	protected readonly collapsedSubgroups = signal<ReadonlySet<string>>(
+		new Set()
+	);
+	protected readonly selectedGroupFilters = signal<ReadonlySet<string>>(
+		new Set()
+	);
+	protected readonly selectedContextFilters = signal<ReadonlySet<string>>(
+		new Set()
+	);
 	protected readonly valueNameDraft = signal('');
 	protected readonly valueSectionDraft = signal('');
+	protected readonly valueDescriptionDraft = signal('');
 	protected readonly deletingValueId = signal<string | null>(null);
 	protected readonly loading = this.valuesCatalogFacade.loading;
 	protected readonly errorMessage = this.valuesCatalogFacade.errorMessage;
@@ -89,16 +101,22 @@ export class AdminValuesPageComponent {
 
 		return Boolean(
 			selected &&
-			this.canEditMetadata(selected) &&
-			(this.valueNameDraft().trim() !== selected.name ||
-				this.valueSectionDraft().trim() !== selected.displaySection)
+				this.canEditMetadata(selected) &&
+				(this.valueNameDraft().trim() !== selected.name ||
+					this.valueSectionDraft().trim() !== selected.displaySection ||
+					this.valueDescriptionDraft().trim() !== selected.description)
 		);
 	});
-	protected readonly hasChanges = computed(
-		() =>
-			(!this.selectedValue()?.isSystemManaged && this.calculationHasChanges()) ||
-			this.hasMetadataChanges()
-	);
+	protected readonly hasChanges = computed(() => {
+		const selected = this.selectedValue();
+
+		return Boolean(
+			(selected &&
+				this.canEditCalculation(selected) &&
+				this.calculationHasChanges()) ||
+				this.hasMetadataChanges()
+		);
+	});
 	protected readonly groupFilterOptions = computed(() =>
 		buildFilterOptions(this.values().map(value => value.groupLabel))
 	);
@@ -129,7 +147,7 @@ export class AdminValuesPageComponent {
 	protected readonly selectedValue = computed(() => {
 		const selectedId = this.selectedValueId();
 		return selectedId
-			? this.values().find(value => value.id === selectedId) ?? null
+			? (this.values().find(value => value.id === selectedId) ?? null)
 			: null;
 	});
 
@@ -141,7 +159,8 @@ export class AdminValuesPageComponent {
 
 		for (const value of this.values()) {
 			const contextLabel = value.contextLabel?.trim() ?? '';
-			const haystack = `${value.name} ${value.groupLabel} ${value.contextLabel}`.toLowerCase();
+			const haystack =
+				`${value.name} ${value.groupLabel} ${value.contextLabel}`.toLowerCase();
 
 			if (query && !haystack.includes(query)) {
 				continue;
@@ -191,7 +210,10 @@ export class AdminValuesPageComponent {
 				return;
 			}
 
-			if (!this.selectedValueId() || !values.some(value => value.id === this.selectedValueId())) {
+			if (
+				!this.selectedValueId() ||
+				!values.some(value => value.id === this.selectedValueId())
+			) {
 				this.selectValueInternal(values[0].id);
 			}
 		});
@@ -214,7 +236,9 @@ export class AdminValuesPageComponent {
 	}
 
 	protected toggleContextFilter(label: string) {
-		this.selectedContextFilters.update(filters => toggleSetValue(filters, label));
+		this.selectedContextFilters.update(filters =>
+			toggleSetValue(filters, label)
+		);
 	}
 
 	protected clearFilters() {
@@ -314,6 +338,7 @@ export class AdminValuesPageComponent {
 		this.calculationDraft.reset();
 		this.valueNameDraft.set(this.selectedValue()?.name ?? '');
 		this.valueSectionDraft.set(this.selectedValue()?.displaySection ?? '');
+		this.valueDescriptionDraft.set(this.selectedValue()?.description ?? '');
 	}
 
 	protected saveDraft() {
@@ -326,6 +351,7 @@ export class AdminValuesPageComponent {
 
 		const name = this.valueNameDraft().trim();
 		const displaySection = this.valueSectionDraft().trim();
+		const description = this.valueDescriptionDraft().trim();
 
 		if (this.hasMetadataChanges() && !name) {
 			this.errorMessage.set('Название значения не может быть пустым.');
@@ -333,12 +359,19 @@ export class AdminValuesPageComponent {
 		}
 
 		const metadataRequest = this.hasMetadataChanges()
-			? this.valuesRepository.updateValue(selected.id, { name, displaySection })
+			? this.valuesRepository.updateValue(selected.id, {
+					name,
+					description,
+					displaySection
+				})
 			: of(selected);
 		const calculationRequest = this.calculationHasChanges()
-			? selected.isSystemManaged
-				? of(undefined)
-				: this.valuesRepository.updateCalculation(draft.id, draft.calculationGraph)
+			? this.canEditCalculation(selected)
+				? this.valuesRepository.updateCalculation(
+						draft.id,
+						draft.calculationGraph
+					)
+				: of(undefined)
 			: of(undefined);
 
 		forkJoin({
@@ -349,13 +382,14 @@ export class AdminValuesPageComponent {
 				const nextValue: SystemValue = {
 					...value,
 					calculationGraph:
-						this.calculationHasChanges() && !selected.isSystemManaged
-						? draft.calculationGraph
-						: value.calculationGraph
+						this.calculationHasChanges() && this.canEditCalculation(selected)
+							? draft.calculationGraph
+							: value.calculationGraph
 				};
 				this.valuesCatalogFacade.replaceValue(nextValue);
 				this.valueNameDraft.set(nextValue.name);
 				this.valueSectionDraft.set(nextValue.displaySection);
+				this.valueDescriptionDraft.set(nextValue.description);
 				this.calculationDraft.commit(toCalculationDefinition(nextValue));
 				this.errorMessage.set(null);
 			},
@@ -403,8 +437,19 @@ export class AdminValuesPageComponent {
 		this.valueSectionDraft.set(section);
 	}
 
+	protected setValueDescriptionDraft(description: string) {
+		this.valueDescriptionDraft.set(description);
+	}
+
 	protected canEditMetadata(value: SystemValue) {
-		return !value.isSystemManaged && value.primaryOwner.type === 'manual';
+		return (
+			value.primaryOwner.type === 'manual' &&
+			(!value.isSystemManaged || Boolean(value.coreKey))
+		);
+	}
+
+	protected canEditCalculation(value: SystemValue) {
+		return !value.isSystemManaged || Boolean(value.coreKey);
 	}
 
 	protected kindLabel(kind: SystemValue['kind']) {
@@ -432,6 +477,7 @@ export class AdminValuesPageComponent {
 		this.calculationDraft.set(toCalculationDefinition(nextValue));
 		this.valueNameDraft.set(nextValue.name);
 		this.valueSectionDraft.set(nextValue.displaySection);
+		this.valueDescriptionDraft.set(nextValue.description);
 	}
 
 	private deleteValue(value: SystemValue) {
@@ -447,6 +493,7 @@ export class AdminValuesPageComponent {
 				this.calculationDraft.clear();
 				this.valueNameDraft.set('');
 				this.valueSectionDraft.set('');
+				this.valueDescriptionDraft.set('');
 				this.errorMessage.set(null);
 			},
 			error: error => {

@@ -4,8 +4,10 @@ import {
 } from '../domain/combat-action-check.types';
 import { CombatEncounterPolicyDefenseRequest } from '../combat-encounter-policy.service';
 import { RuntimeAction } from '../domain/combat-encounter-runtime.types';
-import { JsonValue } from './combat-encounter.read-model';
-import { SkipCombatTurnEncounter } from './skip-combat-turn.port';
+import {
+	CombatEncounterReadModel,
+	JsonValue
+} from './combat-encounter.read-model';
 
 export const RESOLVE_COMBAT_DEFENSE_INFRASTRUCTURE = Symbol(
 	'RESOLVE_COMBAT_DEFENSE_INFRASTRUCTURE'
@@ -21,10 +23,13 @@ export interface PendingCombatDefenseRequest
 	attackRoll: JsonValue;
 	defenseOptions: JsonValue;
 	resolution: JsonValue;
+	targetParticipant: CombatEncounterPolicyDefenseRequest['targetParticipant'] & {
+		roundParticipationEndedRound: number | null;
+	};
 }
 
 export interface ResolveCombatDefenseInfrastructurePort {
-	findEncounter(id: string): Promise<SkipCombatTurnEncounter>;
+	findEncounter(id: string): Promise<CombatEncounterReadModel>;
 	findPendingDefenseRequest(input: {
 		encounterId: string;
 		defenseRequestId: string;

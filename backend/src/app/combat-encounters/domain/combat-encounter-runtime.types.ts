@@ -40,6 +40,38 @@ export interface RuntimeActionRoll extends CombatActionRollConfig {}
 
 export interface RuntimeActionDefense extends CombatActionDefenseConfig {}
 
+export type RuntimeActionAvailabilityRuleType =
+	| 'resource_free'
+	| 'active_condition'
+	| 'comparison'
+	| 'special_rule';
+
+export type RuntimeActionAvailabilityComparisonOperator =
+	| 'gt'
+	| 'gte'
+	| 'eq'
+	| 'ne'
+	| 'lte'
+	| 'lt';
+
+export interface RuntimeActionAvailabilityComparisonOperand {
+	kind: 'actor_property' | 'target_property' | 'constant';
+	property?: 'sizeRank' | null;
+	value?: number | null;
+}
+
+export interface RuntimeActionAvailabilityRule {
+	type: RuntimeActionAvailabilityRuleType;
+	label?: string | null;
+	resourceKey?: string | null;
+	condition?: RuntimeActionReference | null;
+	left?: RuntimeActionAvailabilityComparisonOperand | null;
+	operator?: RuntimeActionAvailabilityComparisonOperator | null;
+	right?: RuntimeActionAvailabilityComparisonOperand | null;
+	unavailableText?: string | null;
+	sortOrder?: number | null;
+}
+
 export interface RuntimeAction {
 	slug: string;
 	name: string;
@@ -55,6 +87,12 @@ export interface RuntimeAction {
 	roll?: RuntimeActionRoll | null;
 	defense?: RuntimeActionDefense | null;
 	effects?: RuntimeActionEffect[];
+	availabilityRules?: RuntimeActionAvailabilityRule[];
+	playerText?: string | null;
+	targetChoiceLabel?: string | null;
+	confirmationTitle?: string | null;
+	optionLabelTemplate?: string | null;
+	costLabelTemplate?: string | null;
 	isActive?: boolean;
 	sortOrder?: number | null;
 }

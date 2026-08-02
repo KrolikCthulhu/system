@@ -7,6 +7,7 @@ export type SeedSystemValue = {
 	description: string | null;
 	primaryOwnerType: SystemValueOwnerType;
 	primaryOwnerId: string | null;
+	coreKey?: string | null;
 	displaySection: string | null;
 	calculationGraph: Prisma.JsonValue | null;
 	isSystemManaged: boolean;

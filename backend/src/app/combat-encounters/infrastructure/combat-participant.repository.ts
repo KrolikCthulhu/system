@@ -1,13 +1,14 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { CombatEncounterParticipantKind, Prisma } from '@prisma/generated';
-import { SystemValueRuntimeService } from '../../game-events/system-value-runtime.service';
+import {
+	Injectable,
+	NotFoundException
+} from '@nestjs/common';
+import { CombatEncounterParticipantKind } from '@prisma/generated';
 import { PrismaService } from '../../prisma/prisma.service';
 import { ExecuteCombatActionActor } from '../application/execute-combat-action.port';
 import { CombatParticipantRepositoryPort } from '../application/combat-participant-repository.port';
+import { CombatParticipantInitialValuesService } from '../combat-participant-initial-values.service';
+import { combatEncounterStatuses } from '../domain/combat-encounter.types';
 import { UpdateCombatParticipantDto } from '../dto/update-combat-participant.dto';
-
-const HEALTH_VALUE_NAME = 'Здоровье';
-const POTENTIAL_VALUE_NAME = 'Потенциал';
 
 @Injectable()
 export class CombatParticipantRepository
@@ -15,7 +16,7 @@ export class CombatParticipantRepository
 {
 	constructor(
 		private readonly prisma: PrismaService,
-		private readonly systemValueRuntime: SystemValueRuntimeService
+		private readonly initialValues: CombatParticipantInitialValuesService
 	) {}
 
 	async addPlayerCharacter(input: {
@@ -41,7 +42,7 @@ export class CombatParticipantRepository
 			throw new NotFoundException('Персонаж кампании не найден.');
 		}
 
-		const initialValues = await this.resolvePlayerCharacterCombatValues(
+		const initialValues = await this.initialValues.resolvePlayerCharacterValues(
 			character.sheetInputValues
 		);
 
@@ -53,6 +54,8 @@ export class CombatParticipantRepository
 				sceneName: character.name,
 				currentHealth: initialValues.health,
 				currentPotential: initialValues.potential,
+				maximumPotential: initialValues.potential,
+				currentSpeed: initialValues.speed,
 				sortOrder: await this.getNextSortOrder(input.encounterId)
 			}
 		});
@@ -116,7 +119,7 @@ export class CombatParticipantRepository
 
 		const count = input.count;
 		const startSortOrder = await this.getNextSortOrder(input.encounterId);
-		const initialPotential = await this.resolveCreatureInitialPotential(tier);
+		const initialValues = await this.initialValues.resolveCreatureValues(tier);
 
 		await this.prisma.$transaction(
 			Array.from({ length: count }, (_, index) =>
@@ -132,7 +135,9 @@ export class CombatParticipantRepository
 							index
 						),
 						currentHealth: tier.hp,
-						currentPotential: initialPotential,
+						currentPotential: initialValues.potential,
+						maximumPotential: initialValues.potential,
+						currentSpeed: initialValues.speed,
 						sortOrder: startSortOrder + index
 					}
 				})
@@ -146,7 +151,14 @@ export class CombatParticipantRepository
 		dto: UpdateCombatParticipantDto;
 	}) {
 		const participant = await this.prisma.combatEncounterParticipant.findFirst({
-			select: { id: true },
+			select: {
+				id: true,
+				encounter: {
+					select: {
+						status: true
+					}
+				}
+			},
 			where: {
 				id: input.participantId,
 				encounterId: input.encounterId
@@ -163,7 +175,12 @@ export class CombatParticipantRepository
 				sceneName: input.dto.sceneName?.trim(),
 				currentHealth: input.dto.currentHealth,
 				currentPotential: input.dto.currentPotential,
-				initiative: input.dto.initiative,
+				maximumPotential:
+					input.dto.currentPotential !== undefined &&
+					participant.encounter.status !== combatEncounterStatuses.active
+						? input.dto.currentPotential
+						: undefined,
+				currentSpeed: input.dto.currentSpeed,
 				isActive: input.dto.isActive
 			}
 		});
@@ -269,6 +286,12 @@ export class CombatParticipantRepository
 			select: {
 				id: true,
 				kind: true,
+				roundParticipationEndedRound: true,
+				encounter: {
+					select: {
+						currentRound: true
+					}
+				},
 				playerCharacter: {
 					select: {
 						ownerUserId: true
@@ -290,82 +313,6 @@ export class CombatParticipantRepository
 		return (lastParticipant?.sortOrder ?? -1) + 1;
 	}
 
-	private async resolvePlayerCharacterCombatValues(
-		inputValues: Prisma.JsonValue
-	) {
-		const normalizedInputValues = normalizeInputValues(inputValues);
-		const values = await this.prisma.systemValue.findMany({
-			select: {
-				id: true,
-				name: true,
-				calculationGraph: true
-			}
-		});
-		const runtimeValues = values.map(value => ({
-			id: value.id,
-			name: value.name,
-			calculationGraph: value.calculationGraph
-		}));
-
-		return {
-			health: this.resolveNamedValue(
-				HEALTH_VALUE_NAME,
-				runtimeValues,
-				normalizedInputValues
-			),
-			potential: this.resolveNamedValue(
-				POTENTIAL_VALUE_NAME,
-				runtimeValues,
-				normalizedInputValues
-			)
-		};
-	}
-
-	private resolveNamedValue(
-		name: string,
-		values: Array<{
-			id: string;
-			name: string;
-			calculationGraph: Prisma.JsonValue | null;
-		}>,
-		inputValues: Record<string, number>
-	) {
-		const value = values.find(item => item.name === name);
-
-		return value
-			? Math.max(
-					0,
-					Math.floor(
-						this.systemValueRuntime.evaluateValue(value.id, values, inputValues)
-					)
-				)
-			: 0;
-	}
-
-	private async resolveCreatureInitialPotential(tier: {
-		characteristics: Array<{
-			value: number;
-			characteristic: { systemValueId: string };
-		}>;
-	}) {
-		const inputValues = tier.characteristics.reduce<Record<string, number>>(
-			(result, item) => ({
-				...result,
-				[item.characteristic.systemValueId]: item.value
-			}),
-			{}
-		);
-		const values = await this.prisma.systemValue.findMany({
-			select: {
-				id: true,
-				name: true,
-				calculationGraph: true
-			}
-		});
-
-		return this.resolveNamedValue(POTENTIAL_VALUE_NAME, values, inputValues);
-	}
-
 	private createCreatureSceneName(
 		baseName: string,
 		count: number,
@@ -373,21 +320,4 @@ export class CombatParticipantRepository
 	) {
 		return count > 1 ? `${baseName} ${index + 1}` : baseName;
 	}
-}
-
-function normalizeInputValues(value: Prisma.JsonValue): Record<string, number> {
-	if (!value || typeof value !== 'object' || Array.isArray(value)) {
-		return {};
-	}
-
-	return Object.entries(value).reduce<Record<string, number>>(
-		(result, [key, rawValue]) => {
-			if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
-				result[key] = rawValue;
-			}
-
-			return result;
-		},
-		{}
-	);
 }

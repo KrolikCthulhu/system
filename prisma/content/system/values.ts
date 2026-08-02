@@ -4,7 +4,8 @@ export default {
 	values: [
 		{
 			name: 'Источник',
-			description: 'Ресурс персонажа: начисляется за выпавшие шестерки при броске.',
+			description:
+				'Ресурс персонажа: начисляется за выпавшие шестерки при броске.',
 			primaryOwnerType: 'MANUAL',
 			displaySection: 'Ресурсы персонажа',
 			calculation: 'characterInput',
@@ -18,12 +19,26 @@ export default {
 			description:
 				'Ресурс персонажа: запас состояния, который изменяется уроном и восстановлением.',
 			primaryOwnerType: 'MANUAL',
+			coreKey: 'health_points',
 			displaySection: 'Ресурсы персонажа',
 			calculation: 'characterInput',
-			isSystemManaged: false,
+			isSystemManaged: true,
 			isActive: true,
 			sortOrder: 2,
 			slug: 'zdorovye'
+		},
+		{
+			name: 'Скорость',
+			description:
+				'Базовая скорость персонажа. Используется боевым столкновением как снимок текущей скорости.',
+			primaryOwnerType: 'MANUAL',
+			coreKey: 'speed',
+			displaySection: 'Ресурсы персонажа',
+			calculation: 'characterInput',
+			isSystemManaged: true,
+			isActive: true,
+			sortOrder: 3,
+			slug: 'speed'
 		}
 	],
 	schemaVersion: 1

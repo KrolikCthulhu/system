@@ -41,14 +41,9 @@ export interface CombatEncountersRepository {
 			sceneName?: string;
 			currentHealth?: number;
 			currentPotential?: number;
-			initiative?: number | null;
+			currentSpeed?: number;
 			isActive?: boolean;
 		}
-	): Observable<CombatEncounter>;
-	skipParticipantTurn(
-		id: string,
-		participantId: string,
-		command: { expectedVersion: number }
 	): Observable<CombatEncounter>;
 	resolveKnockdownSizeRule(
 		id: string,
@@ -62,6 +57,31 @@ export interface CombatEncountersRepository {
 			actorParticipantId: string;
 			actionSlug: string;
 			targetParticipantId?: string | null;
+		}
+	): Observable<CombatEncounter>;
+	waitUntilAfterParticipant(
+		id: string,
+		command: {
+			expectedVersion: number;
+			actorParticipantId: string;
+			targetParticipantId: string;
+			actionSlug: string;
+		}
+	): Observable<CombatEncounter>;
+	enterDefenseStance(
+		id: string,
+		command: {
+			expectedVersion: number;
+			actorParticipantId: string;
+			actionSlug: string;
+		}
+	): Observable<CombatEncounter>;
+	endRoundParticipation(
+		id: string,
+		command: {
+			expectedVersion: number;
+			actorParticipantId: string;
+			actionSlug: string;
 		}
 	): Observable<CombatEncounter>;
 	resolveDefense(

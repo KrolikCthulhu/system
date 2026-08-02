@@ -1,6 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Prisma, SystemValueOwnerType } from '../__generated__/index.js';
 import { createCharacterInputGraph } from '../../backend/src/app/shared/system-value-graph.factory';
+import { coreSystemValueKeys } from '../../backend/src/app/values/core-system-values';
 import { createPotentialGraph, createSumGraph } from './graphs';
 import {
 	ensureSystemValue,
@@ -9,11 +10,15 @@ import {
 } from './helpers';
 import { readContent } from './content';
 import { SeedAttribute, SeedSystemValue } from './types';
-import type { ContentDocument, SystemValueContent } from '../content/content-types';
+import type {
+	ContentDocument,
+	SystemValueContent
+} from '../content/content-types';
 
-const SYSTEM_VALUE_CONTENT = readContent<
-	ContentDocument<{ values: SystemValueContent[] }>
->('system/values.ts').values;
+const SYSTEM_VALUE_CONTENT =
+	readContent<ContentDocument<{ values: SystemValueContent[] }>>(
+		'system/values.ts'
+	).values;
 
 export async function seedSourceValue(tx: Prisma.TransactionClient) {
 	return seedManualSystemValue(tx, 'istochnik');
@@ -47,13 +52,14 @@ export async function seedPotentialValue(
 			'Ресурс персонажа: очки действий в ходу, считается от базовых Тела и Разума с учетом уровня усталости.',
 		primaryOwnerType: SystemValueOwnerType.MANUAL,
 		primaryOwnerId: null,
+		coreKey: coreSystemValueKeys.actionPoints,
 		displaySection: 'Ресурсы персонажа',
 		calculationGraph: createPotentialGraph({
 			bodyValueId: body.systemValueId,
 			mindValueId: mind.systemValueId,
 			fatigueLevelValueId: fatigueLevel.id
 		}),
-		isSystemManaged: false,
+		isSystemManaged: true,
 		isActive: true,
 		sortOrder: 1
 	});
@@ -61,6 +67,10 @@ export async function seedPotentialValue(
 
 export async function seedHealthValue(tx: Prisma.TransactionClient) {
 	return seedManualSystemValue(tx, 'zdorovye');
+}
+
+export async function seedSpeedValue(tx: Prisma.TransactionClient) {
+	return seedManualSystemValue(tx, 'speed');
 }
 
 export async function seedSpellcasterLevelValue(tx: Prisma.TransactionClient) {
@@ -104,8 +114,7 @@ export async function seedSpellcasterLevelValue(tx: Prisma.TransactionClient) {
 	return ensureSystemValue(tx, {
 		id: existing?.id ?? randomUUID(),
 		name: 'Уровень Заклинателя',
-		description:
-			'Магическое значение: сумма всех Пониманий персонажа.',
+		description: 'Магическое значение: сумма всех Пониманий персонажа.',
 		primaryOwnerType: SystemValueOwnerType.MANUAL,
 		primaryOwnerId: null,
 		displaySection: 'Магия',
@@ -130,6 +139,7 @@ async function seedManualSystemValue(
 		description: seed.description ?? null,
 		primaryOwnerType: SystemValueOwnerType[seed.primaryOwnerType],
 		primaryOwnerId: null,
+		coreKey: seed.coreKey ?? null,
 		displaySection: seed.displaySection,
 		calculationGraph: createSystemValueGraph(seed),
 		isSystemManaged: seed.isSystemManaged,
@@ -146,10 +156,7 @@ async function findExistingManualSystemValue(
 		where: {
 			primaryOwnerType: SystemValueOwnerType.MANUAL,
 			primaryOwnerId: null,
-			OR: [
-				{ slug: seed.slug },
-				{ name: seed.name }
-			]
+			OR: [{ slug: seed.slug }, { name: seed.name }]
 		}
 	});
 }

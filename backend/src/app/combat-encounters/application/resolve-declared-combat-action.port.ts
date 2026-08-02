@@ -1,6 +1,8 @@
 import { RuntimeAction } from '../domain/combat-encounter-runtime.types';
-import { JsonValue } from './combat-encounter.read-model';
-import { SkipCombatTurnEncounter } from './skip-combat-turn.port';
+import {
+	CombatEncounterReadModel,
+	JsonValue
+} from './combat-encounter.read-model';
 
 export const RESOLVE_DECLARED_COMBAT_ACTION_INFRASTRUCTURE = Symbol(
 	'RESOLVE_DECLARED_COMBAT_ACTION_INFRASTRUCTURE'
@@ -21,7 +23,7 @@ export interface PendingDeclaredCombatAction {
 }
 
 export interface ResolveDeclaredCombatActionInfrastructurePort {
-	findEncounter(id: string): Promise<SkipCombatTurnEncounter>;
+	findEncounter(id: string): Promise<CombatEncounterReadModel>;
 	findPendingDeclaredAction(input: {
 		encounterId: string;
 		declaredActionId: string;

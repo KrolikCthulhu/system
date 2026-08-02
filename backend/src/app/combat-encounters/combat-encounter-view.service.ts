@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { CombatAvailableActionsService } from './combat-available-actions.service';
 import { CampaignMemberRole } from './domain/combat-encounter.types';
 import { CombatEncounterRuntimeService } from './domain/combat-encounter-runtime.service';
 import type {
@@ -8,21 +9,26 @@ import type {
 
 @Injectable()
 export class CombatEncounterViewService {
-	constructor(private readonly runtime: CombatEncounterRuntimeService) {}
+	constructor(
+		private readonly runtime: CombatEncounterRuntimeService,
+		private readonly availableActions: CombatAvailableActionsService
+	) {}
 
-	mapEncounter(
+	async mapEncounter(
 		encounter: CombatEncounterReadModel,
-		currentUserRole: CampaignMemberRole
+		currentUserRole: CampaignMemberRole,
+		currentUserId: string
 	) {
 		return {
 			id: encounter.id,
 			campaignId: encounter.campaignId,
 			name: encounter.name,
 			status: encounter.status,
+			currentRound: encounter.currentRound,
 			stateVersion: encounter.stateVersion,
 			currentUserRole,
 			isActive: encounter.isActive,
-			participants: encounter.participants.map(participant => ({
+			participants: await Promise.all(encounter.participants.map(async participant => ({
 				id: participant.id,
 				kind: participant.kind,
 				playerCharacterId: participant.playerCharacterId,
@@ -73,9 +79,24 @@ export class CombatEncounterViewService {
 				sceneName: participant.sceneName,
 				currentHealth: participant.currentHealth,
 				currentPotential: participant.currentPotential,
-				initiative: participant.initiative,
+				maximumPotential: participant.maximumPotential,
+				currentSpeed: participant.currentSpeed,
+				defenseStanceRound: participant.defenseStanceRound,
+				roundParticipationEndedRound:
+					participant.roundParticipationEndedRound,
+				isInDefenseStance:
+					participant.defenseStanceRound === encounter.currentRound,
+				hasEndedRoundParticipation:
+					participant.roundParticipationEndedRound ===
+					encounter.currentRound,
 				isActive: participant.isActive,
 				sortOrder: participant.sortOrder,
+				availableActions: await this.availableActions.buildForParticipant(
+					encounter,
+					participant,
+					currentUserRole,
+					currentUserId
+				),
 				conditions: participant.conditions.map(condition => ({
 					id: condition.id,
 					conditionId: condition.conditionId,
@@ -91,7 +112,7 @@ export class CombatEncounterViewService {
 				})),
 				createdAt: participant.createdAt.toISOString(),
 				updatedAt: participant.updatedAt.toISOString()
-			})),
+			}))),
 			conditionLinks: encounter.conditionLinks.map(link => ({
 				id: link.id,
 				sourceParticipantId: link.sourceParticipantId,

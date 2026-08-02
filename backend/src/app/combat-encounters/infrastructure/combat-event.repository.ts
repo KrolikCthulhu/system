@@ -14,7 +14,9 @@ import {
 	createActionExecutedEvent,
 	createActionResolvedEvent,
 	createDefenseRequestedEvent,
-	createTurnSkippedEvent
+	createDefenseStanceEnteredEvent,
+	createInitiativeWaitedEvent,
+	createRoundParticipationEndedEvent
 } from '../domain/combat-encounter-events';
 import { CombatEncounterRuntimeService } from '../domain/combat-encounter-runtime.service';
 import {
@@ -30,13 +32,78 @@ export class CombatEventRepository {
 		private readonly runtime: CombatEncounterRuntimeService
 	) {}
 
-	async recordTurnSkipped(input: {
+	async recordDefenseStanceEntered(input: {
 		encounterId: string;
 		participantId: string;
 		userId: string;
 		participantName: string;
+		round: number;
+		preservedPotential: number;
+	}) {
+		await this.prisma.$transaction(async tx => {
+			await tx.combatEncounterParticipant.update({
+				where: { id: input.participantId },
+				data: {
+					defenseStanceRound: input.round
+				}
+			});
+			await tx.combatEncounterEvent.create({
+				data: {
+					encounterId: input.encounterId,
+					createdByUserId: input.userId,
+					actorParticipantId: input.participantId,
+					targetParticipantId: null,
+					...createDefenseStanceEnteredEvent({
+						participantName: input.participantName,
+						round: input.round,
+						preservedPotential: input.preservedPotential
+					})
+				}
+			});
+		});
+	}
+
+	async recordRoundParticipationEnded(input: {
+		encounterId: string;
+		participantId: string;
+		userId: string;
+		participantName: string;
+		round: number;
+		preservedPotential: number;
+	}) {
+		await this.prisma.$transaction(async tx => {
+			await tx.combatEncounterParticipant.update({
+				where: { id: input.participantId },
+				data: {
+					roundParticipationEndedRound: input.round
+				}
+			});
+			await tx.combatEncounterEvent.create({
+				data: {
+					encounterId: input.encounterId,
+					createdByUserId: input.userId,
+					actorParticipantId: input.participantId,
+					targetParticipantId: null,
+					...createRoundParticipationEndedEvent({
+						participantName: input.participantName,
+						round: input.round,
+						preservedPotential: input.preservedPotential
+					})
+				}
+			});
+		});
+	}
+
+	async recordInitiativeWaited(input: {
+		encounterId: string;
+		participantId: string;
+		targetParticipantId: string;
+		userId: string;
+		participantName: string;
+		targetParticipantName: string;
 		fromPotential: number;
 		toPotential: number;
+		potentialCost: number;
 	}) {
 		await this.prisma.$transaction(async tx => {
 			await tx.combatEncounterParticipant.update({
@@ -50,11 +117,13 @@ export class CombatEventRepository {
 					encounterId: input.encounterId,
 					createdByUserId: input.userId,
 					actorParticipantId: input.participantId,
-					targetParticipantId: null,
-					...createTurnSkippedEvent({
+					targetParticipantId: input.targetParticipantId,
+					...createInitiativeWaitedEvent({
 						participantName: input.participantName,
+						targetParticipantName: input.targetParticipantName,
 						fromPotential: input.fromPotential,
-						toPotential: input.toPotential
+						toPotential: input.toPotential,
+						potentialCost: input.potentialCost
 					})
 				}
 			});
@@ -263,6 +332,7 @@ export class CombatEventRepository {
 				resolution: true,
 				targetParticipant: {
 					select: {
+						roundParticipationEndedRound: true,
 						playerCharacter: {
 							select: {
 								ownerUserId: true

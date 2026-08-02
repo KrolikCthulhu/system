@@ -27,6 +27,7 @@ export interface SystemValueDto {
 	displaySection: string;
 	contextLabel: string;
 	description: string;
+	coreKey: string | null;
 	isSystemManaged: boolean;
 	baseValue: number;
 	calculationGraph: ValueGraphState | null;

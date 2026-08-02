@@ -40,6 +40,15 @@ export class ResolveCombatDefenseUseCase {
 
 		this.policy.assertCanResolveDefense(userId, member, request);
 
+		if (
+			request.targetParticipant.roundParticipationEndedRound ===
+			encounter.currentRound
+		) {
+			throw new BadRequestException(
+				'Участник завершил участие в раунде и не может защищаться.'
+			);
+		}
+
 		const action = this.runtime.readRuntimeAction(request.actionSnapshot);
 
 		if (!action) {

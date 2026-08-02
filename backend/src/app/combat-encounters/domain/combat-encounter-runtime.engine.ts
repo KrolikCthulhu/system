@@ -4,6 +4,9 @@ import {
 } from './combat-action-check.types';
 import {
 	RuntimeAction,
+	RuntimeActionAvailabilityComparisonOperand,
+	RuntimeActionAvailabilityComparisonOperator,
+	RuntimeActionAvailabilityRule,
 	RuntimeActionDefense,
 	RuntimeActionEffect,
 	RuntimeActionReference,
@@ -24,10 +27,13 @@ interface RuntimeEncounterParticipant {
 	id: string;
 	isActive: boolean;
 	currentPotential: number;
+	defenseStanceRound: number | null;
+	roundParticipationEndedRound: number | null;
 	sortOrder: number;
 }
 
 interface RuntimeEncounter {
+	currentRound: number;
 	campaign: {
 		combatActionResolutionMode: string;
 	};
@@ -85,6 +91,7 @@ export class CombatEncounterRuntimeEngine {
 			roll: this.readActionRoll(value['roll']),
 			defense: this.readActionDefense(value['defense']),
 			effects: this.readRuntimeEffects(value['effects']),
+			availabilityRules: this.readAvailabilityRules(value['availabilityRules']),
 			isActive: this.readBoolean(value, 'isActive') ?? true,
 			sortOrder: this.readNumber(value, 'sortOrder')
 		};
@@ -169,7 +176,9 @@ export class CombatEncounterRuntimeEngine {
 	) {
 		const highestParticipantPotential = encounter.participants.reduce(
 			(highest, participant) =>
-				participant.isActive
+				participant.isActive &&
+				participant.defenseStanceRound !== encounter.currentRound &&
+				participant.roundParticipationEndedRound !== encounter.currentRound
 					? Math.max(highest, participant.currentPotential)
 					: highest,
 			0
@@ -181,7 +190,11 @@ export class CombatEncounterRuntimeEngine {
 	resolveActiveParticipant(encounter: RuntimeEncounter) {
 		return [...encounter.participants]
 			.filter(
-				participant => participant.isActive && participant.currentPotential > 0
+				participant =>
+					participant.isActive &&
+					participant.currentPotential > 0 &&
+					participant.defenseStanceRound !== encounter.currentRound &&
+					participant.roundParticipationEndedRound !== encounter.currentRound
 			)
 			.sort(
 				(left, right) =>
@@ -199,7 +212,9 @@ export class CombatEncounterRuntimeEngine {
 				participant =>
 					participant.isActive &&
 					participant.id !== participantId &&
-					participant.currentPotential > 0
+					participant.currentPotential > 0 &&
+					participant.defenseStanceRound !== encounter.currentRound &&
+					participant.roundParticipationEndedRound !== encounter.currentRound
 			)
 			.sort(
 				(left, right) =>
@@ -326,6 +341,87 @@ export class CombatEncounterRuntimeEngine {
 		return value
 			.map(item => this.readRuntimeEffect(item))
 			.filter((item): item is RuntimeActionEffect => !!item);
+	}
+
+	private readAvailabilityRules(value: JsonValue | undefined) {
+		if (!Array.isArray(value)) {
+			return [];
+		}
+
+		return value
+			.map(item => this.readAvailabilityRule(item))
+			.filter((item): item is RuntimeActionAvailabilityRule => !!item)
+			.sort((first, second) => (first.sortOrder ?? 0) - (second.sortOrder ?? 0));
+	}
+
+	private readAvailabilityRule(
+		value: JsonValue
+	): RuntimeActionAvailabilityRule | null {
+		if (!this.isJsonObject(value)) {
+			return null;
+		}
+
+		const type = this.readString(value, 'type');
+
+		if (
+			type !== 'resource_free' &&
+			type !== 'active_condition' &&
+			type !== 'comparison' &&
+			type !== 'special_rule'
+		) {
+			return null;
+		}
+
+		return {
+			type,
+			label: this.readString(value, 'label'),
+			resourceKey: this.readString(value, 'resourceKey'),
+			condition: this.readReference(value['condition']),
+			left: this.readAvailabilityOperand(value['left']),
+			operator: this.readAvailabilityOperator(value['operator']),
+			right: this.readAvailabilityOperand(value['right']),
+			unavailableText: this.readString(value, 'unavailableText'),
+			sortOrder: this.readNumber(value, 'sortOrder')
+		};
+	}
+
+	private readAvailabilityOperand(
+		value: JsonValue | undefined
+	): RuntimeActionAvailabilityComparisonOperand | null {
+		if (!this.isJsonObject(value)) {
+			return null;
+		}
+
+		const kind = this.readString(value, 'kind');
+
+		if (
+			kind !== 'actor_property' &&
+			kind !== 'target_property' &&
+			kind !== 'constant'
+		) {
+			return null;
+		}
+
+		const property = this.readString(value, 'property');
+
+		return {
+			kind,
+			property: property === 'sizeRank' ? property : null,
+			value: this.readNumber(value, 'value')
+		};
+	}
+
+	private readAvailabilityOperator(
+		value: JsonValue | undefined
+	): RuntimeActionAvailabilityComparisonOperator | null {
+		return value === 'gt' ||
+			value === 'gte' ||
+			value === 'eq' ||
+			value === 'ne' ||
+			value === 'lte' ||
+			value === 'lt'
+			? value
+			: null;
 	}
 
 	private readRuntimeEffect(value: JsonValue): RuntimeActionEffect | null {

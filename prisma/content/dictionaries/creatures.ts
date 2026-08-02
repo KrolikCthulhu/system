@@ -576,10 +576,10 @@ export default {
 						]
 					),
 					characteristics: [
-						{ ...power, value: 1 },
-						{ ...reflexes, value: 2 },
-						{ ...soul, value: 1 },
-						{ ...memory, value: 1 }
+						{ ...power, value: 2 },
+						{ ...reflexes, value: 4 },
+						{ ...soul, value: 2 },
+						{ ...memory, value: 2 }
 					],
 					skills: [
 						{ ...evasion, level: 1 },
@@ -625,10 +625,10 @@ export default {
 						]
 					),
 					characteristics: [
-						{ ...power, value: 2 },
-						{ ...reflexes, value: 3 },
-						{ ...soul, value: 1 },
-						{ ...memory, value: 1 }
+						{ ...power, value: 3 },
+						{ ...reflexes, value: 5 },
+						{ ...soul, value: 3 },
+						{ ...memory, value: 2 }
 					],
 					skills: [
 						{ ...evasion, level: 1 },
@@ -674,10 +674,10 @@ export default {
 						]
 					),
 					characteristics: [
-						{ ...power, value: 3 },
-						{ ...reflexes, value: 4 },
-						{ ...soul, value: 2 },
-						{ ...memory, value: 1 }
+						{ ...power, value: 4 },
+						{ ...reflexes, value: 5 },
+						{ ...soul, value: 3 },
+						{ ...memory, value: 3 }
 					],
 					skills: [
 						{ ...evasion, level: 2 },
@@ -738,10 +738,10 @@ export default {
 						}
 					],
 					characteristics: [
-						{ ...power, value: 3 },
+						{ ...power, value: 4 },
 						{ ...reflexes, value: 5 },
-						{ ...soul, value: 3 },
-						{ ...memory, value: 2 }
+						{ ...soul, value: 4 },
+						{ ...memory, value: 3 }
 					],
 					skills: [
 						{ ...evasion, level: 3 },

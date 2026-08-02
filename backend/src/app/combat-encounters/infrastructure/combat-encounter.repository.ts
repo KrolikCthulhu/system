@@ -15,6 +15,7 @@ const combatEncounterSelect = {
 	},
 	name: true,
 	status: true,
+	currentRound: true,
 	stateVersion: true,
 	isActive: true,
 	createdAt: true,
@@ -85,7 +86,10 @@ const combatEncounterSelect = {
 			sceneName: true,
 			currentHealth: true,
 			currentPotential: true,
-			initiative: true,
+			maximumPotential: true,
+			currentSpeed: true,
+			defenseStanceRound: true,
+			roundParticipationEndedRound: true,
 			isActive: true,
 			sortOrder: true,
 			conditions: {
@@ -275,6 +279,70 @@ export class CombatEncounterRepository
 				stateVersion: { increment: 1 }
 			}
 		});
+	}
+
+	async advanceRoundIfNeeded(id: string) {
+		const encounter = await this.prisma.combatEncounter.findUnique({
+			select: {
+				currentRound: true,
+				participants: {
+					select: {
+						isActive: true,
+						id: true,
+						currentPotential: true,
+						maximumPotential: true,
+						defenseStanceRound: true,
+						roundParticipationEndedRound: true
+					}
+				}
+			},
+			where: { id }
+		});
+
+		if (!encounter) {
+			return false;
+		}
+
+		const hasActiveParticipant = encounter.participants.some(
+			participant => participant.isActive
+		);
+		const hasEligibleActor = encounter.participants.some(
+			participant =>
+				participant.isActive &&
+				participant.currentPotential > 0 &&
+				participant.defenseStanceRound !== encounter.currentRound &&
+				participant.roundParticipationEndedRound !== encounter.currentRound
+		);
+
+		if (!hasActiveParticipant || hasEligibleActor) {
+			return false;
+		}
+
+		const participantPotentialUpdates = await Promise.all(
+			encounter.participants
+				.filter(participant => participant.isActive)
+				.map(participant => ({
+					participantId: participant.id,
+					maximumPotential: participant.maximumPotential
+				}))
+		);
+
+		await this.prisma.combatEncounter.update({
+			where: { id },
+			data: {
+				currentRound: { increment: 1 },
+				participants: {
+					update: participantPotentialUpdates.map(update => ({
+						where: { id: update.participantId },
+						data: {
+							currentPotential: update.maximumPotential
+						}
+					}))
+				}
+			}
+		});
+
+		return true;
 	}
 
 	findStateVersion(id: string) {

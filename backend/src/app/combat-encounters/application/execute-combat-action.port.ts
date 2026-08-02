@@ -1,24 +1,14 @@
-import { CombatEncounterPolicyEncounter } from '../combat-encounter-policy.service';
 import { RuntimeAction } from '../domain/combat-encounter-runtime.types';
-import { JsonValue } from './combat-encounter.read-model';
+import {
+	CombatEncounterReadModel,
+	JsonValue
+} from './combat-encounter.read-model';
 
 export const EXECUTE_COMBAT_ACTION_INFRASTRUCTURE = Symbol(
 	'EXECUTE_COMBAT_ACTION_INFRASTRUCTURE'
 );
 
-export interface ExecuteCombatActionEncounter
-	extends CombatEncounterPolicyEncounter {
-	id: string;
-	campaign: {
-		combatActionResolutionMode: string;
-	};
-	participants: Array<{
-		id: string;
-		isActive: boolean;
-		currentPotential: number;
-		sortOrder: number;
-	}>;
-}
+export type ExecuteCombatActionEncounter = CombatEncounterReadModel;
 
 export interface ExecuteCombatActionActor {
 	id: string;

@@ -9,7 +9,9 @@ export const combatEncounterEventTypes = {
 	actionExecuted: 'action_executed',
 	actionResolved: 'action_resolved',
 	defenseRequested: 'defense_requested',
-	turnSkipped: 'turn_skipped'
+	defenseStanceEntered: 'defense_stance_entered',
+	roundParticipationEnded: 'round_participation_ended',
+	initiativeWaited: 'initiative_waited'
 } as const;
 
 export type CombatEncounterEventType =
@@ -25,18 +27,54 @@ export interface CombatEncounterEventDraft {
 	payload: JsonObject;
 }
 
-export function createTurnSkippedEvent(input: {
+export function createDefenseStanceEnteredEvent(input: {
 	participantName: string;
-	fromPotential: number;
-	toPotential: number;
+	round: number;
+	preservedPotential: number;
 }): CombatEncounterEventDraft {
 	return {
-		type: combatEncounterEventTypes.turnSkipped,
-		actionSlug: null,
+		type: combatEncounterEventTypes.defenseStanceEntered,
+		actionSlug: 'enter_defense_stance',
 		payload: {
 			participantName: input.participantName,
+			round: input.round,
+			preservedPotential: input.preservedPotential
+		}
+	};
+}
+
+export function createRoundParticipationEndedEvent(input: {
+	participantName: string;
+	round: number;
+	preservedPotential: number;
+}): CombatEncounterEventDraft {
+	return {
+		type: combatEncounterEventTypes.roundParticipationEnded,
+		actionSlug: 'end_round_participation',
+		payload: {
+			participantName: input.participantName,
+			round: input.round,
+			preservedPotential: input.preservedPotential
+		}
+	};
+}
+
+export function createInitiativeWaitedEvent(input: {
+	participantName: string;
+	targetParticipantName: string;
+	fromPotential: number;
+	toPotential: number;
+	potentialCost: number;
+}): CombatEncounterEventDraft {
+	return {
+		type: combatEncounterEventTypes.initiativeWaited,
+		actionSlug: 'wait_until_after_participant',
+		payload: {
+			participantName: input.participantName,
+			targetParticipantName: input.targetParticipantName,
 			fromPotential: input.fromPotential,
-			toPotential: input.toPotential
+			toPotential: input.toPotential,
+			potentialCost: input.potentialCost
 		}
 	};
 }

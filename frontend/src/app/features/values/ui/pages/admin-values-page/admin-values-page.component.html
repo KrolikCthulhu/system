@@ -15,7 +15,9 @@
 
 	<div class="admin-values-page__workspace">
 		<aside class="admin-values-page__panel admin-values-page__sidebar">
-			<div class="admin-values-page__panel-heading admin-values-page__section-pad">
+			<div
+				class="admin-values-page__panel-heading admin-values-page__section-pad"
+			>
 				<h2 class="admin-values-page__panel-title">Значения</h2>
 				<p-button
 					label="Новое значение"
@@ -27,7 +29,9 @@
 			</div>
 
 			@if (creatingValue()) {
-				<div class="admin-values-page__create-form admin-values-page__section-pad">
+				<div
+					class="admin-values-page__create-form admin-values-page__section-pad"
+				>
 					<input
 						pInputText
 						type="text"
@@ -101,7 +105,11 @@
 
 						<div class="admin-values-page__filter-section">
 							<div class="admin-values-page__filter-title">Разделы</div>
-							@for (option of groupFilterOptions(); track option.label; let i = $index) {
+							@for (
+								option of groupFilterOptions();
+								track option.label;
+								let i = $index
+							) {
 								<label
 									class="admin-values-page__filter-option"
 									[attr.for]="'value-filter-group-' + i"
@@ -121,7 +129,11 @@
 						@if (contextFilterOptions().length) {
 							<div class="admin-values-page__filter-section">
 								<div class="admin-values-page__filter-title">Контекст</div>
-								@for (option of contextFilterOptions(); track option.label; let i = $index) {
+								@for (
+									option of contextFilterOptions();
+									track option.label;
+									let i = $index
+								) {
 									<label
 										class="admin-values-page__filter-option"
 										[attr.for]="'value-filter-context-' + i"
@@ -157,7 +169,9 @@
 					[collapsedSubgroups]="collapsedSubgroups()"
 					(itemSelect)="selectValue($event)"
 					(groupToggle)="toggleGroup($event)"
-					(subgroupToggle)="toggleSubgroup($event.groupLabel, $event.subgroupLabel)"
+					(subgroupToggle)="
+						toggleSubgroup($event.groupLabel, $event.subgroupLabel)
+					"
 				></app-navigation-tree>
 			}
 		</aside>
@@ -189,13 +203,15 @@
 					</div>
 				</div>
 
-				<div class="admin-values-page__editor-body admin-values-page__section-pad">
+				<div
+					class="admin-values-page__editor-body admin-values-page__section-pad"
+				>
 					<app-system-value-calculation-editor
 						class="admin-values-page__calculation-editor"
 						[systemValue]="calculationState()"
 						[availableValues]="values()"
 						[showGeneralTab]="true"
-						[readonly]="value.isSystemManaged"
+						[readonly]="!canEditCalculation(value)"
 						(systemValueChange)="updateCalculationState($event)"
 					>
 						<form system-value-general class="admin-values-page__metadata-form">
@@ -214,6 +230,22 @@
 									[readonly]="!canEditMetadata(value)"
 									(input)="setValueNameDraft($any($event.target).value)"
 								/>
+							</div>
+							<div class="admin-values-page__metadata-field">
+								<label
+									class="admin-values-page__field-label"
+									for="system-value-description"
+								>
+									Описание
+								</label>
+								<textarea
+									id="system-value-description"
+									pTextarea
+									rows="3"
+									[value]="valueDescriptionDraft()"
+									[readonly]="!canEditMetadata(value)"
+									(input)="setValueDescriptionDraft($any($event.target).value)"
+								></textarea>
 							</div>
 							<div class="admin-values-page__metadata-field">
 								<label
@@ -241,7 +273,8 @@
 							@if (!canEditMetadata(value)) {
 								<div class="admin-values-page__metadata-hint">
 									@if (value.isSystemManaged) {
-										Системное значение создаётся автоматически и доступно только для просмотра.
+										Системное значение создаётся автоматически и доступно только
+										для просмотра.
 									} @else {
 										Название этого значения меняется в разделе, где оно создано.
 									}

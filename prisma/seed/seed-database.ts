@@ -34,8 +34,10 @@ import {
 	seedHealthValue,
 	seedPotentialValue,
 	seedSourceValue,
+	seedSpeedValue,
 	seedSpellcasterLevelValue
 } from './seed-system-values';
+import { seedSystemCombatActions } from './seed-system-combat-actions';
 
 export async function seedDatabase(tx: Prisma.TransactionClient) {
 	await seedSkillLevels(tx);
@@ -56,6 +58,8 @@ export async function seedDatabase(tx: Prisma.TransactionClient) {
 		consequenceValues
 	});
 	await seedHealthValue(tx);
+	await seedSpeedValue(tx);
+	await seedSystemCombatActions(tx);
 	await seedRollEventGraphs(tx, {
 		consequences,
 		consequenceValues,

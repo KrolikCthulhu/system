@@ -11,6 +11,7 @@
 			@if (encounter(); as currentEncounter) {
 				<p>
 					{{ encounterStatusText() }} ·
+					Раунд {{ currentEncounter.currentRound }} ·
 					{{ activeParticipants().length }} участников
 				</p>
 			}
@@ -44,6 +45,93 @@
 			</div>
 		}
 	</header>
+
+	<p-dialog
+		[header]="defenseStanceConfirmationTitle()"
+		[modal]="true"
+		[visible]="!!pendingDefenseStance()"
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+		(visibleChange)="!$event && closeDefenseStanceConfirmation()"
+	>
+		@if (pendingDefenseStance(); as pending) {
+			<div class="combat-encounter-page__confirm-text">
+				<p>
+					Вы сохраните
+					<strong>{{ pending.participant.currentPotential }}</strong>
+					Потенциала для защит и реакций, но больше не сможете
+					совершать обычные действия до начала следующего раунда.
+				</p>
+
+				@if (pending.action.description) {
+					<p>{{ pending.action.description }}</p>
+				}
+			</div>
+
+			<ng-template #footer>
+				<p-button
+					label="Отмена"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="closeDefenseStanceConfirmation()"
+				/>
+				<p-button
+					[label]="pending.action.label"
+					[loading]="
+						executingActionKey() ===
+						pending.participant.id + ':' + pending.action.actionSlug
+					"
+					(onClick)="confirmDefenseStance()"
+				/>
+			</ng-template>
+		}
+	</p-dialog>
+
+	<p-dialog
+		[header]="roundParticipationEndConfirmationTitle()"
+		[modal]="true"
+		[visible]="!!pendingRoundParticipationEnd()"
+		[style]="{ width: '28rem' }"
+		[breakpoints]="{ '960px': '95vw' }"
+		(visibleChange)="!$event && closeRoundParticipationEndConfirmation()"
+	>
+		@if (pendingRoundParticipationEnd(); as pending) {
+			<div class="combat-encounter-page__confirm-text">
+				<p>
+					Участник
+					<strong>{{ pending.participant.sceneName }}</strong>
+					выйдет из очереди до следующего раунда.
+				</p>
+				<p>
+					Оставшийся Потенциал:
+					<strong>{{ pending.participant.currentPotential }}</strong>.
+					Он не сможет использовать его на действия, защиты и реакции.
+				</p>
+
+				@if (pending.action.description) {
+					<p>{{ pending.action.description }}</p>
+				}
+			</div>
+
+			<ng-template #footer>
+				<p-button
+					label="Отмена"
+					severity="secondary"
+					variant="outlined"
+					(onClick)="closeRoundParticipationEndConfirmation()"
+				/>
+				<p-button
+					[label]="pending.action.label"
+					severity="danger"
+					[loading]="
+						executingActionKey() ===
+						pending.participant.id + ':' + pending.action.actionSlug
+					"
+					(onClick)="confirmRoundParticipationEnd()"
+				/>
+			</ng-template>
+		}
+	</p-dialog>
 
 	@if (errorMessage()) {
 		<div class="combat-encounter-page__error">
@@ -293,16 +381,66 @@
 														}
 													</div>
 												}
+												@if (participant.isInDefenseStance) {
+													<div class="combat-encounter-page__condition-list">
+														<p-tag value="В обороне" severity="warn" />
+													</div>
+												}
+												@if (participant.hasEndedRoundParticipation) {
+													<div class="combat-encounter-page__condition-list">
+														<p-tag value="Завершил раунд" severity="danger" />
+													</div>
+												}
 											</div>
 
-											<p-tag
-												[value]="participantKindLabel(participant)"
-												[severity]="
-													participant.kind === 'PLAYER_CHARACTER'
-														? 'success'
-														: 'warn'
-												"
-											/>
+											<div class="combat-encounter-page__participant-tools">
+												<p-tag
+													[value]="participantKindLabel(participant)"
+													[severity]="
+														participant.kind === 'PLAYER_CHARACTER'
+															? 'success'
+															: 'warn'
+													"
+												/>
+
+												@if (
+													isCurrentUserGm() &&
+													isCombatActive() &&
+													endRoundParticipationAction(participant);
+													as endRoundAction
+												) {
+													<p-button
+														icon="pi pi-ellipsis-v"
+														ariaLabel="Дополнительные действия"
+														severity="secondary"
+														variant="text"
+														size="small"
+														(onClick)="participantMenu.toggle($event)"
+													/>
+													<p-popover #participantMenu appendTo="body">
+														<div class="combat-encounter-page__participant-menu">
+															<p-button
+																[label]="endRoundAction.label"
+																icon="pi pi-times-circle"
+																severity="danger"
+																variant="text"
+																size="small"
+																[disabled]="!endRoundAction.isAvailable"
+																[pTooltip]="
+																	endRoundAction.disabledReason ?? ''
+																"
+																(onClick)="
+																	openRoundParticipationEndConfirmation(
+																		participant,
+																		endRoundAction
+																	);
+																	participantMenu.hide()
+																"
+															/>
+														</div>
+													</p-popover>
+												}
+											</div>
 										</div>
 
 										@if (isCombatActive()) {
@@ -384,6 +522,45 @@
 														/>
 													}
 												</div>
+
+												<div class="combat-encounter-page__combat-stat">
+													<span>Скорость</span>
+													<strong>{{ participant.currentSpeed }}</strong>
+													@if (isCurrentUserGm()) {
+														<p-button
+															icon="pi pi-minus"
+															severity="secondary"
+															variant="outlined"
+															size="small"
+															[loading]="
+																savingParticipantId() === participant.id
+															"
+															(onClick)="
+																adjustParticipantValue(
+																	participant,
+																	'currentSpeed',
+																	-1
+																)
+															"
+														/>
+														<p-button
+															icon="pi pi-plus"
+															severity="secondary"
+															variant="outlined"
+															size="small"
+															[loading]="
+																savingParticipantId() === participant.id
+															"
+															(onClick)="
+																adjustParticipantValue(
+																	participant,
+																	'currentSpeed',
+																	1
+																)
+															"
+														/>
+													}
+												</div>
 											</div>
 										} @else {
 											<div class="combat-encounter-page__participant-fields">
@@ -434,6 +611,23 @@
 													/>
 												</label>
 
+												<label
+													class="combat-encounter-page__field combat-encounter-page__field--small"
+												>
+													<span>Скорость</span>
+													<p-inputnumber
+														[ngModel]="draft.currentSpeed"
+														(ngModelChange)="
+															patchParticipantDraft(participant.id, {
+																currentSpeed: $event ?? 0
+															})
+														"
+														[min]="0"
+														[showButtons]="false"
+														[fluid]="true"
+													/>
+												</label>
+
 												<p-button
 													icon="pi pi-save"
 													label="Сохранить"
@@ -446,29 +640,120 @@
 										}
 
 										@let sections = actionSections(participant);
+										@let visibleSystemActions = mainSystemActions(participant);
 
 										@if (
 											sections.attacks.length ||
 											sections.abilities.length ||
 											sections.contextualActions.length ||
-											canSkipParticipantTurn(participant)
+											visibleSystemActions.length
 										) {
 											<section class="combat-encounter-page__actions">
-												@if (canSkipParticipantTurn(participant)) {
+												@if (visibleSystemActions.length) {
 													<div class="combat-encounter-page__action-section">
-														<div class="combat-encounter-page__intent-list">
-															<p-button
-																label="Пропустить ход"
-																icon="pi pi-forward"
-																size="small"
-																severity="secondary"
-																variant="outlined"
-																[loading]="
-																	skippingParticipantId() === participant.id
-																"
-																(onClick)="skipParticipantTurn(participant)"
-															/>
-														</div>
+														@for (
+															action of visibleSystemActions;
+															track action.actionSlug
+														) {
+															<div class="combat-encounter-page__system-action">
+																<div
+																	class="combat-encounter-page__attack-head"
+																>
+																	<div
+																		class="combat-encounter-page__attack-title"
+																	>
+																		<strong>{{ action.label }}</strong>
+																		@if (action.description) {
+																			<span>{{ action.description }}</span>
+																		}
+																	</div>
+																	@if (isWaitAction(action)) {
+																		<p-popover
+																			#waitPopover
+																			appendTo="body"
+																			styleClass="combat-encounter-page__wait-popover"
+																		>
+																			<div
+																				class="combat-encounter-page__wait-options"
+																			>
+																				<strong>
+																					{{
+																						action.targetChoiceLabel ??
+																							'Действовать после'
+																					}}
+																				</strong>
+																				@for (
+																					target of action.availableTargets;
+																					track target.participantId
+																				) {
+																					<p-button
+																						[label]="
+																							waitActionButtonLabel(target)
+																						"
+																						size="small"
+																						severity="secondary"
+																						variant="outlined"
+																						[loading]="
+																							executingActionKey() ===
+																							participant.id +
+																								':' +
+																								action.actionSlug +
+																								':' +
+																								target.participantId
+																						"
+																						[disabled]="
+																							!action.isAvailable ||
+																							!target.isAvailable
+																						"
+																						[pTooltip]="
+																							target.disabledReason ??
+																							action.disabledReason ??
+																							''
+																						"
+																						(onClick)="
+																							waitUntilAfterParticipant(
+																								participant,
+																								action,
+																								target
+																							);
+																							waitPopover.hide()
+																						"
+																					/>
+																				}
+																			</div>
+																		</p-popover>
+																		<p-button
+																			[label]="action.label"
+																			size="small"
+																			severity="secondary"
+																			variant="outlined"
+																			[disabled]="!action.isAvailable"
+																			[pTooltip]="action.disabledReason ?? ''"
+																			(onClick)="waitPopover.toggle($event)"
+																		/>
+																	} @else if (isEnterDefenseAction(action)) {
+																		<p-button
+																			[label]="action.label"
+																			size="small"
+																			severity="secondary"
+																			variant="outlined"
+																			[loading]="
+																				executingActionKey() ===
+																				participant.id + ':' + action.actionSlug
+																			"
+																			[disabled]="!action.isAvailable"
+																			[pTooltip]="action.disabledReason ?? ''"
+																			(onClick)="
+																				openDefenseStanceConfirmation(
+																					participant,
+																					action
+																				)
+																			"
+																		/>
+																	}
+																</div>
+															</div>
+														}
 													</div>
 												}
 
@@ -527,19 +812,25 @@
 																	>
 																		@for (
 																			action of attack.actions;
-																			track action.slug
+																			track action.actionSlug
 																		) {
 																			<div
 																				class="combat-encounter-page__intent"
 																			>
 																				<p-button
-																					[label]="action.name"
+																					[label]="action.label"
 																					size="small"
 																					severity="secondary"
 																					variant="outlined"
 																					[loading]="
 																						executingActionKey() ===
-																						participant.id + ':' + action.slug
+																						participant.id +
+																							':' +
+																							action.actionSlug
+																					"
+																					[disabled]="!action.isAvailable"
+																					[pTooltip]="
+																						action.disabledReason ?? ''
 																					"
 																					(onClick)="
 																						executeAction(participant, action)
@@ -561,18 +852,20 @@
 														<div class="combat-encounter-page__intent-list">
 															@for (
 																action of sections.abilities;
-																track action.slug
+																track action.actionSlug
 															) {
 																<div class="combat-encounter-page__intent">
 																	<p-button
-																		[label]="action.name"
+																		[label]="action.label"
 																		size="small"
 																		severity="secondary"
 																		variant="outlined"
 																		[loading]="
 																			executingActionKey() ===
-																			participant.id + ':' + action.slug
+																			participant.id + ':' + action.actionSlug
 																		"
+																		[disabled]="!action.isAvailable"
+																		[pTooltip]="action.disabledReason ?? ''"
 																		(onClick)="
 																			executeAction(participant, action)
 																		"
@@ -590,18 +883,20 @@
 														<div class="combat-encounter-page__intent-list">
 															@for (
 																action of sections.contextualActions;
-																track action.slug
+																track action.actionSlug
 															) {
 																<div class="combat-encounter-page__intent">
 																	<p-button
-																		[label]="action.name"
+																		[label]="action.label"
 																		size="small"
 																		severity="secondary"
 																		variant="outlined"
 																		[loading]="
 																			executingActionKey() ===
-																			participant.id + ':' + action.slug
+																			participant.id + ':' + action.actionSlug
 																		"
+																		[disabled]="!action.isAvailable"
+																		[pTooltip]="action.disabledReason ?? ''"
 																		(onClick)="
 																			executeAction(participant, action)
 																		"

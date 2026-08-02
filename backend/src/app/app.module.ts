@@ -24,6 +24,7 @@ import { ProgressionPresetsModule } from './progression-presets/progression-pres
 import { RollConsequencesModule } from './roll-consequences/roll-consequences.module';
 import { SkillsModule } from './skills/skills.module';
 import { SpellMechanicsModule } from './spell-mechanics/spell-mechanics.module';
+import { SystemCombatActionsModule } from './system-combat-actions/system-combat-actions.module';
 import { ValuesModule } from './values/values.module';
 import { WeaponsModule } from './weapons/weapons.module';
 import { AppController } from './app.controller';
@@ -69,6 +70,7 @@ import { AppService } from './app.service';
 		RollConsequencesModule,
 		SkillsModule,
 		SpellMechanicsModule,
+		SystemCombatActionsModule,
 		ValuesModule,
 		WeaponsModule
 	],

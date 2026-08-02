@@ -66,6 +66,10 @@ export class AdminLayoutComponent {
 					routerLink: '/admin/rules/combat-intents'
 				},
 				{
+					label: 'Общие действия',
+					routerLink: '/admin/rules/system-combat-actions'
+				},
+				{
 					label: 'Естественные атаки',
 					routerLink: '/admin/rules/natural-attacks'
 				}

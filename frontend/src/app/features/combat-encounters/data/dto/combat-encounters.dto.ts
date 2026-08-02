@@ -67,6 +67,70 @@ export interface CombatEncounterParticipantConditionDto {
 	updatedAt: string;
 }
 
+export type CombatAvailableActionKind = CreatureTierAction['kind'] | 'system';
+export type CombatAvailableActionSourceType =
+	| 'creature'
+	| 'condition'
+	| 'system';
+
+export type CombatActionTargetMode =
+	| 'self'
+	| 'selected_target'
+	| 'linked_condition_target'
+	| 'none';
+
+export interface CombatAvailableActionOptionDto {
+	id: string;
+	actionSlug: string;
+	label: string;
+	kind: CombatAvailableActionKind;
+	sourceType: CombatAvailableActionSourceType;
+	sourceName: string;
+	sourceSlug: string | null;
+	profileName: string;
+	targetMode: CombatActionTargetMode;
+	requiresTarget: boolean;
+	costText: string;
+	rangeText: string;
+	description: string;
+	targetChoiceLabel: string | null;
+	confirmationTitle: string | null;
+	optionLabelTemplate: string | null;
+	costLabelTemplate: string | null;
+	sortOrder: number;
+	isAvailable: boolean;
+	disabledReason: string | null;
+	disabledReasons: string[];
+	availableTargets: CombatAvailableActionTargetDto[];
+}
+
+export interface CombatAvailableActionTargetDto {
+	participantId: string;
+	label: string;
+	potentialCost: number | null;
+	costText: string;
+	isAvailable: boolean;
+	disabledReason: string | null;
+	disabledReasons: string[];
+}
+
+export interface CombatAvailableActionGroupDto {
+	id: string;
+	kind: CombatAvailableActionKind;
+	sourceName: string;
+	profileName: string;
+	rangeText: string;
+	costText: string;
+	actions: CombatAvailableActionOptionDto[];
+}
+
+export interface CombatAvailableActionsDto {
+	attacks: CombatAvailableActionGroupDto[];
+	abilities: CombatAvailableActionOptionDto[];
+	contextualActions: CombatAvailableActionOptionDto[];
+	systemActions: CombatAvailableActionOptionDto[];
+}
+
 export interface CombatEncounterParticipantDto {
 	id: string;
 	kind: CombatEncounterParticipantKind;
@@ -79,9 +143,15 @@ export interface CombatEncounterParticipantDto {
 	sceneName: string;
 	currentHealth: number;
 	currentPotential: number;
-	initiative: number | null;
+	maximumPotential: number;
+	currentSpeed: number;
+	defenseStanceRound: number | null;
+	roundParticipationEndedRound: number | null;
+	isInDefenseStance: boolean;
+	hasEndedRoundParticipation: boolean;
 	isActive: boolean;
 	sortOrder: number;
+	availableActions: CombatAvailableActionsDto;
 	conditions: CombatEncounterParticipantConditionDto[];
 	createdAt: string;
 	updatedAt: string;
@@ -154,6 +224,7 @@ export interface CombatEncounterDto {
 	campaignId: string;
 	name: string;
 	status: CombatEncounterStatus;
+	currentRound: number;
 	stateVersion: number;
 	currentUserRole: CombatEncounterCurrentUserRole;
 	isActive: boolean;
@@ -200,7 +271,7 @@ export interface UpdateCombatParticipantDto {
 	sceneName?: string;
 	currentHealth?: number;
 	currentPotential?: number;
-	initiative?: number | null;
+	currentSpeed?: number;
 	isActive?: boolean;
 }
 
@@ -214,6 +285,30 @@ export interface ExecuteCombatActionDto {
 	actorParticipantId: string;
 	actionSlug: string;
 	targetParticipantId?: string | null;
+}
+
+export interface CombatActionCommandDto extends ExecuteCombatActionDto {}
+
+export interface WaitCombatTurnDto {
+	requestId?: string;
+	expectedVersion: number;
+	actorParticipantId: string;
+	targetParticipantId: string;
+	actionSlug: string;
+}
+
+export interface EnterDefenseStanceDto {
+	requestId?: string;
+	expectedVersion: number;
+	actorParticipantId: string;
+	actionSlug: string;
+}
+
+export interface EndRoundParticipationDto {
+	requestId?: string;
+	expectedVersion: number;
+	actorParticipantId: string;
+	actionSlug: string;
 }
 
 export interface ResolveCombatDefenseDto {

@@ -15,12 +15,15 @@ import {
 	CombatEncounterDto,
 	CombatEncountersResponseDto,
 	CreateCombatEncounterDto,
+	EnterDefenseStanceDto,
+	EndRoundParticipationDto,
 	ExecuteCombatActionDto,
 	KnockdownSizeRuleResultDto,
 	ResolveCombatDefenseDto,
 	ResolveDeclaredCombatActionDto,
 	UpdateCombatEncounterDto,
-	UpdateCombatParticipantDto
+	UpdateCombatParticipantDto,
+	WaitCombatTurnDto
 } from './dto/combat-encounters.dto';
 import {
 	mapCombatEncounterDto,
@@ -131,22 +134,6 @@ export class HttpCombatEncountersRepository
 			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
 	}
 
-	skipParticipantTurn(
-		id: string,
-		participantId: string,
-		command: { expectedVersion: number }
-	): Observable<CombatEncounter> {
-		return this.http
-			.post<CombatEncounterDto>(
-				`${this.baseUrl}/combat-encounters/${id}/participants/${participantId}/skip-turn`,
-				this.withRequestId(command),
-				{
-					withCredentials: true
-				}
-			)
-			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
-	}
-
 	resolveKnockdownSizeRule(
 		id: string,
 		attackerParticipantId: string,
@@ -173,6 +160,51 @@ export class HttpCombatEncountersRepository
 		return this.http
 			.post<CombatEncounterDto>(
 				`${this.baseUrl}/combat-encounters/${id}/actions/execute`,
+				this.withRequestId(command),
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	waitUntilAfterParticipant(
+		id: string,
+		command: WaitCombatTurnDto
+	): Observable<CombatEncounter> {
+		return this.http
+			.post<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}/actions/wait`,
+				this.withRequestId(command),
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	enterDefenseStance(
+		id: string,
+		command: EnterDefenseStanceDto
+	): Observable<CombatEncounter> {
+		return this.http
+			.post<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}/actions/enter-defense`,
+				this.withRequestId(command),
+				{
+					withCredentials: true
+				}
+			)
+			.pipe(map(mapCombatEncounterDto), catchError(handleApiError));
+	}
+
+	endRoundParticipation(
+		id: string,
+		command: EndRoundParticipationDto
+	): Observable<CombatEncounter> {
+		return this.http
+			.post<CombatEncounterDto>(
+				`${this.baseUrl}/combat-encounters/${id}/actions/end-round-participation`,
 				this.withRequestId(command),
 				{
 					withCredentials: true

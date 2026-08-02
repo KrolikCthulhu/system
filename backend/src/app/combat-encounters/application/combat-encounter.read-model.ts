@@ -11,6 +11,7 @@ export interface CombatEncounterReadModel {
 	};
 	name: string;
 	status: CombatEncounterStatus;
+	currentRound: number;
 	stateVersion: number;
 	isActive: boolean;
 	createdAt: Date;
@@ -85,7 +86,10 @@ export interface CombatEncounterParticipantReadModel {
 	sceneName: string;
 	currentHealth: number;
 	currentPotential: number;
-	initiative: number | null;
+	maximumPotential: number;
+	currentSpeed: number;
+	defenseStanceRound: number | null;
+	roundParticipationEndedRound: number | null;
 	isActive: boolean;
 	sortOrder: number;
 	conditions: Array<{

@@ -319,6 +319,20 @@
 	font-size: 0.8125rem;
 }
 
+.combat-encounter-page__participant-tools {
+	display: flex;
+	align-items: center;
+	gap: 0.375rem;
+	flex: 0 0 auto;
+}
+
+.combat-encounter-page__participant-menu {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25rem;
+	min-width: 12rem;
+}
+
 .combat-encounter-page__condition-list {
 	display: flex;
 	flex-wrap: wrap;
@@ -396,6 +410,14 @@
 		color-mix(in srgb, var(--p-primary-color) 36%, transparent);
 }
 
+.combat-encounter-page__system-action {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	padding-left: 0.75rem;
+	border-left: 2px solid var(--p-content-border-color);
+}
+
 .combat-encounter-page__attack-head,
 .combat-encounter-page__intent-list,
 .combat-encounter-page__intent {
@@ -433,6 +455,17 @@
 
 .combat-encounter-page__intent {
 	gap: 0.375rem;
+}
+
+.combat-encounter-page__wait-options {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	min-width: 14rem;
+}
+
+.combat-encounter-page__wait-options strong {
+	font-size: 0.875rem;
 }
 
 .combat-encounter-page__target-select {
@@ -515,6 +548,18 @@
 	border-radius: 8px;
 	background: var(--p-red-50);
 	color: var(--p-red-700);
+}
+
+.combat-encounter-page__confirm-text {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+	color: var(--p-text-color);
+	line-height: 1.45;
+}
+
+.combat-encounter-page__confirm-text p {
+	margin: 0;
 }
 
 @media (max-width: 80rem) {

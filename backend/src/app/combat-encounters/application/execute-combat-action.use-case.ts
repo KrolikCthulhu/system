@@ -4,6 +4,7 @@ import {
 	Injectable,
 	NotFoundException
 } from '@nestjs/common';
+import { CombatActionAvailabilityService } from '../combat-action-availability.service';
 import { CombatEncounterPolicyService } from '../combat-encounter-policy.service';
 import { CombatEncounterRuntimeService } from '../domain/combat-encounter-runtime.service';
 import { ExecuteCombatActionDto } from '../dto/execute-combat-action.dto';
@@ -18,6 +19,7 @@ export class ExecuteCombatActionUseCase {
 		@Inject(EXECUTE_COMBAT_ACTION_INFRASTRUCTURE)
 		private readonly infrastructure: ExecuteCombatActionInfrastructurePort,
 		private readonly policy: CombatEncounterPolicyService,
+		private readonly availability: CombatActionAvailabilityService,
 		private readonly runtime: CombatEncounterRuntimeService
 	) {}
 
@@ -62,6 +64,30 @@ export class ExecuteCombatActionUseCase {
 				encounterId,
 				targetParticipantId
 			);
+		}
+
+		const actorSnapshot = encounter.participants.find(
+			participant => participant.id === actor.id
+		);
+
+		if (!actorSnapshot) {
+			throw new NotFoundException('Исполнитель действия не найден.');
+		}
+
+		const availability = this.availability.evaluate({
+			encounter,
+			actor: actorSnapshot,
+			action,
+			targetParticipantId,
+			validateSelectedTarget: true
+		});
+
+		if (!availability.isAvailable) {
+			throw new BadRequestException({
+				message: availability.reasons[0] ?? 'Действие недоступно.',
+				code: 'combat_action_unavailable',
+				reasons: availability.reasons
+			});
 		}
 
 		return this.infrastructure.runIdempotentCombatCommand(

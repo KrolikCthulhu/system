@@ -3,10 +3,7 @@ import {
 	Injectable,
 	NotFoundException
 } from '@nestjs/common';
-import {
-	Prisma,
-	SystemValueOwnerType
-} from '@prisma/generated';
+import { Prisma, SystemValueOwnerType } from '@prisma/generated';
 import { PrismaService } from '../prisma/prisma.service';
 import { createCharacterInputGraph } from '../shared/system-value-graph.factory';
 import { rethrowPrismaError } from '../shared/prisma-error.util';
@@ -21,6 +18,7 @@ const systemValueSelect = {
 	description: true,
 	primaryOwnerType: true,
 	primaryOwnerId: true,
+	coreKey: true,
 	displaySection: true,
 	calculationGraph: true,
 	isSystemManaged: true,
@@ -137,12 +135,9 @@ export class ValuesService {
 		};
 	}
 
-	async updateCalculation(
-		id: string,
-		calculationGraph: unknown | null
-	) {
+	async updateCalculation(id: string, calculationGraph: unknown | null) {
 		const value = await this.prisma.systemValue.findUnique({
-			select: { id: true, isSystemManaged: true },
+			select: { id: true, coreKey: true, isSystemManaged: true },
 			where: { id }
 		});
 
@@ -150,7 +145,7 @@ export class ValuesService {
 			throw new NotFoundException('System value not found.');
 		}
 
-		if (value.isSystemManaged) {
+		if (value.isSystemManaged && !value.coreKey) {
 			throw new BadRequestException(
 				'Расчёт системного значения управляется системой.'
 			);
@@ -171,6 +166,7 @@ export class ValuesService {
 			select: {
 				id: true,
 				primaryOwnerType: true,
+				coreKey: true,
 				isSystemManaged: true
 			},
 			where: { id }
@@ -180,7 +176,10 @@ export class ValuesService {
 			throw new NotFoundException('System value not found.');
 		}
 
-		if (value.isSystemManaged || value.primaryOwnerType !== SystemValueOwnerType.MANUAL) {
+		if (
+			value.primaryOwnerType !== SystemValueOwnerType.MANUAL ||
+			(value.isSystemManaged && !value.coreKey)
+		) {
 			throw new BadRequestException(
 				'Можно редактировать только свободные значения системы.'
 			);
@@ -225,7 +224,10 @@ export class ValuesService {
 			throw new NotFoundException('System value not found.');
 		}
 
-		if (value.isSystemManaged || value.primaryOwnerType !== SystemValueOwnerType.MANUAL) {
+		if (
+			value.isSystemManaged ||
+			value.primaryOwnerType !== SystemValueOwnerType.MANUAL
+		) {
 			throw new BadRequestException(
 				'Можно удалять только свободные значения системы.'
 			);
@@ -241,7 +243,10 @@ export class ValuesService {
 		context: {
 			skillMap: Map<string, SkillBaseValueRecord>;
 			characteristicMap: Map<string, CharacteristicBaseValueRecord>;
-			characteristicsByAttributeId: Map<string, CharacteristicBaseValueRecord[]>;
+			characteristicsByAttributeId: Map<
+				string,
+				CharacteristicBaseValueRecord[]
+			>;
 		}
 	) {
 		return {
@@ -249,10 +254,12 @@ export class ValuesService {
 			slug: value.slug,
 			name: value.name,
 			kind: mapOwnerType(value.primaryOwnerType),
-			groupLabel: value.displaySection?.trim() || groupLabel(value.primaryOwnerType),
+			groupLabel:
+				value.displaySection?.trim() || groupLabel(value.primaryOwnerType),
 			displaySection: value.displaySection ?? '',
 			contextLabel: this.contextLabel(value, context),
 			description: value.description ?? '',
+			coreKey: value.coreKey,
 			isSystemManaged: value.isSystemManaged,
 			baseValue: this.baseValue(value, context),
 			calculationGraph: value.calculationGraph ?? createEmptyGraph(),
@@ -288,7 +295,10 @@ export class ValuesService {
 		context: {
 			skillMap: Map<string, SkillBaseValueRecord>;
 			characteristicMap: Map<string, CharacteristicBaseValueRecord>;
-			characteristicsByAttributeId: Map<string, CharacteristicBaseValueRecord[]>;
+			characteristicsByAttributeId: Map<
+				string,
+				CharacteristicBaseValueRecord[]
+			>;
 		}
 	) {
 		if (
@@ -302,7 +312,9 @@ export class ValuesService {
 			value.primaryOwnerType === SystemValueOwnerType.CHARACTERISTIC &&
 			value.primaryOwnerId
 		) {
-			return context.characteristicMap.get(value.primaryOwnerId)?.defaultValue ?? 0;
+			return (
+				context.characteristicMap.get(value.primaryOwnerId)?.defaultValue ?? 0
+			);
 		}
 
 		if (
@@ -312,14 +324,15 @@ export class ValuesService {
 			return (
 				context.characteristicsByAttributeId
 					.get(value.primaryOwnerId)
-					?.reduce((total, characteristic) => total + characteristic.defaultValue, 0) ??
-				0
+					?.reduce(
+						(total, characteristic) => total + characteristic.defaultValue,
+						0
+					) ?? 0
 			);
 		}
 
 		return 0;
 	}
-
 }
 
 function mapOwnerType(type: SystemValueOwnerType) {

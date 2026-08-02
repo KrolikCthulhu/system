@@ -17,6 +17,7 @@ export interface CombatEncounterRepositoryPort {
 		name: string;
 	}): Promise<CombatEncounterReadModel>;
 	updateStatus(id: string, dto: UpdateCombatEncounterDto): Promise<unknown>;
+	advanceRoundIfNeeded(id: string): Promise<boolean>;
 	incrementStateVersion(id: string): Promise<unknown>;
 	findActiveById(id: string): Promise<CombatEncounterReadModel>;
 }

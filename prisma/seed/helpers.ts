@@ -13,6 +13,7 @@ export async function ensureSystemValue(
 		description: string | null;
 		primaryOwnerType: SystemValueOwnerType;
 		primaryOwnerId: string | null;
+		coreKey?: string | null;
 		displaySection?: string | null;
 		calculationGraph: object;
 		isSystemManaged: boolean;
@@ -35,6 +36,7 @@ export async function ensureSystemValue(
 		description: params.description,
 		primaryOwnerType: params.primaryOwnerType,
 		primaryOwnerId: params.primaryOwnerId,
+		coreKey: params.coreKey ?? null,
 		displaySection: params.displaySection ?? null,
 		calculationGraph: params.calculationGraph as Prisma.InputJsonValue,
 		isSystemManaged: params.isSystemManaged,
@@ -45,13 +47,13 @@ export async function ensureSystemValue(
 		? await tx.systemValue.update({
 				where: { id: params.id },
 				data
-		  })
+			})
 		: await tx.systemValue.create({
 				data: {
 					id: params.id,
 					...data
 				}
-		  });
+			});
 
 	if (params.link) {
 		await tx.systemValueLink.upsert({

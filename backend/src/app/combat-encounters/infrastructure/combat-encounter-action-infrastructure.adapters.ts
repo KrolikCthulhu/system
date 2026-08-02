@@ -16,6 +16,8 @@ import { CombatEncounterRuntimeService } from '../domain/combat-encounter-runtim
 import { RuntimeAction } from '../domain/combat-encounter-runtime.types';
 import { CombatEncounterViewService } from '../combat-encounter-view.service';
 import { CombatEncounterSnapshot } from '../application/combat-encounter.read-model';
+import { EndRoundParticipationInfrastructurePort } from '../application/end-round-participation.port';
+import { EnterDefenseStanceInfrastructurePort } from '../application/enter-defense-stance.port';
 import {
 	ExecuteCombatActionActor,
 	ExecuteCombatActionInfrastructurePort
@@ -28,7 +30,7 @@ import {
 	PendingDeclaredCombatAction,
 	ResolveDeclaredCombatActionInfrastructurePort
 } from '../application/resolve-declared-combat-action.port';
-import { SkipCombatTurnInfrastructurePort } from '../application/skip-combat-turn.port';
+import { WaitCombatTurnInfrastructurePort } from '../application/wait-combat-turn.port';
 import { CombatCommandRepository } from './combat-command.repository';
 import { CombatEncounterRepository } from './combat-encounter.repository';
 import { CombatEventRepository } from './combat-event.repository';
@@ -56,7 +58,7 @@ abstract class CombatEncounterActionInfrastructureAdapterBase {
 	async getEncounter(id: string, userId: string) {
 		const encounter = await this.findEncounter(id);
 		const member = await this.policy.assertCanViewEncounter(userId, encounter);
-		return this.view.mapEncounter(encounter, member.role);
+		return this.view.mapEncounter(encounter, member.role, userId);
 	}
 
 	async findActiveActor(input: {
@@ -91,16 +93,19 @@ abstract class CombatEncounterActionInfrastructureAdapterBase {
 			actor.id,
 			action
 		);
-		const defenseOptions = targetParticipantId
-			? await this.actionCheckRuntime.resolveDefenseOptions({
+		const target = targetParticipantId
+			? await this.participants.findDefenseTarget(targetParticipantId)
+			: null;
+		const targetHasEndedRound =
+			target?.roundParticipationEndedRound === target?.encounter.currentRound;
+		const defenseOptions =
+			targetParticipantId && !targetHasEndedRound
+				? await this.actionCheckRuntime.resolveDefenseOptions({
 					actorParticipantId: actor.id,
 					targetParticipantId,
 					action
 				})
-			: [];
-		const target = targetParticipantId
-			? await this.participants.findDefenseTarget(targetParticipantId)
-			: null;
+				: [];
 		const shouldRequestPlayerDefense =
 			!!attackRoll &&
 			!!targetParticipantId &&
@@ -191,6 +196,7 @@ abstract class CombatEncounterActionInfrastructureAdapterBase {
 	}
 
 	async publishAndReturnEncounter(id: string, userId: string) {
+		await this.encounters.advanceRoundIfNeeded(id);
 		await this.encounters.incrementStateVersion(id);
 		const updatedEncounter = await this.getEncounter(id, userId);
 		await this.realtime.publishEncounterUpdated(id);
@@ -302,15 +308,40 @@ abstract class CombatEncounterActionInfrastructureAdapterBase {
 		return this.encounters.findActiveById(id);
 	}
 
-	async recordTurnSkipped(input: {
+	async recordInitiativeWaited(input: {
+		encounterId: string;
+		participantId: string;
+		targetParticipantId: string;
+		userId: string;
+		participantName: string;
+		targetParticipantName: string;
+		fromPotential: number;
+		toPotential: number;
+		potentialCost: number;
+	}) {
+		await this.events.recordInitiativeWaited(input);
+	}
+
+	async recordDefenseStanceEntered(input: {
 		encounterId: string;
 		participantId: string;
 		userId: string;
 		participantName: string;
-		fromPotential: number;
-		toPotential: number;
+		round: number;
+		preservedPotential: number;
 	}) {
-		await this.events.recordTurnSkipped(input);
+		await this.events.recordDefenseStanceEntered(input);
+	}
+
+	async recordRoundParticipationEnded(input: {
+		encounterId: string;
+		participantId: string;
+		userId: string;
+		participantName: string;
+		round: number;
+		preservedPotential: number;
+	}) {
+		await this.events.recordRoundParticipationEnded(input);
 	}
 
 	async findPendingDeclaredAction(input: {
@@ -330,9 +361,73 @@ abstract class CombatEncounterActionInfrastructureAdapterBase {
 }
 
 @Injectable()
-export class SkipCombatTurnInfrastructureAdapter
+export class EndRoundParticipationInfrastructureAdapter
 	extends CombatEncounterActionInfrastructureAdapterBase
-	implements SkipCombatTurnInfrastructurePort
+	implements EndRoundParticipationInfrastructurePort
+{
+	constructor(
+		actionCheckRuntime: CombatActionCheckRuntimeService,
+		httpRateLimit: CombatEncounterHttpRateLimitService,
+		policy: CombatEncounterPolicyService,
+		runtime: CombatEncounterRuntimeService,
+		view: CombatEncounterViewService,
+		realtime: CombatEncounterRealtimeService,
+		encounters: CombatEncounterRepository,
+		commands: CombatCommandRepository,
+		events: CombatEventRepository,
+		participants: CombatParticipantRepository
+	) {
+		super(
+			actionCheckRuntime,
+			httpRateLimit,
+			policy,
+			runtime,
+			view,
+			realtime,
+			encounters,
+			commands,
+			events,
+			participants
+		);
+	}
+}
+
+@Injectable()
+export class EnterDefenseStanceInfrastructureAdapter
+	extends CombatEncounterActionInfrastructureAdapterBase
+	implements EnterDefenseStanceInfrastructurePort
+{
+	constructor(
+		actionCheckRuntime: CombatActionCheckRuntimeService,
+		httpRateLimit: CombatEncounterHttpRateLimitService,
+		policy: CombatEncounterPolicyService,
+		runtime: CombatEncounterRuntimeService,
+		view: CombatEncounterViewService,
+		realtime: CombatEncounterRealtimeService,
+		encounters: CombatEncounterRepository,
+		commands: CombatCommandRepository,
+		events: CombatEventRepository,
+		participants: CombatParticipantRepository
+	) {
+		super(
+			actionCheckRuntime,
+			httpRateLimit,
+			policy,
+			runtime,
+			view,
+			realtime,
+			encounters,
+			commands,
+			events,
+			participants
+		);
+	}
+}
+
+@Injectable()
+export class WaitCombatTurnInfrastructureAdapter
+	extends CombatEncounterActionInfrastructureAdapterBase
+	implements WaitCombatTurnInfrastructurePort
 {
 	constructor(
 		actionCheckRuntime: CombatActionCheckRuntimeService,

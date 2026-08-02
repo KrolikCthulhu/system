@@ -69,7 +69,7 @@ export class CreateCombatEncounterUseCase {
 			name: dto.name?.trim() || 'Новое столкновение'
 		});
 
-		return this.view.mapEncounter(encounter, campaignMemberRoles.gm);
+		return this.view.mapEncounter(encounter, campaignMemberRoles.gm, userId);
 	}
 }
 
@@ -79,14 +79,22 @@ export class GetCombatEncounterUseCase {
 		@Inject(COMBAT_ENCOUNTER_REPOSITORY)
 		private readonly encounters: CombatEncounterRepositoryPort,
 		private readonly policy: CombatEncounterPolicyService,
-		private readonly view: CombatEncounterViewService
+		private readonly view: CombatEncounterViewService,
+		private readonly realtime: CombatEncounterRealtimeService
 	) {}
 
 	async execute(id: string, userId: string) {
-		const encounter = await this.encounters.findActiveById(id);
+		let encounter = await this.encounters.findActiveById(id);
 		const member = await this.policy.assertCanViewEncounter(userId, encounter);
+		const didAdvanceRound = await this.encounters.advanceRoundIfNeeded(id);
 
-		return this.view.mapEncounter(encounter, member.role);
+		if (didAdvanceRound) {
+			await this.encounters.incrementStateVersion(id);
+			encounter = await this.encounters.findActiveById(id);
+			await this.realtime.publishEncounterUpdated(id);
+		}
+
+		return this.view.mapEncounter(encounter, member.role, userId);
 	}
 }
 
@@ -113,7 +121,7 @@ export class UpdateCombatEncounterUseCase {
 		const updatedEncounter = await this.encounters.findActiveById(id);
 		await this.realtime.publishEncounterUpdated(id);
 
-		return this.view.mapEncounter(updatedEncounter, member.role);
+		return this.view.mapEncounter(updatedEncounter, member.role, userId);
 	}
 }
 
@@ -195,14 +203,18 @@ export class AddPlayerCharacterParticipantUseCase {
 			playerCharacterId: dto.playerCharacterId
 		});
 
-		return this.publishAndMap(id, member.role);
+		return this.publishAndMap(id, member.role, userId);
 	}
 
-	private async publishAndMap(id: string, role: CampaignMemberRole) {
+	private async publishAndMap(
+		id: string,
+		role: CampaignMemberRole,
+		userId: string
+	) {
 		await this.encounters.incrementStateVersion(id);
 		const updatedEncounter = await this.encounters.findActiveById(id);
 		await this.realtime.publishEncounterUpdated(id);
-		return this.view.mapEncounter(updatedEncounter, role);
+		return this.view.mapEncounter(updatedEncounter, role, userId);
 	}
 }
 
@@ -233,14 +245,18 @@ export class AddCreatureParticipantUseCase {
 			sceneName: dto.sceneName?.trim()
 		});
 
-		return this.publishAndMap(id, member.role);
+		return this.publishAndMap(id, member.role, userId);
 	}
 
-	private async publishAndMap(id: string, role: CampaignMemberRole) {
+	private async publishAndMap(
+		id: string,
+		role: CampaignMemberRole,
+		userId: string
+	) {
 		await this.encounters.incrementStateVersion(id);
 		const updatedEncounter = await this.encounters.findActiveById(id);
 		await this.realtime.publishEncounterUpdated(id);
-		return this.view.mapEncounter(updatedEncounter, role);
+		return this.view.mapEncounter(updatedEncounter, role, userId);
 	}
 }
 
@@ -274,13 +290,17 @@ export class UpdateCombatParticipantUseCase {
 			dto
 		});
 
-		return this.publishAndMap(id, member.role);
+		return this.publishAndMap(id, member.role, userId);
 	}
 
-	private async publishAndMap(id: string, role: CampaignMemberRole) {
+	private async publishAndMap(
+		id: string,
+		role: CampaignMemberRole,
+		userId: string
+	) {
 		await this.encounters.incrementStateVersion(id);
 		const updatedEncounter = await this.encounters.findActiveById(id);
 		await this.realtime.publishEncounterUpdated(id);
-		return this.view.mapEncounter(updatedEncounter, role);
+		return this.view.mapEncounter(updatedEncounter, role, userId);
 	}
 }

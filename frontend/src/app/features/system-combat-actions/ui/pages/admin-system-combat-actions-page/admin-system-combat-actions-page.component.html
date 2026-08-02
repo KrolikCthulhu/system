@@ -1,0 +1,120 @@
+<section class="admin-system-combat-actions-page">
+	<header class="admin-system-combat-actions-page__header">
+		<p-breadcrumb [model]="breadcrumbs"></p-breadcrumb>
+	</header>
+
+	<div class="admin-system-combat-actions-page__workspace">
+		<aside class="admin-system-combat-actions-page__sidebar">
+			<div class="admin-system-combat-actions-page__panel-heading">
+				<h2>Общие действия</h2>
+				<p-tag [value]="actionsCount()" severity="secondary" />
+			</div>
+
+			<div class="admin-system-combat-actions-page__item-list">
+				@if (loading()) {
+					<div class="admin-system-combat-actions-page__state">Загрузка...</div>
+				} @else {
+					@for (action of sortedActions(); track action.id) {
+						<button
+							type="button"
+							class="admin-system-combat-actions-page__item"
+							[class.admin-system-combat-actions-page__item--active]="
+								action.id === selectedActionId()
+							"
+							(click)="selectAction(action)"
+						>
+							<span>{{ action.label }}</span>
+							@if (!action.isEnabled) {
+								<p-tag value="Отключено" severity="secondary" />
+							}
+						</button>
+					} @empty {
+						<div class="admin-system-combat-actions-page__state">
+							Общие действия не найдены.
+						</div>
+					}
+				}
+			</div>
+		</aside>
+
+		@if (draft(); as currentDraft) {
+			<section class="admin-system-combat-actions-page__editor">
+				<div class="admin-system-combat-actions-page__editor-head">
+					<div>
+						<h1>{{ currentDraft.label || 'Общее действие' }}</h1>
+						<span>Настройки отображения в бою</span>
+					</div>
+				</div>
+
+				<div class="admin-system-combat-actions-page__editor-body">
+					@if (errorMessage()) {
+						<div class="admin-system-combat-actions-page__form-error">
+							{{ errorMessage() }}
+						</div>
+					}
+
+					<div class="admin-system-combat-actions-page__form-grid">
+						<label class="admin-system-combat-actions-page__field">
+							<span>Название</span>
+							<input
+								pInputText
+								type="text"
+								[ngModel]="currentDraft.label"
+								(ngModelChange)="updateDraftLabel($event)"
+							/>
+						</label>
+
+						@if (hasTargetChoiceLabel(currentDraft)) {
+							<label class="admin-system-combat-actions-page__field">
+								<span>Заголовок выбора</span>
+								<input
+									pInputText
+									type="text"
+									[ngModel]="currentDraft.targetChoiceLabel"
+									(ngModelChange)="updateDraftTargetChoiceLabel($event)"
+								/>
+							</label>
+						}
+
+						@if (hasConfirmationTitle(currentDraft)) {
+							<label class="admin-system-combat-actions-page__field">
+								<span>Заголовок подтверждения</span>
+								<input
+									pInputText
+									type="text"
+									[ngModel]="currentDraft.confirmationTitle"
+									(ngModelChange)="updateDraftConfirmationTitle($event)"
+								/>
+							</label>
+						}
+
+						<label
+							class="admin-system-combat-actions-page__field admin-system-combat-actions-page__field--wide"
+						>
+							<span>Описание</span>
+							<textarea
+								pTextarea
+								rows="5"
+								[ngModel]="currentDraft.description"
+								(ngModelChange)="updateDraftDescription($event)"
+							></textarea>
+						</label>
+					</div>
+				</div>
+
+				<app-editor-actions-bar
+					[hasChanges]="hasChanges()"
+					[saving]="saving()"
+					(resetClick)="resetDraft()"
+					(saveClick)="saveDraft()"
+				></app-editor-actions-bar>
+			</section>
+		} @else {
+			<section class="admin-system-combat-actions-page__editor">
+				<div class="admin-system-combat-actions-page__state">
+					Выберите общее действие.
+				</div>
+			</section>
+		}
+	</div>
+</section>

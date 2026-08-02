@@ -69,6 +69,13 @@ export const adminRoutes: Route[] = [
 							).then(m => m.adminCombatIntentsRoutes)
 					},
 					{
+						path: 'system-combat-actions',
+						loadChildren: () =>
+							import(
+								'../../features/system-combat-actions/admin-system-combat-actions.routes'
+							).then(m => m.adminSystemCombatActionsRoutes)
+					},
+					{
 						path: 'natural-attacks',
 						loadChildren: () =>
 							import('../../features/weapons/admin-weapons.routes').then(

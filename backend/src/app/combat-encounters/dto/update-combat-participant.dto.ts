@@ -25,7 +25,8 @@ export class UpdateCombatParticipantDto {
 
 	@IsOptional()
 	@IsInt()
-	initiative?: number | null;
+	@Min(0)
+	currentSpeed?: number;
 
 	@IsOptional()
 	@IsBoolean()

@@ -21,22 +21,26 @@ import {
 	UpdateCombatEncounterUseCase,
 	UpdateCombatParticipantUseCase
 } from '../application/combat-encounter-query.use-cases';
+import { EndRoundParticipationUseCase } from '../application/end-round-participation.use-case';
+import { EnterDefenseStanceUseCase } from '../application/enter-defense-stance.use-case';
 import { ExecuteCombatActionUseCase } from '../application/execute-combat-action.use-case';
 import { ResolveCombatDefenseUseCase } from '../application/resolve-combat-defense.use-case';
 import { ResolveDeclaredCombatActionUseCase } from '../application/resolve-declared-combat-action.use-case';
-import { SkipCombatTurnUseCase } from '../application/skip-combat-turn.use-case';
+import { WaitCombatTurnUseCase } from '../application/wait-combat-turn.use-case';
 import { AddCreatureParticipantDto } from '../dto/add-creature-participant.dto';
 import { AddPlayerCharacterParticipantDto } from '../dto/add-player-character-participant.dto';
 import { CreateCombatEncounterDto } from '../dto/create-combat-encounter.dto';
+import { EnterDefenseStanceDto } from '../dto/enter-defense-stance.dto';
+import { EndRoundParticipationDto } from '../dto/end-round-participation.dto';
 import {
 	ExecuteCombatActionDto,
 	ResolveCombatDefenseDto,
 	ResolveDeclaredCombatActionDto
 } from '../dto/execute-combat-action.dto';
 import { KnockdownSizeRuleQueryDto } from '../dto/knockdown-size-rule-query.dto';
-import { SkipCombatTurnDto } from '../dto/skip-combat-turn.dto';
 import { UpdateCombatEncounterDto } from '../dto/update-combat-encounter.dto';
 import { UpdateCombatParticipantDto } from '../dto/update-combat-participant.dto';
+import { WaitCombatTurnDto } from '../dto/wait-combat-turn.dto';
 
 @Controller()
 @UseGuards(JwtAuthGuard)
@@ -50,7 +54,9 @@ export class CombatEncountersController {
 		private readonly addPlayerCharacterUseCase: AddPlayerCharacterParticipantUseCase,
 		private readonly addCreatureUseCase: AddCreatureParticipantUseCase,
 		private readonly updateParticipantUseCase: UpdateCombatParticipantUseCase,
-		private readonly skipCombatTurnUseCase: SkipCombatTurnUseCase,
+		private readonly endRoundParticipationUseCase: EndRoundParticipationUseCase,
+		private readonly enterDefenseStanceUseCase: EnterDefenseStanceUseCase,
+		private readonly waitCombatTurnUseCase: WaitCombatTurnUseCase,
 		private readonly executeCombatActionUseCase: ExecuteCombatActionUseCase,
 		private readonly resolveDeclaredCombatActionUseCase: ResolveDeclaredCombatActionUseCase,
 		private readonly resolveCombatDefenseUseCase: ResolveCombatDefenseUseCase
@@ -132,14 +138,31 @@ export class CombatEncountersController {
 		);
 	}
 
-	@Post('combat-encounters/:id/participants/:participantId/skip-turn')
-	skipParticipantTurn(
+	@Post('combat-encounters/:id/actions/wait')
+	waitUntilAfterParticipant(
 		@CurrentUser() user: AuthenticatedUser,
 		@Param('id') id: string,
-		@Param('participantId') participantId: string,
-		@Body() dto: SkipCombatTurnDto
+		@Body() dto: WaitCombatTurnDto
 	) {
-		return this.skipCombatTurnUseCase.execute(id, participantId, user.id, dto);
+		return this.waitCombatTurnUseCase.execute(id, user.id, dto);
+	}
+
+	@Post('combat-encounters/:id/actions/enter-defense')
+	enterDefenseStance(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: EnterDefenseStanceDto
+	) {
+		return this.enterDefenseStanceUseCase.execute(id, user.id, dto);
+	}
+
+	@Post('combat-encounters/:id/actions/end-round-participation')
+	endRoundParticipation(
+		@CurrentUser() user: AuthenticatedUser,
+		@Param('id') id: string,
+		@Body() dto: EndRoundParticipationDto
+	) {
+		return this.endRoundParticipationUseCase.execute(id, user.id, dto);
 	}
 
 	@Post('combat-encounters/:id/actions/execute')

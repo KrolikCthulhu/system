@@ -11,10 +11,13 @@ import { FormsModule } from '@angular/forms';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Button } from 'primeng/button';
+import { Dialog } from 'primeng/dialog';
 import { InputNumber } from 'primeng/inputnumber';
 import { InputText } from 'primeng/inputtext';
+import { Popover } from 'primeng/popover';
 import { Select } from 'primeng/select';
 import { Tag } from 'primeng/tag';
+import { Tooltip } from 'primeng/tooltip';
 import { EMPTY, catchError, finalize, forkJoin } from 'rxjs';
 import { PLAYER_CHARACTERS_REPOSITORY } from '../../../../player-characters/data/player-characters-repository.port';
 import { AuthSessionService } from '../../../../auth/state/auth-session.service';
@@ -22,12 +25,15 @@ import { PlayerCharacterSummary } from '../../../../player-characters/domain/pla
 import { CREATURES_REPOSITORY } from '../../../../creatures/data/creatures-repository.port';
 import {
 	CreaturePublicSummary,
-	CreaturePublicTierSummary,
-	CreatureTierAction
+	CreaturePublicTierSummary
 } from '../../../../creatures/domain/creatures.models';
 import { COMBAT_ENCOUNTERS_REPOSITORY } from '../../../data/combat-encounters-repository.port';
 import { CombatEncounterRealtimeService } from '../../../data/combat-encounter-realtime.service';
 import {
+	CombatAvailableActionGroup,
+	CombatAvailableActionOption,
+	CombatAvailableActionTarget,
+	CombatActionCommand,
 	CombatEncounter,
 	CombatEncounterDeclaredAction,
 	CombatEncounterDefenseRequest,
@@ -45,22 +51,15 @@ interface ParticipantDraft {
 	sceneName: string;
 	currentHealth: number;
 	currentPotential: number;
-	initiative: number | null;
+	currentSpeed: number;
 	isActive: boolean;
 }
 
-interface EncounterActionGroup {
-	sourceName: string;
-	profileName: string;
-	rangeText: string;
-	costText: string;
-	actions: CreatureTierAction[];
-}
-
 interface EncounterActionSections {
-	attacks: EncounterActionGroup[];
-	abilities: CreatureTierAction[];
-	contextualActions: CreatureTierAction[];
+	attacks: CombatAvailableActionGroup[];
+	abilities: CombatAvailableActionOption[];
+	contextualActions: CombatAvailableActionOption[];
+	systemActions: CombatAvailableActionOption[];
 }
 
 interface RollSummary {
@@ -76,6 +75,10 @@ interface EventPayload {
 	resolveAtPotential?: number;
 	fromPotential?: number;
 	toPotential?: number;
+	targetParticipantName?: string;
+	potentialCost?: number;
+	preservedPotential?: number;
+	round?: number;
 	attackRoll?: RollSummary | null;
 	defenseRoll?: RollSummary | null;
 	defense?: {
@@ -94,12 +97,15 @@ interface EventPayload {
 	imports: [
 		Button,
 		DatePipe,
+		Dialog,
 		FormsModule,
 		InputNumber,
 		InputText,
+		Popover,
 		RouterLink,
 		Select,
-		Tag
+		Tag,
+		Tooltip
 	],
 	templateUrl: './combat-encounter-page.component.html',
 	styleUrl: './combat-encounter-page.component.scss',
@@ -130,9 +136,16 @@ export class CombatEncounterPageComponent {
 	protected readonly addingCreature = signal(false);
 	protected readonly savingParticipantId = signal<string | null>(null);
 	protected readonly executingActionKey = signal<string | null>(null);
-	protected readonly skippingParticipantId = signal<string | null>(null);
 	protected readonly resolvingDeclaredActionId = signal<string | null>(null);
 	protected readonly resolvingDefenseRequestId = signal<string | null>(null);
+	protected readonly pendingDefenseStance = signal<{
+		participant: CombatEncounterParticipant;
+		action: CombatAvailableActionOption;
+	} | null>(null);
+	protected readonly pendingRoundParticipationEnd = signal<{
+		participant: CombatEncounterParticipant;
+		action: CombatAvailableActionOption;
+	} | null>(null);
 	protected readonly updatingEncounterStatus = signal(false);
 	protected readonly combatLogCollapsed = signal(false);
 	protected readonly participantTargetDrafts = signal<
@@ -155,16 +168,28 @@ export class CombatEncounterPageComponent {
 		() => this.encounter()?.status !== 'DRAFT'
 	);
 	protected readonly potentialQueue = computed(() =>
-		[...this.activeParticipants()].sort(
+		this.activeParticipants()
+			.filter(
+				participant =>
+					!participant.isInDefenseStance &&
+					!participant.hasEndedRoundParticipation
+			)
+			.sort(
 			(left, right) =>
 				right.currentPotential - left.currentPotential ||
 				left.sortOrder - right.sortOrder
-		)
+			)
 	);
 	protected readonly highestCurrentPotential = computed(() =>
 		Math.max(
 			0,
-			...this.activeParticipants().map(
+			...this.activeParticipants()
+				.filter(
+					participant =>
+						!participant.isInDefenseStance &&
+						!participant.hasEndedRoundParticipation
+				)
+				.map(
 				participant => participant.currentPotential
 			)
 		)
@@ -192,7 +217,10 @@ export class CombatEncounterPageComponent {
 		this.dueDeclaredActions().length
 			? null
 			: (this.potentialQueue().find(
-					participant => participant.currentPotential > 0
+					participant =>
+						participant.currentPotential > 0 &&
+						!participant.isInDefenseStance &&
+						!participant.hasEndedRoundParticipation
 				) ?? null)
 	);
 	protected readonly displayedParticipants = computed(() => {
@@ -444,7 +472,7 @@ export class CombatEncounterPageComponent {
 
 	protected adjustParticipantValue(
 		participant: CombatEncounterParticipant,
-		field: 'currentHealth' | 'currentPotential',
+		field: 'currentHealth' | 'currentPotential' | 'currentSpeed',
 		delta: number
 	) {
 		const encounter = this.encounter();
@@ -499,75 +527,79 @@ export class CombatEncounterPageComponent {
 	protected actionSections(
 		participant: CombatEncounterParticipant
 	): EncounterActionSections {
-		const actions = this.canShowParticipantActions(participant)
-			? this.participantActions(participant)
-			: [];
-
-		return {
-			attacks: this.attackGroups(participant, actions),
-			abilities: actions.filter(action => action.kind === 'active_ability'),
-			contextualActions: actions.filter(
-				action => action.kind === 'condition_action'
-			)
-		};
+		return participant.availableActions;
 	}
 
-	protected participantActions(participant: CombatEncounterParticipant) {
-		const actions = [
-			...(participant.creature?.actions ?? []),
-			...(participant.creatureTier?.actions ?? []),
-			...(participant.creatureTier?.actionOverrides ?? [])
-		];
-		const bySlug = actions.reduce<Map<string, CreatureTierAction>>(
-			(result, action) => result.set(action.slug, action),
-			new Map<string, CreatureTierAction>()
-		);
-
-		return [...bySlug.values()]
-			.filter(action => action.isActive && action.kind !== 'passive')
-			.sort((first, second) => first.sortOrder - second.sortOrder);
-	}
-
-	protected canShowParticipantActions(participant: CombatEncounterParticipant) {
-		if (!this.isCombatActive()) {
-			return false;
-		}
-
-		if (participant.kind === 'CREATURE') {
-			return this.isCurrentUserGm();
-		}
-
-		return this.isCurrentUserParticipantOwner(participant);
-	}
-
-	protected canSkipParticipantTurn(participant: CombatEncounterParticipant) {
-		return (
-			this.isCombatActive() &&
-			this.activeActor()?.id === participant.id &&
-			this.canShowParticipantActions(participant)
+	protected mainSystemActions(participant: CombatEncounterParticipant) {
+		return participant.availableActions.systemActions.filter(
+			action => !this.isEndRoundParticipationAction(action)
 		);
 	}
 
-	protected attackGroups(
-		participant: CombatEncounterParticipant,
-		actions: CreatureTierAction[]
+	protected endRoundParticipationAction(
+		participant: CombatEncounterParticipant
 	) {
-		const groups = new Map<string, EncounterActionGroup>();
+		return (
+			participant.availableActions.systemActions.find(action =>
+				this.isEndRoundParticipationAction(action)
+			) ?? null
+		);
+	}
 
-		for (const action of actions.filter(item => item.kind === 'attack')) {
-			const sourceName = action.source?.name || 'Источник не задан';
-			const group = groups.get(sourceName) ?? {
-				sourceName,
-				profileName: action.source?.profileName ?? '',
-				rangeText: this.actionRangeText(participant, action),
-				costText: this.actionCostText(action),
-				actions: []
-			};
-			group.actions.push(action);
-			groups.set(sourceName, group);
-		}
+	protected waitActionButtonLabel(
+		target: CombatAvailableActionTarget
+	) {
+		return target.costText ? `${target.label} ${target.costText}` : target.label;
+	}
 
-		return [...groups.values()];
+	protected isWaitAction(action: CombatAvailableActionOption) {
+		return action.actionSlug === 'wait_until_after_participant';
+	}
+
+	protected isEnterDefenseAction(action: CombatAvailableActionOption) {
+		return action.actionSlug === 'enter_defense_stance';
+	}
+
+	protected isEndRoundParticipationAction(
+		action: CombatAvailableActionOption
+	) {
+		return action.actionSlug === 'end_round_participation';
+	}
+
+	protected openDefenseStanceConfirmation(
+		participant: CombatEncounterParticipant,
+		action: CombatAvailableActionOption
+	) {
+		this.pendingDefenseStance.set({ participant, action });
+	}
+
+	protected closeDefenseStanceConfirmation() {
+		this.pendingDefenseStance.set(null);
+	}
+
+	protected defenseStanceConfirmationTitle() {
+		return (
+			this.pendingDefenseStance()?.action.confirmationTitle ||
+			'Перейти в оборону?'
+		);
+	}
+
+	protected openRoundParticipationEndConfirmation(
+		participant: CombatEncounterParticipant,
+		action: CombatAvailableActionOption
+	) {
+		this.pendingRoundParticipationEnd.set({ participant, action });
+	}
+
+	protected closeRoundParticipationEndConfirmation() {
+		this.pendingRoundParticipationEnd.set(null);
+	}
+
+	protected roundParticipationEndConfirmationTitle() {
+		return (
+			this.pendingRoundParticipationEnd()?.action.confirmationTitle ||
+			'Завершить участие в раунде?'
+		);
 	}
 
 	protected targetOptions(
@@ -601,7 +633,7 @@ export class CombatEncounterPageComponent {
 
 	protected executeAction(
 		participant: CombatEncounterParticipant,
-		action: CreatureTierAction
+		action: CombatAvailableActionOption
 	) {
 		const encounter = this.encounter();
 
@@ -609,28 +641,29 @@ export class CombatEncounterPageComponent {
 			return;
 		}
 
-		const actionKey = this.actionDraftKey(participant.id, action.slug);
+		const actionKey = this.actionDraftKey(participant.id, action.actionSlug);
 		const targetParticipantId =
-			action.target?.type === 'self' ||
-			action.target?.type === 'linked_condition_target'
+			action.targetMode === 'self' ||
+			action.targetMode === 'linked_condition_target'
 				? null
 				: this.selectedTargetId(participant);
 
-		if (this.actionRequiresTarget(action) && !targetParticipantId) {
+		if (action.requiresTarget && !targetParticipantId) {
 			this.errorMessage.set('Выберите цель действия.');
 			return;
 		}
 
 		this.executingActionKey.set(actionKey);
 		this.errorMessage.set(null);
+		const command: CombatActionCommand = {
+			expectedVersion: encounter.stateVersion,
+			actorParticipantId: participant.id,
+			actionSlug: action.actionSlug,
+			targetParticipantId
+		};
 
 		this.encountersRepository
-			.executeAction(encounter.id, {
-				expectedVersion: encounter.stateVersion,
-				actorParticipantId: participant.id,
-				actionSlug: action.slug,
-				targetParticipantId
-			})
+			.executeAction(encounter.id, command)
 			.pipe(
 				catchError(error => {
 					this.errorMessage.set(
@@ -646,33 +679,123 @@ export class CombatEncounterPageComponent {
 			.subscribe(updatedEncounter => this.setEncounter(updatedEncounter));
 	}
 
-	protected skipParticipantTurn(participant: CombatEncounterParticipant) {
+	protected waitUntilAfterParticipant(
+		participant: CombatEncounterParticipant,
+		action: CombatAvailableActionOption,
+		target: CombatAvailableActionTarget
+	) {
 		const encounter = this.encounter();
 
-		if (!encounter || !this.canSkipParticipantTurn(participant)) {
+		if (!encounter) {
 			return;
 		}
 
-		this.skippingParticipantId.set(participant.id);
+		const actionKey = this.actionTargetDraftKey(
+			participant.id,
+			action.actionSlug,
+			target.participantId
+		);
+		this.executingActionKey.set(actionKey);
 		this.errorMessage.set(null);
 
 		this.encountersRepository
-			.skipParticipantTurn(encounter.id, participant.id, {
-				expectedVersion: encounter.stateVersion
+			.waitUntilAfterParticipant(encounter.id, {
+				expectedVersion: encounter.stateVersion,
+				actorParticipantId: participant.id,
+				actionSlug: action.actionSlug,
+				targetParticipantId: target.participantId
 			})
 			.pipe(
 				catchError(error => {
 					this.errorMessage.set(
 						error instanceof Error
 							? error.message
-							: 'Не удалось пропустить ход.'
+							: 'Не удалось выждать.'
 					);
 					return EMPTY;
 				}),
-				finalize(() => this.skippingParticipantId.set(null)),
+				finalize(() => this.executingActionKey.set(null)),
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe(updatedEncounter => this.setEncounter(updatedEncounter));
+	}
+
+	protected confirmDefenseStance() {
+		const pending = this.pendingDefenseStance();
+		const encounter = this.encounter();
+
+		if (!pending || !encounter) {
+			return;
+		}
+
+		const actionKey = this.actionDraftKey(
+			pending.participant.id,
+			pending.action.actionSlug
+		);
+		this.executingActionKey.set(actionKey);
+		this.errorMessage.set(null);
+
+		this.encountersRepository
+			.enterDefenseStance(encounter.id, {
+				expectedVersion: encounter.stateVersion,
+				actorParticipantId: pending.participant.id,
+				actionSlug: pending.action.actionSlug
+			})
+			.pipe(
+				catchError(error => {
+					this.errorMessage.set(
+						error instanceof Error
+							? error.message
+							: 'Не удалось перейти в оборону.'
+					);
+					return EMPTY;
+				}),
+				finalize(() => this.executingActionKey.set(null)),
+				takeUntilDestroyed(this.destroyRef)
+			)
+			.subscribe(updatedEncounter => {
+				this.pendingDefenseStance.set(null);
+				this.setEncounter(updatedEncounter);
+			});
+	}
+
+	protected confirmRoundParticipationEnd() {
+		const pending = this.pendingRoundParticipationEnd();
+		const encounter = this.encounter();
+
+		if (!pending || !encounter) {
+			return;
+		}
+
+		const actionKey = this.actionDraftKey(
+			pending.participant.id,
+			pending.action.actionSlug
+		);
+		this.executingActionKey.set(actionKey);
+		this.errorMessage.set(null);
+
+		this.encountersRepository
+			.endRoundParticipation(encounter.id, {
+				expectedVersion: encounter.stateVersion,
+				actorParticipantId: pending.participant.id,
+				actionSlug: pending.action.actionSlug
+			})
+			.pipe(
+				catchError(error => {
+					this.errorMessage.set(
+						error instanceof Error
+							? error.message
+							: 'Не удалось завершить участие в раунде.'
+					);
+					return EMPTY;
+				}),
+				finalize(() => this.executingActionKey.set(null)),
+				takeUntilDestroyed(this.destroyRef)
+			)
+			.subscribe(updatedEncounter => {
+				this.pendingRoundParticipationEnd.set(null);
+				this.setEncounter(updatedEncounter);
+			});
 	}
 
 	protected canResolveDeclaredAction(action: CombatEncounterDeclaredAction) {
@@ -821,8 +944,12 @@ export class CombatEncounterPageComponent {
 		const actionName = payload.actionName ?? event.actionSlug ?? 'действие';
 
 		switch (event.type) {
-			case 'turn_skipped':
-				return `${actorName ?? 'Участник'} пропустил ход`;
+			case 'defense_stance_entered':
+				return `${actorName ?? 'Участник'} перешел в оборону`;
+			case 'round_participation_ended':
+				return `${actorName ?? 'Участник'} завершил участие в раунде`;
+			case 'initiative_waited':
+				return `${actorName ?? 'Участник'} выждал после ${targetName ?? payload.targetParticipantName ?? 'участника'}`;
 			case 'action_declared':
 				return targetName
 					? `${actorName ?? 'Участник'} заявил ${actionName} против ${targetName}`
@@ -849,7 +976,7 @@ export class CombatEncounterPageComponent {
 			return lines;
 		}
 
-		if (event.type === 'turn_skipped') {
+		if (event.type === 'initiative_waited') {
 			if (
 				typeof payload.fromPotential === 'number' &&
 				typeof payload.toPotential === 'number'
@@ -858,6 +985,39 @@ export class CombatEncounterPageComponent {
 					`Потенциал: ${payload.fromPotential} → ${payload.toPotential}.`
 				);
 			}
+
+			if (typeof payload.potentialCost === 'number') {
+				lines.push(`Потрачено: ${payload.potentialCost}.`);
+			}
+
+			return lines;
+		}
+
+		if (event.type === 'defense_stance_entered') {
+			if (typeof payload.preservedPotential === 'number') {
+				lines.push(
+					`Сохранено для защит и реакций: ${payload.preservedPotential} Потенциала.`
+				);
+			}
+
+			if (typeof payload.round === 'number') {
+				lines.push(`До конца раунда ${payload.round}.`);
+			}
+
+			return lines;
+		}
+
+		if (event.type === 'round_participation_ended') {
+			if (typeof payload.preservedPotential === 'number') {
+				lines.push(
+					`Оставшийся Потенциал больше не используется: ${payload.preservedPotential}.`
+				);
+			}
+
+			if (typeof payload.round === 'number') {
+				lines.push(`До конца раунда ${payload.round}.`);
+			}
+
 			return lines;
 		}
 
@@ -964,34 +1124,6 @@ export class CombatEncounterPageComponent {
 		return slug;
 	}
 
-	protected actionCostText(action: CreatureTierAction) {
-		switch (action.cost.mode) {
-			case 'free':
-				return '0';
-			case 'fixed':
-				return `${action.cost.potential ?? 0}`;
-			case 'per_meter':
-				return `${action.cost.perMeter ?? 0}/м`;
-			case 'rule':
-				return 'по правилу';
-		}
-	}
-
-	protected actionRangeText(
-		participant: CombatEncounterParticipant,
-		action: CreatureTierAction
-	) {
-		const rangeMeters = this.actionRangeMeters(participant, action);
-		return rangeMeters === null ? '' : `${rangeMeters} м`;
-	}
-
-	protected actionRequiresTarget(action: CreatureTierAction) {
-		return (
-			action.target?.type === 'creature' ||
-			action.target?.type === 'hostile_creature'
-		);
-	}
-
 	private loadEncounter(id: string) {
 		this.loading.set(true);
 		this.errorMessage.set(null);
@@ -1078,22 +1210,12 @@ export class CombatEncounterPageComponent {
 		return `${participantId}:${actionSlug}`;
 	}
 
-	private actionRangeMeters(
-		participant: CombatEncounterParticipant,
-		action: CreatureTierAction
+	private actionTargetDraftKey(
+		participantId: string,
+		actionSlug: string,
+		targetParticipantId: string
 	) {
-		if (action.source?.type !== 'natural_attack') {
-			return null;
-		}
-
-		const naturalAttack = participant.creature?.naturalAttacks.find(
-			item => item.naturalAttack.slug === action.source?.slug
-		);
-		const profile = naturalAttack?.attackProfiles.find(
-			item => item.name === action.source?.profileName
-		);
-
-		return profile?.rangeMeters ?? null;
+		return `${participantId}:${actionSlug}:${targetParticipantId}`;
 	}
 }
 
@@ -1104,7 +1226,7 @@ function toParticipantDraft(
 		sceneName: participant.sceneName,
 		currentHealth: participant.currentHealth,
 		currentPotential: participant.currentPotential,
-		initiative: participant.initiative,
+		currentSpeed: participant.currentSpeed,
 		isActive: participant.isActive
 	};
 }
@@ -1118,6 +1240,12 @@ function readEventPayload(value: unknown): EventPayload {
 		resolveAtPotential: readNumber(record, 'resolveAtPotential') ?? undefined,
 		fromPotential: readNumber(record, 'fromPotential') ?? undefined,
 		toPotential: readNumber(record, 'toPotential') ?? undefined,
+		targetParticipantName:
+			readString(record, 'targetParticipantName') ?? undefined,
+		potentialCost: readNumber(record, 'potentialCost') ?? undefined,
+		preservedPotential:
+			readNumber(record, 'preservedPotential') ?? undefined,
+		round: readNumber(record, 'round') ?? undefined,
 		attackRoll: readRollSummary(record['attackRoll']),
 		defenseRoll: readRollSummary(record['defenseRoll']),
 		defense: readDefenseSummary(record['defense']),

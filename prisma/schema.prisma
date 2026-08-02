@@ -226,6 +226,7 @@ model CombatEncounter {
   campaign        Campaign                              @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   name            String
   status          CombatEncounterStatus                 @default(DRAFT)
+  currentRound    Int                                   @default(1) @map("current_round")
   stateVersion    Int                                   @default(0) @map("state_version")
   participants    CombatEncounterParticipant[]
   conditions      CombatEncounterParticipantCondition[]
@@ -260,33 +261,36 @@ model CombatEncounterCommand {
 }
 
 model CombatEncounterParticipant {
-  id                    String                                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  encounterId           String                                @map("encounter_id") @db.Uuid
-  encounter             CombatEncounter                       @relation(fields: [encounterId], references: [id], onDelete: Cascade)
-  kind                  CombatEncounterParticipantKind
-  playerCharacterId     String?                               @map("player_character_id") @db.Uuid
-  playerCharacter       PlayerCharacter?                      @relation(fields: [playerCharacterId], references: [id], onDelete: SetNull)
-  creatureId            String?                               @map("creature_id") @db.Uuid
-  creature              Creature?                             @relation(fields: [creatureId], references: [id], onDelete: SetNull)
-  creatureTierId        String?                               @map("creature_tier_id") @db.Uuid
-  creatureTier          CreatureTier?                         @relation(fields: [creatureTierId], references: [id], onDelete: SetNull)
-  sceneName             String                                @map("scene_name")
-  currentHealth         Int                                   @default(0) @map("current_health")
-  currentPotential      Int                                   @default(0) @map("current_potential")
-  initiative            Int?
-  conditions            CombatEncounterParticipantCondition[]
-  sourceConditionLinks  CombatEncounterConditionLink[]        @relation("CombatEncounterConditionLinkSource")
-  targetConditionLinks  CombatEncounterConditionLink[]        @relation("CombatEncounterConditionLinkTarget")
-  actorDefenseRequests  CombatEncounterDefenseRequest[]       @relation("CombatEncounterDefenseRequestActor")
-  targetDefenseRequests CombatEncounterDefenseRequest[]       @relation("CombatEncounterDefenseRequestTarget")
-  actorDeclaredActions  CombatEncounterDeclaredAction[]       @relation("CombatEncounterDeclaredActionActor")
-  targetDeclaredActions CombatEncounterDeclaredAction[]       @relation("CombatEncounterDeclaredActionTarget")
-  actorEvents           CombatEncounterEvent[]                @relation("CombatEncounterEventActor")
-  targetEvents          CombatEncounterEvent[]                @relation("CombatEncounterEventTarget")
-  isActive              Boolean                               @default(true) @map("is_active")
-  sortOrder             Int                                   @default(0) @map("sort_order")
-  createdAt             DateTime                              @default(now()) @map("created_at")
-  updatedAt             DateTime                              @updatedAt @map("updated_at")
+  id                           String                                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  encounterId                  String                                @map("encounter_id") @db.Uuid
+  encounter                    CombatEncounter                       @relation(fields: [encounterId], references: [id], onDelete: Cascade)
+  kind                         CombatEncounterParticipantKind
+  playerCharacterId            String?                               @map("player_character_id") @db.Uuid
+  playerCharacter              PlayerCharacter?                      @relation(fields: [playerCharacterId], references: [id], onDelete: SetNull)
+  creatureId                   String?                               @map("creature_id") @db.Uuid
+  creature                     Creature?                             @relation(fields: [creatureId], references: [id], onDelete: SetNull)
+  creatureTierId               String?                               @map("creature_tier_id") @db.Uuid
+  creatureTier                 CreatureTier?                         @relation(fields: [creatureTierId], references: [id], onDelete: SetNull)
+  sceneName                    String                                @map("scene_name")
+  currentHealth                Int                                   @default(0) @map("current_health")
+  currentPotential             Int                                   @default(0) @map("current_potential")
+  maximumPotential             Int                                   @default(0) @map("maximum_potential")
+  currentSpeed                 Int                                   @default(0) @map("current_speed")
+  defenseStanceRound           Int?                                  @map("defense_stance_round")
+  roundParticipationEndedRound Int?                                  @map("round_participation_ended_round")
+  conditions                   CombatEncounterParticipantCondition[]
+  sourceConditionLinks         CombatEncounterConditionLink[]        @relation("CombatEncounterConditionLinkSource")
+  targetConditionLinks         CombatEncounterConditionLink[]        @relation("CombatEncounterConditionLinkTarget")
+  actorDefenseRequests         CombatEncounterDefenseRequest[]       @relation("CombatEncounterDefenseRequestActor")
+  targetDefenseRequests        CombatEncounterDefenseRequest[]       @relation("CombatEncounterDefenseRequestTarget")
+  actorDeclaredActions         CombatEncounterDeclaredAction[]       @relation("CombatEncounterDeclaredActionActor")
+  targetDeclaredActions        CombatEncounterDeclaredAction[]       @relation("CombatEncounterDeclaredActionTarget")
+  actorEvents                  CombatEncounterEvent[]                @relation("CombatEncounterEventActor")
+  targetEvents                 CombatEncounterEvent[]                @relation("CombatEncounterEventTarget")
+  isActive                     Boolean                               @default(true) @map("is_active")
+  sortOrder                    Int                                   @default(0) @map("sort_order")
+  createdAt                    DateTime                              @default(now()) @map("created_at")
+  updatedAt                    DateTime                              @updatedAt @map("updated_at")
 
   @@index([encounterId, sortOrder])
   @@index([playerCharacterId])
@@ -1452,6 +1456,7 @@ model SystemValue {
   description      String?
   primaryOwnerType SystemValueOwnerType @map("primary_owner_type")
   primaryOwnerId   String?              @map("primary_owner_id") @db.Uuid
+  coreKey          String?              @unique @map("core_key")
   displaySection   String?              @map("display_section")
   calculationGraph Json?                @map("calculation_graph")
   isSystemManaged  Boolean              @default(false) @map("is_system_managed")
@@ -1469,6 +1474,7 @@ model SystemValue {
   spellMechanicParameterDefaults SpellMechanicParameter[]
 
   @@index([primaryOwnerType, primaryOwnerId])
+  @@index([coreKey])
   @@index([isActive, sortOrder])
   @@map("system_values")
 }
@@ -1488,6 +1494,25 @@ model SystemValueLink {
   @@index([targetType, targetId])
   @@index([systemValueId])
   @@map("system_value_links")
+}
+
+model SystemCombatAction {
+  id                  String   @id @default(uuid()) @db.Uuid
+  coreKey             String   @unique @map("core_key")
+  label               String
+  description         String?
+  targetChoiceLabel   String?  @map("target_choice_label")
+  confirmationTitle   String?  @map("confirmation_title")
+  optionLabelTemplate String?  @map("option_label_template")
+  costLabelTemplate   String?  @map("cost_label_template")
+  unavailableText     String?  @map("unavailable_text")
+  isEnabled           Boolean  @default(true) @map("is_enabled")
+  sortOrder           Int      @default(0) @map("sort_order")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  @@index([isEnabled, sortOrder])
+  @@map("system_combat_actions")
 }
 
 model CharacterSheetSandboxDraft {

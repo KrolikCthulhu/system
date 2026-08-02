@@ -659,6 +659,7 @@ export type ProgressionContent = NamedContentItem & {
 
 export type SystemValueContent = NamedContentItem & {
 	primaryOwnerType: keyof typeof SystemValueOwnerType;
+	coreKey?: string | null;
 	displaySection: string;
 	calculation: 'characterInput';
 	isSystemManaged: boolean;
