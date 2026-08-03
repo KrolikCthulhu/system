@@ -1,10 +1,85 @@
 .auth-form {
-	display: grid;
-	gap: 1.35rem;
-	width: 100%;
+	display: flex;
+	gap: var(--my-gap);
+	flex-direction: column;
 }
 
 .auth-form__fields {
-	display: grid;
-	gap: 1.25rem;
+	display: flex;
+	gap: var(--my-gap);
+	flex-direction: column;
+	color: #f6f2f5;
+	font-family: 'Inter', serif;
+	font-weight: 400;
+	font-size: 18px;
+	line-height: 18px;
+}
+
+.auth-form__field {
+	display: flex;
+	gap: 10px;
+	flex-direction: column;
+	position: relative;
+}
+
+.auth-form__password {
+	display: flex;
+	gap: 10px;
+	flex-direction: column;
+	position: relative;
+}
+
+input {
+	--p-inputtext-background: #1e2632;
+	--p-inputtext-filled-background: #1e2632;
+	--p-inputtext-filled-hover-background: #242d3b;
+	--p-inputtext-filled-focus-background: #242d3b;
+	--p-inputtext-border-color: #39414d;
+	--p-inputtext-hover-border-color: #5d6b80;
+	--p-inputtext-focus-border-color: #5d6b80;
+	--p-inputtext-color: #a9afba;
+	--p-inputtext-padding-y: 18px;
+	--p-inputtext-padding-x: 18px;
+	font-size: 18px;
+}
+
+p-password {
+	--p-inputtext-background: #1e2632;
+	--p-inputtext-filled-background: #1e2632;
+	--p-inputtext-filled-hover-background: #242d3b;
+	--p-inputtext-filled-focus-background: #242d3b;
+	--p-inputtext-border-color: #39414d;
+	--p-inputtext-hover-border-color: #5d6b80;
+	--p-inputtext-focus-border-color: #5d6b80;
+	--p-inputtext-color: #a9afba;
+	--p-inputtext-padding-y: 18px;
+	--p-inputtext-padding-x: 18px;
+	// font-size: 18px; //эта хуита не работает я хз почему
+}
+
+p-button {
+	--p-button-primary-border-color: #7b643d;
+	--p-button-primary-color: #ffffff;
+	--p-button-primary-background: linear-gradient(#a7824c, #7b643d);
+	--p-button-primary-hover-background: linear-gradient(#af7825, #58482d);
+	--p-button-primary-active-background: linear-gradient(#df9526, #e6b15c);
+	--p-button-lg-font-size: 18px;
+	--p-button-lg-padding-y: 18px;
+	--p-button-link-color: #cb9f67;
+	--p-button-link-active-color: #80541b;
+	--p-button-link-hover-color: #c28c46;
+}
+
+.forget-pass-button {
+	--p-button-label-font-weight: 300;
+	align-self: flex-end;
+}
+p-message {
+	position: absolute;
+	top: 105%;
+	z-index: 2;
+}
+
+.pi {
+	color: #cb9f67;
 }

@@ -1,43 +1,183 @@
-:host {
-	display: block;
-	min-height: 100vh;
-}
-
 .auth-page {
-	min-height: 100vh;
-	display: grid;
-	place-items: center;
-	padding: 1rem;
-	background: #fff;
+	height: 100vh;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	background-image:
+		linear-gradient(rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.1)),
+		url('/assets/auth-bg.png');
+	background-size: cover;
+	background-position: center;
 }
 
-.auth-switch {
+.auth-card {
+	height: 840px;
+	width: 1520px;
 	display: flex;
-	gap: 0.75rem;
-	margin-bottom: 1rem;
+	flex-direction: row;
+	border: solid 2px #b09771;
+	border-radius: 20px;
+	box-shadow: 0 0 5px 3px color-mix(in srgb, #b09771 40%, transparent);
+}
+
+.auth-postcard {
+	height: 100%;
+	width: 50%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 3%;
+	background-image:
+		radial-gradient(
+			ellipse at 50% 50%,
+			rgba(253, 241, 218, 0.85) 30%,
+			transparent 90%
+		),
+		url('/assets/auth-bg.png');
+	background-size: cover;
+	background-position: center;
+	border-radius: 18px 0px 0px 18px;
+
+	&__img {
+		height: 330px;
+	}
+
+	&__title {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		color: #1b222f;
+	}
+
+	&__subtitle {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		color: #1b222f;
+	}
+}
+
+.title-last-line {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: center;
+	gap: 10px;
+}
+
+.auth-card-content {
+	height: 100%;
+	width: 50%;
+	padding: 7%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	background-color: #1b222f;
+	border-radius: 0px 18px 18px 0px;
+	color: #b09771;
+}
+
+.auth-block {
+	height: 100%;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	--my-gap: 35px;
+	gap: var(--my-gap);
+
+	&__title {
+		width: 100%;
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		justify-content: center;
+		gap: 20px;
+	}
+}
+
+.auth-divider {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	gap: 10px;
+	width: 100%;
+	color: #abb1ba;
+
+	&__line {
+		flex-grow: 1;
+	}
+}
+
+.title-text {
+	text-align: center;
+	font-family: 'Cormorant Garamond', serif;
+	font-weight: 500;
+	font-size: 40px;
+	line-height: 40px;
+	text-transform: uppercase;
+}
+
+.subtitle-text {
+	text-align: center;
+	font-family: 'Inter', serif;
+	font-weight: 400;
+	font-size: 18px;
+	line-height: 18px;
+}
+
+.auth-block-subtitle-text {
+	color: #abb1ba;
+	font-size: 16px;
 }
 
 .auth-content {
 	width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: stretch;
+	gap: var(--my-gap);
 }
 
-.auth-feedback {
-	margin-top: 1rem;
-}
-
-.auth-page__message {
-	display: block;
-}
-
-.auth-measure {
-	position: fixed;
-	left: -99999px;
-	top: 0;
-	width: min(37.5rem, 92vw);
-	pointer-events: none;
-	opacity: 0;
-}
-
-.auth-measure__content {
+.reg-content {
 	width: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	align-items: stretch;
+	gap: var(--my-gap);
+}
+
+p-button {
+	--p-button-outlined-secondary-border-color: #b09771;
+	--p-button-outlined-secondary-color: #b09771;
+	--p-button-outlined-secondary-hover-background: linear-gradient(
+		#3f495e,
+		#202838
+	);
+	--p-button-outlined-secondary-active-background: linear-gradient(
+		#0a152c,
+		#3b4353
+	);
+	--p-button-primary-border-color: #7b643d;
+	--p-button-primary-color: #ffffff;
+	--p-button-primary-background: linear-gradient(#a7824c, #7b643d);
+	--p-button-primary-hover-background: linear-gradient(#af7825, #58482d);
+	--p-button-primary-active-background: linear-gradient(#df9526, #e6b15c);
+	--p-button-lg-font-size: 18px;
+	--p-button-lg-padding-y: 18px;
+	--p-button-link-color: #cb9f67;
+	--p-button-link-active-color: #80541b;
+	--p-button-link-hover-color: #c28c46;
+}
+
+.back-to-auth-button {
+	--p-button-label-font-weight: 300;
+	align-self: flex-start;
 }

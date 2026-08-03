@@ -6,13 +6,23 @@ import {
 	output,
 	signal
 } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import {
+	AbstractControl,
+	FormBuilder,
+	FormGroup,
+	ReactiveFormsModule,
+	ValidationErrors,
+	ValidatorFn,
+	Validators
+} from '@angular/forms';
 import { Button } from 'primeng/button';
 import { FloatLabel } from 'primeng/floatlabel';
 import { InputText } from 'primeng/inputtext';
 import { Message } from 'primeng/message';
 import { Password } from 'primeng/password';
 import { SignUpCommand } from '../../../state/auth.commands';
+import { IconFieldModule } from 'primeng/iconfield';
+import { InputIconModule } from 'primeng/inputicon';
 
 const USERNAME_PATTERN = /^[A-Za-z0-9_]+$/;
 
@@ -24,7 +34,9 @@ const USERNAME_PATTERN = /^[A-Za-z0-9_]+$/;
 		FloatLabel,
 		InputText,
 		Message,
-		Password
+		Password,
+		IconFieldModule,
+		InputIconModule
 	],
 	templateUrl: './sign-up-form.component.html',
 	styleUrl: './sign-up-form.component.scss'
@@ -34,19 +46,31 @@ export class SignUpFormComponent {
 	readonly pending = input(false);
 	private readonly formBuilder = inject(FormBuilder);
 
-	protected readonly form = this.formBuilder.nonNullable.group({
-		email: ['', [Validators.required, Validators.email]],
-		username: [
-			'',
-			[
-				Validators.required,
-				Validators.minLength(3),
-				Validators.maxLength(32),
-				Validators.pattern(USERNAME_PATTERN)
-			]
-		],
-		password: ['', [Validators.required, Validators.minLength(8)]]
-	});
+	private passCheck: ValidatorFn = (
+		group: AbstractControl
+	): ValidationErrors | null => {
+		return group.get('passwordCheck')?.value === group.get('password')?.value
+			? null
+			: { passwordNotChecked: true };
+	};
+
+	protected readonly form = this.formBuilder.nonNullable.group(
+		{
+			email: ['', [Validators.required, Validators.email]],
+			username: [
+				'',
+				[
+					Validators.required,
+					Validators.minLength(3),
+					Validators.maxLength(32),
+					Validators.pattern(USERNAME_PATTERN)
+				]
+			],
+			password: ['', [Validators.required, Validators.minLength(8)]],
+			passwordCheck: ['']
+		},
+		{ validators: [this.passCheck] }
+	);
 
 	protected readonly attempted = signal(false);
 	protected readonly showErrors = computed(() => this.attempted());
@@ -72,8 +96,15 @@ export class SignUpFormComponent {
 		});
 	}
 
-	protected hasError(controlName: 'email' | 'username' | 'password') {
-		const control = this.form.controls[controlName];
-		return this.showErrors() && control.invalid;
+	protected hasError(
+		controlName: 'email' | 'username' | 'password' | 'passwordCheck'
+	) {
+		if (controlName === 'passwordCheck') {
+			const form = this.form;
+			return this.showErrors() && form.errors?.['passwordNotChecked'];
+		} else {
+			const control = this.form.controls[controlName];
+			return this.showErrors() && control.invalid;
+		}
 	}
 }

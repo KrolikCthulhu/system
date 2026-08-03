@@ -1,32 +1,28 @@
-import {
-	Component,
-	DestroyRef,
-	ElementRef,
-	HostListener,
-	afterNextRender,
-	inject,
-	signal,
-	viewChild
-} from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import { Button } from 'primeng/button';
 import { Card } from 'primeng/card';
 import { Message } from 'primeng/message';
 import { EMPTY, catchError, finalize, from, switchMap } from 'rxjs';
-import {
-	SignInCommand,
-	SignUpCommand
-} from '../../../state/auth.commands';
+import { SignInCommand, SignUpCommand } from '../../../state/auth.commands';
 import { AuthFacade } from '../../../state/auth.facade';
 import { SignInFormComponent } from '../../components/sign-in-form/sign-in-form.component';
 import { SignUpFormComponent } from '../../components/sign-up-form/sign-up-form.component';
+import { FluidModule, Fluid } from 'primeng/fluid';
 
 type AuthMode = 'sign-in' | 'register';
 
 @Component({
 	selector: 'app-auth-page',
-	imports: [Button, Card, Message, SignInFormComponent, SignUpFormComponent],
+	imports: [
+		Button,
+		Card,
+		Message,
+		SignInFormComponent,
+		SignUpFormComponent,
+		Fluid
+	],
 	templateUrl: './auth-page.component.html',
 	styleUrl: './auth-page.component.scss'
 })
@@ -34,22 +30,12 @@ export class AuthPageComponent {
 	private readonly authFacade = inject(AuthFacade);
 	private readonly destroyRef = inject(DestroyRef);
 	private readonly router = inject(Router);
-	private readonly signInMeasureRef =
-		viewChild.required<ElementRef<HTMLElement>>('signInMeasure');
-	private readonly signUpMeasureRef =
-		viewChild.required<ElementRef<HTMLElement>>('signUpMeasure');
 
 	protected readonly cardStyle = { width: 'min(37.5rem, 92vw)' };
 	protected readonly contentMinHeight = signal('0px');
 	protected readonly mode = signal<AuthMode>('sign-in');
 	protected readonly pending = signal(false);
 	protected readonly errorMessage = signal('');
-
-	constructor() {
-		afterNextRender(() => {
-			this.updateContentMinHeight();
-		});
-	}
 
 	protected setMode(mode: AuthMode) {
 		if (this.pending() || this.mode() === mode) {
@@ -102,20 +88,5 @@ export class AuthPageComponent {
 				takeUntilDestroyed(this.destroyRef)
 			)
 			.subscribe();
-	}
-
-	@HostListener('window:resize')
-	protected onWindowResize() {
-		this.updateContentMinHeight();
-	}
-
-	private updateContentMinHeight() {
-		const signInHeight =
-			this.signInMeasureRef().nativeElement.getBoundingClientRect().height;
-		const signUpHeight =
-			this.signUpMeasureRef().nativeElement.getBoundingClientRect().height;
-		const maxHeight = Math.max(signInHeight, signUpHeight);
-
-		this.contentMinHeight.set(`${Math.ceil(maxHeight)}px`);
 	}
 }
